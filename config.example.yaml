@@ -1,0 +1,171 @@
+# Example configuration: a conservative production starting point, not a dump of
+# code defaults. Values here deliberately differ from the built-in defaults where
+# docs/OPERATIONS.md recommends a specific production setting (per-role models,
+# a single semantic candidate per batch, risk-filtered reprose). Copy this file
+# and edit the copy; `book-agent config --file <copy>` prints the resolved result.
+#
+# Every key below is optional. Omit one to take the code default in
+# book_agent/config.py.
+
+ollama:
+  host: http://localhost:11434
+  model: qwen3.8:latest
+  num_ctx: 131072
+  adaptive_num_ctx: true
+  min_num_ctx: 16384
+  temperature: 0.0
+  timeout_seconds: 1800
+  keep_alive: 30m
+  max_retries: 3
+  retry_initial_seconds: 0.5
+  retry_max_seconds: 8.0
+  # Content-free streaming heartbeat. Token throttling takes precedence;
+  # progress_interval_chars is a legacy fallback kept for old workspaces.
+  progress_interval_seconds: 30.0
+  progress_interval_tokens: 2000
+  progress_interval_chars: 0
+
+budget:
+  working_limit: 100000
+  prompt_tokens: 10000
+  glossary_tokens: 5000
+  source_tokens: 40000
+  expected_output_tokens: 40000
+  reserve_tokens: 5000
+
+translation:
+  direction: en-zh
+  style: literary
+  custom_style_file: null
+  preserve_paragraphs: true
+  preserve_punctuation: true
+  use_glossary_strictly: true
+  de_ai_enabled: true
+  de_ai_strength: conservative
+  thinking: false
+  marker_examples: few-shot
+  fallback_models: []
+  attempts_per_model: 2
+  harmonize_fallback_with_primary: true
+  # Optional immutable previous/next source segments for continuity.
+  boundary_context: none
+  # Per-request ceiling for translation calls. The ollama.num_ctx value above is
+  # the hard ceiling; adaptive allocation climbs to this one in power-of-two
+  # tiers. Must exceed max_prompt_tokens and leave room beyond the prompt,
+  # glossary, output, and reserve budgets configured under `budget`.
+  max_num_ctx: 65536
+  max_prompt_tokens: 20000
+  # Requested context is this multiple of measured prompt tokens, then rounded
+  # up to the next tier.
+  context_multiplier: 3.0
+
+glossary:
+  # Set false only when supplying reviewed seed/series/book glossaries.
+  extraction_enabled: true
+  extraction_model: qwen3.8:27b
+  extraction_thinking: false
+  extraction_min_num_ctx: 16384
+  extraction_max_num_ctx: 32768
+  extraction_max_entries: 120
+  extraction_max_evidence_per_entry: 3
+  extraction_chapters_per_chunk: 8
+  extraction_chunk_tokens: 9000
+  extraction_context_multiplier: 2.0
+  resolution_chunk_tokens: 8000
+  resolution_min_num_ctx: 16384
+  resolution_max_num_ctx: 32768
+  resolution_context_multiplier: 2.0
+  approval_chunk_tokens: 8000
+  approval_min_num_ctx: 16384
+  approval_max_num_ctx: 32768
+  approval_context_multiplier: 2.0
+  approval_auto_approve_min_confidence: 0.9
+  seed_glossaries: []
+  series_glossaries: []
+  book_glossaries: []
+
+preprocessing:
+  mode: annotate
+  conflict_policy: skip
+
+epub:
+  # Remove embedded print-edition page landmarks from reflowable translated EPUBs.
+  strip_print_page_markers: false
+  # Add a visible h1 only to spine documents with no existing heading.
+  # Linked source-TOC labels take precedence over this fallback list.
+  insert_missing_chapter_headings: false
+  chapter_heading_labels: []
+
+audit:
+  model: gemma4:31b
+  verifier_model: gemma4:26b
+  verifier_max_num_ctx: 16384
+  # Defaults to the primary translation model when omitted.
+  repair_model: qwen3.8:latest
+  semantic_verification_policy: autonomous
+  thinking: false
+  semantic_enabled: true
+  semantic_min_source_tokens: 180
+  semantic_batch_source_tokens: 8000
+  # Keep high-risk passages isolated so one finding cannot distract from another.
+  semantic_max_candidates_per_batch: 1
+  # Bound structured semantic-audit verbosity; raise this when batching more candidates.
+  # Initial cap; malformed/truncated structured retries expand up to 8192.
+  semantic_max_output_tokens: 3072
+  semantic_max_num_ctx: 16384
+  semantic_sample_every: 0
+  max_semantic_candidates_per_document: 50
+  min_length_ratio: 0.20
+  max_length_ratio: 4.0
+  untranslated_min_words: 3
+  repair_min_severity: medium
+  repair_min_num_ctx: 16384
+  repair_max_num_ctx: 16384
+  repair_context_multiplier: 1.0
+  repair_max_attempts: 2
+  max_num_ctx: 65536
+  quantity:
+    enabled: false
+    mode: shadow
+    model: gemma4:26b
+    escalation_model: gemma4:31b
+    thinking: false
+    max_num_ctx: 16384
+    min_decision_confidence: 0.85
+    batch_size: 1
+    verify_repairs: true
+
+reprose:
+  enabled: false
+  model: qwen3.8:latest
+  thinking: false
+  verifier_model: gemma4:31b
+  verifier_thinking: false
+  verifier_max_num_ctx: 16384
+  min_num_ctx: 16384
+  max_num_ctx: 16384
+  batch_size: 4
+  min_target_characters: 40
+  max_candidates_per_document: 0
+  max_attempts: 2
+  # Production runs should prefer risk-filtered; all-prose remains the compatible default.
+  candidate_mode: risk-filtered
+  long_target_characters: 100
+  candidate_sample_every: 0
+  preserve_semantic_signatures: true
+
+workflow:
+  production_profile: ""
+  production_profile_version: 0
+  enforce_human_high_risk: false
+  max_retries: 3
+  defer_failed_translation_segments: true
+  require_glossary_review: true
+  llm_glossary_review: false
+  require_final_review: false
+  compile_max_unresolved_review_segments: 5
+  overwrite: false
+
+paths:
+  runs: runs
+  prompts: prompts

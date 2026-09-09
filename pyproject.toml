@@ -1,0 +1,47 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ollama-agentic-translator"
+version = "0.1.0"
+description = "Resumable local-LLM EPUB and RTF translation workflow"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+dependencies = [
+    "beautifulsoup4>=4.12",
+    "ollama>=0.6.2",
+    "pydantic>=2.10",
+    "PyYAML>=6.0",
+    "rich>=13.0",
+    "striprtf>=0.0.33",
+]
+
+[project.scripts]
+book-agent = "book_agent.cli:entrypoint"
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.0",
+    "pytest-cov>=5.0",
+    "pytest-subtests>=0.13",
+]
+
+[tool.setuptools.packages.find]
+include = ["book_agent*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "--strict-markers"
+# Suite classes use a trailing-Tests name, not pytest's default Test* prefix.
+python_classes = ["Test*", "*Tests"]
+
+[tool.coverage.run]
+branch = true
+source = ["book_agent"]
+
+[tool.coverage.report]
+show_missing = true
+# Reflects the suite's measured floor (currently 87.9%). Raise this alongside
+# real coverage gains rather than declaring a target the suite does not meet.
+fail_under = 85

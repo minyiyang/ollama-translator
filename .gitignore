@@ -1,0 +1,30 @@
+# Python bytecode and test/tool caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Packaging and virtual environments
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+
+# Generated translation workspaces and logs
+runs/
+*.log
+
+# Machine-local configuration and secrets
+config.yaml
+.env
+.env.*
+!.env.example
+
+# Editor and operating-system files
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db

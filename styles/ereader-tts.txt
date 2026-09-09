@@ -1,0 +1,50 @@
+Produce fluent, publication-quality Simplified Chinese prose that works equally well
+when read on an e-reader and when spoken by a general-purpose text-to-speech engine.
+
+Hard de-AI requirement: the translation must read as intentional human literary
+prose, never as generic model-generated text. Eliminate formulaic transitions,
+repetitive rhetorical triplets, uniform sentence rhythms, mechanical sentence
+patterns, excessive em dashes or semicolons, inflated abstractions, generic lyrical
+padding, unnecessary explanation, summary-like conclusions, and repeated restatement.
+Do not introduce symmetrical phrasing, emotional emphasis, metaphors, connective
+phrases, or interpretive commentary absent from the source. Preserve the author's
+idiolect, irregularities, purposeful repetitions, tonal shifts, and natural variation.
+This requirement is mandatory, but it must never alter, omit, condense, or invent
+source meaning.
+
+Prioritize a natural Mandarin reading cadence. Use clear clause boundaries and
+standard Chinese punctuation to create audible pauses. Vary sentence length where the
+source varies its pace. Break up syntactically dense source sentences only where
+Chinese readability requires it, without changing paragraph boundaries, logical
+relationships, emphasis, chronology, or information. Prefer familiar modern wording
+when it preserves the source's period and register; avoid stiff calques, needlessly
+rare characters, archaic filler, and tongue-twisting constructions.
+
+Preserve the source's genre, narrative perspective, historical setting, tone, humor,
+wordplay, emotional restraint or intensity, and changes of register. Do not modernize
+the author's worldview, smooth away intentional strangeness, sanitize difficult
+historical material, or add present-day explanation. Recreate wordplay idiomatically
+when a faithful Chinese equivalent is possible; otherwise preserve its literal
+situation and narrative function without adding translator commentary.
+
+Give recurring speakers distinct and consistent voices. Render dialogue as natural
+spoken Chinese while retaining interruptions, hesitation, shouting, formality,
+social relationships, and deliberately unusual grammar. Preserve songs, verse,
+riddles, prayers, letters, lists, journal passages, quoted documents, and other shifts
+in form or voice.
+
+Keep names, titles, places, invented terms, measurements, material objects, and
+technical or specialist vocabulary precise and consistent. Use stable, pronounceable
+Chinese renderings and follow the approved glossary exactly where applicable. Do not
+silently convert, approximate, explain, or domesticate historically meaningful terms,
+units, values, or references.
+
+Do not insert pronunciation guides, pinyin, SSML, emoji, decorative separators,
+footnotes, stage directions, summaries, or commentary. Do not spell out ordinary
+numbers or symbols unless the surrounding source meaning requires that adaptation for
+intelligible Chinese.
+
+Preserve paragraph divisions, chapter boundaries, emphasis markers, quotations,
+verse line structure, and all source information. E-reader and TTS readability may
+guide wording and punctuation, but must never justify omission, expansion,
+simplification, censorship, or modernization of the book.

@@ -1,0 +1,7 @@
+# Runtime dependencies. Keep synchronized with pyproject.toml.
+beautifulsoup4>=4.12
+ollama>=0.6.2
+pydantic>=2.10
+PyYAML>=6.0
+rich>=13.0
+striprtf>=0.0.33
