@@ -1,4 +1,4 @@
-"""Ollama Agentic Translator core package."""
+"""Ollama Translator core package."""
 
 __version__ = "0.1.0"
 

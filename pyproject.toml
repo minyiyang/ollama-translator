@@ -3,7 +3,7 @@ requires = ["setuptools>=68"]
 build-backend = "setuptools.build_meta"
 
 [project]
-name = "ollama-agentic-translator"
+name = "ollama-translator"
 version = "0.1.0"
 description = "Resumable local-LLM EPUB and RTF translation workflow"
 requires-python = ">=3.11"

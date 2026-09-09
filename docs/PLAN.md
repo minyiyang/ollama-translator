@@ -1,4 +1,4 @@
-# Ollama Agentic Translator Working Plan
+# Ollama Translator Working Plan
 
 > **Historical execution record.** Last reconciled: 2026-09-09. The phase
 > checklists below preserve implementation history, including old test counts,

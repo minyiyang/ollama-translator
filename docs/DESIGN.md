@@ -1,4 +1,4 @@
-# Ollama Agentic Translator Design
+# Ollama Translator Design
 
 > **Current-operation note (2026-09-09):** This document records the durable
 > architectural rationale. For executable defaults, role assignments, review
@@ -8,7 +8,7 @@
 
 ## 1. Purpose
 
-Ollama Agentic Translator automates EPUB-to-EPUB and RTF-to-EPUB
+Ollama Translator automates EPUB-to-EPUB and RTF-to-EPUB
 English-to-Chinese and Chinese-to-English translation workflows using local Ollama models. It replaces a sequence of
 manually invoked scripts with a resumable, observable, and testable pipeline.
 
@@ -100,7 +100,7 @@ EPUB or RTF
 ## 5. Components
 
 ```text
-ollama_agentic_translator/
+ollama-translator/
   book_agent/
     cli.py               CLI boundary
     config.py            validated configuration
