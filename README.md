@@ -4,6 +4,8 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
+**English** | [简体中文](README.zh-CN.md)
+
 A local, resumable book-translation pipeline for English-to-Chinese and
 Chinese-to-English literary prose. It takes an EPUB or RTF and produces a
 translated EPUB, running entirely against local Ollama models: no cloud API,
