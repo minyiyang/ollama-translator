@@ -50,6 +50,7 @@ from ..repair import (
     map_pairwise_repair_verification,
     repair_candidate_first,
     repair_verification_output_token_limit,
+    requires_full_segment_translation,
     validate_repair_output,
     validate_repair_verification_scope,
     validate_pairwise_repair_verification_scope,
@@ -886,6 +887,11 @@ def _requires_human_high_risk_change(
     if config.audit.semantic_verification_policy != "human-high-risk":
         return False
     if not decision.passed or decision.current_acceptable:
+        return False
+    # A deferred first draft translated in full later is not a relation change:
+    # the verifier judged a complete translation of source text that was never
+    # drafted, so its own decision stands instead of queueing every recovery.
+    if requires_full_segment_translation(list(repair.issues)):
         return False
     structured_high_risk = {
         AuditRiskTag.QUANTITY,

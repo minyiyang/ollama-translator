@@ -20,6 +20,7 @@ class WorkflowStage(str, Enum):
     APPROVE_GLOSSARY = "approve_glossary"
     PREPROCESS = "preprocess"
     TRANSLATE = "translate"
+    RESCUE_TRANSLATION = "rescue_translation"
     AUDIT_TRANSLATION = "audit_translation"
     REPAIR_TRANSLATION = "repair_translation"
     REPROSE_TRANSLATION = "reprose_translation"
@@ -37,7 +38,8 @@ STAGE_DEPENDENCIES: dict[WorkflowStage, tuple[WorkflowStage, ...]] = {
     WorkflowStage.APPROVE_GLOSSARY: (WorkflowStage.RESOLVE_GLOSSARY,),
     WorkflowStage.PREPROCESS: (WorkflowStage.APPROVE_GLOSSARY,),
     WorkflowStage.TRANSLATE: (WorkflowStage.PREPROCESS,),
-    WorkflowStage.AUDIT_TRANSLATION: (WorkflowStage.TRANSLATE,),
+    WorkflowStage.RESCUE_TRANSLATION: (WorkflowStage.TRANSLATE,),
+    WorkflowStage.AUDIT_TRANSLATION: (WorkflowStage.RESCUE_TRANSLATION,),
     WorkflowStage.REPAIR_TRANSLATION: (WorkflowStage.AUDIT_TRANSLATION,),
     WorkflowStage.REPROSE_TRANSLATION: (WorkflowStage.REPAIR_TRANSLATION,),
     WorkflowStage.REVIEW_REPAIRED: (WorkflowStage.REPROSE_TRANSLATION,),

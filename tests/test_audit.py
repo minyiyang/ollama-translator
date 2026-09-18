@@ -958,3 +958,10 @@ class AuditCoreTests:
         assert len(merged) == 2
         assert merged == deduplicate_audit_issues(merged)
 
+    def test_letters_inside_an_identifier_are_not_untranslated_words(self) -> None:
+        source = source_document(["Document ID: 6bd82790-d710-44b3-9d22-c429aaaa175d"])
+        target = translated_document(["文档 ID：6bd82790-d710-44b3-9d22-c429aaaa175d"])
+        result = audit_translated_document(source, target, AuditConfig())
+        assert not [
+            item for item in result.issues if "untranslated" in item.message.lower()
+        ], [item.message for item in result.issues]

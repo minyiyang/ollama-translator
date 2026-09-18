@@ -1079,6 +1079,8 @@ def _find_exact_source_latin_residue(source: str, target: str, glossary=()) -> s
     signal to lowercase prose tokens of at least four letters. Protected inline
     spans, deliberate foreign quotations, and parenthetical glosses have already
     been removed by the caller; approved Latin-script glossary targets remain valid.
+    A run of letters inside an alphanumeric identifier (``c429aaaa175d``) is part of
+    that identifier, not a copied word, so digits break a candidate like letters do.
     """
     # Restrict the source side to words that actually occur in lowercase prose.
     # This excludes the common proper-name/title case without relying on a fragile
@@ -1087,7 +1089,7 @@ def _find_exact_source_latin_residue(source: str, target: str, glossary=()) -> s
     source_words = {
         match.group(0).casefold()
         for match in re.finditer(
-            r"(?<![A-Za-z])[A-Za-z][A-Za-z'’-]{3,}(?![A-Za-z])", source
+            r"(?<![A-Za-z0-9])[A-Za-z][A-Za-z'’-]{3,}(?![A-Za-z0-9])", source
         )
         if match.group(0)[0].islower()
     }
@@ -1102,7 +1104,7 @@ def _find_exact_source_latin_residue(source: str, target: str, glossary=()) -> s
             )
         )
     for match in re.finditer(
-        r"(?<![A-Za-z])[a-z][A-Za-z'’-]{3,}(?![A-Za-z])", target
+        r"(?<![A-Za-z0-9])[a-z][A-Za-z'’-]{3,}(?![A-Za-z0-9])", target
     ):
         candidate = match.group(0).casefold()
         if (

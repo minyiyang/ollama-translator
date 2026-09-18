@@ -48,6 +48,7 @@ from .stages.repair import run_translation_repair_stage
 from .stages.reprose import run_prose_rewrite_stage
 from .stages.repair_review import run_review_repair_stage
 from .stages.review_repaired import run_repaired_review_stage
+from .stages.rescue import run_translation_rescue_stage
 from .stages.translate import run_translation_stage
 from .stages.validate_epub import run_document_validation_stage
 from .stages.validate_repaired import (
@@ -123,6 +124,9 @@ def default_stage_runners() -> dict[WorkflowStage, StageRunner]:
         ),
         WorkflowStage.TRANSLATE: lambda workspace, config, client: run_translation_stage(
             workspace, config, _require_client(client)
+        ),
+        WorkflowStage.RESCUE_TRANSLATION: lambda workspace, config, client: run_translation_rescue_stage(
+            workspace, config, client
         ),
         WorkflowStage.AUDIT_TRANSLATION: lambda workspace, config, client: run_translation_audit_stage(
             workspace, config, client
@@ -321,6 +325,18 @@ def _stage_result_message(stage: WorkflowStage, result: object) -> str:
         return (
             f"result={state}; deferred_chunks={deferred_chunks}; "
             f"deferred_segments={deferred_segments}"
+        )
+
+    if stage is WorkflowStage.RESCUE_TRANSLATION:
+        candidates = int(getattr(result, "candidate_chunk_count", 0) or 0)
+        rescued = int(getattr(result, "rescued_chunk_count", 0) or 0)
+        deferred = int(getattr(result, "deferred_segment_count", 0) or 0)
+        state = "skipped" if not candidates else (
+            "passed" if not deferred else "pending-repair"
+        )
+        return (
+            f"result={state}; candidates={candidates}; rescued={rescued}; "
+            f"deferred_segments={deferred}"
         )
 
     if stage is WorkflowStage.AUDIT_TRANSLATION:
@@ -579,6 +595,8 @@ def _stage_uses_ollama(stage: WorkflowStage, config: AppConfig) -> bool:
         WorkflowStage.VALIDATE_REPAIRED,
     }:
         return True
+    if stage is WorkflowStage.RESCUE_TRANSLATION:
+        return bool(config.translation.fallback_models)
     if stage is WorkflowStage.REPROSE_TRANSLATION:
         return config.reprose.enabled
     if stage is WorkflowStage.APPROVE_GLOSSARY:

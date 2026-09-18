@@ -176,7 +176,7 @@ def select_relevant_glossary_entries(
 
     Annotation is conservative: case-bearing English glossary terms must match
     source case. The longest approved source term owns an overlapping occurrence,
-    so a generic head noun such as ``dragon`` cannot compete with ``sea dragon``.
+    so a generic suffix such as ``clade`` cannot compete with ``Spider-clade``.
     An independent occurrence of the shorter term remains eligible.
     """
     visible = _PROTECTED_TAG.sub("", text)
@@ -279,8 +279,13 @@ def _selection_pattern(source: str, language: Language) -> re.Pattern[str]:
     )
     if language is Language.ENGLISH:
         case_sensitive = any(character.isupper() for character in source)
+        # A term is written in prose as often in the plural as the singular
+        # (``binders`` for ``binder``).  Without this the entry annotates the
+        # singular only, and every plural occurrence silently escapes both the
+        # translation prompt and the glossary audit.
+        plural = "(?:e?s)?" if source[-1:].isalpha() else ""
         return re.compile(
-            rf"(?<![A-Za-z0-9_]){escaped}(?![A-Za-z0-9_])",
+            rf"(?<![A-Za-z0-9_]){escaped}{plural}(?![A-Za-z0-9_])",
             flags=0 if case_sensitive else re.IGNORECASE,
         )
     return re.compile(escaped)

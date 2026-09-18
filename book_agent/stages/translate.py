@@ -1315,3 +1315,178 @@ def _mark_failed(connection, error) -> None:
     )
     apply_inline_marker_placements,
     build_inline_marker_placement_prompt,
+
+
+def plan_chunk_tasks(
+    workspace: JobWorkspace,
+    config: AppConfig,
+    connection,
+    *,
+    input_hash: str,
+    chunk_root,
+    stage: WorkflowStage,
+):
+    """Plan every chunk of the book and resolve which already hold a checkpoint.
+
+    The rescue stage reuses this so it splits documents exactly the way the
+    translate stage did; a different chunking would strand the deferred passages.
+    """
+    style_instruction = load_style_instruction(
+        config.translation.style,
+        config.translation.custom_style_file,
+    )
+    style_prompt = build_style_prompt(
+        style_instruction,
+        config.translation.direction,
+        de_ai_enabled=config.translation.de_ai_enabled,
+        de_ai_strength=config.translation.de_ai_strength,
+    )
+    document_plans = []
+    for document in load_preprocessed_documents(workspace):
+        source_budget = calculate_translation_source_budget(config, style_prompt, "")
+        chunks = build_translation_chunks(
+            document,
+            min(source_budget, max(1, config.translation.max_prompt_tokens // 2)),
+        )
+        chunks = constrain_translation_chunks_by_prompt(
+            chunks,
+            config.translation.max_prompt_tokens,
+            lambda chunk: _build_chunk_prompt(
+                document,
+                chunk,
+                _chunk_relevant_glossary(document, chunk, config),
+                config,
+            ),
+        )
+        document_plans.append((document, chunks))
+
+    tasks = []
+    for document, chunks in document_plans:
+        for chunk in chunks:
+            chunk_glossary = _chunk_relevant_glossary(document, chunk, config)
+            glossary_text = format_relevant_glossary(
+                chunk_glossary, config.translation.direction
+            )
+            chunk_input_hash = hash_named_values(
+                {
+                    "stage": input_hash,
+                    "chunk": chunk.model_dump_json(),
+                    "glossary": glossary_text,
+                }
+            )
+            chunk_path = chunk_root / f"{chunk.chunk_id}.json"
+            existing = get_work_unit(connection, chunk.chunk_id, stage.value)
+            prompt = _build_chunk_prompt(document, chunk, chunk_glossary, config)
+            bucket = (
+                config.translation.max_num_ctx
+                if not config.ollama.adaptive_num_ctx
+                else request_context_bucket(
+                    prompt,
+                    minimum=config.ollama.min_num_ctx,
+                    maximum=config.translation.max_num_ctx,
+                    multiplier=config.translation.context_multiplier,
+                )
+            )
+            tasks.append(
+                {
+                    "chunk": chunk,
+                    "document": document,
+                    "chunk_input_hash": chunk_input_hash,
+                    "chunk_path": chunk_path,
+                    "existing": existing,
+                    "relevant_glossary": chunk_glossary,
+                    "bucket": bucket,
+                    "cached": _load_current_chunk(existing, chunk_path, chunk_input_hash),
+                }
+            )
+    return document_plans, tasks
+
+
+def _harmonize_chunk(
+    connection,
+    document,
+    chunk,
+    chunk_input_hash,
+    chunk_path,
+    attempt_root,
+    config,
+    client,
+    *,
+    translated: TranslatedChunk,
+    relevant_glossary,
+    attempts: int,
+    stage: WorkflowStage = WorkflowStage.TRANSLATE,
+    role_prefix: str = "translate",
+):
+    """Restyle a validated fallback draft with the primary model's prose voice."""
+    harmonized = client.generate_text(
+        _build_harmonization_prompt(
+            _build_chunk_prompt(document, chunk, relevant_glossary, config),
+            _render_chunk_translations(chunk, translated.translations),
+        ),
+        stream=True,
+        think=config.translation.thinking,
+        model=config.ollama.model,
+        progress_label=f"id={chunk.chunk_id} harmonize=1/1 mode=fallback-style",
+        **llm_role_kwargs(client, f"{role_prefix}.fallback_harmonization"),
+        context_maximum=config.translation.max_num_ctx,
+        context_multiplier=config.translation.context_multiplier,
+    )
+    atomic_write_text(
+        attempt_root
+        / f"{chunk.chunk_id}.harmonized-{_safe_model_name(config.ollama.model)}.txt",
+        harmonized.content,
+    )
+    translations, validation = validate_translation_output(
+        harmonized.content,
+        chunk,
+        config.translation.direction,
+        relevant_glossary,
+    )
+    record_validation(
+        connection,
+        chunk.chunk_id,
+        "fallback_style_harmonization",
+        validation.passed,
+        details=validation.model_dump(mode="json"),
+    )
+    record_attempt(
+        connection,
+        f"{chunk.chunk_id}:harmonize",
+        stage.value,
+        1,
+        StageStatus.COMPLETED if validation.passed else StageStatus.FAILED,
+        message=(
+            ""
+            if validation.passed
+            else "; ".join(issue.message for issue in validation.issues)
+        ),
+        metrics={
+            **asdict(harmonized.metrics),
+            "model": config.ollama.model,
+            "purpose": "fallback_style_harmonization",
+        },
+    )
+    if not validation.passed:
+        # Keep the structurally valid fallback draft rather than a broken restyle.
+        return translated, 1
+    harmonized_chunk = TranslatedChunk(
+        chunk_id=chunk.chunk_id,
+        document_id=chunk.document_id,
+        translations=translations,
+        validation=validation,
+    )
+    atomic_write_text(chunk_path, harmonized_chunk.model_dump_json(indent=2))
+    set_work_unit_status(
+        connection,
+        chunk.chunk_id,
+        stage.value,
+        "chunk",
+        StageStatus.COMPLETED,
+        parent_id=chunk.document_id,
+        attempts=attempts,
+        input_hash=chunk_input_hash,
+        output_hash=sha256_file(chunk_path),
+        validation=validation.model_dump(mode="json"),
+    )
+    return harmonized_chunk, 1

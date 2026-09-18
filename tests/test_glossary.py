@@ -17,6 +17,8 @@ from book_agent.glossary import (
     build_glossary_resolution_batches,
     canonicalize_candidate_evidence,
     estimate_tokens,
+    find_unglossed_proper_nouns,
+    harmonize_glossary,
     load_glossary_file,
     merge_candidate_entries,
     merge_prioritized_sources,
@@ -554,3 +556,327 @@ class GlossaryFormatTests:
             with pytest.raises(GlossaryFormatError):
                 load_glossary_file(json_path)
 
+
+
+class GlossaryHarmonizationTests:
+    """Variant spellings of one term must not carry competing mandatory renderings."""
+
+    def rendering(self, entries: list[GlossaryEntry], english: str) -> list[str]:
+        return sorted(item.chinese for item in entries if item.english == english)
+
+    def test_leading_article_variants_share_the_better_supported_rendering(self) -> None:
+        entries, report = harmonize_glossary(
+            [
+                glossary_entry("Qelm", "奇尔", evidence=["S1", "S2", "S3"]),
+                glossary_entry("The Qelm", "奇尔族", evidence=["S4"]),
+            ]
+        )
+        assert self.rendering(entries, "The Qelm") == ["奇尔"]
+        assert self.rendering(entries, "Qelm") == ["奇尔"]
+        assert report.change_count == 1
+        assert report.changes[0].kind == "variant"
+        assert report.changes[0].previous_chinese == "奇尔族"
+
+    def test_lowercase_plural_variants_share_one_rendering(self) -> None:
+        entries, report = harmonize_glossary(
+            [
+                glossary_entry(
+                    "piercer",
+                    "穿刺者",
+                    category=GlossaryCategory.ITEM,
+                    evidence=["S1", "S2"],
+                ),
+                glossary_entry("piercers", "穿刺机", category=GlossaryCategory.ITEM),
+            ]
+        )
+        assert self.rendering(entries, "piercers") == ["穿刺者"]
+        assert report.change_count == 1
+
+    def test_capitalised_plural_conflict_is_warned_not_rewritten(self) -> None:
+        entries, report = harmonize_glossary(
+            [
+                glossary_entry("Vraxwright", "弗拉克斯赖特", evidence=["S1", "S2"]),
+                glossary_entry("Vraxwrights", "弗拉克斯匠人", evidence=["S3"]),
+            ]
+        )
+        assert self.rendering(entries, "Vraxwrights") == ["弗拉克斯匠人"]
+        assert report.change_count == 0
+        assert any("Vraxwrights" in warning for warning in report.warnings)
+
+    def test_capitalised_plural_group_form_is_consistent(self) -> None:
+        # The plural names the family; its rendering legitimately extends the name.
+        entries, report = harmonize_glossary(
+            [
+                glossary_entry("Vrax", "弗拉克斯"),
+                glossary_entry("Vraxes", "弗拉克斯家族"),
+            ]
+        )
+        assert self.rendering(entries, "Vraxes") == ["弗拉克斯家族"]
+        assert report.change_count == 0
+        assert report.warnings == []
+
+    def test_capitalised_plural_never_spreads_a_better_supported_wrong_rendering(
+        self,
+    ) -> None:
+        # A singular carrying the wrong taxon with more evidence must not
+        # overwrite a correct plural.
+        entries, report = harmonize_glossary(
+            [
+                glossary_entry(
+                    "Nul beetle",
+                    "金龟",
+                    category=GlossaryCategory.ITEM,
+                    evidence=["S1", "S2", "S3"],
+                ),
+                glossary_entry(
+                    "Nul beetles", "努尔甲虫", category=GlossaryCategory.ITEM
+                ),
+            ]
+        )
+        assert self.rendering(entries, "Nul beetles") == ["努尔甲虫"]
+        assert report.change_count == 0
+        assert any("Nul beetles" in warning for warning in report.warnings)
+
+    def test_higher_priority_source_outranks_extraction_evidence(self) -> None:
+        entries, _ = harmonize_glossary(
+            [
+                glossary_entry("Stranger", "陌生人", evidence=["S1", "S2", "S3"]),
+                glossary_entry("The Stranger", "陌生客"),
+            ],
+            priority_by_term={
+                "stranger": GlossarySourceKind.EXTRACTED.priority,
+                "the stranger": GlossarySourceKind.BOOK.priority,
+            },
+        )
+        assert self.rendering(entries, "Stranger") == ["陌生客"]
+
+    def test_plain_form_wins_when_support_is_equal(self) -> None:
+        entries, _ = harmonize_glossary(
+            [
+                glossary_entry("The Qelm", "奇尔族"),
+                glossary_entry("Qelm", "奇尔"),
+            ]
+        )
+        assert self.rendering(entries, "The Qelm") == ["奇尔"]
+
+    def test_case_distinct_name_and_common_noun_are_not_merged(self) -> None:
+        entries, report = harmonize_glossary(
+            [
+                glossary_entry(
+                    "Hearth", "炉灵管家", category=GlossaryCategory.TECHNOLOGY
+                ),
+                glossary_entry("hearths", "炉膛", category=GlossaryCategory.ITEM),
+            ]
+        )
+        assert self.rendering(entries, "Hearth") == ["炉灵管家"]
+        assert self.rendering(entries, "hearths") == ["炉膛"]
+        assert report.change_count == 0
+
+    def test_short_bases_do_not_pair_by_plural_suffix(self) -> None:
+        _, report = harmonize_glossary(
+            [glossary_entry("Ar", "阿尔"), glossary_entry("Ares", "阿瑞斯")]
+        )
+        assert report.change_count == 0
+
+    def test_deliberate_same_term_alternatives_are_left_for_review(self) -> None:
+        entries, report = harmonize_glossary(
+            [
+                glossary_entry("Heron", "兔子"),
+                glossary_entry("Heron", "石鹭"),
+                glossary_entry("Herons", "鹭群"),
+            ]
+        )
+        assert self.rendering(entries, "Heron") == ["兔子", "石鹭"]
+        assert self.rendering(entries, "Herons") == ["鹭群"]
+        assert report.change_count == 0
+        assert any("Heron" in warning for warning in report.warnings)
+
+    def test_verbatim_acronym_variants_are_not_a_conflict(self) -> None:
+        # A glossary can map an acronym to itself in both singular and plural;
+        # copying one rendering onto the other produced an invalid entry.
+        entries, report = harmonize_glossary(
+            [
+                glossary_entry(
+                    "ZQT", "ZQT", category=GlossaryCategory.TERM, evidence=["S1"]
+                ),
+                glossary_entry("ZQTs", "ZQTs", category=GlossaryCategory.TERM),
+            ]
+        )
+        GlossaryResult(entries=entries)  # the published glossary must still validate
+        assert self.rendering(entries, "ZQT") == ["ZQT"]
+        assert self.rendering(entries, "ZQTs") == ["ZQTs"]
+        assert report.change_count == 0
+        assert report.warnings == []
+
+    def test_plural_code_beside_a_translation_is_warned(self) -> None:
+        entries, report = harmonize_glossary(
+            [
+                glossary_entry(
+                    "ZQT",
+                    "ZQT",
+                    category=GlossaryCategory.TERM,
+                    evidence=["S1", "S2", "S3"],
+                ),
+                glossary_entry("ZQTs", "中级资格证书", category=GlossaryCategory.TERM),
+            ]
+        )
+        GlossaryResult(entries=entries)
+        assert self.rendering(entries, "ZQTs") == ["中级资格证书"]
+        assert report.change_count == 0
+        assert any("ZQTs" in warning for warning in report.warnings)
+
+    def test_rewrite_that_would_be_invalid_is_warned_not_applied(self) -> None:
+        # Keeping a term in English is only legal when the term is itself a
+        # preservable code; ``The ZQT`` cannot hold a verbatim rendering.
+        entries, report = harmonize_glossary(
+            [
+                glossary_entry(
+                    "ZQT",
+                    "ZQT",
+                    category=GlossaryCategory.TERM,
+                    evidence=["S1", "S2", "S3"],
+                ),
+                glossary_entry(
+                    "The ZQT", "中级资格证书", category=GlossaryCategory.TERM
+                ),
+            ]
+        )
+        GlossaryResult(entries=entries)
+        assert self.rendering(entries, "The ZQT") == ["中级资格证书"]
+        assert report.change_count == 0
+        assert any("The ZQT" in warning for warning in report.warnings)
+
+    def test_full_names_adopt_the_standalone_component_rendering(self) -> None:
+        entries, report = harmonize_glossary(
+            [
+                glossary_entry("Vrell", "韦雷尔", evidence=["S1"]),
+                glossary_entry("Vrell Mason", "韦雷勒·梅森"),
+                glossary_entry("Helena Vrell Lain", "海伦娜·韦雷勒·莱恩"),
+            ]
+        )
+        assert self.rendering(entries, "Vrell Mason") == ["韦雷尔·梅森"]
+        assert self.rendering(entries, "Helena Vrell Lain") == ["海伦娜·韦雷尔·莱恩"]
+        assert sorted(change.kind for change in report.changes) == [
+            "component",
+            "component",
+        ]
+
+    def test_component_alignment_follows_the_matching_part_not_word_order(self) -> None:
+        # The full name is rendered given-name first; positional alignment
+        # duplicated the given name instead of matching the shared part.
+        entries, report = harmonize_glossary(
+            [
+                glossary_entry("Ysera", "伊瑟拉", evidence=["S1"]),
+                glossary_entry("Maker Ysera", "伊瑟莎·梅克"),
+            ]
+        )
+        assert self.rendering(entries, "Maker Ysera") == ["伊瑟拉·梅克"]
+        assert report.change_count == 1
+
+    def test_component_alignment_never_drops_a_title_fused_into_the_part(self) -> None:
+        # A rank fused into the rendered name must not be silently lost.
+        entries, report = harmonize_glossary(
+            [
+                glossary_entry("Vantor", "万托尔", evidence=["S1"]),
+                glossary_entry("Captain-Auxillian Vantor", "奥克西利安·万托雷上尉"),
+            ]
+        )
+        assert self.rendering(entries, "Captain-Auxillian Vantor") == [
+            "奥克西利安·万托雷上尉"
+        ]
+        assert report.change_count == 0
+        assert any(
+            "Captain-Auxillian Vantor" in warning for warning in report.warnings
+        )
+
+    def test_component_with_no_resembling_part_is_warned(self) -> None:
+        entries, report = harmonize_glossary(
+            [
+                glossary_entry("Birdbot", "鸟机器人"),
+                glossary_entry("Inspector Birdbot", "伯德博特·督察"),
+            ]
+        )
+        assert self.rendering(entries, "Inspector Birdbot") == ["伯德博特·督察"]
+        assert report.change_count == 0
+        assert any("Inspector Birdbot" in warning for warning in report.warnings)
+
+    def test_variants_in_different_categories_are_not_merged(self) -> None:
+        # A ship named "The Render" must not be rewritten from an unrelated
+        # person entry that happens to share the base word.
+        entries, report = harmonize_glossary(
+            [
+                glossary_entry("Render", "伦德尔", evidence=["S1", "S2"]),
+                glossary_entry("The Render", "裂帆号", category=GlossaryCategory.ITEM),
+            ]
+        )
+        assert self.rendering(entries, "The Render") == ["裂帆号"]
+        assert report.change_count == 0
+        assert any("The Render" in warning for warning in report.warnings)
+
+    def test_unalignable_component_conflict_is_warned_not_rewritten(self) -> None:
+        entries, report = harmonize_glossary(
+            [
+                glossary_entry("Birdbot", "鸟机器人"),
+                glossary_entry("Inspector Birdbot", "伯德博特督察"),
+            ]
+        )
+        assert self.rendering(entries, "Inspector Birdbot") == ["伯德博特督察"]
+        assert report.change_count == 0
+        assert any("Inspector Birdbot" in warning for warning in report.warnings)
+
+    def test_curated_full_name_is_not_rewritten_from_extracted_component(self) -> None:
+        entries, report = harmonize_glossary(
+            [
+                glossary_entry("Ketch", "凯奇"),
+                glossary_entry("Vrie Ketch", "弗莱·凯什"),
+            ],
+            priority_by_term={
+                "ketch": GlossarySourceKind.EXTRACTED.priority,
+                "vrie ketch": GlossarySourceKind.BOOK.priority,
+            },
+        )
+        assert self.rendering(entries, "Vrie Ketch") == ["弗莱·凯什"]
+        assert report.change_count == 0
+        assert any("Vrie Ketch" in warning for warning in report.warnings)
+
+    def test_non_person_compound_titles_are_not_warned(self) -> None:
+        _, report = harmonize_glossary(
+            [
+                glossary_entry("Dominion", "多米尼恩", category=GlossaryCategory.PLACE),
+                glossary_entry(
+                    "Crown of Dominion", "主权王冠", category=GlossaryCategory.ITEM
+                ),
+            ]
+        )
+        assert report.warnings == []
+
+    def test_common_noun_components_are_ignored(self) -> None:
+        _, report = harmonize_glossary(
+            [
+                glossary_entry("engine", "引擎", category=GlossaryCategory.TECHNOLOGY),
+                glossary_entry(
+                    "Difference engine", "差分机", category=GlossaryCategory.TECHNOLOGY
+                ),
+            ]
+        )
+        assert report.change_count == 0
+        assert report.warnings == []
+
+    def test_unglossed_recurring_mid_sentence_names_are_reported(self) -> None:
+        texts = ["Qelm asked the Hearth for the schedule."] * 12
+        texts += ["Aster waited while the Hearth thought."] * 3
+        # sentence-initial: not evidence of a name
+        texts += ["Hearth was slow today."] * 20
+        found = find_unglossed_proper_nouns(
+            [document(*texts)], [glossary_entry("Aster", "阿斯特")], min_occurrences=10
+        )
+        assert found == {"Hearth": 15}
+
+    def test_glossed_names_are_not_reported_as_unglossed(self) -> None:
+        texts = ["Then the Stranger moved."] * 12
+        found = find_unglossed_proper_nouns(
+            [document(*texts)],
+            [glossary_entry("The Stranger", "陌生客")],
+            min_occurrences=10,
+        )
+        assert found == {}

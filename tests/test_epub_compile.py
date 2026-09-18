@@ -270,3 +270,31 @@ class EpubCompileTests:
             assert not report.passed
             assert "invalid EPUB ZIP" in report.errors[0]
 
+    def test_validation_allows_preexisting_missing_css_asset(self) -> None:
+        """Commercial EPUB CSS can retain unused publisher-logo rules."""
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            epub = make_epub(base / "fixture.epub")
+            package = base / "package"
+            safe_extract_epub(epub, package)
+            css = package / "OEBPS" / "styles.css"
+            css.write_text(
+                "body {} .publisher-logo { background: url('../Images/logo.png'); }",
+                encoding="utf-8",
+            )
+            manifest = inspect_epub_package(package, sha256_file(epub))
+            repaired = translated_documents(manifest)
+            output = base / "translated.epub"
+            compile_epub_package(package, manifest, repaired, output)
+
+            strict = validate_compiled_epub(output, manifest, repaired)
+            assert not strict.passed
+            assert "local resource reference is missing" in strict.errors[0]
+
+            inherited = validate_compiled_epub(
+                output,
+                manifest,
+                repaired,
+                source_package_root=package,
+            )
+            assert inherited.passed, inherited.errors

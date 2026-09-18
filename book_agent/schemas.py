@@ -319,15 +319,43 @@ def normalize_term(value: str) -> str:
     return " ".join(value.casefold().split())
 
 
+# Categories whose terms are ordinary words rather than names, so a lowercase
+# spelling is the useful one to keep when case variants collapse.
+_COMMON_NOUN_CATEGORIES = frozenset(
+    {
+        GlossaryCategory.ITEM,
+        GlossaryCategory.TECHNOLOGY,
+        GlossaryCategory.CONCEPT,
+        GlossaryCategory.TERM,
+        GlossaryCategory.OTHER,
+    }
+)
+
+
 def deduplicate_entries(entries: list[GlossaryEntry]) -> list[GlossaryEntry]:
-    """Remove exact term/translation duplicates while retaining alternatives."""
+    """Remove exact term/translation duplicates while retaining alternatives.
+
+    Case variants of one term collapse to a single entry.  For a common noun keep
+    the all-lowercase spelling when the glossary carries one: annotation matches a
+    lowercase term case-insensitively, so it covers the capitalised occurrences as
+    well, whereas a capitalised entry never matches the lowercase prose form.
+    Names keep their capitalisation, which is what stops ``Hood`` from annotating
+    the hood of a car.
+    """
     result: list[GlossaryEntry] = []
-    seen: set[tuple[str, str]] = set()
+    index: dict[tuple[str, str], int] = {}
     for entry in entries:
         key = (normalize_term(entry.english), normalize_term(entry.chinese))
-        if key not in seen:
-            seen.add(key)
+        position = index.get(key)
+        if position is None:
+            index[key] = len(result)
             result.append(entry)
+        elif (
+            entry.english.islower()
+            and not result[position].english.islower()
+            and entry.category in _COMMON_NOUN_CATEGORIES
+        ):
+            result[position] = entry
     return result
 
 

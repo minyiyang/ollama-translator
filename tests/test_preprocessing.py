@@ -11,6 +11,7 @@ from book_agent.preprocessing import (
     render_preprocessed_document,
     select_relevant_glossary_entries,
 )
+from book_agent.glossary import sort_glossary_entries
 from book_agent.schemas import GlossaryCategory, GlossaryEntry
 
 
@@ -190,3 +191,29 @@ class RelevanceAndDocumentTests:
         assert segment.processed_text == "阿斯特 arrived."
         assert render_preprocessed_document(document) == "<D0001-S000001>阿斯特 arrived.</D0001-S000001>\n"
 
+
+    def test_capitalised_proper_noun_still_ignores_the_common_word(self) -> None:
+        entries = [entry("Mason", "梅森")]
+        assert not select_relevant_glossary_entries(
+            "the mason at the wall", entries, TranslationDirection.EN_TO_ZH
+        )
+        assert select_relevant_glossary_entries(
+            "Mason arrived.", entries, TranslationDirection.EN_TO_ZH
+        )
+
+    def test_case_variants_collapse_to_the_lowercase_spelling(self) -> None:
+        kept = sort_glossary_entries(
+            [entry("Binder", "装订工"), entry("binder", "装订工")]
+        )
+        assert [item.english for item in kept] == ["binder"]
+        # the surviving entry still reaches the capitalised prose form
+        assert select_relevant_glossary_entries(
+            "The Binder lost it.", kept, TranslationDirection.EN_TO_ZH
+        )
+
+    def test_plural_occurrences_annotate_like_the_singular(self) -> None:
+        entries = [entry("binder", "装订工")]
+        for probe in ("binders lose count", "A binder lost it", "Binders again"):
+            assert select_relevant_glossary_entries(
+                probe, entries, TranslationDirection.EN_TO_ZH
+            ), probe

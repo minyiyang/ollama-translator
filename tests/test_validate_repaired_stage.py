@@ -875,3 +875,47 @@ class ValidateRepairedStageTests:
             with pytest.raises(RuntimeError, match="repair_translation"):
                 run_repaired_review_stage(workspace, config, FakeVerificationClient())
 
+    def test_recovered_deferred_translation_is_not_forced_into_human_review(self) -> None:
+        repair = SegmentRepair(
+            segment_id="D0001-S000001",
+            disposition=RepairDisposition.REPAIRED,
+            original_translation="Untranslated source sentence.",
+            repaired_translation="完整译文。",
+            issues=[
+                AuditIssue(
+                    segment_id="D0001-S000001",
+                    category=AuditCategory.UNTRANSLATED,
+                    severity=AuditSeverity.HIGH,
+                    message="translation is identical to source",
+                    source="deterministic",
+                ),
+                AuditIssue(
+                    segment_id="D0001-S000001",
+                    category=AuditCategory.OMISSION,
+                    severity=AuditSeverity.HIGH,
+                    message="The entire segment is missing from the translation.",
+                    source="semantic",
+                ),
+            ],
+            attempts=1,
+        )
+        decision = RepairVerification(
+            segment_id=repair.segment_id,
+            passed=True,
+            current_acceptable=False,
+            message="The candidate translates the whole segment.",
+        )
+        advisory = AppConfig.model_validate(
+            {"audit": {"semantic_verification_policy": "human-high-risk"}}
+        )
+
+        # A first draft that was never translated is judged by the verifier: a
+        # full recovery is not the relation change the human gate exists for.
+        assert not _requires_human_high_risk_change(repair, decision, advisory)
+        drafted = repair.model_copy(
+            update={
+                "issues": [repair.issues[1]],
+                "original_translation": "早期译文。",
+            }
+        )
+        assert _requires_human_high_risk_change(drafted, decision, advisory)

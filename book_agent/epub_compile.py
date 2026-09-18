@@ -377,7 +377,12 @@ def validate_compiled_epub(
         if inspected is not None:
             _compare_package_manifests(source_manifest, inspected, errors)
             _compare_translated_text(inspected, repaired_documents, errors)
-            _validate_internal_references(root, inspected, errors)
+            _validate_internal_references(
+                root,
+                inspected,
+                errors,
+                source_package_root=source_package_root,
+            )
             translated_paths = {
                 item.document.archive_path for item in repaired_documents
             }
@@ -666,6 +671,8 @@ def _validate_internal_references(
     root: Path,
     manifest: EpubPackageManifest,
     errors: list[str],
+    *,
+    source_package_root: str | Path | None = None,
 ) -> None:
     for item in manifest.manifest_items:
         if not item.exists:
@@ -701,5 +708,18 @@ def _validate_internal_references(
         except ValueError as error:
             errors.append(str(error))
             continue
+        if root.joinpath(*PurePosixPath(target).parts).is_file():
+            continue
+        # Some commercial EPUBs retain unused CSS rules for publisher assets
+        # which were never included in the source archive.  Compilation leaves
+        # those stylesheets byte-for-byte intact, so do not reject the output
+        # for an already-broken, non-text source reference.  References that
+        # existed in the source remain strict.
+        if source_package_root is not None:
+            source_target = Path(source_package_root).joinpath(
+                *PurePosixPath(target).parts
+            )
+            if not source_target.is_file():
+                continue
         if not root.joinpath(*PurePosixPath(target).parts).is_file():
             errors.append(f"local resource reference is missing: {base} -> {reference}")

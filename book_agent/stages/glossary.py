@@ -16,7 +16,10 @@ from ..glossary import (
     build_glossary_chunks,
     build_glossary_resolution_cases,
     build_glossary_resolution_batches,
+    GlossaryHarmonizationReport,
+    GlossaryQualityReport,
     canonicalize_candidate_evidence,
+    harmonize_glossary,
     load_glossary_file,
     merge_candidate_entries,
     merge_prioritized_sources,
@@ -25,6 +28,7 @@ from ..glossary import (
     screen_glossary_candidates,
     screen_glossary_documents,
     sort_glossary_entries,
+    source_priority_by_term,
     validate_candidate_evidence,
     validate_resolution_scope,
 )
@@ -516,24 +520,38 @@ def run_glossary_resolution_stage(
                 tuple(sort_glossary_entries(resolved_entries)),
             )
         ]
-        draft = GlossaryResult(entries=merge_prioritized_sources(all_sources))
-        quality = analyze_glossary_quality(
-            draft,
-            scope="series" if config.glossary.series_glossaries else "volume",
+        manifest = load_decompile_manifest(workspace, connection=connection)
+        eligible_documents, _ = screen_glossary_documents(manifest.documents)
+        harmonized_entries, harmonization = harmonize_glossary(
+            merge_prioritized_sources(all_sources),
+            priority_by_term=source_priority_by_term(all_sources),
+            documents=eligible_documents,
+        )
+        draft = GlossaryResult(entries=harmonized_entries)
+        quality = _with_harmonization_warnings(
+            analyze_glossary_quality(
+                draft,
+                scope="series" if config.glossary.series_glossaries else "volume",
+            ),
+            harmonization,
         )
         json_path = stage_root / "glossary.draft.json"
         text_path = stage_root / "glossary.draft.txt"
         quality_path = stage_root / "glossary.draft.quality.report.json"
+        harmonization_path = stage_root / "glossary.draft.harmonization.report.json"
         atomic_write_text(json_path, draft.model_dump_json(indent=2))
         atomic_write_text(text_path, render_legacy_glossary(draft.entries))
         atomic_write_text(quality_path, quality.model_dump_json(indent=2))
+        atomic_write_text(harmonization_path, harmonization.model_dump_json(indent=2))
         _record_file(connection, workspace, json_path, WorkflowStage.RESOLVE_GLOSSARY, "glossary_draft_json")
         _record_file(connection, workspace, text_path, WorkflowStage.RESOLVE_GLOSSARY, "glossary_draft_legacy")
         _record_file(connection, workspace, quality_path, WorkflowStage.RESOLVE_GLOSSARY, "glossary_draft_quality_report")
+        _record_file(connection, workspace, harmonization_path, WorkflowStage.RESOLVE_GLOSSARY, "glossary_draft_harmonization_report")
         output_hash = build_stage_output_hash(connection, WorkflowStage.RESOLVE_GLOSSARY)
         set_job_metadata(connection, "glossary_draft", json_path.relative_to(workspace.root).as_posix())
         set_job_metadata(connection, "glossary_draft_legacy", text_path.relative_to(workspace.root).as_posix())
         set_job_metadata(connection, "glossary_draft_quality_report", quality_path.relative_to(workspace.root).as_posix())
+        set_job_metadata(connection, "glossary_draft_harmonization_report", harmonization_path.relative_to(workspace.root).as_posix())
         set_stage_status(
             connection,
             WorkflowStage.RESOLVE_GLOSSARY.value,
@@ -677,10 +695,20 @@ def run_glossary_approval_stage(
             candidate.entries + draft.entries,
             max_evidence_per_entry=config.glossary.extraction_max_evidence_per_entry,
         )
-        approved = GlossaryResult(entries=sort_glossary_entries(approved.entries))
-        quality = analyze_glossary_quality(
-            approved,
-            scope="series" if config.glossary.series_glossaries else "volume",
+        # A reviewer (human or LLM) can re-split a variant group the draft had
+        # unified, so the published glossary is harmonized again.
+        configured_sources, _ = load_configured_glossary_sources(config)
+        harmonized_entries, harmonization = harmonize_glossary(
+            approved.entries,
+            priority_by_term=source_priority_by_term(configured_sources),
+        )
+        approved = GlossaryResult(entries=sort_glossary_entries(harmonized_entries))
+        quality = _with_harmonization_warnings(
+            analyze_glossary_quality(
+                approved,
+                scope="series" if config.glossary.series_glossaries else "volume",
+            ),
+            harmonization,
         )
         json_path = stage_root / "glossary.approved.json"
         text_path = stage_root / "glossary.approved.txt"
@@ -691,6 +719,14 @@ def run_glossary_approval_stage(
         _record_file(connection, workspace, json_path, WorkflowStage.APPROVE_GLOSSARY, "approved_glossary_json")
         _record_file(connection, workspace, text_path, WorkflowStage.APPROVE_GLOSSARY, "approved_glossary_legacy")
         _record_file(connection, workspace, quality_path, WorkflowStage.APPROVE_GLOSSARY, "glossary_quality_report")
+        harmonization_path = stage_root / "glossary.harmonization.report.json"
+        atomic_write_text(harmonization_path, harmonization.model_dump_json(indent=2))
+        _record_file(connection, workspace, harmonization_path, WorkflowStage.APPROVE_GLOSSARY, "glossary_harmonization_report")
+        set_job_metadata(
+            connection,
+            "glossary_harmonization_report",
+            harmonization_path.relative_to(workspace.root).as_posix(),
+        )
         if approval_report is not None:
             approval_report_path = stage_root / "glossary.approval.report.json"
             atomic_write_text(
@@ -1224,6 +1260,24 @@ def _load_current_glossary_batch(existing, path, input_hash, candidates):
     result = GlossaryResult.model_validate_json(path.read_text(encoding="utf-8"))
     validate_resolution_scope(result, candidates)
     return restore_glossary_evidence(result, candidates)
+
+
+def _with_harmonization_warnings(
+    quality: GlossaryQualityReport, harmonization: GlossaryHarmonizationReport
+) -> GlossaryQualityReport:
+    """Surface harmonization repairs and unresolved conflicts in the quality report."""
+    warnings = list(harmonization.warnings)
+    if harmonization.change_count:
+        warnings.insert(
+            0,
+            f"{harmonization.change_count} variant rendering(s) unified; "
+            "see the harmonization report",
+        )
+    if not warnings:
+        return quality
+    return quality.model_copy(
+        update={"result": "warning", "warnings": [*quality.warnings, *warnings]}
+    )
 
 
 def _conflicting_source_terms(entries: list[GlossaryEntry]) -> set[str]:

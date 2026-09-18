@@ -23,6 +23,7 @@ from book_agent.schemas import (
     GlossaryResult,
     build_glossary_extraction_schema,
 )
+from book_agent.glossary import GlossaryHarmonizationReport
 from book_agent.stages.decompile import run_decompile_stage
 from book_agent.stages.glossary import (
     GlossaryApprovalRequired,
@@ -868,3 +869,43 @@ class GlossaryStageTests:
             assert "mode=conflict" in client.progress_labels[1]
             assert all(value <= 32_768 for value in client.context_maximums)
 
+    def test_resolution_harmonizes_variant_renderings_and_records_report(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            workspace = self.make_workspace(base)
+            reviewed = base / "reviewed.json"
+            reviewed.write_text(
+                GlossaryResult(
+                    entries=[entry("Qelm", "奇尔"), entry("The Qelm", "奇尔族")]
+                ).model_dump_json(indent=2),
+                encoding="utf-8",
+            )
+            config = AppConfig.model_validate(
+                {
+                    "glossary": {
+                        "extraction_enabled": False,
+                        "book_glossaries": [str(reviewed)],
+                    },
+                    "workflow": {"require_glossary_review": False},
+                }
+            )
+
+            run_glossary_extraction_stage(workspace, config, None)
+            draft = run_glossary_resolution_stage(workspace, config, None)
+            approved = run_glossary_approval_stage(workspace, config)
+
+            expected = [("Qelm", "奇尔"), ("The Qelm", "奇尔")]
+            assert sorted((i.english, i.chinese) for i in draft.entries) == expected
+            assert sorted((i.english, i.chinese) for i in approved.entries) == expected
+            connection = connect_state(workspace.state_file)
+            try:
+                report_path = get_job_metadata(
+                    connection, "glossary_draft_harmonization_report"
+                )
+            finally:
+                connection.close()
+            report = GlossaryHarmonizationReport.model_validate_json(
+                (workspace.root / report_path).read_text(encoding="utf-8")
+            )
+            assert report.change_count == 1
+            assert report.changes[0].english == "The Qelm"

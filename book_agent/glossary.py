@@ -5,10 +5,11 @@ from __future__ import annotations
 import json
 import math
 import re
-from collections import Counter
+from collections import Counter, defaultdict
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
+from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -103,6 +104,27 @@ class GlossaryQualityReport(BaseModel):
     suspicious_generic_terms: list[str] = Field(default_factory=list)
     category_counts: dict[str, int] = Field(default_factory=dict)
     warnings: list[str] = Field(default_factory=list)
+
+
+class GlossaryHarmonizationChange(BaseModel):
+    """One rendering rewritten so related spellings stop competing."""
+
+    model_config = ConfigDict(extra="forbid")
+    kind: Literal["variant", "component"]
+    english: str
+    previous_chinese: str
+    chinese: str
+    related_terms: list[str] = Field(default_factory=list)
+
+
+class GlossaryHarmonizationReport(BaseModel):
+    """Deterministic consistency repairs and the conflicts left for a reviewer."""
+
+    model_config = ConfigDict(extra="forbid")
+    change_count: int = Field(ge=0)
+    changes: list[GlossaryHarmonizationChange] = Field(default_factory=list)
+    warnings: list[str] = Field(default_factory=list)
+    unglossed_proper_nouns: dict[str, int] = Field(default_factory=dict)
 
 
 class GlossarySourceKind(str, Enum):
@@ -866,3 +888,337 @@ def merge_prioritized_sources(sources: list[GlossarySource]) -> list[GlossaryEnt
     return sort_glossary_entries(
         [entry for term_entries in selected.values() for entry in term_entries]
     )
+
+
+# ---------------------------------------------------------------------------
+# Variant harmonization
+#
+# Extraction reads a book in chunks, so one term can surface as ``Qelm`` in
+# one chunk and ``The Qelm`` in another, each with its own rendering.  Exact
+# term keys keep both, and the annotation matcher then applies both to the same
+# sentence (``Qelm`` matches inside ``The Qelm``; ``Vraxwright``
+# matches ``Vraxwrights``), handing the translator two mandatory renderings
+# and the audit a finding whichever it picks.
+
+_LEADING_ARTICLE_RE = re.compile(r"^(?:the|a|an)\s+", re.IGNORECASE)
+_NAME_PART_SEPARATOR = "\u00b7"
+# ``Ar``/``Ares`` must not pair; real plural pairs have a longer base.
+_MIN_PLURAL_BASE_LENGTH = 3
+_MARKUP_RE = re.compile(r"<[^>]+>")
+# A capitalised word after a lowercase word or clause punctuation is not a
+# sentence opening, so its capital marks a name.
+_MID_SENTENCE_CAPITAL_RE = re.compile(r"(?<=[a-z,;] )([A-Z][a-z]{2,})\b")
+_UNGLOSSED_REPORT_LIMIT = 25
+_NON_NAME_CAPITALS = frozenset(
+    {
+        "January", "February", "March", "April", "May", "June", "July",
+        "August", "September", "October", "November", "December",
+        "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday",
+        "Sunday", "English", "Mister", "Miss", "Mrs", "Sir", "Lady", "Lord",
+        "Doctor", "Captain",
+    }
+)
+
+
+def glossary_variant_base(english: str) -> str:
+    """Return the spelling a term shares with its article and plural variants.
+
+    Case-bearing terms keep their case because the annotation matcher treats
+    them case-sensitively: ``House`` the manor AI and ``houses`` must not merge.
+    """
+    collapsed = " ".join(english.split())
+    stripped = _LEADING_ARTICLE_RE.sub("", collapsed) or collapsed
+    return stripped if any(character.isupper() for character in stripped) else stripped.casefold()
+
+
+def _is_plural_pair(shorter: str, longer: str) -> bool:
+    return len(shorter) >= _MIN_PLURAL_BASE_LENGTH and longer in (
+        f"{shorter}s",
+        f"{shorter}es",
+    )
+
+
+def _are_variant_bases(first: str, second: str) -> bool:
+    return first == second or _is_plural_pair(first, second) or _is_plural_pair(second, first)
+
+
+_VERBATIM_RENDERING = "\x00verbatim"
+
+
+def _rendering_key(entry: GlossaryEntry) -> str:
+    """Compare renderings by policy: every term kept in English agrees with the others.
+
+    ``ZQT -> ZQT`` and ``ZQTs -> ZQTs`` differ as strings but not as
+    decisions, so they must not be reported or rewritten as a conflict.
+    """
+    if normalize_term(entry.chinese) == normalize_term(entry.english):
+        return _VERBATIM_RENDERING
+    return normalize_term(entry.chinese)
+
+
+def _renderings_nest(renderings: set[str]) -> bool:
+    """Return whether each rendering contains every shorter one (弗拉克斯 / 弗拉克斯家族)."""
+    ordered = sorted(renderings, key=len)
+    return all(
+        shorter in longer
+        for position, shorter in enumerate(ordered)
+        for longer in ordered[position + 1:]
+    )
+
+
+def _with_rendering(entry: GlossaryEntry, chinese: str) -> GlossaryEntry | None:
+    """Return ``entry`` with a new rendering, or None when that entry cannot hold it.
+
+    ``model_copy`` skips validation, and a rendering valid for one spelling is not
+    always valid for another: an acronym preserved verbatim (``GC`` -> ``GC``)
+    is only a legal rendering of its own identical English term.
+    """
+    try:
+        return GlossaryEntry.model_validate({**entry.model_dump(), "chinese": chinese})
+    except ValueError:
+        return None
+
+
+def source_priority_by_term(sources: list[GlossarySource]) -> dict[str, int]:
+    """Map each normalized English term to the highest priority that supplies it."""
+    priorities: dict[str, int] = {}
+    for source in sources:
+        for entry in source.entries:
+            term = normalize_term(entry.english)
+            priorities[term] = max(priorities.get(term, source.kind.priority), source.kind.priority)
+    return priorities
+
+
+def harmonize_glossary(
+    entries: list[GlossaryEntry],
+    *,
+    priority_by_term: dict[str, int] | None = None,
+    documents: list[ChapterDocument] | None = None,
+    min_unglossed_occurrences: int = 10,
+) -> tuple[list[GlossaryEntry], GlossaryHarmonizationReport]:
+    """Give related spellings one rendering and report what cannot be fixed safely.
+
+    Leading-article variants of a term, and plural variants of a lowercase
+    common noun, take the rendering with the strongest support: source
+    priority, then evidence, then confidence, then the plainest spelling.
+    A capitalised plural often names a group with its own rendering (``Vraxes``
+    the family beside ``Vrax`` the person), so it is never rewritten; it is
+    warned when its renderings are unrelated.  A multi-word person name whose
+    interpunct-separated rendering lines up word for word adopts the rendering
+    of a standalone name entry it contains, unless the full name comes from a
+    higher-priority source.  Anything else is warned, never guessed.
+    """
+    priorities = priority_by_term or {}
+    lowest = min(kind.priority for kind in GlossarySourceKind)
+
+    def priority(entry: GlossaryEntry) -> int:
+        return priorities.get(normalize_term(entry.english), lowest)
+
+    current = [entry.model_copy(deep=True) for entry in sort_glossary_entries(entries)]
+    changes: list[GlossaryHarmonizationChange] = []
+    warnings: list[str] = []
+
+    bases = [glossary_variant_base(entry.english) for entry in current]
+    parent = list(range(len(current)))
+
+    def root(index: int) -> int:
+        while parent[index] != index:
+            parent[index] = parent[parent[index]]
+            index = parent[index]
+        return index
+
+    for first in range(len(current)):
+        for second in range(first + 1, len(current)):
+            if _are_variant_bases(bases[first], bases[second]):
+                parent[root(second)] = root(first)
+    groups: dict[int, list[int]] = defaultdict(list)
+    for index in range(len(current)):
+        groups[root(index)].append(index)
+
+    for members in groups.values():
+        renderings_by_term: dict[str, set[str]] = defaultdict(set)
+        for index in members:
+            renderings_by_term[normalize_term(current[index].english)].add(
+                _rendering_key(current[index])
+            )
+        if len(renderings_by_term) < 2:
+            continue
+        renderings = {value for values in renderings_by_term.values() for value in values}
+        if len(renderings) < 2:
+            continue
+        names = sorted({current[index].english for index in members}, key=normalize_term)
+        if any(len(values) > 1 for values in renderings_by_term.values()):
+            warnings.append(
+                f"variant group {', '.join(names)} carries deliberate alternatives; "
+                "renderings left for review"
+            )
+            continue
+        categories = {current[index].category for index in members}
+        if len(categories) > 1:
+            shown = ", ".join(f"{current[index].english} ({current[index].category.value})" for index in members)
+            warnings.append(
+                f"variants in different categories are left separate: {shown}"
+            )
+            continue
+        is_plural_group = len({bases[index] for index in members}) > 1
+        if is_plural_group and any(
+            character.isupper() for index in members for character in bases[index]
+        ):
+            if not _renderings_nest(renderings):
+                shown = sorted({current[index].chinese for index in members})
+                warnings.append(
+                    f"plural variants {', '.join(names)} have unrelated renderings "
+                    f"({', '.join(shown)}); left for review"
+                )
+            continue
+        by_rendering: dict[str, list[int]] = defaultdict(list)
+        for index in members:
+            by_rendering[_rendering_key(current[index])].append(index)
+        chosen = min(
+            by_rendering,
+            key=lambda rendering: (
+                -max(priority(current[index]) for index in by_rendering[rendering]),
+                -sum(len(current[index].evidence) for index in by_rendering[rendering]),
+                -max(current[index].confidence for index in by_rendering[rendering]),
+                min(len(" ".join(current[index].english.split())) for index in by_rendering[rendering]),
+                rendering,
+            ),
+        )
+        canonical = current[by_rendering[chosen][0]].chinese
+        for index in members:
+            entry = current[index]
+            if _rendering_key(entry) == chosen:
+                continue
+            related = [name for name in names if name != entry.english]
+            rewritten = _with_rendering(entry, canonical)
+            if rewritten is None:
+                warnings.append(
+                    f"{entry.english} ({entry.chinese}) cannot take the rendering {canonical} "
+                    f"of its variant(s) {', '.join(related)}; left for review"
+                )
+                continue
+            changes.append(
+                GlossaryHarmonizationChange(
+                    kind="variant",
+                    english=entry.english,
+                    previous_chinese=entry.chinese,
+                    chinese=rewritten.chinese,
+                    related_terms=related,
+                )
+            )
+            current[index] = rewritten
+
+    by_english: dict[str, list[int]] = defaultdict(list)
+    for index, entry in enumerate(current):
+        by_english[" ".join(entry.english.split())].append(index)
+    for index in range(len(current)):
+        words = glossary_variant_base(current[index].english).split()
+        # Titles, organisations and works are usually translated by meaning,
+        # so only person names are expected to embed a component's rendering.
+        if len(words) < 2 or current[index].category is not GlossaryCategory.PERSON:
+            continue
+        for position, word in enumerate(words):
+            full = current[index]
+            if not any(character.isupper() for character in word):
+                continue
+            components = [current[item] for item in by_english.get(word, []) if item != index]
+            if len({component.chinese for component in components}) != 1:
+                continue
+            component = components[0]
+            rendering = component.chinese
+            if rendering in full.chinese:
+                continue
+            parts = full.chinese.split(_NAME_PART_SEPARATOR)
+            alignable = (
+                full.category is GlossaryCategory.PERSON
+                and component.category is GlossaryCategory.PERSON
+                and len(parts) == len(words)
+            )
+            # Chinese name order need not follow the English word order, so the
+            # part to replace is the one transliterating the component: the only
+            # part sharing characters with its rendering (韦雷勒 ~ 韦雷尔).
+            overlaps = [len(set(part) & set(rendering)) for part in parts]
+            best = max(overlaps, default=0)
+            if best == 0 or overlaps.count(best) != 1:
+                alignable = False
+            elif abs(len(parts[overlaps.index(best)]) - len(rendering)) > 1:
+                # The part carries more than the name (万托雷上尉 holds a title),
+                # so replacing it whole would drop meaning.
+                alignable = False
+            rewritten = None
+            if alignable and priority(component) >= priority(full):
+                parts[overlaps.index(best)] = rendering
+                rewritten = _with_rendering(full, _NAME_PART_SEPARATOR.join(parts))
+            if rewritten is not None:
+                changes.append(
+                    GlossaryHarmonizationChange(
+                        kind="component",
+                        english=full.english,
+                        previous_chinese=full.chinese,
+                        chinese=rewritten.chinese,
+                        related_terms=[component.english],
+                    )
+                )
+                current[index] = rewritten
+            else:
+                warnings.append(
+                    f"{full.english} ({full.chinese}) does not contain the rendering of "
+                    f"its component {component.english} ({rendering})"
+                )
+
+    harmonized = sort_glossary_entries(current)
+    unglossed: dict[str, int] = {}
+    if documents is not None:
+        unglossed = find_unglossed_proper_nouns(
+            documents, harmonized, min_occurrences=min_unglossed_occurrences
+        )
+        if unglossed:
+            listed = ", ".join(f"{name} ({count})" for name, count in list(unglossed.items())[:10])
+            warnings.append(
+                f"{len(unglossed)} recurring mid-sentence proper noun(s) have no glossary entry: {listed}"
+            )
+    return harmonized, GlossaryHarmonizationReport(
+        change_count=len(changes),
+        changes=changes,
+        warnings=warnings,
+        unglossed_proper_nouns=unglossed,
+    )
+
+
+def find_unglossed_proper_nouns(
+    documents: list[ChapterDocument],
+    entries: list[GlossaryEntry],
+    *,
+    min_occurrences: int = 10,
+) -> dict[str, int]:
+    """Count recurring mid-sentence capitalised words that no glossary term covers."""
+    cased_words: set[str] = set()
+    lowercase_words: set[str] = set()
+    for entry in entries:
+        for term in (entry.english, *entry.aliases):
+            words = re.findall(r"[A-Za-z]+", term)
+            if any(character.isupper() for character in term):
+                cased_words.update(words)
+            else:
+                lowercase_words.update(word.casefold() for word in words)
+
+    def covered(word: str) -> bool:
+        stems = {word}
+        if word.endswith("es"):
+            stems.add(word[:-2])
+        if word.endswith("s"):
+            stems.add(word[:-1])
+        return any(stem in cased_words or stem.casefold() in lowercase_words for stem in stems)
+
+    counts: Counter[str] = Counter()
+    for document in documents:
+        for segment in document.segments:
+            visible = _MARKUP_RE.sub("", segment.text)
+            counts.update(_MID_SENTENCE_CAPITAL_RE.findall(visible))
+    found = [
+        (word, count)
+        for word, count in counts.items()
+        if count >= min_occurrences and word not in _NON_NAME_CAPITALS and not covered(word)
+    ]
+    found.sort(key=lambda item: (-item[1], item[0]))
+    return dict(found[:_UNGLOSSED_REPORT_LIMIT])
