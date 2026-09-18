@@ -28,7 +28,16 @@ export const COMMON_GROUPS: CommonGroup[] = [
       { path: "translation.style", label: "Prose style", help: "Voice preset for the translation. “custom” uses the style file below." },
       { path: "translation.custom_style_file", label: "Custom style file", help: "Style instructions file, relative to this config. Used only with style “custom”." },
       { path: "translation.boundary_context", label: "Neighbor context", help: "Show the previous and next source segments read-only, for continuity across chunks." },
-      { path: "translation.de_ai_enabled", label: "Natural-prose pass", help: "Avoid stock machine-translation phrasing in the draft." },
+      {
+        path: "translation.de_ai_enabled",
+        label: "Naturalness guidance",
+        help: "Adds anti-'AI prose' instructions to the translation, repair, and prose-rewrite prompts. Not a separate pass: no extra model calls.",
+      },
+      {
+        path: "translation.de_ai_strength",
+        label: "Naturalness strength",
+        help: "conservative: keep the author's voice and avoid adding formulaic phrasing. moderate: actively avoid model-like prose (rhetorical triplets, uniform rhythm, over-explanation). For verified rewrites of stiff passages, turn on Prose rewrite.",
+      },
       { path: "translation.thinking", label: "Model thinking", help: "Let the translation model reason before answering. Slower; off by default." },
     ],
   },
