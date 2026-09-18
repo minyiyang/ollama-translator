@@ -45,6 +45,14 @@ class GenerationCancelled(OllamaClientError):
     """Generation was cancelled by the caller."""
 
 
+class PauseRequested(BaseException):
+    """An operator asked the run to pause before its next model call.
+
+    A ``BaseException`` like ``KeyboardInterrupt``: stage retry loops that catch
+    ``Exception`` must not mistake a pause for a failed attempt and retry it.
+    """
+
+
 @dataclass(frozen=True)
 class ModelInfo:
     name: str
@@ -224,7 +232,9 @@ class OllamaClient:
         progress_interval_tokens: int | None = None,
         progress_interval_seconds: float | None = None,
         clock_ns: Callable[[], int] = time.monotonic_ns,
+        pause_check: Callable[[], bool] | None = None,
     ) -> None:
+        self._pause_check = pause_check
         resolved_chars = (
             config.progress_interval_chars
             if progress_interval_chars is None
@@ -458,6 +468,9 @@ class OllamaClient:
         max_output_tokens: int | None = None,
     ) -> GenerationResult:
         cancellation.raise_if_cancelled()
+        # Checked only between calls, so an in-flight generation always finishes.
+        if self._pause_check is not None and self._pause_check():
+            raise PauseRequested("paused on request after the previous model call")
         if context_minimum is not None and context_minimum <= 0:
             raise ValueError("context_minimum must be positive")
         if context_maximum is not None and context_maximum <= 0:

@@ -28,6 +28,10 @@ from book_agent.workflow import (
     format_json,
     format_status_plain,
     load_workspace_config,
+    mark_running_stages,
+    pause_requested,
+    PAUSED_ON_REQUEST,
+    request_pause,
     retry_failed_from_stage,
     retry_from_stage,
     run_workflow,
@@ -428,3 +432,54 @@ class WorkflowTests:
         source.write_bytes(b"epub")
         return create_job_workspace(source, root / "runs", self.config, job_id=job_id)
 
+
+
+class PauseRequestTests:
+    # Reuse the workflow fixture without inheriting (and re-running) its tests.
+    setup_method = WorkflowTests.setup_method
+    teardown_method = WorkflowTests.teardown_method
+    _runners = WorkflowTests._runners
+
+    def test_pause_request_parks_the_next_stage_and_resume_continues(self) -> None:
+        calls = []
+
+        def pausing_translate(workspace, config, client):
+            calls.append("translate")
+            request_pause(workspace)  # e.g. the dashboard asked while this stage ran
+            return self._runners()[WorkflowStage.TRANSLATE](workspace, config, client)
+
+        runners = {**self._runners(), WorkflowStage.TRANSLATE: pausing_translate}
+        paused = run_workflow(self.workspace, self.config, client=object(), stage_runners=runners)
+
+        assert paused.exit_code == ExitCode.PAUSED
+        assert paused.message == PAUSED_ON_REQUEST
+        statuses = {s["name"]: s["status"] for s in workflow_status(self.workspace)["stages"]}
+        assert statuses["translate"] == "completed"  # the in-flight work finished
+        assert statuses[paused.stage] == "paused"
+        assert not pause_requested(self.workspace)
+
+        resumed = run_workflow(self.workspace, self.config, client=object(), stage_runners=self._runners())
+        assert resumed.exit_code == ExitCode.COMPLETE
+        assert calls == ["translate"]
+
+    def test_client_raises_pause_before_starting_the_next_call(self) -> None:
+        from book_agent.config import OllamaConfig
+        from book_agent.ollama_client import OllamaClient, PauseRequested
+
+        class Backend:
+            def generate(self, **kwargs):
+                raise AssertionError("no model call may start once a pause is requested")
+
+        client = OllamaClient(OllamaConfig(), backend=Backend(), pause_check=lambda: True)
+        with pytest.raises(PauseRequested):
+            client.generate_text("hello")
+
+    def test_mark_running_stages_settles_a_killed_run(self) -> None:
+        connection = connect_state(self.workspace.state_file)
+        try:
+            set_stage_status(connection, "translate", StageStatus.RUNNING)
+        finally:
+            connection.close()
+        assert mark_running_stages(self.workspace, StageStatus.PAUSED, "stopped") == ["translate"]
+        statuses = {s["name"]: (s["status"], s["message"]) for s in workflow_status(self.workspace)["stages"]}
+        assert statuses["translate"] == ("paused", "stopped")

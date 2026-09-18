@@ -824,6 +824,42 @@ class GlossaryStageTests:
 
             assert len(client.prompts) == 2
 
+    def test_resolution_keeps_candidate_when_rendering_lacks_cjk(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            workspace = self.make_workspace(base)
+            config = AppConfig.model_validate(
+                {
+                    "glossary": {"extraction_chunk_tokens": 100},
+                    "workflow": {"max_retries": 3, "require_glossary_review": False},
+                }
+            )
+            candidate = GlossaryResult(
+                entries=[
+                    entry("Qelwright", "奎尔赖特", ["D0000-S000001"]),
+                    entry("Vraxwright", "弗拉克斯赖特", ["D0000-S000001"]),
+                ]
+            )
+            run_glossary_extraction_stage(
+                workspace, config, FakeGlossaryClient([candidate])
+            )
+            client = FakeGlossaryClient(
+                [
+                    resolution_result(
+                        ("T00001", "奎尔赖特", GlossaryCategory.PERSON),
+                        ("T00002", "Vraxwright", GlossaryCategory.PERSON),
+                    )
+                ]
+            )
+
+            resolved = run_glossary_resolution_stage(workspace, config, client)
+
+            by_english = {item.english: item for item in resolved.entries}
+            assert by_english["Qelwright"].chinese == "奎尔赖特"
+            assert by_english["Vraxwright"].chinese == "弗拉克斯赖特"
+            assert "resolver output invalid" in by_english["Vraxwright"].note
+            assert len(client.prompts) == 1
+
     def test_obfuscated_resolution_runs_compact_conflict_only_pass(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             base = Path(directory)

@@ -248,6 +248,66 @@ def load_manual_review_resolution_file(
     return worksheet.completed_resolution_set()
 
 
+def preview_manual_resolution(
+    workspace: JobWorkspace,
+    segment_id: str,
+    translated_text: str | None,
+) -> list[dict[str, str]]:
+    """Return the deterministic issues that would block one proposed resolution.
+
+    ``translated_text=None`` previews an acceptance of the current translation,
+    which overrides overridable findings exactly as ``resolve_manual_review``
+    does. Nothing is written.
+    """
+    config = AppConfig.model_validate_json(
+        workspace.config_file.read_text(encoding="utf-8")
+    )
+    repaired = next(
+        (
+            item
+            for item in load_validated_repaired_documents(workspace)
+            if any(s.segment_id == segment_id for s in item.document.segments)
+        ),
+        None,
+    )
+    if repaired is None:
+        raise ValueError(f"segment is absent from the validated draft: {segment_id}")
+    document_id = repaired.document.manifest_id
+    source = next(
+        item for item in load_preprocessed_documents(workspace)
+        if item.manifest_id == document_id
+    )
+    document = repaired.document
+    if translated_text is not None:
+        document = document.model_copy(
+            update={
+                "segments": [
+                    item.model_copy(update={"translated_text": translated_text})
+                    if item.segment_id == segment_id
+                    else item
+                    for item in document.segments
+                ]
+            }
+        )
+    initial = {item.document_id: item for item in load_document_audits(workspace)}
+    audit = reapply_quantity_adjudications(
+        audit_translated_document(source, document, config.audit),
+        initial.get(document_id),
+    )
+    accepting = translated_text is None
+    return [
+        {
+            "category": issue.category.value,
+            "severity": issue.severity.value,
+            "message": issue.message,
+        }
+        for issue in audit.issues
+        if issue.segment_id == segment_id
+        and issue.severity.rank >= AuditSeverity.MEDIUM.rank
+        and not (accepting and issue.category not in _NON_OVERRIDABLE_MANUAL_CATEGORIES)
+    ]
+
+
 def resolve_manual_review(
     workspace: JobWorkspace,
     resolution_set: ManualReviewResolutionSet,
