@@ -204,7 +204,8 @@ book-agent approve "D:\runs\my-job" --llm-glossary --resume
 `book-agent ui` 启动只监听本机地址的控制台（可选 `--runs`、`--configs`、
 `--port`、`--no-browser`），覆盖与上述命令相同的关卡：
 
-- **Jobs**：列出并新建任务；任务的 **Config** 标签页负责编辑、校验与启动，
+- **Jobs**：列出并新建任务，并显示翻译方向（如 `EN → ZH`）；已完成的任务可在
+  列表或任务顶栏**下载**译好的书；任务的 **Config** 标签页负责编辑、校验与启动，
   顶栏可暂停（当前模型调用结束后）、停止或续跑。终端启动的任务可用
   `book-agent pause <workspace>` 以同样方式暂停；
 - **Progress**：根据 `state.sqlite3` 与会话日志跟踪 `--runs` 下的任意任务。

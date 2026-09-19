@@ -5,10 +5,13 @@ import { BookCard, type BookInfo } from "../components/BookCard";
 import { Shell } from "../components/Shell";
 import { useToast } from "../components/Toast";
 import { Bar, Card, Chip } from "../components/ui";
-import { relativeTime } from "../lib/format";
+import { directionLabel, outputUrl, relativeTime } from "../lib/format";
 import { stageLabel } from "../lib/stages";
 
-type Job = { job_id: string; overall: string; source: string; current_stage: string; completed: number; total: number; updated: string };
+type Job = {
+  job_id: string; overall: string; source: string; direction: string; downloadable: boolean;
+  current_stage: string; completed: number; total: number; updated: string;
+};
 type Setup = { configs: { name: string }[]; config_dir: string; runs: string; template: string; jobs: Job[] };
 
 const PAGE_SIZE = 10;
@@ -39,7 +42,7 @@ function JobsTable({ jobs }: { jobs: Job[] }) {
   return (
     <table className="grid">
       <thead>
-        <tr><th>Job</th><th>Source</th><th>Status</th><th>Stage</th><th>Progress</th><th>Updated</th></tr>
+        <tr><th>Job</th><th>Source</th><th>Type</th><th>Status</th><th>Stage</th><th>Progress</th><th>Updated</th><th /></tr>
       </thead>
       <tbody>
         {jobs.map((job) => {
@@ -53,6 +56,7 @@ function JobsTable({ jobs }: { jobs: Job[] }) {
             <tr key={job.job_id}>
               <td><Link className="mono" to={`${base}/${draft ? "config" : "progress"}`}>{job.job_id}</Link></td>
               <td>{job.source}</td>
+              <td className="mono nowrap" title={job.direction || "direction not set"}>{directionLabel(job.direction)}</td>
               <td><Chip kind={job.overall}>{job.overall}</Chip></td>
               <td>
                 {draft ? <span className="meta">not started</span> : job.current_stage ? stageLabel(job.current_stage) : "—"}
@@ -63,6 +67,11 @@ function JobsTable({ jobs }: { jobs: Job[] }) {
                 <span className="meta">{job.completed}/{job.total} stages</span>
               </td>
               <td className="meta">{relativeTime(job.updated)}</td>
+              <td>
+                {job.downloadable && (
+                  <a className="button small" href={outputUrl(job.job_id)} download title="Download the translated book">⤓ Download</a>
+                )}
+              </td>
             </tr>
           );
         })}

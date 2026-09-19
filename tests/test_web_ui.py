@@ -809,3 +809,99 @@ class EndpointCoverageTests(ServerTests):
             if not re.search(rf'/api/(jobs/[^/"\s]+/)?{re.escape(route)}(?=["?])', tests)
         )
         assert missing == [], "API routes without an HTTP test: " + ", ".join(missing)
+
+
+class DownloadAndDirectionTests(ServerTests):
+    def completed_workspace(self, directory):
+        from book_agent.stages.compile import run_epub_compile_stage
+        from book_agent.stages.validate_epub import run_epub_validation_stage
+        from tests.test_compile_stages import CompileStageTests
+
+        config = AppConfig.model_validate({"audit": {"semantic_enabled": False}})
+        workspace = CompileStageTests().prepare_workspace(Path(directory), config)
+        run_epub_compile_stage(workspace, config)
+        run_epub_validation_stage(workspace)
+        # The fixture calls stage functions directly and bypasses a few (glossary,
+        # rescue); mark those done as a full workflow run would.
+        from book_agent.workflow import workflow_status
+
+        connection = connect_state(workspace.state_file)
+        try:
+            for stage in workflow_status(workspace)["stages"]:
+                if stage["status"] != StageStatus.COMPLETED.value:
+                    set_stage_status(connection, stage["name"], StageStatus.COMPLETED)
+        finally:
+            connection.close()
+        return workspace
+
+    def test_completed_job_downloads_its_translated_book(self):
+        from book_agent.workflow import workflow_status
+
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = self.completed_workspace(directory)
+            job = workspace.root.name
+            app = UiApp(workspace.root.parent, Path(directory), [])
+            assert workflow_status(workspace)["overall"] == "complete"
+            [row] = list_jobs(app.runs)
+            assert row["downloadable"] and row["direction"] == "en-zh"
+            info = app.job_info(job)
+            assert info["downloadable"] and info["direction"] == "en-zh"
+
+            server, call = self.serve(app)
+            try:
+                with urllib.request.urlopen(f"{call.base}/api/jobs/{job}/output") as response:
+                    body = response.read()
+                    disposition = response.headers["Content-Disposition"]
+                    assert response.headers["Content-Type"] == "application/epub+zip"
+                assert body[:2] == b"PK"  # a zip container
+                assert disposition.startswith("attachment;") and ".translated.epub" in disposition
+            finally:
+                server.shutdown()
+                server.server_close()
+
+    def test_unfinished_job_has_nothing_to_download(self):
+        with tempfile.TemporaryDirectory() as directory:
+            workspace, _ = paused_glossary_workspace(Path(directory))
+            app = UiApp(workspace.root.parent, Path(directory), [])
+            assert not app.job_info("fixture")["downloadable"]
+            server, call = self.serve(app)
+            try:
+                status, body = call("/api/jobs/fixture/output")
+                assert status == 404 and "not completed" in json.loads(body)["error"]
+                assert call("/api/jobs/..%2Fx/output")[0] == 404
+            finally:
+                server.shutdown()
+                server.server_close()
+
+    def test_non_ascii_download_names_use_an_rfc5987_header(self):
+        with tempfile.TemporaryDirectory() as directory:
+            workspace, _ = paused_glossary_workspace(Path(directory))
+            book = Path(directory) / "鲁滨逊漂流记.translated.epub"
+            book.write_bytes(b"PK\x03\x04")
+            app = UiApp(workspace.root.parent, Path(directory), [])
+            server, call = self.serve(app)
+            try:
+                with patch.object(UiApp, "job_output", return_value=book):
+                    with urllib.request.urlopen(f"{call.base}/api/jobs/fixture/output") as response:
+                        disposition = response.headers["Content-Disposition"]
+                assert 'filename="______.translated.epub"' in disposition
+                assert "filename*=UTF-8''" + urllib.parse.quote(book.name) in disposition
+            finally:
+                server.shutdown()
+                server.server_close()
+
+    def test_draft_direction_comes_from_its_config_file(self):
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            (base / "configs").mkdir()
+            (base / "configs" / "zh.yaml").write_text("translation: {direction: zh-en}\n", encoding="utf-8")
+            (base / "configs" / "bad.yaml").write_text("translation: [1\n", encoding="utf-8")
+            source = base / "book.epub"
+            source.write_bytes(b"epub")
+            app = UiApp(base / "runs", base / "configs", [], None)
+            app.create_job({"source": str(source), "config": "zh.yaml", "job_id": "zh"})
+            app.create_job({"source": str(source), "config": "bad.yaml", "job_id": "bad"})
+            rows = {row["job_id"]: row for row in list_jobs(app.runs, app.config_dir)}
+            assert rows["zh"]["direction"] == "zh-en" and not rows["zh"]["downloadable"]
+            assert rows["bad"]["direction"] == ""
+            assert app.job_info("zh")["direction"] == "zh-en"

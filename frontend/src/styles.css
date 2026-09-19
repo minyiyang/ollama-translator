@@ -30,6 +30,11 @@ button:hover:not(:disabled) { border-color: var(--accent); }
 button:disabled { opacity: .5; cursor: default; }
 button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
 button.small { padding: 2px 8px; font-size: 12px; }
+a.button { display: inline-block; text-decoration: none; border-radius: 6px; border: 1px solid var(--line);
+  background: var(--panel); color: var(--ink); padding: 6px 12px; white-space: nowrap; }
+a.button:hover { border-color: var(--accent); }
+a.button.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); font-weight: 600; }
+a.button.small { padding: 2px 8px; font-size: 12px; }
 input[type=text], select, textarea { font: inherit; color: var(--ink); background: var(--bg);
   border: 1px solid var(--line); border-radius: 6px; padding: 7px 10px; }
 input[type=text], select { width: 100%; }

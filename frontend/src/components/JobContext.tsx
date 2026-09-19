@@ -10,6 +10,8 @@ export type JobInfo = {
   source: string;
   source_path?: string;
   config: string;
+  direction?: string;
+  downloadable?: boolean;
   validated?: boolean;
   stages: Stage[];
   running: boolean;

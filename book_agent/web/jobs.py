@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from ..pipeline_state import WorkflowStage
-from ..workflow import workflow_status
+from ..workflow import load_workspace_config, workflow_status
 from ..workspace import JobWorkspace, open_job_workspace, validate_job_id
 
 _LINE_RE = re.compile(r"^\[(?P<ts>[^\]]+)\] \[stage=(?P<stage>[^\]]+)\] (?P<rest>.*)$")
@@ -40,7 +40,27 @@ def open_job(runs: Path, job_id: str) -> JobWorkspace:
     return open_job_workspace(job_path(runs, job_id))
 
 
-def list_jobs(runs: Path) -> list[dict[str, Any]]:
+def job_direction(workspace: JobWorkspace) -> str:
+    """The job's translation direction (``en-zh``), or "" when unreadable."""
+    try:
+        return load_workspace_config(workspace).translation.direction.value
+    except (OSError, ValueError):
+        return ""
+
+
+def draft_direction(config_dir: Path | None, name: str) -> str:
+    """A draft's direction from its config file, or "" when unset or invalid."""
+    if config_dir is None:
+        return ""
+    from .setup import parse_config, read_config  # local: setup imports cli
+
+    try:
+        return parse_config(read_config(config_dir, name), config_dir).translation.direction.value
+    except (OSError, ValueError):
+        return ""
+
+
+def list_jobs(runs: Path, config_dir: Path | None = None) -> list[dict[str, Any]]:
     """Summarize every valid workspace, newest first."""
     jobs = []
     if not runs.is_dir():
@@ -63,6 +83,8 @@ def list_jobs(runs: Path) -> list[dict[str, Any]]:
                 "job_id": path.name,
                 "overall": status["overall"],
                 "source": workspace.source_file.name,
+                "direction": job_direction(workspace),
+                "downloadable": status["overall"] == "complete",
                 "current_stage": current["name"] if current else "",
                 "current_message": str(current.get("message") or "") if current else "",
                 "completed": sum(1 for s in stages if s["status"] == "completed"),
@@ -82,6 +104,8 @@ def list_jobs(runs: Path) -> list[dict[str, Any]]:
                 "job_id": draft["job_id"],
                 "overall": "starting" if draft.get("launched") else "draft",
                 "source": Path(draft["source"]).name,
+                "direction": draft_direction(config_dir, draft["config"]),
+                "downloadable": False,
                 "current_stage": "",
                 "current_message": "",
                 "completed": 0,

@@ -107,3 +107,14 @@ describe("stageActions", () => {
     expect(at("repair_translation", "running")).toEqual([]);
   });
 });
+
+describe("directionLabel", () => {
+  it("shows a translation direction as source → target", async () => {
+    const { directionLabel, outputUrl } = await import("./format");
+    expect(directionLabel("en-zh")).toBe("EN → ZH");
+    expect(directionLabel("en-ja")).toBe("EN → JA");
+    expect(directionLabel("")).toBe("—");
+    expect(directionLabel(undefined)).toBe("—");
+    expect(outputUrl("my book")).toBe("/api/jobs/my%20book/output");
+  });
+});

@@ -26,3 +26,12 @@ export function roughDuration(seconds: number): string {
   const rest = minutes % 60;
   return rest ? `${hours} h ${rest} min` : `${hours} h`;
 }
+
+/** "en-zh" -> "EN → ZH"; an unknown or missing direction shows as a dash. */
+export function directionLabel(direction: string | undefined): string {
+  const [from, to] = (direction ?? "").split("-");
+  return from && to ? `${from.toUpperCase()} → ${to.toUpperCase()}` : "—";
+}
+
+/** Download URL of a completed job's translated book. */
+export const outputUrl = (jobId: string) => `/api/jobs/${encodeURIComponent(jobId)}/output`;

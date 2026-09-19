@@ -516,7 +516,9 @@ leaving LLM review disabled performs no independent review.
 `book-agent ui` serves a dashboard on loopback only (`--runs`, `--configs`,
 `--port`, `--no-browser`). It covers the same gates as the commands above:
 
-- **Jobs** lists jobs and creates new ones; each job's **Config** tab edits,
+- **Jobs** lists jobs with their translation direction (for example
+  `EN → ZH`) and creates new ones; a completed job has a *Download* button for
+  its translated book, also in the job header. Each job's **Config** tab edits,
   validates, and starts it. The job header pauses (after the current LLM
   call), stops, or resumes a run. `book-agent pause <workspace>` pauses a run
   started from a terminal the same way.

@@ -311,3 +311,4 @@ button.danger { background: var(--bad); color: var(--panel); border-color: var(-
 .rerun-stages { margin: 0 0 10px; padding-left: 22px; }
 .dialog-body .banner { margin: 8px 0 0; }
 .stage-actions { display: inline-flex; gap: 6px; white-space: nowrap; }
+.nowrap { white-space: nowrap; }

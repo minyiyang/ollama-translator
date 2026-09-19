@@ -22,7 +22,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from importlib.resources import files
 from pathlib import Path
 from typing import Any
-from urllib.parse import parse_qs, urlparse
+from urllib.parse import parse_qs, quote, urlparse
 
 from ..review_ui import ReviewSession
 from .rerun import parse_stage, rerun_preview
@@ -42,11 +42,13 @@ from .book_info import allowed_book, book_cover, book_info
 from .estimate import estimate as estimate_job
 from . import setup as setup_api
 from .glossary_view import glossary_payload, write_reviewed_glossary
-from .jobs import ProgressReader, job_path, list_jobs, open_job
+from ..stages.compile import load_compiled_epub_path
+from .jobs import ProgressReader, draft_direction, job_direction, job_path, list_jobs, open_job
 
 _MAX_BODY_BYTES = 8 * 1024 * 1024
 _MAX_UPLOAD_BYTES = 1024 * 1024 * 1024
 _PAGES = {"config", "progress", "glossary", "review"}
+_DOWNLOAD_TYPES = {".epub": "application/epub+zip", ".rtf": "application/rtf"}
 _ASSET_TYPES = {
     ".js": "text/javascript; charset=utf-8",
     ".css": "text/css; charset=utf-8",
@@ -159,7 +161,7 @@ class UiApp:
             "config_dir": str(self.config_dir),
             "runs": str(self.runs),
             "template": str(self.template) if self.template and self.template.is_file() else "",
-            "jobs": list_jobs(self.runs),
+            "jobs": list_jobs(self.runs, self.config_dir),
         }
 
     def book_roots(self) -> list[Path]:
@@ -198,6 +200,8 @@ class UiApp:
                 "source": workspace.source_file.name,
                 "source_path": str(workspace.source_file),
                 "config": Path(status["configuration"]["source_path"] or "").name,
+                "direction": job_direction(workspace),
+                "downloadable": overall == "complete",
                 "stages": status["stages"],
                 "running": overall == "running" or process_running,
                 "pause_requested": pause_requested(workspace),
@@ -214,6 +218,8 @@ class UiApp:
             "source": Path(draft["source"]).name,
             "source_path": draft["source"],
             "config": draft["config"],
+            "direction": draft_direction(self.config_dir, draft["config"]),
+            "downloadable": False,
             "validated": drafts.is_validated(self.config_dir, draft),
             "stages": [],
             "running": process_running,
@@ -305,6 +311,13 @@ class UiApp:
             clear_pause_request(workspace)
             mark_running_stages(workspace, StageStatus.PAUSED, "stopped from the dashboard; resume to continue")
         return {"stopped": True}
+
+    def job_output(self, job_id: str) -> Path:
+        """The translated book of a completed job."""
+        workspace = open_job(self.runs, job_id)
+        if workflow_status(workspace)["overall"] != "complete":
+            raise ValueError("the job has not completed; there is no translated book yet")
+        return Path(load_compiled_epub_path(workspace))
 
     def rerun_preview(self, job_id: str, stage: str) -> dict[str, Any]:
         return rerun_preview(open_job(self.runs, job_id), stage)
@@ -473,6 +486,15 @@ def make_handler(app: UiApp, port_ref: list[int]) -> type[BaseHTTPRequestHandler
                 except (ValueError, KeyError, OSError) as error:
                     return self._json({"error": str(error)}, HTTPStatus.NOT_FOUND)
                 return self._send(data, media_type)
+            if method == "GET" and len(parts) == 4 and parts[1] == "jobs" and parts[3] == "output":
+                try:
+                    validate_job_id(parts[2])
+                    output = app.job_output(parts[2])
+                    data = output.read_bytes()
+                except (ValueError, OSError) as error:
+                    return self._json({"error": str(error)}, HTTPStatus.NOT_FOUND)
+                media_type = _DOWNLOAD_TYPES.get(output.suffix.lower(), "application/octet-stream")
+                return self._send(data, media_type, download=output.name)
             if method == "POST" and parts == ["api", "uploads"]:
                 return self._upload(parse_qs(url.query).get("name", [""])[0])
             if method == "POST":
@@ -540,9 +562,22 @@ def make_handler(app: UiApp, port_ref: list[int]) -> type[BaseHTTPRequestHandler
             data = json.dumps(value, ensure_ascii=False, default=str).encode("utf-8")
             self._send(data, "application/json; charset=utf-8", status)
 
-        def _send(self, data: bytes, content_type: str, status: HTTPStatus = HTTPStatus.OK) -> None:
+        def _send(
+            self,
+            data: bytes,
+            content_type: str,
+            status: HTTPStatus = HTTPStatus.OK,
+            download: str = "",
+        ) -> None:
             self.send_response(status)
             self.send_header("Content-Type", content_type)
+            if download:
+                # ASCII fallback plus the exact UTF-8 name (RFC 6266 / 5987).
+                fallback = re.sub(r'[^A-Za-z0-9._ -]', "_", download)
+                self.send_header(
+                    "Content-Disposition",
+                    f"attachment; filename=\"{fallback}\"; filename*=UTF-8''{quote(download)}",
+                )
             self.send_header("Content-Length", str(len(data)))
             self.send_header("Cache-Control", "no-store")
             self.send_header("X-Content-Type-Options", "nosniff")

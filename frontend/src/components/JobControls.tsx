@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { jobApi } from "../api";
+import { outputUrl } from "../lib/format";
 import { attentionFrom } from "../lib/stages";
 import { useConfirm } from "./Dialog";
 import { useJob } from "./JobContext";
@@ -74,6 +75,9 @@ export function JobControls() {
             ■ Stop
           </button>
         </span>
+      )}
+      {info.downloadable && (
+        <a className="button primary" href={outputUrl(jobId)} download title="Download the translated book">⤓ Download</a>
       )}
       {info.kind === "job" && !info.running && !waiting && info.overall !== "complete" && (
         <span title={TIPS.resume}>
