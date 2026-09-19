@@ -5,6 +5,7 @@ from __future__ import annotations
 import math
 import re
 import unicodedata
+from collections.abc import Mapping
 from enum import Enum
 
 from pydantic import BaseModel, ConfigDict, Field
@@ -24,6 +25,11 @@ from .content_policy import (
 )
 from .glossary import estimate_tokens, is_suspicious_generic_candidate
 from .languages import Language, TranslationDirection
+from .numeric_adjudication import (
+    NUMBER_RULE_SOURCE,
+    NumericRuling,
+    apply_numeric_rulings,
+)
 from .ollama_client import estimate_request_tokens
 from .preprocessing import PreprocessedDocument, select_relevant_glossary_entries
 from .quantities import (
@@ -190,8 +196,13 @@ def audit_translated_document(
     source: PreprocessedDocument,
     translated: TranslatedDocument,
     config: AuditConfig,
+    numeric_rulings: Mapping[str, NumericRuling] | None = None,
 ) -> DocumentAudit:
-    """Run deterministic structure, completeness, language, duplication, and style checks."""
+    """Run deterministic structure, completeness, language, duplication, and style checks.
+
+    ``numeric_rulings`` are stored model rulings on the rule-based numeric check;
+    a ruling for the current text settles that segment's rule finding.
+    """
     issues: list[AuditIssue] = []
     source_ids = [item.segment_id for item in source.segments]
     target_ids = [item.segment_id for item in translated.segments]
@@ -315,6 +326,18 @@ def audit_translated_document(
                     )
                 )
 
+    if numeric_rulings:
+        issues = apply_numeric_rulings(
+            issues,
+            {
+                segment_id: (
+                    source_by_id[segment_id].processed_text,
+                    translated_by_id[segment_id].translated_text,
+                )
+                for segment_id in comparable_ids
+            },
+            numeric_rulings,
+        )
     issues = deduplicate_audit_issues(issues)
     candidates = select_semantic_audit_candidates(
         source, issues, config, eligible_ids=semantic_eligible_ids
@@ -337,9 +360,10 @@ def reconcile_document_audit(
     translated: TranslatedDocument,
     historical: DocumentAudit,
     config: AuditConfig,
+    numeric_rulings: Mapping[str, NumericRuling] | None = None,
 ) -> DocumentAudit:
     """Recompute facts from current text and retain only still-applicable model judgments."""
-    current = audit_translated_document(source, translated, config)
+    current = audit_translated_document(source, translated, config, numeric_rulings)
     target_by_id = {item.segment_id: item.translated_text for item in translated.segments}
     source_by_id = {item.segment_id: item.processed_text for item in source.segments}
     retained: list[AuditIssue] = []
@@ -1183,6 +1207,7 @@ def _audit_number_integrity(segment_id, source, target, issues) -> None:
     target_numbers = number_tokens(target)
     target_has_cjk = bool(_CJK.search(visible_segment_text(target)))
     if not numeric_content_matches(source, target) and (target_numbers or not target_has_cjk):
+        # Only a trigger: the audit stage asks the quantity model for a ruling.
         issues.append(
             _issue(
                 segment_id,
@@ -1191,7 +1216,7 @@ def _audit_number_integrity(segment_id, source, target, issues) -> None:
                 "numeric content differs from source "
                 f"(source facts: {_format_number_facts(source_numbers)}; "
                 f"translation facts: {_format_number_facts(target_numbers)})",
-            )
+            ).model_copy(update={"source": NUMBER_RULE_SOURCE})
         )
 
 

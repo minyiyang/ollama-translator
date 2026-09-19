@@ -1,4 +1,8 @@
 import math
+import re
+import tempfile
+from pathlib import Path
+from types import SimpleNamespace
 
 import pytest
 
@@ -19,7 +23,10 @@ from book_agent.audit import (
     select_semantic_audit_candidates,
     validate_semantic_audit_scope,
 )
-from book_agent.config import AuditConfig
+from book_agent.config import AppConfig, AuditConfig
+from book_agent.numeric_adjudication import NUMBER_RULE_SOURCE, rule_numeric_findings
+from book_agent.ollama_client import GenerationMetrics, GenerationResult, StructuredGenerationResult
+from book_agent.quantities import QuantityAuditDecision, QuantityAuditResult
 from book_agent.languages import TranslationDirection
 from book_agent.ollama_client import estimate_request_tokens
 from book_agent.preprocessing import PreprocessedDocument, PreprocessedSegment
@@ -965,3 +972,195 @@ class AuditCoreTests:
         assert not [
             item for item in result.issues if "untranslated" in item.message.lower()
         ], [item.message for item in result.issues]
+
+
+# --- Reproduction: the rule-based numeric check rules on correct translations ---
+#
+# Project decision: numeric fidelity is judged by the LLM path (typed quantity
+# comparison + model adjudication, `audit.quantity`), not by a rule-based
+# extractor. With `audit.quantity.enabled: false` (the default), the legacy
+# token check `_audit_number_integrity` is still the authority and raises
+# HIGH-severity, compile-blocking findings. These cases are faithful
+# translations (synthetic re-creations of findings from a real book run) that
+# it flags anyway. They are strict xfails: when the ruling is fixed they pass,
+# pytest reports XPASS as a failure, and the marker must be removed.
+
+# Each case mirrors the number mix of one real finding: a correctly translated
+# quantity sits beside a construction the extractor cannot read on the Chinese
+# side, so a source fact looks "missing". (Month/day dates were checked too and
+# are recognized; they are not part of the problem.)
+_RULE_BASED_FALSE_ALARMS = [
+    pytest.param(
+        "Velnor sowed two-thirds of the seed, dividing the field into two parts; the crop was not above half a peck.",
+        "维尔诺播下三分之二的种子，把田地分为两部分；收成不超过半蒲式耳。",
+        id="two-parts-and-half-a-peck",
+    ),
+    pytest.param(
+        "The bags held about eleven hundred pieces; a dozen and a half of qelm cloths lay there.",
+        "袋子里约有一千一百枚；那里还放着一打半凯尔姆布。",
+        id="dozen-and-a-half",
+    ),
+    pytest.param(
+        "I stretched out two hands to it, and in about half-an-hour more it blew.",
+        "我伸出双手够它，大约半小时后起风了。",
+        id="lexical-two-and-hyphenated-half-an-hour",
+    ),
+    pytest.param(
+        "Velnor said a thousand kind things; the ship rode within half a mile of the shore.",
+        "维尔诺说了千般好话；船停泊在离岸半英里处。",
+        id="figurative-thousand",
+    ),
+]
+
+
+class _RulingClient:
+    """Answers every numeric ruling request with one fixed decision."""
+
+    def __init__(self, status="match", *, valid=True, typed=True, source_quote=""):
+        self.status = status
+        self.valid = valid
+        self.typed = typed
+        self.source_quote = source_quote
+        self.prompts = []
+
+    def generate_structured(self, prompt, schema, **_kwargs):
+        self.prompts.append(prompt)
+        segment_id = re.search(r"Allowed ID: ([^\n]+)", prompt).group(1)
+        value = QuantityAuditResult(
+            decisions=[
+                QuantityAuditDecision(
+                    segment_id=segment_id if self.valid else "D9999-S999999",
+                    status=self.status,
+                    mismatch_types=(
+                        ["missing"] if self.status == "mismatch" and self.typed else []
+                    ),
+                    message="half a peck became a whole bushel",
+                    source_quote=self.source_quote,
+                    confidence=0.97,
+                )
+            ]
+        )
+        generation = GenerationResult(
+            content=value.model_dump_json(), thinking="", metrics=GenerationMetrics()
+        )
+        return StructuredGenerationResult(value=value, generation=generation)
+
+
+def _numeric_findings(report):
+    return [item for item in report.issues if item.source == NUMBER_RULE_SOURCE]
+
+
+@pytest.fixture
+def ruling_root():
+    with tempfile.TemporaryDirectory() as directory:
+        yield Path(directory)
+
+
+class RuleBasedNumericRulingTests:
+    """The token rule only flags a segment; the quantity model decides it."""
+
+    @pytest.mark.parametrize(("source", "target"), _RULE_BASED_FALSE_ALARMS)
+    def test_rule_flags_the_segment_as_a_trigger(self, source, target):
+        report = audit_translated_document(
+            source_document([source]), translated_document([target]), AuditConfig()
+        )
+        assert [item.severity for item in _numeric_findings(report)] == [AuditSeverity.HIGH]
+
+    @pytest.mark.parametrize(("source", "target"), _RULE_BASED_FALSE_ALARMS)
+    def test_faithful_translation_gets_no_blocking_numeric_finding(
+        self, ruling_root, source, target
+    ):
+        workspace = SimpleNamespace(root=ruling_root)
+        config = AppConfig()
+        pair = (source_document([source]), translated_document([target]))
+        client = _RulingClient("match")
+
+        rulings = rule_numeric_findings(workspace, config, client, [pair])
+        report = audit_translated_document(*pair, config.audit, rulings)
+
+        assert _numeric_findings(report) == []
+        assert report.passed
+        assert len(client.prompts) == 1
+        assert "FACT HINTS" not in client.prompts[0]
+
+    def test_ruling_is_stored_and_reused_until_the_text_changes(self, ruling_root):
+        workspace = SimpleNamespace(root=ruling_root)
+        config = AppConfig()
+        source, target = _RULE_BASED_FALSE_ALARMS[0].values
+        client = _RulingClient("match")
+        rule_numeric_findings(
+            workspace, config, client, [(source_document([source]), translated_document([target]))]
+        )
+        rulings = rule_numeric_findings(
+            workspace, config, client, [(source_document([source]), translated_document([target]))]
+        )
+        assert len(client.prompts) == 1
+
+        edited = target.replace("半蒲式耳", "一蒲式耳")
+        report = audit_translated_document(
+            source_document([source]), translated_document([edited]), config.audit, rulings
+        )
+        assert len(_numeric_findings(report)) == 1
+
+    def test_model_mismatch_keeps_a_blocking_finding_with_its_reason(self, ruling_root):
+        workspace = SimpleNamespace(root=ruling_root)
+        config = AppConfig()
+        pair = (
+            source_document(["The crop was not above half a peck of 2 kinds."]),
+            translated_document(["收成不超过一蒲式耳，共3种。"]),
+        )
+        rulings = rule_numeric_findings(workspace, config, _RulingClient("mismatch"), [pair])
+        [finding] = _numeric_findings(audit_translated_document(*pair, config.audit, rulings))
+        assert finding.severity is AuditSeverity.HIGH
+        assert "half a peck became a whole bushel" in finding.message
+
+    def test_invalid_answers_fail_closed(self, ruling_root):
+        workspace = SimpleNamespace(root=ruling_root)
+        config = AppConfig()
+        source, target = _RULE_BASED_FALSE_ALARMS[0].values
+        pair = (source_document([source]), translated_document([target]))
+        client = _RulingClient("match", valid=False)
+        rulings = rule_numeric_findings(workspace, config, client, [pair])
+        assert len(client.prompts) == config.workflow.max_retries + 1
+        assert len(_numeric_findings(audit_translated_document(*pair, config.audit, rulings))) == 1
+
+    def test_without_a_client_only_stored_rulings_apply(self, ruling_root):
+        workspace = SimpleNamespace(root=ruling_root)
+        config = AppConfig()
+        source, target = _RULE_BASED_FALSE_ALARMS[0].values
+        pair = (source_document([source]), translated_document([target]))
+        rulings = rule_numeric_findings(workspace, config, None, [pair])
+        assert len(_numeric_findings(audit_translated_document(*pair, config.audit, rulings))) == 1
+
+    def test_disabled_rulings_leave_the_rule_in_charge(self, ruling_root):
+        workspace = SimpleNamespace(root=ruling_root)
+        config = AppConfig.model_validate(
+            {"audit": {"quantity": {"adjudicate_rule_findings": False}}}
+        )
+        source, target = _RULE_BASED_FALSE_ALARMS[0].values
+        pair = (source_document([source]), translated_document([target]))
+        client = _RulingClient("match")
+        rulings = rule_numeric_findings(workspace, config, client, [pair])
+        assert client.prompts == []
+        assert len(_numeric_findings(audit_translated_document(*pair, config.audit, rulings))) == 1
+
+    def test_loosely_formed_mismatch_still_counts_as_mismatch(self, ruling_root):
+        workspace = SimpleNamespace(root=ruling_root)
+        config = AppConfig()
+        source, target = _RULE_BASED_FALSE_ALARMS[0].values
+        pair = (source_document([source]), translated_document([target]))
+        client = _RulingClient("mismatch", typed=False, source_quote="not in the source")
+        rulings = rule_numeric_findings(workspace, config, client, [pair])
+        assert len(client.prompts) == 1
+        [finding] = _numeric_findings(audit_translated_document(*pair, config.audit, rulings))
+        assert "half a peck became a whole bushel" in finding.message
+
+    def test_match_with_ungrounded_quote_is_rejected(self, ruling_root):
+        workspace = SimpleNamespace(root=ruling_root)
+        config = AppConfig()
+        source, target = _RULE_BASED_FALSE_ALARMS[0].values
+        pair = (source_document([source]), translated_document([target]))
+        client = _RulingClient("match", source_quote="not in the source")
+        rulings = rule_numeric_findings(workspace, config, client, [pair])
+        assert len(client.prompts) == config.workflow.max_retries + 1
+        assert len(_numeric_findings(audit_translated_document(*pair, config.audit, rulings))) == 1

@@ -134,6 +134,9 @@ audit:
     min_decision_confidence: 0.85
     batch_size: 1
     verify_repairs: true
+    # While enabled is false, a failing rule-based numeric check only flags a
+    # segment; this model (no escalation) then rules on each flagged segment.
+    adjudicate_rule_findings: true
 
 reprose:
   enabled: false

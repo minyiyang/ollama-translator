@@ -576,3 +576,37 @@ class ObfuscatedSegmentPolicyTests:
                 glossary,
             ))
 
+
+
+class RepairGlossaryGuardTests:
+    """The guard must stop a repair from LOSING an approved term, not from adding one.
+
+    Reproduces a real run: the source used a term twice, the draft rendered it
+    once and left the second occurrence in English, and the only correct repair
+    (rendering both) was rejected as "changed an applicable approved term".
+    """
+
+    glossary = [
+        GlossaryEntry(english="qirk", chinese="奇尔克", category=GlossaryCategory.ITEM)
+    ]
+    source = "Velnor gave me his qirk, then drew another qirk from his belt."
+    draft = "维尔诺把他的奇尔克给了我，然后从腰带上抽出另一把 qirk。"
+
+    def test_repair_that_renders_a_leftover_english_term_is_accepted(self):
+        repaired = "维尔诺把他的奇尔克给了我，然后从腰带上抽出另一把奇尔克。"
+        assert repair_preserves_glossary(
+            self.source, self.draft, repaired, TranslationDirection.EN_TO_ZH, self.glossary
+        )
+
+    def test_repair_that_loses_the_approved_term_is_still_rejected(self):
+        # Control: the guard's purpose, which a fix must keep.
+        repaired = "维尔诺把他的武器给了我，然后从腰带上抽出另一把 qirk。"
+        assert not repair_preserves_glossary(
+            self.source, self.draft, repaired, TranslationDirection.EN_TO_ZH, self.glossary
+        )
+
+    def test_repair_that_adds_more_renderings_than_the_source_is_rejected(self):
+        repaired = "维尔诺把他的奇尔克给了我，然后从腰带上抽出另一把奇尔克，奇尔克。"
+        assert not repair_preserves_glossary(
+            self.source, self.draft, repaired, TranslationDirection.EN_TO_ZH, self.glossary
+        )

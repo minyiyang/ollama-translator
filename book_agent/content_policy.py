@@ -1104,7 +1104,11 @@ def repair_preserves_glossary(
     direction: TranslationDirection,
     glossary: Iterable[GlossaryEntry] = (),
 ) -> bool:
-    """Keep applicable approved terms already present in last-known-good text."""
+    """Keep applicable approved terms already present in last-known-good text.
+
+    A repair may add renderings (e.g. for an occurrence the draft left in the
+    source language) up to the source's count, but must not drop any.
+    """
     from .preprocessing import select_relevant_glossary_entries
 
     source_visible = visible_segment_text(source_text)
@@ -1126,12 +1130,12 @@ def repair_preserves_glossary(
             if direction is TranslationDirection.EN_TO_ZH
             else entry.english
         )
-        if (
-            glossary_term_count(source_visible, source_term)
-            and glossary_term_count(accepted_visible, target_term)
-            and glossary_term_count(candidate_visible, target_term)
-            != glossary_term_count(accepted_visible, target_term)
-        ):
+        source_count = glossary_term_count(source_visible, source_term)
+        accepted_count = glossary_term_count(accepted_visible, target_term)
+        if not source_count or not accepted_count:
+            continue
+        candidate_count = glossary_term_count(candidate_visible, target_term)
+        if not accepted_count <= candidate_count <= max(accepted_count, source_count):
             return False
     return True
 

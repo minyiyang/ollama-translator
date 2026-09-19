@@ -31,6 +31,65 @@ Every stage checkpoints its artifacts under `runs/<job-id>/`. `resume` skips
 work that already completed and validated, so a run interrupted partway through
 a book continues from the earliest affected stage rather than from the start.
 
+## Showcase: *Alice's Adventures in Wonderland*
+
+The bundled Project Gutenberg sample runs end to end, English to Simplified
+Chinese. Everything below happens in the local browser dashboard:
+
+```powershell
+book-agent ui          # http://127.0.0.1:8765/
+```
+
+**1. Configure and start.** The Jobs page lists every job, ten per page.
+*Add new job* asks only for the source book (pick a known file, browse, or
+drop one), a config file name, and a job ID that defaults to the config name;
+an existing config such as [`configs/demo-alice.yaml`](configs/demo-alice.yaml)
+is reused, a new name starts from `config.example.yaml`. The job opens on its
+**Config** tab. *Options* groups the settings most jobs change (translation
+style, the model for each role with an installed ✓/✗, glossary approval mode,
+quality checks, output); *All settings* exposes every configuration field with
+its type, bounds, default, and a reset; *YAML* edits the file directly, and all
+three stay in sync. *Validate* saves the file, checks it, dry-runs the job, and
+asks Ollama whether every model is installed. *Start translation* in the job's
+header unlocks only while the config is unchanged since it passed. While a job
+runs, the header offers *Pause*, which lets the current LLM call finish and
+then stops cleanly, and *Stop*, which ends the run at once; *Resume* continues
+from the last checkpoint either way. The demo config uses only locally
+installed models, enables prose rewrite and EPUB cleanup, and lets the LLM
+approve the glossary. The same run from a terminal is
+`.\scripts\demo-alice.ps1` (`-Resume` continues it).
+
+**2. Glossary approval.** With `workflow.llm_glossary_review: true`,
+evidence-backed, high-confidence entries without conflicts are approved
+directly and the rest go to the LLM reviewer; the Glossary page then shows the
+approved terms, which ones the LLM reviewed, why, and anything it changed. With
+human review, the job pauses here and the same page becomes an editor: fix a
+term's Chinese, category, note, or aliases, reject it, filter to flagged
+entries (generic words, shared renderings, low confidence, no evidence), and
+read each term's source sentences. Approve your version, or send it (or the
+untouched draft) to the LLM reviewer; either way the pipeline resumes.
+
+**3. Translation, audit, and repair.** The Progress page follows the job
+live, whether it was started from the dashboard or a terminal: every stage
+with its status, planned LLM tasks, current unit, calls, output tokens, and
+time, the model call in flight, and the session log. For this book the
+pipeline paused before compilation with three segments it could not verify on
+its own.
+
+**4. Final review.** The Final review page (opened directly by
+`book-agent review-ui .\runs\demo-alice-en-zh`) works through that queue. Each
+segment shows the source with
+neighboring context, the findings (click one to highlight the quoted words),
+earlier pipeline versions, and an editor with a live diff and the same
+deterministic check that `resolve-review` applies:
+
+![Final Review Desk resolving a flagged segment](assets/demo-final-review-desk-processing.png)
+
+Applying the decisions approves the draft; the desk then compiles and
+validates the EPUB:
+
+![Final Review Desk after applying decisions and compiling](assets/demo-final-review-desk-results.png)
+
 ## Design goals
 
 - **Deterministic control of verifiable structure.** EPUB layout, inline
@@ -69,6 +128,9 @@ reasoning to justify the additional runtime.
 
 - [Current production operations](docs/OPERATIONS.md)
 - [Design](docs/DESIGN.md)
+- [Book-level consistency proposal](docs/BOOK_CONSISTENCY.md)
+- [Dashboard localization plan](docs/LOCALIZATION.md)
+- [Dashboard stage control: resume, rerun, early approval](docs/STAGE_CONTROL.md)
 - [Working plan](docs/PLAN.md)
 - [Unrun inference-framework benchmark plan](docs/FRAMEWORK_BENCHMARK_PLAN.md)
 
@@ -449,6 +511,51 @@ attempts, metrics, review mode, and approved artifacts. For new jobs, setting
 the default remains human review. Setting `require_glossary_review: false` and
 leaving LLM review disabled performs no independent review.
 
+### Browser dashboard
+
+`book-agent ui` serves a dashboard on loopback only (`--runs`, `--configs`,
+`--port`, `--no-browser`). It covers the same gates as the commands above:
+
+- **Jobs** lists jobs with their translation direction (for example
+  `EN → ZH`) and creates new ones; a completed job has a *Download* button for
+  its translated book, also in the job header. Each job's **Config** tab edits,
+  validates, and starts it. The job header pauses (after the current LLM
+  call), stops, or resumes a run. `book-agent pause <workspace>` pauses a run
+  started from a terminal the same way.
+- **Progress** follows any job in `--runs` from `state.sqlite3` and its session
+  logs. A failed or paused stage offers *Resume* (finished work is kept) and
+  *Rerun*; a completed one offers *Rerun from here*. A rerun (`retry --stage X
+  --resume`) first warns which stages are redone and what is lost.
+- **Glossary** edits and approves a paused glossary, or hands it to the LLM
+  reviewer (`approve --glossary` / `--llm-glossary`).
+- **Final review** resolves the human-review queue with the same stale-safe
+  validation as `resolve-review`; accepting a segment requires a preset or
+  custom reason. Once the undecided segments fit
+  `workflow.compile_max_unresolved_review_segments`, it offers to apply the
+  decided ones and approve the final draft. `book-agent review-ui <workspace>`
+  opens this page.
+
+See [Dashboard stage control](docs/STAGE_CONTROL.md) for resume, rerun, and
+early approval.
+
+Work the dashboard starts runs as the regular CLI in a child process, so logs
+and checkpoints match a terminal run and the job continues if the dashboard is
+closed.
+
+The dashboard is a React + TypeScript app in `frontend/`. Its production build
+is committed under `book_agent/web/static/`, so installing the package needs no
+Node.js. To change the UI (Node 24):
+
+```powershell
+cd frontend
+npm ci
+npm run dev      # hot-reloading UI; proxies /api to a running `book-agent ui`
+npm test         # unit tests for the pure helpers
+npm run build    # type-check and rebuild book_agent/web/static; commit the result
+```
+
+CI rebuilds the UI and fails if the committed bundle is out of date.
+
 Qwen translation thinking is controlled separately by
 `translation.thinking` and defaults to `false`. This is sent to Ollama as the
 top-level SDK `think` parameter for every first-draft translation and targeted
@@ -704,7 +811,8 @@ Reset one stage and all of its downstream dependents, then optionally resume:
 book-agent retry "D:\runs\my-job" --stage translate --resume
 ```
 
-Valid stage names are shown by `book-agent retry --help`. Existing files are
+The dashboard's Progress tab offers the same as *Rerun from here*. Valid stage
+names are shown by `book-agent retry --help`. Existing files are
 retained for forensic inspection, but their state and artifact records are
 invalidated so they cannot be mistaken for current output.
 

@@ -249,7 +249,7 @@ def run_translation_stage(
         scheduled_total = len(ordered_tasks)
         for scheduled_index, task in enumerate(ordered_tasks, start=1):
             existing = task["existing"]
-            translated_chunk, used_attempts = _translate_chunk(
+            translated_chunk, used_attempts, _used_fallback = _translate_chunk(
                 connection,
                 task["document"],
                 task["chunk"],
@@ -415,15 +415,28 @@ def _build_chunk_prompt(
 
 
 def load_translated_documents(workspace: JobWorkspace) -> list[TranslatedDocument]:
-    """Load published translated document manifests in spine order."""
+    """Load published translated document manifests in spine order.
+
+    When the rescue stage has completed and published a rescued generation,
+    that generation supersedes the first draft for every downstream stage.
+    """
     connection = connect_state(workspace.state_file)
     try:
-        artifacts = list_active_stage_artifacts(
-            connection,
-            WorkflowStage.TRANSLATE.value,
-            root_metadata_key="translated_root",
-            report_metadata_key="translation_report",
-        )
+        rescue = get_stage_status(connection, WorkflowStage.RESCUE_TRANSLATION.value)
+        rescued_root = get_job_metadata(connection, "rescued_root")
+        if rescue and rescue["status"] == StageStatus.COMPLETED.value and rescued_root:
+            artifacts = list_active_stage_artifacts(
+                connection,
+                WorkflowStage.RESCUE_TRANSLATION.value,
+                root_metadata_key="rescued_root",
+            )
+        else:
+            artifacts = list_active_stage_artifacts(
+                connection,
+                WorkflowStage.TRANSLATE.value,
+                root_metadata_key="translated_root",
+                report_metadata_key="translation_report",
+            )
         documents = []
         for artifact in artifacts:
             if artifact["kind"] != "translated_document_json":
@@ -484,21 +497,45 @@ def _translate_chunk(
     chunk_index,
     total_chunks,
     context_bucket,
+    models: list[str] | None = None,
+    defer_on_failure: bool | None = None,
+    harmonize: bool | None = None,
+    reuse_saved_attempt: bool = True,
+    stage: WorkflowStage = WorkflowStage.TRANSLATE,
+    role_prefix: str = "translate",
 ):
+    """Draft one chunk with bounded, validated retries.
+
+    Returns ``(translated_chunk, generation_calls, used_fallback)``. The keyword
+    defaults are the translate stage's behavior; the rescue stage overrides them
+    to draft with fallback models only and to harmonize separately.
+    """
+    models = list(models) if models else [config.ollama.model, *config.translation.fallback_models]
+    defer_on_failure = (
+        config.workflow.defer_failed_translation_segments
+        if defer_on_failure is None
+        else defer_on_failure
+    )
+    harmonize = (
+        config.translation.harmonize_fallback_with_primary if harmonize is None else harmonize
+    )
     last_validation = None
     accepted_translations: dict[str, str] = {}
     pending_chunk = chunk
-    saved_repairable_content = _load_repairable_saved_attempt(
-        attempt_root,
-        chunk,
-        config.translation.direction,
-        relevant_glossary,
+    saved_repairable_content = (
+        _load_repairable_saved_attempt(
+            attempt_root,
+            chunk,
+            config.translation.direction,
+            relevant_glossary,
+        )
+        if reuse_saved_attempt
+        else None
     )
     allowed_attempts = config.workflow.max_retries + 1
     generation_calls = 0
     for offset in range(1, allowed_attempts + 1):
         attempt = existing_attempts + offset
-        models = [config.ollama.model, *config.translation.fallback_models]
         model_index = min(
             (attempt - 1) // config.translation.attempts_per_model,
             len(models) - 1,
@@ -544,9 +581,9 @@ def _translate_chunk(
                 progress_label=progress_label,
                 **llm_role_kwargs(
                     client,
-                    "translate.draft.primary"
+                    f"{role_prefix}.draft.primary"
                     if active_model == config.ollama.model
-                    else "translate.draft.fallback",
+                    else f"{role_prefix}.draft.fallback",
                 ),
                 context_minimum=context_bucket,
                 context_maximum=context_bucket,
@@ -711,7 +748,7 @@ def _translate_chunk(
                                     f"id={chunk.chunk_id} marker-repair=1/1 "
                                     f"mode={marker_repair_mode}"
                                 ),
-                                **llm_role_kwargs(client, "translate.marker_repair"),
+                                **llm_role_kwargs(client, f"{role_prefix}.marker_repair"),
                                 context_minimum=context_bucket,
                                 context_maximum=context_bucket,
                                 context_multiplier=config.translation.context_multiplier,
@@ -735,7 +772,7 @@ def _translate_chunk(
                                     f"id={chunk.chunk_id} marker-repair=1/1 "
                                     "mode=structured-placement-fallback"
                                 ),
-                                **llm_role_kwargs(client, "translate.marker_repair"),
+                                **llm_role_kwargs(client, f"{role_prefix}.marker_repair"),
                                 context_minimum=context_bucket,
                                 context_maximum=context_bucket,
                                 context_multiplier=config.translation.context_multiplier,
@@ -792,7 +829,7 @@ def _translate_chunk(
                 record_attempt(
                     connection,
                     f"{chunk.chunk_id}:{marker_attempt_name}",
-                    WorkflowStage.TRANSLATE.value,
+                    stage.value,
                     1,
                     StageStatus.COMPLETED if validation.passed else StageStatus.FAILED,
                     message=(
@@ -806,7 +843,7 @@ def _translate_chunk(
                 record_attempt(
                     connection,
                     f"{chunk.chunk_id}:{marker_attempt_name}",
-                    WorkflowStage.TRANSLATE.value,
+                    stage.value,
                     1,
                     StageStatus.FAILED,
                     message=str(marker_error),
@@ -831,14 +868,14 @@ def _translate_chunk(
             record_attempt(
                 connection,
                 chunk.chunk_id,
-                WorkflowStage.TRANSLATE.value,
+                stage.value,
                 attempt,
                 StageStatus.COMPLETED,
                 metrics=metrics,
             )
             if (
                 active_model != config.ollama.model
-                and config.translation.harmonize_fallback_with_primary
+                and harmonize
             ):
                 harmonized = client.generate_text(
                     _build_harmonization_prompt(
@@ -854,7 +891,7 @@ def _translate_chunk(
                         f"chunk={chunk_index}/{total_chunks} id={chunk.chunk_id} "
                         "harmonize=1/1 mode=fallback-style"
                     ),
-                    **llm_role_kwargs(client, "translate.fallback_harmonization"),
+                    **llm_role_kwargs(client, f"{role_prefix}.fallback_harmonization"),
                     context_maximum=config.translation.max_num_ctx,
                     context_multiplier=config.translation.context_multiplier,
                 )
@@ -882,7 +919,7 @@ def _translate_chunk(
                 record_attempt(
                     connection,
                     f"{chunk.chunk_id}:harmonize",
-                    WorkflowStage.TRANSLATE.value,
+                    stage.value,
                     1,
                     (
                         StageStatus.COMPLETED
@@ -917,7 +954,7 @@ def _translate_chunk(
             set_work_unit_status(
                 connection,
                 chunk.chunk_id,
-                WorkflowStage.TRANSLATE.value,
+                stage.value,
                 "chunk",
                 StageStatus.COMPLETED,
                 parent_id=chunk.document_id,
@@ -926,7 +963,7 @@ def _translate_chunk(
                 output_hash=output_hash,
                 validation=validation.model_dump(mode="json"),
             )
-            return translated, generation_calls
+            return translated, generation_calls, active_model != config.ollama.model
         _retain_valid_translations(
             accepted_translations,
             translations,
@@ -945,7 +982,7 @@ def _translate_chunk(
         set_work_unit_status(
             connection,
             chunk.chunk_id,
-            WorkflowStage.TRANSLATE.value,
+            stage.value,
             "chunk",
             StageStatus.FAILED,
             parent_id=chunk.document_id,
@@ -957,14 +994,14 @@ def _translate_chunk(
         record_attempt(
             connection,
             chunk.chunk_id,
-            WorkflowStage.TRANSLATE.value,
+            stage.value,
             attempt,
             StageStatus.FAILED,
             message=message,
             metrics=metrics,
         )
-    if config.workflow.defer_failed_translation_segments:
-        return _defer_failed_chunk(
+    if defer_on_failure:
+        deferred, calls = _defer_failed_chunk(
             connection,
             chunk,
             chunk_input_hash,
@@ -976,7 +1013,9 @@ def _translate_chunk(
             client,
             chunk_index=chunk_index,
             total_chunks=total_chunks,
+            stage=stage,
         )
+        return deferred, calls, False
     raise TranslationOutputError(
         f"chunk {chunk.chunk_id} failed validation after {allowed_attempts} attempts"
     )
@@ -995,6 +1034,7 @@ def _defer_failed_chunk(
     *,
     chunk_index: int,
     total_chunks: int,
+    stage: WorkflowStage = WorkflowStage.TRANSLATE,
 ):
     """Checkpoint exhausted passages for downstream audit instead of aborting the book."""
     deferred_pieces = [
@@ -1043,7 +1083,7 @@ def _defer_failed_chunk(
     set_work_unit_status(
         connection,
         chunk.chunk_id,
-        WorkflowStage.TRANSLATE.value,
+        stage.value,
         "chunk",
         StageStatus.COMPLETED,
         parent_id=chunk.document_id,

@@ -159,12 +159,25 @@ class QuantityAuditConfig(StrictModel):
     min_decision_confidence: float = Field(default=0.85, ge=0.0, le=1.0)
     batch_size: Literal[1] = 1
     verify_repairs: bool = True
+    # With the typed checker off, the rule-based numeric check only flags
+    # segments; this model rules on each flag instead of the flag blocking.
+    adjudicate_rule_findings: bool = True
 
     @model_validator(mode="after")
     def validate_models(self) -> "QuantityAuditConfig":
         if self.escalation_model is not None and not self.escalation_model.strip():
             raise ValueError("quantity escalation_model cannot be empty")
         return self
+
+    def checkpoint_json(self) -> str:
+        """Settings text for stage input hashes.
+
+        The default ``adjudicate_rule_findings`` is left out so jobs checkpointed
+        before the setting existed stay current; turning it off still counts.
+        """
+        return self.model_dump_json(
+            exclude={"adjudicate_rule_findings"} if self.adjudicate_rule_findings else None
+        )
 
 
 class AuditConfig(StrictModel):
@@ -194,6 +207,16 @@ class AuditConfig(StrictModel):
     repair_max_attempts: int = Field(default=2, ge=1, le=2)
     max_num_ctx: int = Field(default=65_536, gt=0)
     quantity: QuantityAuditConfig = Field(default_factory=QuantityAuditConfig)
+
+    def checkpoint_json(self) -> str:
+        """Settings text for stage input hashes; see ``QuantityAuditConfig``."""
+        return self.model_dump_json(
+            exclude=(
+                {"quantity": {"adjudicate_rule_findings"}}
+                if self.quantity.adjudicate_rule_findings
+                else None
+            )
+        )
 
     @model_validator(mode="after")
     def validate_length_ratios(self) -> "AuditConfig":

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from ..numeric_adjudication import rule_numeric_findings
 from ..atomic_io import atomic_write_text
 from ..audit import (
     AuditCategory,
@@ -101,6 +102,15 @@ def run_review_repair_stage(
         stage_root = workspace.directory(f"repaired/{input_hash[:16]}-review-repair")
         stage_root.mkdir(parents=True, exist_ok=True)
         by_document = {item.document.manifest_id: item for item in documents}
+        numeric_rulings = rule_numeric_findings(
+            workspace,
+            config,
+            client,
+            [
+                (sources[item.document.manifest_id], item.document)
+                for item in documents
+            ],
+        )
         targets: list[dict[str, object]] = []
         prescreen_results: list[tuple[str, str]] = []
         for repaired in documents:
@@ -135,7 +145,7 @@ def run_review_repair_stage(
                 }
 
             deterministic = audit_translated_document(
-                sources[document_id], current.document, config.audit
+                sources[document_id], current.document, config.audit, numeric_rulings
             )
             blocking_ids = {
                 issue.segment_id

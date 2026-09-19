@@ -76,7 +76,7 @@ def run_prose_rewrite_stage(
                 "repair": str(repair_stage["output_hash"]),
                 "config": config.reprose.model_dump_json(),
                 "translation": config.translation.model_dump_json(),
-                "quantity": config.audit.quantity.model_dump_json(),
+                "quantity": config.audit.quantity.checkpoint_json(),
                 "stage_version": REPROSE_STAGE_VERSION,
             }
         )

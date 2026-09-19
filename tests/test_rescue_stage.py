@@ -161,3 +161,28 @@ class RescueStageTests:
             assert repeat_client.models == []
             assert first == second
             assert load_rescue_report(workspace) == first
+
+    def test_audit_uses_the_rescued_draft_and_its_deferred_list(self) -> None:
+        from book_agent.stages.audit import load_document_audits
+
+        config = AppConfig.model_validate(
+            self.settings(translation={"fallback_models": ["gemma4:31b"]})
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = self.prepare(Path(directory), config)
+            translation = run_translation_stage(
+                workspace, config, FakeTranslationClient(invalid_calls=1)
+            )
+            assert translation.deferred_segment_count > 0
+            report = run_translation_rescue_stage(workspace, config, FakeTranslationClient())
+            assert report.deferred_segment_count == 0
+
+            run_translation_audit_stage(workspace, config)
+            deferred_findings = [
+                issue
+                for document in load_document_audits(workspace)
+                for issue in document.issues
+                if issue.source == "translation-deferred"
+            ]
+            # Rescued passages are not sent to repair as still-deferred.
+            assert deferred_findings == []

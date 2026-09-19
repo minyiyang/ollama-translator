@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import asdict
 import re
 
+from ..numeric_adjudication import rule_numeric_findings
 from ..atomic_io import atomic_write_text
 from ..audit import (
     AuditCategory,
@@ -130,7 +131,7 @@ def run_repaired_validation_stage(
         input_hash = build_stage_input_hash(
             {
                 "repair_review": str(repair_stage["output_hash"]),
-                "audit": config.audit.model_dump_json(),
+                "audit": config.audit.checkpoint_json(),
                 "model": config.audit.verifier_model or config.audit.model,
                 "stage_version": VALIDATE_REPAIRED_STAGE_VERSION,
             }
@@ -213,12 +214,21 @@ def run_repaired_validation_stage(
             target_ids.update(manual_decisions)
             final_review_targets[document_id] = target_ids
 
+        numeric_rulings = rule_numeric_findings(
+            workspace,
+            config,
+            client,
+            [
+                (sources[item.document.manifest_id], item.document)
+                for item in repaired_documents
+            ],
+        )
         deterministic_preflight = {}
         for item in repaired_documents:
             document_id = item.document.manifest_id
             deterministic_preflight[document_id] = reapply_quantity_adjudications(
                 audit_translated_document(
-                    sources[document_id], item.document, config.audit
+                    sources[document_id], item.document, config.audit, numeric_rulings
                 ),
                 initial_audits.get(document_id),
             )
@@ -510,7 +520,9 @@ def run_repaired_validation_stage(
                 )
 
             deterministic = reapply_quantity_adjudications(
-                audit_translated_document(source, current.document, config.audit),
+                audit_translated_document(
+                    source, current.document, config.audit, numeric_rulings
+                ),
                 initial_audits.get(source.manifest_id),
             )
             deterministic = _accept_verified_quantity_repairs(

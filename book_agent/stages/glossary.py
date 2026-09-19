@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from pydantic import ValidationError
+
 from ..atomic_io import atomic_write_text
 from ..config import AppConfig
 from ..glossary import (
@@ -1222,6 +1224,14 @@ def _materialize_resolution_decisions(
         raise ValueError(
             "resolver returned more decisions than supplied candidate alternatives"
         )
+    candidates_by_id = {
+        str(case["term_id"]): [
+            entry
+            for entry in candidates
+            if normalize_term(entry.english) == normalize_term(str(case["english"]))
+        ]
+        for case in cases
+    }
     entries: list[GlossaryEntry] = []
     for decision in generated.decisions:
         english = english_by_id.get(decision.term_id)
@@ -1229,8 +1239,8 @@ def _materialize_resolution_decisions(
             raise ValueError(
                 f"resolver returned out-of-scope term_id: {decision.term_id}"
             )
-        entries.append(
-            GlossaryEntry(
+        try:
+            entry = GlossaryEntry(
                 english=english,
                 chinese=decision.chinese,
                 note=decision.note,
@@ -1238,7 +1248,24 @@ def _materialize_resolution_decisions(
                 aliases=decision.aliases,
                 confidence=decision.confidence,
             )
-        )
+        except ValidationError:
+            # One malformed rendering (e.g. the English echoed back) must not
+            # fail the batch: deterministic decoding would repeat it on every
+            # retry. Keep the strongest valid extracted candidate instead.
+            supplied = candidates_by_id[decision.term_id]
+            if not supplied:
+                raise
+            fallback = max(supplied, key=lambda item: item.confidence)
+            entry = fallback.model_copy(
+                update={
+                    "english": english,
+                    "evidence": [],
+                    "note": (
+                        f"{fallback.note} " if fallback.note else ""
+                    ) + "[resolver output invalid; kept extracted candidate]",
+                }
+            )
+        entries.append(entry)
     materialized = GlossaryResult(entries=entries)
     validate_resolution_scope(materialized, candidates)
     return restore_glossary_evidence(

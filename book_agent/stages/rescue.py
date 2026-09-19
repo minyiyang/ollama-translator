@@ -328,12 +328,13 @@ def _publish(connection, workspace, stage_root, report, attempts, *, rooted: boo
         "rescue_report",
         report_path.relative_to(workspace.root).as_posix(),
     )
-    if rooted:
-        set_job_metadata(
-            connection,
-            "rescued_root",
-            stage_root.relative_to(workspace.root).as_posix(),
-        )
+    # A no-op rescue must also clear an older rescued generation, or readers
+    # would keep loading documents this rescue did not publish.
+    set_job_metadata(
+        connection,
+        "rescued_root",
+        stage_root.relative_to(workspace.root).as_posix() if rooted else "",
+    )
     output_hash = build_stage_output_hash(connection, WorkflowStage.RESCUE_TRANSLATION)
     set_stage_status(
         connection,

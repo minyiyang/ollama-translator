@@ -38,6 +38,52 @@ decompile
 `resume` 时，已完成并通过校验的阶段会被跳过，任务从最早受影响的阶段继续，
 而不是从头开始。
 
+## 示例：《爱丽丝梦游仙境》
+
+仓库自带的古登堡计划样书可以完整跑通英译中流程。以下步骤都在本地浏览器控制台中
+完成：
+
+```powershell
+book-agent ui          # http://127.0.0.1:8765/
+```
+
+**1. 配置与启动。** 任务页分页列出全部任务（每页 10 个）。点击 *Add new job*
+只需选择源书（从已知文件中选择、浏览或直接拖入）、填写配置文件名，任务 ID 默认
+取配置文件名；已存在的配置（如 [`configs/demo-alice.yaml`](configs/demo-alice.yaml)）
+会直接沿用，新文件名则以 `config.example.yaml` 为模板创建。随后进入任务的
+**Config** 标签页：*Options* 汇总最常改动的设置（译文风格、各角色模型及其安装
+状态 ✓/✗、术语表审批方式、质量检查、输出选项）；*All settings* 列出全部配置项，
+附类型、取值范围、默认值与重置按钮；*YAML* 可直接编辑文件，三者实时同步。
+*Validate* 会保存并校验配置、试运行，并确认所需模型均已安装；只有配置自校验
+通过后未再改动，任务顶栏的 *Start translation* 才可用。运行期间顶栏提供
+*Pause*（等当前模型调用结束后暂停）与 *Stop*（立即停止），之后可用 *Resume*
+从最近的检查点继续。示例配置只使用本地
+已安装的模型，启用了译文润色与 EPUB 清理，并由模型审批术语表。在终端中运行
+同一任务可使用 `.\scripts\demo-alice.ps1`（`-Resume` 用于续跑）。
+
+**2. 术语表审批。** 开启 `workflow.llm_glossary_review: true` 时，有证据支撑、
+置信度高且无冲突的条目直接通过，其余交由模型复核；术语表页面会展示最终术语、
+哪些条目经过模型复核、原因以及改动。若采用人工审批，流程在此暂停，同一页面
+变为编辑器：可修改译名、类别、备注与别名，拒绝条目，筛选需要关注的条目
+（泛化词、译名冲突、低置信度、无证据），并查看每个术语的原文例句。可以直接
+批准自己的版本，也可以把它（或未改动的草稿）交给模型复核，随后流程自动继续。
+
+**3. 翻译、审校与修复。** 进度页实时跟踪任务，无论任务由控制台还是终端启动：
+展示每个阶段的状态、计划的模型任务数、当前单元、调用次数、输出 token 与耗时，
+以及正在进行的模型调用和会话日志。本书在编译前暂停，留下三个流水线无法自行
+确认的段落。
+
+**4. 最终人工审校。** 在 Final review 页面（也可用
+`book-agent review-ui .\runs\demo-alice-en-zh` 直接打开）处理待复核段落。每个段落都会展示原文及上下文、审校发现（点击即可高亮引用
+片段）、流水线各版本译文，以及带实时差异对比的编辑器；编辑器会执行与
+`resolve-review` 相同的确定性校验：
+
+![审校台处理待复核段落](assets/demo-final-review-desk-processing.png)
+
+提交决定后草稿即获批准，审校台随后编译并校验 EPUB：
+
+![审校台提交并完成编译](assets/demo-final-review-desk-results.png)
+
 ## 设计取舍
 
 - **可机械校验的结构，交给程序而不是模型**：EPUB 结构、行内标记、各类标识符
@@ -153,6 +199,41 @@ book-agent approve "D:\runs\my-job" --llm-glossary --resume
 复核方可以修正或删除条目，但不能凭空新增英文词条，并会记录提示词/模型哈希、
 尝试次数、复核模式与产物。
 
+### 浏览器控制台
+
+`book-agent ui` 启动只监听本机地址的控制台（可选 `--runs`、`--configs`、
+`--port`、`--no-browser`），覆盖与上述命令相同的关卡：
+
+- **Jobs**：列出并新建任务，并显示翻译方向（如 `EN → ZH`）；已完成的任务可在
+  列表或任务顶栏**下载**译好的书；任务的 **Config** 标签页负责编辑、校验与启动，
+  顶栏可暂停（当前模型调用结束后）、停止或续跑。终端启动的任务可用
+  `book-agent pause <workspace>` 以同样方式暂停；
+- **Progress**：根据 `state.sqlite3` 与会话日志跟踪 `--runs` 下的任意任务。
+  流水线每一行：失败或暂停的阶段可**续跑**（保留已完成的工作）或**重跑**；
+  已完成的阶段可**从此处重跑**。重跑（即 `retry --stage X --resume`）执行前
+  会弹窗列出需要重做的阶段及将丢失的内容；
+- **Glossary**：编辑并批准暂停中的术语表，或交给模型复核
+  （对应 `approve --glossary` / `--llm-glossary`）；
+- **Final review**：以与 `resolve-review` 相同的校验处理人工复核队列；接受
+  当前译文前必须选择预设理由或填写自定义理由。未决片段数降到
+  `workflow.compile_max_unresolved_review_segments` 以内时，会询问继续处理，
+  还是先应用已决定的片段并批准终稿。`book-agent review-ui <workspace>`
+  可直接打开此页面。
+
+控制台发起的操作都以子进程方式调用常规命令行，因此日志与检查点与终端运行
+完全一致，关闭控制台后任务仍会继续。
+
+控制台前端位于 `frontend/`（React + TypeScript），构建产物已提交到
+`book_agent/web/static/`，安装本包无需 Node.js。修改界面时（Node 24）：
+
+```powershell
+cd frontend
+npm ci
+npm run dev      # 热更新开发；/api 代理到正在运行的 `book-agent ui`
+npm test
+npm run build    # 类型检查并重新生成 book_agent/web/static，请一并提交
+```
+
 ## 退出码
 
 | 退出码 | 含义 |
@@ -178,6 +259,9 @@ python -m pytest
 - [English README](README.md)
 - [生产运维指南](docs/OPERATIONS.md)
 - [架构设计](docs/DESIGN.md)
+- [整书一致性方案（英文，尚未实现）](docs/BOOK_CONSISTENCY.md)
+- [控制台界面本地化方案（英文，尚未实现）](docs/LOCALIZATION.md)
+- [控制台阶段控制：续跑、重跑与提前批准（英文）](docs/STAGE_CONTROL.md)
 - [实施记录](docs/PLAN.md)
 - [推理框架基准测试方案（尚未执行）](docs/FRAMEWORK_BENCHMARK_PLAN.md)
 

@@ -30,6 +30,9 @@ dev = [
 [tool.setuptools.packages.find]
 include = ["book_agent*"]
 
+[tool.setuptools.package-data]
+"book_agent.web" = ["static/*", "static/assets/*"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "--strict-markers"

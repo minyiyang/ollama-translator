@@ -26,7 +26,7 @@ from .manual_review import (
     resolve_manual_review,
 )
 from .pipeline_state import WorkflowStage
-from .ollama_client import GenerationProgressEvent, OllamaClient
+from .ollama_client import GenerationProgressEvent, OllamaClient, PauseRequested
 from .styles import TranslationStyle
 from .series_glossary import (
     build_series_glossary,
@@ -45,6 +45,7 @@ from .workflow import (
     format_json,
     format_status_plain,
     load_workspace_config,
+    request_pause,
     retry_failed_from_stage,
     retry_from_stage,
     run_workflow,
@@ -179,6 +180,11 @@ def build_parser() -> argparse.ArgumentParser:
     status_parser.add_argument("workspace", help="job workspace path")
     status_parser.add_argument("--json", action="store_true", help="emit machine-readable JSON")
 
+    pause_parser = subparsers.add_parser(
+        "pause", help="pause a running job after its current model call finishes"
+    )
+    pause_parser.add_argument("workspace", help="job workspace path")
+
     approve_parser = subparsers.add_parser("approve", help="approve a paused review gate")
     approve_parser.add_argument("workspace", help="job workspace path")
     approve_parser.add_argument(
@@ -237,6 +243,23 @@ def build_parser() -> argparse.ArgumentParser:
         help="resume compilation after a successful --approve-final",
     )
     resolve_parser.add_argument("--plain", action="store_true", help="disable styled progress output")
+
+    ui_parser = subparsers.add_parser(
+        "ui",
+        help="open the local browser dashboard: start jobs, watch progress, review",
+    )
+    ui_parser.add_argument("--runs", default="runs", help="job workspace directory (default: runs)")
+    ui_parser.add_argument("--configs", default="configs", help="directory of selectable YAML configs")
+    ui_parser.add_argument("--port", type=int, default=8765, help="loopback port (0 picks a free one)")
+    ui_parser.add_argument("--no-browser", action="store_true", help="print the URL without opening a browser")
+
+    review_ui_parser = subparsers.add_parser(
+        "review-ui",
+        help="open the dashboard on one job's final human-review page",
+    )
+    review_ui_parser.add_argument("workspace", help="job workspace path")
+    review_ui_parser.add_argument("--port", type=int, default=8765, help="loopback port (0 picks a free one)")
+    review_ui_parser.add_argument("--no-browser", action="store_true", help="print the URL without opening a browser")
 
     series_parser = subparsers.add_parser(
         "build-series-glossary",
@@ -1171,6 +1194,10 @@ def main(argv: Sequence[str] | None = None) -> int:
                 _log_cli_message(progress_context, result.message)
             _log_cli_message(progress_context, f"resume finished; exit_code={result.exit_code}")
             return result.exit_code
+        if args.command == "pause":
+            request_pause(open_job_workspace(args.workspace))
+            print("Pause requested; the run stops after its current model call. Use `resume` to continue.")
+            return ExitCode.COMPLETE
         if args.command == "status":
             snapshot = workflow_status(open_job_workspace(args.workspace))
             print(format_json(snapshot) if args.json else format_status_plain(snapshot))
@@ -1316,6 +1343,25 @@ def main(argv: Sequence[str] | None = None) -> int:
             )
             print(format_json(summary))
             return ExitCode.COMPLETE
+        if args.command in {"ui", "review-ui"}:
+            from .web import serve_ui
+
+            if args.command == "ui":
+                runs, start_path = Path(args.runs), "/"
+            else:
+                workspace = open_job_workspace(args.workspace)
+                runs, start_path = workspace.root.parent, f"/jobs/{workspace.root.name}/review"
+            serve_ui(
+                runs,
+                Path(getattr(args, "configs", "configs")),
+                sample_dirs=[Path("sample")],
+                # New dashboard jobs start from the documented production baseline.
+                template=Path("config.example.yaml"),
+                port=args.port,
+                open_browser=not args.no_browser,
+                start_path=start_path,
+            )
+            return ExitCode.COMPLETE
         if args.command == "resolve-review":
             workspace = open_job_workspace(args.workspace)
             _start_session_log(progress_context, workspace, "resolve-review")
@@ -1352,6 +1398,11 @@ def main(argv: Sequence[str] | None = None) -> int:
                 )
                 return result.exit_code
             return ExitCode.COMPLETE if report.passed else ExitCode.PAUSED
+    except PauseRequested as pause:
+        # Only reachable outside run_workflow, e.g. during `approve --llm-glossary`.
+        print(f"paused: {pause}", file=sys.stderr)
+        _log_cli_message(progress_context, f"paused: {pause}")
+        return ExitCode.PAUSED
     except KeyboardInterrupt:
         print("cancelled", file=sys.stderr)
         _log_cli_message(progress_context, "cancelled")

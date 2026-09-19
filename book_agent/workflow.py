@@ -5,13 +5,19 @@ from __future__ import annotations
 import json
 from collections.abc import Callable, Mapping
 from dataclasses import dataclass
+from datetime import datetime
 from enum import IntEnum
 from pathlib import Path
 from typing import Any
 
 from .config import AppConfig
 from .hashing import sha256_file
-from .ollama_client import GenerationCancelled, GenerationProgressEvent, OllamaClient
+from .ollama_client import (
+    GenerationCancelled,
+    GenerationProgressEvent,
+    OllamaClient,
+    PauseRequested,
+)
 from .pipeline_state import (
     WorkflowStage,
     initialize_pipeline_stages,
@@ -155,6 +161,25 @@ def default_stage_runners() -> dict[WorkflowStage, StageRunner]:
     }
 
 
+PAUSE_REQUEST_FILE = "control/pause-requested"
+PAUSED_ON_REQUEST = "paused on request; resume to continue"
+
+
+def request_pause(workspace: JobWorkspace) -> None:
+    """Ask a running workflow (in any process) to pause before its next model call."""
+    path = workspace.root / PAUSE_REQUEST_FILE
+    path.parent.mkdir(parents=True, exist_ok=True)
+    path.write_text(datetime.now().astimezone().isoformat(timespec="seconds"), encoding="utf-8")
+
+
+def pause_requested(workspace: JobWorkspace) -> bool:
+    return (workspace.root / PAUSE_REQUEST_FILE).is_file()
+
+
+def clear_pause_request(workspace: JobWorkspace) -> None:
+    (workspace.root / PAUSE_REQUEST_FILE).unlink(missing_ok=True)
+
+
 def run_workflow(
     workspace: JobWorkspace,
     config: AppConfig | None = None,
@@ -178,6 +203,8 @@ def run_workflow(
     callback = progress or (lambda event: None)
     shared_client = client
     models_validated = client is not None
+    # A request left over from an earlier session must not stop this one.
+    clear_pause_request(workspace)
 
     try:
         for stage in WorkflowStage:
@@ -242,10 +269,13 @@ def run_workflow(
                     stage.value,
                     "final draft approval required",
                 )
+            if pause_requested(workspace):
+                raise PauseRequested(PAUSED_ON_REQUEST)
             if _stage_uses_ollama(stage, resolved_config) and shared_client is None:
                 shared_client = OllamaClient(
                     resolved_config.ollama,
                     progress=generation_progress,
+                    pause_check=lambda: pause_requested(workspace),
                 )
             if _stage_uses_ollama(stage, resolved_config) and not models_validated:
                 _validate_models(shared_client, resolved_config)
@@ -277,6 +307,13 @@ def run_workflow(
                     _stage_result_message(stage, stage_result),
                 )
             )
+    except PauseRequested:
+        clear_pause_request(workspace)
+        _pause_stage(workspace, stage, PAUSED_ON_REQUEST)
+        callback(ProgressEvent(stage.value, StageStatus.PAUSED.value, f"result=pending; {PAUSED_ON_REQUEST}"))
+        return WorkflowRunResult(
+            WorkflowResult.PAUSED, ExitCode.PAUSED, stage.value, PAUSED_ON_REQUEST
+        )
     except (GenerationCancelled, KeyboardInterrupt) as error:
         message = str(error) or "workflow cancelled"
         if 'stage' in locals():
@@ -412,7 +449,11 @@ def approve_glossary(
     resolved = config or load_workspace_config(workspace)
     client = None
     if llm_review:
-        client = OllamaClient(resolved.ollama, progress=generation_progress)
+        client = OllamaClient(
+            resolved.ollama,
+            progress=generation_progress,
+            pause_check=lambda: pause_requested(workspace),
+        )
         client.validate_model_context(
             resolved.ollama.num_ctx,
             model=resolved.ollama.model,
@@ -703,6 +744,29 @@ def _unresolved_compile_review_message(
         f"segment(s) ({count} total) exceed the compile limit of {limit}; "
         f"resolve them before final approval. IDs: {ids}"
     )
+
+
+def mark_running_stages(workspace: JobWorkspace, status: StageStatus, message: str) -> list[str]:
+    """Settle stages a killed process left marked running, so the job can resume."""
+    connection = connect_state(workspace.state_file)
+    try:
+        changed = []
+        for record in list_stage_statuses(connection):
+            if record["status"] != StageStatus.RUNNING.value:
+                continue
+            set_stage_status(
+                connection,
+                str(record["name"]),
+                status,
+                attempts=int(record["attempts"]),
+                message=message,
+                input_hash=str(record["input_hash"]),
+                output_hash=str(record["output_hash"]),
+            )
+            changed.append(str(record["name"]))
+        return changed
+    finally:
+        connection.close()
 
 
 def _pause_stage(workspace: JobWorkspace, stage: WorkflowStage, message: str) -> None:
