@@ -25,6 +25,7 @@ from typing import Any
 from urllib.parse import parse_qs, urlparse
 
 from ..review_ui import ReviewSession
+from .rerun import parse_stage, rerun_preview
 from ..workspace import validate_job_id
 from ..state import StageStatus
 from ..workflow import (
@@ -305,6 +306,21 @@ class UiApp:
             mark_running_stages(workspace, StageStatus.PAUSED, "stopped from the dashboard; resume to continue")
         return {"stopped": True}
 
+    def rerun_preview(self, job_id: str, stage: str) -> dict[str, Any]:
+        return rerun_preview(open_job(self.runs, job_id), stage)
+
+    def rerun_job(self, job_id: str, body: dict[str, Any]) -> dict[str, Any]:
+        """Reset a stage and everything after it, then resume."""
+        stage = parse_stage(str(body.get("stage", "")))
+        if self.job_info(job_id)["running"]:
+            raise ValueError("the job is running; pause or stop it before rerunning a stage")
+        self.rerun_preview(job_id, stage.value)  # refuses pending, running, and review gates
+        return self.launch(
+            job_id,
+            ["retry", str(job_path(self.runs, job_id)), "--stage", stage.value, "--resume"],
+            "rerun",
+        )
+
     def discard_draft(self, job_id: str) -> dict[str, Any]:
         if drafts.load_draft(self.runs, job_id) is None:
             raise ValueError("only a job that has not started can be discarded")
@@ -370,6 +386,8 @@ def make_handler(app: UiApp, port_ref: list[int]) -> type[BaseHTTPRequestHandler
             ("POST", "resume"): lambda q, b: app.launch(
                 job_id, ["resume", str(job_path(app.runs, job_id))], "resume"
             ),
+            ("GET", "rerun"): lambda q, b: app.rerun_preview(job_id, q.get("stage", [""])[0]),
+            ("POST", "rerun"): lambda q, b: app.rerun_job(job_id, b),
             ("GET", "glossary"): lambda q, b: app.glossary_state(job_id),
             ("POST", "glossary/approve"): lambda q, b: app.approve_glossary(job_id, b),
             ("GET", "review"): lambda q, b: app.review(job_id).payload(),

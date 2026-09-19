@@ -130,6 +130,7 @@ reasoning to justify the additional runtime.
 - [Design](docs/DESIGN.md)
 - [Book-level consistency proposal](docs/BOOK_CONSISTENCY.md)
 - [Dashboard localization plan](docs/LOCALIZATION.md)
+- [Dashboard stage control: resume, rerun, early approval](docs/STAGE_CONTROL.md)
 - [Working plan](docs/PLAN.md)
 - [Unrun inference-framework benchmark plan](docs/FRAMEWORK_BENCHMARK_PLAN.md)
 
@@ -520,12 +521,20 @@ leaving LLM review disabled performs no independent review.
   call), stops, or resumes a run. `book-agent pause <workspace>` pauses a run
   started from a terminal the same way.
 - **Progress** follows any job in `--runs` from `state.sqlite3` and its session
-  logs, and offers *Resume* when a job is stopped.
+  logs. A failed or paused stage offers *Resume* (finished work is kept) and
+  *Rerun*; a completed one offers *Rerun from here*. A rerun (`retry --stage X
+  --resume`) first warns which stages are redone and what is lost.
 - **Glossary** edits and approves a paused glossary, or hands it to the LLM
   reviewer (`approve --glossary` / `--llm-glossary`).
-- **Final review** resolves the human-review queue with the same stale-safe,
-  all-or-nothing validation as `resolve-review`; accepting a segment requires a
-  preset or custom reason. `book-agent review-ui <workspace>` opens this page.
+- **Final review** resolves the human-review queue with the same stale-safe
+  validation as `resolve-review`; accepting a segment requires a preset or
+  custom reason. Once the undecided segments fit
+  `workflow.compile_max_unresolved_review_segments`, it offers to apply the
+  decided ones and approve the final draft. `book-agent review-ui <workspace>`
+  opens this page.
+
+See [Dashboard stage control](docs/STAGE_CONTROL.md) for resume, rerun, and
+early approval.
 
 Work the dashboard starts runs as the regular CLI in a child process, so logs
 and checkpoints match a terminal run and the job continues if the dashboard is
@@ -800,7 +809,8 @@ Reset one stage and all of its downstream dependents, then optionally resume:
 book-agent retry "D:\runs\my-job" --stage translate --resume
 ```
 
-Valid stage names are shown by `book-agent retry --help`. Existing files are
+The dashboard's Progress tab offers the same as *Rerun from here*. Valid stage
+names are shown by `book-agent retry --help`. Existing files are
 retained for forensic inspection, but their state and artifact records are
 invalidated so they cannot be mistaken for current output.
 

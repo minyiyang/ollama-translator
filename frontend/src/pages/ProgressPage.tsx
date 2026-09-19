@@ -1,12 +1,14 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { jobApi } from "../api";
+import { useDialog } from "../components/Dialog";
 import { Shell } from "../components/Shell";
 import { StageTip } from "../components/StageTip";
 import { NotStarted, useJob } from "../components/JobContext";
+import { useToast } from "../components/Toast";
 import { Bar, Card, Chip } from "../components/ui";
 import { count, duration, roughDuration } from "../lib/format";
-import { attentionFrom, stageLabel, type Stage, type WorkflowStatus } from "../lib/stages";
+import { attentionFrom, stageActions, stageLabel, type Stage, type WorkflowStatus } from "../lib/stages";
 
 type Activity = {
   tasks: number;
@@ -117,6 +119,88 @@ function stageResult(stage: Stage, activity?: Activity): string {
   }
   if (activity?.first && activity.last && stage.status !== "pending") parts.push(`${duration(activity.first, activity.last)} this session`);
   return parts.join(" · ") + (stage.message ? `. ${stage.message}` : ".");
+}
+
+type RerunPreview = {
+  stage: string;
+  status: string;
+  stages: { name: string; status: string; seconds: number | null }[];
+  warnings: { code: string; message: string }[];
+  previous_seconds: number | null;
+};
+
+/** Resume where the run stopped, or rerun a stage from scratch after a warning. */
+function StageActionButtons({ stage, live, onLaunched }: { stage: Stage; live: boolean; onLaunched: () => void }) {
+  const { jobId, refresh } = useJob();
+  const ask = useDialog();
+  const toast = useToast();
+  const [busy, setBusy] = useState(false);
+  const actions = stageActions(stage);
+  if (!actions.length) return null;
+
+  const launch = async (path: string, body: object, done: string) => {
+    setBusy(true);
+    try {
+      await jobApi(jobId, path, body);
+      toast("ok", done);
+      await refresh();
+      onLaunched();
+    } catch (e) {
+      toast("bad", (e as Error).message, 0);
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const rerun = async () => {
+    let preview: RerunPreview;
+    try {
+      preview = await jobApi<RerunPreview>(jobId, `rerun?stage=${encodeURIComponent(stage.name)}`);
+    } catch (e) {
+      toast("bad", (e as Error).message, 0);
+      return;
+    }
+    const stopped = preview.status !== "completed";
+    const ran = preview.stages.filter((s) => s.status !== "pending");
+    const later = preview.stages.length - ran.length;
+    const choice = await ask(
+      `Rerun from ${stageLabel(stage.name)}?`,
+      <>
+        {stopped && <p>Resume would keep this stage's finished work; a rerun starts it over.</p>}
+        <p>{ran.length === 1 ? "This stage is" : "These stages are"} reset and run again; their finished work is discarded:</p>
+        <ol className="rerun-stages">
+          {ran.map((s) => (
+            <li key={s.name}>
+              {stageLabel(s.name)}
+              {s.seconds ? <span className="meta"> · took ~{roughDuration(s.seconds)}</span> : null}
+            </li>
+          ))}
+        </ol>
+        {later > 0 && <p className="meta">The run then continues through the {later} later stage{later === 1 ? "" : "s"} that have not run yet.</p>}
+        {preview.previous_seconds ? <p className="meta">These stages took about {roughDuration(preview.previous_seconds)} so far.</p> : null}
+        {preview.warnings.map((w) => <div key={w.code} className="banner warn">{w.message}</div>)}
+      </>,
+      [
+        { value: "cancel", label: "Cancel", primary: true },
+        { value: "rerun", label: "Rerun", danger: true },
+      ],
+    );
+    if (choice === "rerun") await launch("rerun", { stage: stage.name }, `Rerunning from ${stageLabel(stage.name)}.`);
+  };
+
+  const blocked = live ? "The job is running; pause or stop it first." : "";
+  return (
+    <span className="stage-actions">
+      {actions.includes("resume") && (
+        <button className="small" disabled={busy || live} title={blocked || "Continues from the last checkpoint; finished work is kept."}
+          onClick={() => launch("resume", {}, "Resumed.")}>Resume</button>
+      )}
+      {actions.includes("rerun") && (
+        <button className="small" disabled={busy || live} title={blocked || "Resets this stage and every later stage, then runs them again."}
+          onClick={rerun}>{actions.includes("resume") ? "Rerun" : "Rerun from here"}</button>
+      )}
+    </span>
+  );
 }
 
 function lineClass(line: string) {
@@ -241,7 +325,7 @@ export function ProgressPage() {
             <Card title="Pipeline">
               <table className="grid stages">
                 <thead>
-                  <tr><th /><th>Stage</th><th>Work (this session)</th><th className="num">LLM calls</th><th className="num">Output tokens</th><th className="num">Time</th><th className="num">Estimate</th><th className="num">Attempts</th></tr>
+                  <tr><th /><th>Stage</th><th>Work (this session)</th><th className="num">LLM calls</th><th className="num">Output tokens</th><th className="num">Time</th><th className="num">Estimate</th><th className="num">Attempts</th><th /></tr>
                 </thead>
                 <tbody>
                   {stages.map((stage) => {
@@ -263,6 +347,7 @@ export function ProgressPage() {
                         <td className="num meta">{activity ? duration(activity.first, activity.last) : ""}</td>
                         <td className="num meta">{stageEstimate(stage.name, stage.status)}</td>
                         <td className="num meta">{stage.attempts || ""}</td>
+                        <td className="num"><StageActionButtons stage={stage} live={live} onLaunched={poll} /></td>
                       </tr>
                     );
                   })}

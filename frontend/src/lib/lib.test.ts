@@ -93,3 +93,17 @@ describe("tabStates", () => {
     expect(tabStates("job", "complete", pipeline({}))).toEqual({});
   });
 });
+
+describe("stageActions", () => {
+  it("offers resume and rerun on a stopped stage, rerun on a finished one", async () => {
+    const { stageActions } = await import("./stages");
+    const at = (name: string, status: string) => stageActions({ name, status, attempts: 1, message: "" });
+    expect(at("audit_translation", "completed")).toEqual(["rerun"]);
+    expect(at("translate", "failed")).toEqual(["resume", "rerun"]);
+    expect(at("translate", "paused")).toEqual(["resume", "rerun"]);
+    expect(at("approve_glossary", "paused")).toEqual([]); // glossary gate
+    expect(at("compile", "paused")).toEqual([]); // final review gate
+    expect(at("repair_translation", "pending")).toEqual([]);
+    expect(at("repair_translation", "running")).toEqual([]);
+  });
+});

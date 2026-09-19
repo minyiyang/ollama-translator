@@ -308,3 +308,6 @@ header.shell nav.tabs a .pip.running { animation: pip-pulse 1.4s ease-in-out inf
 .dialog-body p { margin: 0 0 8px; }
 .dialog-actions { justify-content: flex-end; margin-top: 16px; flex-wrap: wrap; }
 button.danger { background: var(--bad); color: var(--panel); border-color: var(--bad); font-weight: 600; }
+.rerun-stages { margin: 0 0 10px; padding-left: 22px; }
+.dialog-body .banner { margin: 8px 0 0; }
+.stage-actions { display: inline-flex; gap: 6px; white-space: nowrap; }

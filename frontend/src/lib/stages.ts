@@ -61,3 +61,19 @@ export function attentionFrom(status?: WorkflowStatus) {
     review: stage("compile")?.status === "paused",
   };
 }
+
+// Paused here means waiting for a person, handled on the Glossary and Review tabs.
+const HUMAN_GATES = new Set(["approve_glossary", "compile"]);
+
+export type StageAction = "resume" | "rerun";
+
+/**
+ * Pipeline row actions: resume continues where the run stopped and keeps finished
+ * work; rerun resets the stage and every later stage, discarding their work.
+ */
+export function stageActions(stage: Stage): StageAction[] {
+  if (stage.status === "completed") return ["rerun"];
+  if (stage.status === "failed") return ["resume", "rerun"];
+  if (stage.status === "paused" && !HUMAN_GATES.has(stage.name)) return ["resume", "rerun"];
+  return [];
+}

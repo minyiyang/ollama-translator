@@ -207,13 +207,17 @@ book-agent approve "D:\runs\my-job" --llm-glossary --resume
 - **Jobs**：列出并新建任务；任务的 **Config** 标签页负责编辑、校验与启动，
   顶栏可暂停（当前模型调用结束后）、停止或续跑。终端启动的任务可用
   `book-agent pause <workspace>` 以同样方式暂停；
-- **Progress**：根据 `state.sqlite3` 与会话日志跟踪 `--runs` 下的任意任务，
-  任务停止时可一键续跑；
+- **Progress**：根据 `state.sqlite3` 与会话日志跟踪 `--runs` 下的任意任务。
+  流水线每一行：失败或暂停的阶段可**续跑**（保留已完成的工作）或**重跑**；
+  已完成的阶段可**从此处重跑**。重跑（即 `retry --stage X --resume`）执行前
+  会弹窗列出需要重做的阶段及将丢失的内容；
 - **Glossary**：编辑并批准暂停中的术语表，或交给模型复核
   （对应 `approve --glossary` / `--llm-glossary`）；
-- **Final review**：以与 `resolve-review` 相同的校验处理人工复核队列，全部
-  通过才会生效；接受当前译文前必须选择预设理由或填写自定义理由。
-  `book-agent review-ui <workspace>` 可直接打开此页面。
+- **Final review**：以与 `resolve-review` 相同的校验处理人工复核队列；接受
+  当前译文前必须选择预设理由或填写自定义理由。未决片段数降到
+  `workflow.compile_max_unresolved_review_segments` 以内时，会询问继续处理，
+  还是先应用已决定的片段并批准终稿。`book-agent review-ui <workspace>`
+  可直接打开此页面。
 
 控制台发起的操作都以子进程方式调用常规命令行，因此日志与检查点与终端运行
 完全一致，关闭控制台后任务仍会继续。
@@ -256,6 +260,7 @@ python -m pytest
 - [架构设计](docs/DESIGN.md)
 - [整书一致性方案（英文，尚未实现）](docs/BOOK_CONSISTENCY.md)
 - [控制台界面本地化方案（英文，尚未实现）](docs/LOCALIZATION.md)
+- [控制台阶段控制：续跑、重跑与提前批准（英文）](docs/STAGE_CONTROL.md)
 - [实施记录](docs/PLAN.md)
 - [推理框架基准测试方案（尚未执行）](docs/FRAMEWORK_BENCHMARK_PLAN.md)
 

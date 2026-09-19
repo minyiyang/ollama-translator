@@ -12,6 +12,8 @@ from unittest.mock import patch
 import pytest
 
 from book_agent.config import AppConfig
+from book_agent.review_ui import ReviewSession
+from book_agent.state import StageStatus, connect_state, set_stage_status
 from book_agent.schemas import GlossaryCategory, GlossaryResult
 from book_agent.stages.glossary import (
     run_glossary_approval_stage,
@@ -619,3 +621,191 @@ def test_glossary_is_locked_while_an_approval_runs():
         state = app.glossary_state("fixture")
         assert not state["approval_running"] and state["editable"]
         assert state["process"]["outcome"] == "failed"
+
+
+class RerunTests:
+    def test_preview_lists_downstream_stages_and_glossary_warnings(self):
+        with tempfile.TemporaryDirectory() as directory:
+            workspace, _ = paused_glossary_workspace(Path(directory))
+            app = UiApp(workspace.root.parent, Path(directory), [])
+            preview = app.rerun_preview("fixture", "resolve_glossary")
+            names = [item["name"] for item in preview["stages"]]
+            assert names[:3] == ["resolve_glossary", "approve_glossary", "preprocess"]
+            assert names[-1] == "validate_epub"
+            codes = {item["code"] for item in preview["warnings"]}
+            assert codes == {"glossary_approval", "full_translation"}
+
+    def test_review_gates_pending_and_unknown_stages_cannot_be_rerun(self):
+        with tempfile.TemporaryDirectory() as directory:
+            workspace, _ = paused_glossary_workspace(Path(directory))
+            app = UiApp(workspace.root.parent, Path(directory), [])
+            with pytest.raises(ValueError, match="waiting for your review"):
+                app.rerun_preview("fixture", "approve_glossary")  # paused at the glossary gate
+            with pytest.raises(ValueError, match="is pending"):
+                app.rerun_preview("fixture", "translate")
+            with pytest.raises(ValueError, match="unknown workflow stage"):
+                app.rerun_preview("fixture", "nope")
+            with patch.object(UiApp, "launch") as launch, pytest.raises(ValueError, match="waiting for your review"):
+                app.rerun_job("fixture", {"stage": "approve_glossary"})
+            launch.assert_not_called()
+
+    @pytest.mark.parametrize("status", [StageStatus.FAILED, StageStatus.PAUSED])
+    def test_failed_or_interrupted_stage_can_be_rerun(self, status):
+        with tempfile.TemporaryDirectory() as directory:
+            workspace, _ = paused_glossary_workspace(Path(directory))
+            connection = connect_state(workspace.state_file)
+            try:
+                set_stage_status(connection, "resolve_glossary", status, message="interrupted")
+            finally:
+                connection.close()
+            app = UiApp(workspace.root.parent, Path(directory), [])
+            preview = app.rerun_preview("fixture", "resolve_glossary")
+            assert preview["status"] == status.value
+            assert preview["stages"][0]["name"] == "resolve_glossary"
+            with patch.object(UiApp, "launch", return_value={"running": True}) as launch:
+                app.rerun_job("fixture", {"stage": "resolve_glossary"})
+            assert launch.call_args.args[1][:1] == ["retry"]
+
+    def test_rerun_launches_retry_with_resume_and_refuses_while_running(self):
+        with tempfile.TemporaryDirectory() as directory:
+            workspace, _ = paused_glossary_workspace(Path(directory))
+            app = UiApp(workspace.root.parent, Path(directory), [])
+            with patch.object(UiApp, "launch", return_value={"running": True}) as launch:
+                app.rerun_job("fixture", {"stage": "resolve_glossary"})
+            args, label = launch.call_args.args[1], launch.call_args.args[2]
+            assert args[0] == "retry" and label == "rerun"
+            assert args[args.index("--stage") + 1] == "resolve_glossary" and "--resume" in args
+
+            running = {**app.job_info("fixture"), "running": True}
+            with patch.object(UiApp, "job_info", return_value=running), patch.object(UiApp, "launch") as launch:
+                with pytest.raises(ValueError, match="pause or stop"):
+                    app.rerun_job("fixture", {"stage": "resolve_glossary"})
+            launch.assert_not_called()
+
+    def test_manual_review_warning_needs_saved_review_work(self):
+        from tests.test_review_ui import paused_workspace
+
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = paused_workspace(directory)
+            job = workspace.root.name
+            app = UiApp(workspace.root.parent, Path(directory), [])
+            codes = {w["code"] for w in app.rerun_preview(job, "validate_repaired")["warnings"]}
+            assert "manual_review" not in codes
+            session = app.review(job)
+            session.save(session.payload()["worksheet"])  # saved review work exists now
+            codes = {w["code"] for w in app.rerun_preview(job, "validate_repaired")["warnings"]}
+            assert "manual_review" in codes and "full_translation" not in codes
+
+
+class EndpointCoverageTests(ServerTests):
+    """Every API route answers over HTTP, and no route is left without such a test."""
+
+    def test_job_review_and_config_routes_over_http(self):
+        from tests.test_review_ui import paused_workspace
+
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = paused_workspace(directory)
+            job = workspace.root.name
+            configs = Path(directory) / "configs"
+            configs.mkdir()
+            app = UiApp(workspace.root.parent, configs, [])
+            server, call = self.serve(app)
+            token = {"X-UI-Token": app.token}
+
+            def get(path):
+                status, text = call(path)
+                return status, json.loads(text)
+
+            def post(path, body):
+                status, text = call(path, body, token)
+                return status, json.loads(text)
+
+            try:
+                status, progress = get(f"/api/jobs/{job}/progress?after=0")
+                assert status == 200 and "progress" in progress and "status" in progress
+                status, estimate = get(f"/api/jobs/{job}/estimate")
+                assert status == 200 and "pending" in estimate
+                assert get(f"/api/jobs/{job}/info")[1]["kind"] == "job"
+                assert get(f"/api/jobs/{job}/config")[0] == 200
+
+                status, review = get(f"/api/jobs/{job}/review")
+                assert status == 200 and review["compile_limit"] == 0
+                worksheet = review["worksheet"]
+                assert post(f"/api/jobs/{job}/review/save", {"worksheet": worksheet}) == (200, {"saved": True})
+                segment = worksheet["resolutions"][0]["segment_id"]
+                status, check = post(f"/api/jobs/{job}/review/check", {"segment_id": segment, "decision": "accept"})
+                assert status == 200 and check["blocking"] == []
+                status, applied = post(f"/api/jobs/{job}/review/apply", {"worksheet": worksheet, "partial": True})
+                assert status == 422 and "compile limit" in applied["error"]
+                assert get(f"/api/jobs/{job}/review/compile")[1]["state"] == "idle"
+                with patch.object(ReviewSession, "start_compile", return_value={"state": "running"}):
+                    assert post(f"/api/jobs/{job}/review/compile", {})[1] == {"state": "running"}
+
+                status, preview = get(f"/api/jobs/{job}/rerun?stage=validate_repaired")
+                assert status == 200 and preview["stages"][0]["name"] == "validate_repaired"
+                with patch.object(UiApp, "launch", return_value={"running": True}):
+                    assert post(f"/api/jobs/{job}/rerun", {"stage": "validate_repaired"})[0] == 200
+                with patch.object(UiApp, "launch") as launch:
+                    assert post(f"/api/jobs/{job}/rerun", {"stage": "validate_epub"})[0] == 422  # not run yet
+                launch.assert_not_called()
+
+                text = "ollama: {temperature: 0.2}\n"
+                status, saved = post("/api/config/save", {"name": "mine.yaml", "text": text})
+                assert status == 200 and Path(saved["path"]).read_text(encoding="utf-8") == text
+                assert get("/api/config?name=mine.yaml")[1]["text"] == text
+                assert get("/api/config?name=..%2Fescape.yaml")[0] == 422
+                assert get("/api/config/schema")[0] == 200
+                assert post("/api/config/parse", {"text": text})[0] == 200
+                assert post("/api/config/dump", {"values": {"ollama": {"temperature": 0.2}}})[0] == 200
+                assert post("/api/config/check", {"text": "ollama: [1"})[1]["errors"]
+                with patch.object(setup_api, "installed_models", return_value=["gemma4:26b"]):
+                    assert post("/api/config/validate", {"text": text})[0] == 200
+                    assert get("/api/models")[1] == {"installed": ["gemma4:26b"]}
+                assert get("/api/jobs/suggest?source=My%20Book.epub")[1]["job_id"] == "my-book"
+                assert get("/api/book?path=missing.epub")[0] == 422
+            finally:
+                server.shutdown()
+                server.server_close()
+
+    def test_draft_and_run_control_routes_over_http(self):
+        with tempfile.TemporaryDirectory() as directory:
+            workspace, _ = paused_glossary_workspace(Path(directory))
+            base = Path(directory)
+            (base / "configs").mkdir()
+            source = base / "book.epub"
+            source.write_bytes(b"epub")
+            app = UiApp(workspace.root.parent, base / "configs", [], None)
+            server, call = self.serve(app)
+            token = {"X-UI-Token": app.token}
+
+            def post(path, body):
+                status, text = call(path, body, token)
+                return status, json.loads(text)
+
+            try:
+                assert post("/api/jobs/new", {"source": str(source), "config": "d.yaml", "job_id": "d"})[0] == 200
+                models = ["qwen3.8:latest", "gemma4:31b", "gemma4:26b"]
+                with patch.object(setup_api, "installed_models", return_value=models):
+                    status, check = post("/api/jobs/d/validate", {"text": "ollama: {model: qwen3.8:latest}\n"})
+                assert status == 200 and "validated" in check
+                assert post("/api/jobs/d/discard", {}) == (200, {"discarded": True})
+
+                assert post("/api/jobs/fixture/pause", {}) == (200, {"pause_requested": True})
+                status, stopped = post("/api/jobs/fixture/stop", {})
+                assert status == 422 and "use Pause" in stopped["error"]
+            finally:
+                server.shutdown()
+                server.server_close()
+
+    def test_every_route_is_exercised_over_http(self):
+        from book_agent.web import server as server_module
+
+        source = Path(server_module.__file__).read_text(encoding="utf-8")
+        routes = set(re.findall(r'\("(GET|POST)", "([^"]+)"\)', source))
+        tests = "".join(path.read_text(encoding="utf-8") for path in Path(__file__).parent.glob("test_*.py"))
+        missing = sorted(
+            f"{method} {route}"
+            for method, route in routes
+            if not re.search(rf'/api/(jobs/[^/"\s]+/)?{re.escape(route)}(?=["?])', tests)
+        )
+        assert missing == [], "API routes without an HTTP test: " + ", ".join(missing)
