@@ -301,3 +301,10 @@ tr.stale td { background: repeating-linear-gradient(135deg, transparent 0 8px, r
 header.shell nav.tabs a .pip.running { animation: pip-pulse 1.4s ease-in-out infinite; }
 @keyframes pip-pulse { 0%, 100% { opacity: 1; transform: scale(1); } 50% { opacity: .35; transform: scale(.75); } }
 @media (prefers-reduced-motion: reduce) { header.shell nav.tabs a .pip.running { animation: none; } }
+
+/* In-app confirmation dialog (replaces window.confirm) */
+.modal.dialog { width: min(480px, 100%); }
+.dialog-body { color: var(--ink); line-height: 1.5; }
+.dialog-body p { margin: 0 0 8px; }
+.dialog-actions { justify-content: flex-end; margin-top: 16px; flex-wrap: wrap; }
+button.danger { background: var(--bad); color: var(--panel); border-color: var(--bad); font-weight: 600; }

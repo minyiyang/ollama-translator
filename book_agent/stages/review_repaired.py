@@ -6,6 +6,7 @@ from dataclasses import asdict
 
 from ..atomic_io import atomic_write_text
 from ..audit import AuditRiskTag, AuditSeverity, audit_translated_document
+from ..numeric_adjudication import rule_numeric_findings
 from ..config import AppConfig
 from ..hashing import hash_named_values, sha256_file
 from ..ollama_client import OllamaClient, StructuredOutputError
@@ -87,7 +88,7 @@ def run_repaired_review_stage(
         input_hash = build_stage_input_hash(
             {
                 "repair": str(repair_stage["output_hash"]),
-                "audit": config.audit.model_dump_json(),
+                "audit": config.audit.checkpoint_json(),
                 "reprose": config.reprose.model_dump_json(),
                 "model": config.audit.verifier_model or config.audit.model,
                 "stage_version": REVIEW_REPAIRED_STAGE_VERSION,
@@ -112,6 +113,15 @@ def run_repaired_review_stage(
 
         sources = {item.manifest_id: item for item in load_preprocessed_documents(workspace)}
         repaired_documents = load_post_repair_documents(workspace, config)
+        numeric_rulings = rule_numeric_findings(
+            workspace,
+            config,
+            client,
+            [
+                (sources[item.document.manifest_id], item.document)
+                for item in repaired_documents
+            ],
+        )
         stage_root = workspace.directory(f"repaired/{input_hash[:16]}-review")
         stage_root.mkdir(parents=True, exist_ok=True)
         review_plans = []
@@ -122,7 +132,7 @@ def run_repaired_review_stage(
         for repaired in repaired_documents:
             source = sources[repaired.document.manifest_id]
             deterministic = audit_translated_document(
-                source, repaired.document, config.audit
+                source, repaired.document, config.audit, numeric_rulings
             )
             blocking_by_id: dict[str, list[str]] = {}
             for issue in deterministic.issues:

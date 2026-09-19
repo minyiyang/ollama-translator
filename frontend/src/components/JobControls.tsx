@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { jobApi } from "../api";
 import { attentionFrom } from "../lib/stages";
+import { useConfirm } from "./Dialog";
 import { useJob } from "./JobContext";
 import { useToast } from "./Toast";
 import { Chip } from "./ui";
@@ -20,12 +21,14 @@ const TIPS = {
 export function JobControls() {
   const { jobId, info, refresh } = useJob();
   const toast = useToast();
+  const confirm = useConfirm();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
   if (!info) return null;
 
-  const act = async (path: string, done: string, confirmText?: string) => {
-    if (confirmText && !window.confirm(confirmText)) return;
+  type Ask = { title: string; body: string; label: string };
+  const act = async (path: string, done: string, ask?: Ask) => {
+    if (ask && !(await confirm(ask.title, ask.body, ask.label, true))) return;
     setBusy(true);
     try {
       await jobApi(jobId, path, {});
@@ -49,7 +52,7 @@ export function JobControls() {
       <Chip kind={status}>{status}</Chip>
       {info.kind === "draft" && !info.running && (
         <>
-          <button onClick={() => act("discard", "Draft discarded.", "Discard this job? Its config file is kept.")} disabled={busy}>Discard</button>
+          <button onClick={() => act("discard", "Draft discarded.", { title: "Discard this job?", body: "The draft job is removed. Its config file is kept.", label: "Discard" })} disabled={busy}>Discard</button>
           <span title={info.validated ? TIPS.start : TIPS.startBlocked}>
             <button className="primary" disabled={busy || !info.validated} onClick={() => act("start", "Translation started.")}>
               Start translation
@@ -67,7 +70,7 @@ export function JobControls() {
       {info.running && (
         <span title={info.can_stop ? TIPS.stop : TIPS.stopBlocked}>
           <button disabled={busy || !info.can_stop}
-            onClick={() => act("stop", "Stopped.", "Stop now? The LLM call in progress is discarded and redone when you resume.")}>
+            onClick={() => act("stop", "Stopped.", { title: "Stop the run now?", body: "The LLM call in progress is discarded and redone when you resume.", label: "Stop" })}>
             ■ Stop
           </button>
         </span>

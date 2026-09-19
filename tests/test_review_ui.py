@@ -62,3 +62,41 @@ class ReviewSessionTests:
             with pytest.raises(ValueError, match="reason"):
                 session.save(worksheet)
             assert not session.draft_path.exists()
+
+
+def raise_compile_limit(workspace, limit):
+    config = AppConfig.model_validate_json(workspace.config_file.read_text(encoding="utf-8"))
+    config.workflow.compile_max_unresolved_review_segments = limit
+    workspace.config_file.write_text(config.model_dump_json(), encoding="utf-8")
+
+
+class PartialApplyTests:
+    def test_pending_segments_beyond_the_compile_limit_are_refused(self):
+        with tempfile.TemporaryDirectory() as directory:
+            session = ReviewSession(paused_workspace(directory))
+            payload = session.payload()
+            assert payload["compile_limit"] == 0
+            with pytest.raises(ValueError, match="compile limit"):
+                session.apply(payload["worksheet"], approve_final=True, partial=True)
+
+    def test_pending_segments_within_the_limit_are_left_and_the_draft_approved(self):
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = paused_workspace(directory)
+            raise_compile_limit(workspace, 1)
+            session = ReviewSession(workspace)
+            payload = session.payload()
+            assert payload["compile_limit"] == 1
+            pending_id = payload["worksheet"]["resolutions"][0]["segment_id"]
+
+            result = session.apply(payload["worksheet"], approve_final=True, partial=True)
+
+            assert result["approved"]
+            assert result["report"]["review_segment_ids"] == [pending_id]
+
+    def test_full_apply_still_requires_every_decision(self):
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = paused_workspace(directory)
+            raise_compile_limit(workspace, 1)
+            session = ReviewSession(workspace)
+            with pytest.raises(ValueError, match="pending"):
+                session.apply(session.payload()["worksheet"], approve_final=True)

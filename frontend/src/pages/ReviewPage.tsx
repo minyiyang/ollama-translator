@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { jobApi } from "../api";
+import { useConfirm, useDialog } from "../components/Dialog";
 import { NotStarted, useJob } from "../components/JobContext";
 import { Shell } from "../components/Shell";
 import { SideLayout } from "../components/SideLayout";
@@ -31,7 +32,7 @@ type Context = {
   translation_versions?: { stage: string; text: string }[];
 };
 type CompileState = { state: string; events: { stage: string; status: string; message: string }[]; result: { result: string; message?: string; output?: string } | null };
-type Payload = { worksheet: Worksheet | null; context: Record<string, Context>; stale: boolean; status: WorkflowStatus; compile: CompileState };
+type Payload = { worksheet: Worksheet | null; context: Record<string, Context>; stale: boolean; status: WorkflowStatus; compile: CompileState; compile_limit?: number };
 type Blocking = { category: string; severity: string; message: string };
 type Item = { res: Resolution; edit: string; custom: string; customOn: boolean; check?: { key: string; blocking: Blocking[] } };
 
@@ -110,6 +111,8 @@ export function ReviewPage() {
   const { jobId, info } = useJob();
   const started = info?.kind === "job";
   const toast = useToast();
+  const ask = useDialog();
+  const confirm = useConfirm();
   const [data, setData] = useState<Payload | null>(null);
   const [error, setError] = useState("");
   const [items, setItems] = useState<Item[]>([]);
@@ -192,10 +195,12 @@ export function ReviewPage() {
     navRef.current?.querySelector(".item.active")?.scrollIntoView({ block: "nearest" });
   }, [index, order]);
 
-  const serialize = (): Worksheet => ({
+  // ``partial`` sends undecided segments (no decision or no reason) as pending.
+  const serialize = (partial = false): Worksheet => ({
     ...data!.worksheet!,
     resolutions: items.map((it) => ({
       ...it.res,
+      decision: partial && !isResolved(it) ? "pending" : it.res.decision,
       translated_text: it.res.decision === "replace" ? it.edit : null,
       replacements: [],
       reason: it.res.reason.trim(),
@@ -212,15 +217,54 @@ export function ReviewPage() {
     }
   };
 
+  const limit = data?.compile_limit ?? 0;
+  const undecided = items.filter((it) => !isResolved(it)).length;
+
+  // Offered when the undecided segments fit within the compile limit.
+  const askApproveNow = async () =>
+    (await ask(
+      "Within the compile limit",
+      <>
+        <p>
+          {undecided} segment{undecided === 1 ? " is" : "s are"} still undecided, and this job's compile limit allows {limit} unresolved.
+        </p>
+        <p>
+          You can keep resolving, or apply your {items.length - undecided} decision{items.length - undecided === 1 ? "" : "s"} now and approve the final
+          draft. Undecided segments keep their current translation and stay listed in the review report.
+        </p>
+      </>,
+      [
+        { value: "continue", label: "Continue resolving", primary: true },
+        { value: "approve", label: "Apply & approve now" },
+      ],
+    )) === "approve";
+
   const apply = async () => {
     const pending = items.findIndex((it) => !isResolved(it));
     if (pending >= 0) {
+      if (undecided <= limit && (await askApproveNow())) { await submit(true); return; }
       go(pending);
-      toast("warn", `Decide every segment with a reason first (${items.filter((it) => !isResolved(it)).length} left).`);
+      toast("warn", `Decide every segment with a reason first (${undecided} left${limit ? `; the compile limit allows ${limit}` : ""}).`);
       return;
     }
+    await submit(false);
+  };
+
+  // Ask once each time the undecided count drops into the compile limit.
+  const lastUndecided = useRef<number | null>(null);
+  useEffect(() => {
+    const before = lastUndecided.current;
+    lastUndecided.current = active ? undecided : null;
+    if (!active || before === null || busy) return;
+    if (before > limit && undecided <= limit && undecided > 0) {
+      askApproveNow().then((now) => { if (now) submit(true); });
+    }
+  });
+
+  const submit = async (partial: boolean) => {
     setBusy(true);
     for (let i = 0; i < items.length; i++) {
+      if (partial && !isResolved(items[i])) continue;
       const check = await runCheck(i);
       if (check?.blocking.length) {
         setBusy(false);
@@ -230,7 +274,8 @@ export function ReviewPage() {
       }
     }
     try {
-      const res = await jobApi<{ report: { passed: boolean; review_segment_ids: string[] }; approved: boolean }>(jobId, "review/apply", { worksheet: serialize(), approve_final: approve });
+      const res = await jobApi<{ report: { passed: boolean; review_segment_ids: string[] }; approved: boolean }>(
+        jobId, "review/apply", { worksheet: serialize(partial), approve_final: partial || approve, partial });
       setDirty(false);
       setApplied({ passed: res.report.passed, approved: res.approved, remaining: res.report.review_segment_ids });
       setData(await jobApi<Payload>(jobId, "review"));
@@ -283,6 +328,10 @@ export function ReviewPage() {
         {applied ? (
           applied.passed ? (
             <div className="banner ok">All decisions applied. {applied.approved ? "Final draft approved. " : ""}Nothing left in the review queue.</div>
+          ) : applied.approved ? (
+            <div className="banner ok">
+              Decisions applied and final draft approved. {applied.remaining.length} segment(s) stay unresolved within the compile limit: {applied.remaining.join(", ")}.
+            </div>
           ) : (
             <div className="banner warn">Applied, but {applied.remaining.length} segment(s) still need review: {applied.remaining.join(", ")}. Compile to regenerate the worksheet.</div>
           )
@@ -326,8 +375,9 @@ export function ReviewPage() {
   const setDecision = (decision: Decision) => {
     if (decision === "accept" && !hasReason(it)) return;
     if (decision === "accept" && edited(it)) {
-      if (!window.confirm("Accepting keeps the current translation and discards your edit. Continue?")) return;
-      patch(index, (x) => withRes({ ...x, edit: x.res.current_translation }, { decision }));
+      confirm("Discard your edit?", "Accepting keeps the current translation and discards your edit.", "Accept current").then((ok) => {
+        if (ok) patch(index, (x) => withRes({ ...x, edit: x.res.current_translation }, { decision }));
+      });
       return;
     }
     if (decision === "replace" && !edited(it)) { toast("warn", "Edit the translation first: replace needs a changed text."); return; }

@@ -9,6 +9,7 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
+from .numeric_adjudication import rule_numeric_findings
 from .atomic_io import atomic_write_text
 from .audit import (
     AuditCategory,
@@ -291,7 +292,12 @@ def preview_manual_resolution(
         )
     initial = {item.document_id: item for item in load_document_audits(workspace)}
     audit = reapply_quantity_adjudications(
-        audit_translated_document(source, document, config.audit),
+        audit_translated_document(
+            source,
+            document,
+            config.audit,
+            rule_numeric_findings(workspace, config, None, []),
+        ),
         initial.get(document_id),
     )
     accepting = translated_text is None
@@ -447,10 +453,11 @@ def resolve_manual_review(
     initial_audits = {
         item.document_id: item for item in load_document_audits(workspace)
     }
+    numeric_rulings = rule_numeric_findings(workspace, config, None, [])
     deterministic_by_document = {
         document_id: reapply_quantity_adjudications(
             audit_translated_document(
-                sources[document_id], repaired.document, config.audit
+                sources[document_id], repaired.document, config.audit, numeric_rulings
             ),
             initial_audits.get(document_id),
         )
@@ -562,7 +569,7 @@ def resolve_manual_review(
         current_input_hash = build_stage_input_hash(
             {
                 "repair_review": str(repair_review_stage["output_hash"]),
-                "audit": config.audit.model_dump_json(),
+                "audit": config.audit.checkpoint_json(),
                 "model": config.audit.verifier_model or config.audit.model,
                 "stage_version": VALIDATE_REPAIRED_STAGE_VERSION,
             }

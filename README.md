@@ -129,6 +129,7 @@ reasoning to justify the additional runtime.
 - [Current production operations](docs/OPERATIONS.md)
 - [Design](docs/DESIGN.md)
 - [Book-level consistency proposal](docs/BOOK_CONSISTENCY.md)
+- [Dashboard localization plan](docs/LOCALIZATION.md)
 - [Working plan](docs/PLAN.md)
 - [Unrun inference-framework benchmark plan](docs/FRAMEWORK_BENCHMARK_PLAN.md)
 

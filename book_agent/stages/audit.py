@@ -22,6 +22,7 @@ from ..audit import (
 from ..config import AppConfig
 from ..content_policy import is_intentionally_preserved
 from ..hashing import hash_named_values, sha256_file
+from ..numeric_adjudication import rule_numeric_findings
 from ..ollama_client import OllamaClient, StructuredOutputError, estimate_request_tokens
 from ..stage_progress import (
     group_by_context_bucket,
@@ -65,6 +66,7 @@ from ..quantities import (
     validate_quantity_audit_scope,
 )
 from .preprocess import load_preprocessed_documents
+from .rescue import load_rescue_report
 from .translate import load_translated_documents, load_translation_report
 
 
@@ -82,15 +84,24 @@ def run_translation_audit_stage(
         initialize_state(connection)
         preprocessing = _require_completed(connection, WorkflowStage.PREPROCESS)
         translation = _require_completed(connection, WorkflowStage.TRANSLATE)
-        input_hash = build_stage_input_hash(
-            {
-                "preprocessing": str(preprocessing["output_hash"]),
-                "translation": str(translation["output_hash"]),
-                "audit": config.audit.model_dump_json(),
-                "model": config.audit.model if config.audit.semantic_enabled else "disabled",
-                "stage_version": AUDIT_STAGE_VERSION,
-            }
+        rescue = get_stage_status(connection, WorkflowStage.RESCUE_TRANSLATION.value)
+        # Only a rescue that published rescued documents changes the audit input;
+        # a no-op rescue leaves existing audit checkpoints valid.
+        rescued = bool(
+            rescue
+            and rescue["status"] == StageStatus.COMPLETED.value
+            and get_job_metadata(connection, "rescued_root")
         )
+        hash_fields = {
+            "preprocessing": str(preprocessing["output_hash"]),
+            "translation": str(translation["output_hash"]),
+            "audit": config.audit.checkpoint_json(),
+            "model": config.audit.model if config.audit.semantic_enabled else "disabled",
+            "stage_version": AUDIT_STAGE_VERSION,
+        }
+        if rescued:
+            hash_fields["rescue"] = str(rescue["output_hash"])
+        input_hash = build_stage_input_hash(hash_fields)
         if stage_is_current(
             connection,
             WorkflowStage.AUDIT_TRANSLATION,
@@ -115,7 +126,12 @@ def run_translation_audit_stage(
         sources = load_preprocessed_documents(workspace)
         translated = {item.manifest_id: item for item in load_translated_documents(workspace)}
         translation_report = load_translation_report(workspace, connection=connection)
-        deferred_segment_ids = set(translation_report.deferred_segment_ids)
+        # Passages the rescue redrafted successfully are no longer deferred.
+        deferred_segment_ids = set(
+            load_rescue_report(workspace, connection=connection).deferred_segment_ids
+            if rescued
+            else translation_report.deferred_segment_ids
+        )
         if {item.manifest_id for item in sources} != set(translated):
             raise ValueError("preprocessed and translated document sets differ")
         if (config.audit.semantic_enabled or config.audit.quantity.enabled) and client is None:
@@ -138,10 +154,18 @@ def run_translation_audit_stage(
                 semantic_context_hard_maximum,
             ),
         )
+        numeric_rulings = rule_numeric_findings(
+            workspace,
+            config,
+            client,
+            [(source, translated[source.manifest_id]) for source in sources],
+        )
         audit_plans = []
         for source in sources:
             target = translated[source.manifest_id]
-            deterministic = audit_translated_document(source, target, config.audit)
+            deterministic = audit_translated_document(
+                source, target, config.audit, numeric_rulings
+            )
             deterministic = _include_deferred_translation_findings(
                 source,
                 target,

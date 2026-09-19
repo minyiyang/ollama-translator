@@ -6,6 +6,7 @@ from dataclasses import asdict
 
 from ..atomic_io import atomic_write_text
 from ..audit import is_decorative_separator, reconcile_document_audit
+from ..numeric_adjudication import rule_numeric_findings
 from ..config import AppConfig
 from ..hashing import hash_named_values, sha256_file
 from ..ollama_client import OllamaClient, StructuredOutputError
@@ -124,12 +125,14 @@ def run_translation_repair_stage(
         sources = {item.manifest_id: item for item in load_preprocessed_documents(workspace)}
         translated = {item.manifest_id: item for item in load_translated_documents(workspace)}
         historical_audits = load_document_audits(workspace)
+        numeric_rulings = rule_numeric_findings(workspace, config, None, [])
         audits = [
             reconcile_document_audit(
                 sources[item.document_id],
                 translated[item.document_id],
                 item,
                 config.audit,
+                numeric_rulings,
             )
             for item in historical_audits
         ]

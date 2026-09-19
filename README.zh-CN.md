@@ -255,6 +255,7 @@ python -m pytest
 - [生产运维指南](docs/OPERATIONS.md)
 - [架构设计](docs/DESIGN.md)
 - [整书一致性方案（英文，尚未实现）](docs/BOOK_CONSISTENCY.md)
+- [控制台界面本地化方案（英文，尚未实现）](docs/LOCALIZATION.md)
 - [实施记录](docs/PLAN.md)
 - [推理框架基准测试方案（尚未执行）](docs/FRAMEWORK_BENCHMARK_PLAN.md)
 

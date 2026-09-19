@@ -560,3 +560,44 @@ class AuditStageTests:
             with pytest.raises(RuntimeError, match="preprocess|translate"):
                 run_translation_audit_stage(workspace, config)
 
+
+
+class NumericRuleStageTests:
+    """With the typed checker off, the audit stage asks for numeric rulings."""
+
+    def prepare_workspace(self, base, config):
+        epub = make_epub(base / "fixture.epub")
+        workspace = create_job_workspace(epub, base / "runs", config, job_id="fixture")
+        run_decompile_stage(workspace)
+        publish_approved_glossary(workspace, [])
+        run_preprocessing_stage(workspace, config)
+        # A stray digit in every draft trips the rule-based numeric check.
+        run_translation_stage(
+            workspace, config, FakeTranslationClient(translated_text="译文3。")
+        )
+        return workspace
+
+    @pytest.mark.parametrize(("status", "passed"), [("match", True), ("mismatch", False)])
+    def test_model_ruling_decides_rule_findings(self, status, passed):
+        from tests.test_audit import _RulingClient
+
+        config = AppConfig.model_validate({"audit": {"semantic_enabled": False}})
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = self.prepare_workspace(Path(directory), config)
+            client = _RulingClient(status)
+            report = run_translation_audit_stage(workspace, config, client)
+            assert client.prompts
+            assert report.passed is passed
+            numeric = [
+                issue
+                for audit in load_document_audits(workspace)
+                for issue in audit.issues
+                if issue.message.startswith("numeric content differs")
+            ]
+            assert bool(numeric) is not passed
+
+    def test_without_a_client_rule_findings_still_block(self):
+        config = AppConfig.model_validate({"audit": {"semantic_enabled": False}})
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = self.prepare_workspace(Path(directory), config)
+            assert not run_translation_audit_stage(workspace, config).passed

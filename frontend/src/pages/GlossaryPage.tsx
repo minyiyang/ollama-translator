@@ -1,6 +1,7 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { jobApi } from "../api";
+import { useConfirm } from "../components/Dialog";
 import { NotStarted, useJob } from "../components/JobContext";
 import { Shell } from "../components/Shell";
 import { SideItem, SideLayout } from "../components/SideLayout";
@@ -86,6 +87,7 @@ export function GlossaryPage() {
   const { jobId, info, refresh: refreshJob } = useJob();
   const started = info?.kind === "job";
   const toast = useToast();
+  const confirm = useConfirm();
   const [data, setData] = useState<Payload | null>(null);
   const [error, setError] = useState("");
   const [rows, setRows] = useState<Row[]>([]);
@@ -189,8 +191,8 @@ export function GlossaryPage() {
   const toggleGroup = (name: string) =>
     setCollapsed((old) => { const next = new Set(old); if (!next.delete(name)) next.add(name); return next; });
 
-  const submit = async (body: { entries?: Entry[]; llm?: boolean }, question: string) => {
-    if (!window.confirm(question)) return;
+  const submit = async (body: { entries?: Entry[]; llm?: boolean }, title: string, detail: string, label: string, note = "") => {
+    if (!(await confirm(title, <p>{detail}{note}</p>, label))) return;
     setSubmitting(true);
     try {
       await jobApi(jobId, "glossary/approve", body);
@@ -375,11 +377,11 @@ export function GlossaryPage() {
               {editable && (
                 <div className="row" style={{ margin: 0 }}>
                   <button disabled={submitting} title="Send the untouched draft to the LLM reviewer"
-                    onClick={() => submit({ llm: true }, "Discard your edits here and let the LLM review the original draft?")}>LLM review the draft</button>
+                    onClick={() => submit({ llm: true }, "LLM review the original draft?", "Your edits on this page are discarded; the LLM reviews the untouched draft.", "LLM review the draft")}>LLM review the draft</button>
                   <button disabled={submitting} title="The LLM reviews your edited list and may still revise or reject entries"
-                    onClick={() => submit({ entries: reviewed(), llm: true }, `Send your edited glossary to the LLM reviewer and continue?${deferNote}`)}>LLM review my edits</button>
+                    onClick={() => submit({ entries: reviewed(), llm: true }, "Send your edits to the LLM reviewer?", "The LLM reviews your edited list and may still revise or reject entries; the pipeline then continues.", "Send for LLM review", deferNote)}>LLM review my edits</button>
                   <button className="primary" disabled={submitting}
-                    onClick={() => submit({ entries: reviewed() }, `Approve your reviewed glossary and continue the pipeline?${deferNote}`)}>Approve my review &amp; continue</button>
+                    onClick={() => submit({ entries: reviewed() }, "Approve your reviewed glossary?", "The pipeline continues with this glossary.", "Approve & continue", deferNote)}>Approve my review &amp; continue</button>
                 </div>
               )}
             </div>

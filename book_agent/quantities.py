@@ -747,14 +747,22 @@ def build_quantity_audit_prompt(
     segment_id: str,
     source_text: str,
     target_text: str,
-    comparison: QuantityComparison,
+    comparison: QuantityComparison | None,
     *,
     preceding_source: str = "(none)",
     following_source: str = "(none)",
 ) -> str:
-    """Build an extraction-first prompt for one uncertain quantity segment."""
-    source_hints = _format_facts(comparison.source_facts)
-    target_hints = _format_facts(comparison.target_facts)
+    """Build an extraction-first prompt for one uncertain quantity segment.
+
+    Without a ``comparison`` the prompt carries no parser facts, so the model
+    extracts every quantity itself.
+    """
+    hints = ""
+    if comparison is not None:
+        hints = (
+            f"\nSOURCE FACT HINTS: {_format_facts(comparison.source_facts)}\n"
+            f"TRANSLATION FACT HINTS: {_format_facts(comparison.target_facts)}"
+        )
     return (
         "Audit only the quantity-bearing facts in the allowed translation segment. "
         "First independently identify what every quantity measures in SOURCE and in "
@@ -764,15 +772,20 @@ def build_quantity_audit_prompt(
         "idiomatic reformulation. Mark mismatch only for a concrete changed, missing, "
         "added, reversed, or misattached fact. Use uncertain when context is genuinely "
         "insufficient. Quotes must be short verbatim excerpts from their respective text. "
-        "Return exactly one decision for the allowed ID. The deterministic facts below "
-        "are hints, not authoritative semantic conclusions.\n\n"
+        "Return exactly one decision for the allowed ID."
+        + (
+            " The deterministic facts below are hints, not authoritative semantic "
+            "conclusions."
+            if comparison is not None
+            else ""
+        )
+        + "\n\n"
         f"Allowed ID: {segment_id}\n"
         f"PRECEDING SOURCE: {preceding_source}\n"
         f"SOURCE: {source_text}\n"
         f"FOLLOWING SOURCE: {following_source}\n"
-        f"TRANSLATION: {target_text}\n"
-        f"SOURCE FACT HINTS: {source_hints}\n"
-        f"TRANSLATION FACT HINTS: {target_hints}"
+        f"TRANSLATION: {target_text}"
+        f"{hints}"
     )
 
 

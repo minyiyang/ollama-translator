@@ -136,7 +136,7 @@ class ManualReviewResolutionTests:
                 assert validate_stage["input_hash"] == (build_stage_input_hash(
                         {
                             "repair_review": str(repair_review_stage["output_hash"]),
-                            "audit": config.audit.model_dump_json(),
+                            "audit": config.audit.checkpoint_json(),
                             "model": config.audit.verifier_model or config.audit.model,
                             "stage_version": VALIDATE_REPAIRED_STAGE_VERSION,
                         }

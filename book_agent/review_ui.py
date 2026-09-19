@@ -14,6 +14,7 @@ from typing import Any
 
 from .atomic_io import atomic_write_text
 from .manual_review import (
+    ManualReviewDecision,
     ManualReviewWorksheet,
     load_manual_review_resolution_file,
     preview_manual_resolution,
@@ -21,8 +22,15 @@ from .manual_review import (
 )
 from .pipeline_state import WorkflowStage
 from .stages.compile import load_compiled_epub_path
+from .stages.validate_repaired import load_repaired_validation_report
 from .state import connect_state, get_stage_status
-from .workflow import ProgressEvent, approve_final_draft, run_workflow, workflow_status
+from .workflow import (
+    ProgressEvent,
+    approve_final_draft,
+    load_workspace_config,
+    run_workflow,
+    workflow_status,
+)
 from .workspace import JobWorkspace
 
 WORKSHEET_NAME = "final-human-review.decisions.json"
@@ -68,6 +76,7 @@ class ReviewSession:
             "draft_saved": bool(draft),
             "status": _jsonable(workflow_status(self.workspace)),
             "compile": self.compile_state(),
+            "compile_limit": self._compile_limit(),
             "paths": {
                 "workspace": str(self.workspace.root),
                 "draft": str(self.draft_path),
@@ -93,16 +102,54 @@ class ReviewSession:
         )
         return {"segment_id": segment_id, "blocking": issues}
 
-    def apply(self, worksheet: dict[str, Any], approve_final: bool) -> dict[str, Any]:
-        """Save, then resolve the full queue exactly as ``resolve-review`` does."""
-        self.save(worksheet)
+    def apply(
+        self, worksheet: dict[str, Any], approve_final: bool, partial: bool = False
+    ) -> dict[str, Any]:
+        """Save, then resolve the queue exactly as ``resolve-review`` does.
+
+        ``partial`` applies only the decided segments and leaves the pending ones
+        unresolved, which the compile limit must allow.  Approval is granted once
+        the remaining queue fits within that limit.
+        """
+        model = self.save(worksheet)
+        limit = self._compile_limit()
         with self._lock:
-            resolution_set = load_manual_review_resolution_file(
-                self.workspace, self.draft_path
-            )
-            report = resolve_manual_review(self.workspace, resolution_set)
+            if partial:
+                pending = [
+                    item.segment_id
+                    for item in model.resolutions
+                    if item.decision is ManualReviewDecision.PENDING
+                ]
+                if len(pending) > limit:
+                    raise ValueError(
+                        f"{len(pending)} segment(s) are still pending; the compile "
+                        f"limit allows at most {limit} unresolved"
+                    )
+                if model.draft_output_hash != self._validated_draft_hash():
+                    raise ValueError("worksheet belongs to an older draft; reload the page")
+                decided = model.model_copy(
+                    update={
+                        "resolutions": [
+                            item
+                            for item in model.resolutions
+                            if item.decision is not ManualReviewDecision.PENDING
+                        ]
+                    }
+                )
+                report = (
+                    resolve_manual_review(
+                        self.workspace, decided.completed_resolution_set()
+                    )
+                    if decided.resolutions
+                    else load_repaired_validation_report(self.workspace)
+                )
+            else:
+                resolution_set = load_manual_review_resolution_file(
+                    self.workspace, self.draft_path
+                )
+                report = resolve_manual_review(self.workspace, resolution_set)
             approved = False
-            if approve_final and report.passed:
+            if approve_final and len(report.review_segment_ids) <= limit:
                 approve_final_draft(self.workspace)
                 approved = True
         return {"report": json.loads(report.model_dump_json()), "approved": approved}
@@ -147,6 +194,10 @@ class ReviewSession:
         with self._lock:
             self._compile["state"] = state
             self._compile["result"] = outcome
+
+    def _compile_limit(self) -> int:
+        config = load_workspace_config(self.workspace)
+        return config.workflow.compile_max_unresolved_review_segments
 
     def _validated_draft_hash(self) -> str:
         connection = connect_state(self.workspace.state_file)
