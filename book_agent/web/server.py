@@ -24,6 +24,9 @@ from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, quote, urlparse
 
+from .. import series as series_api
+from ..languages import TranslationDirection
+from ..schemas import GlossaryCategory
 from ..review_ui import ReviewSession
 from .rerun import parse_stage, rerun_preview
 from ..workspace import validate_job_id
@@ -62,6 +65,11 @@ _EXIT_OUTCOMES = {
     int(ExitCode.PAUSED): "paused",
     int(ExitCode.CANCELLED): "cancelled",
 }
+
+
+def _series_process(series_id: str) -> str:
+    """Process key for a series' background run; job ids never start with a dot."""
+    return f".series-{series_id}"
 
 
 class UiApp:
@@ -202,6 +210,7 @@ class UiApp:
                 "config": Path(status["configuration"]["source_path"] or "").name,
                 "direction": job_direction(workspace),
                 "downloadable": overall == "complete",
+                "series": series_api.series_of_job(self.runs, job_id),
                 "stages": status["stages"],
                 "running": overall == "running" or process_running,
                 "pause_requested": pause_requested(workspace),
@@ -220,6 +229,7 @@ class UiApp:
             "config": draft["config"],
             "direction": draft_direction(self.config_dir, draft["config"]),
             "downloadable": False,
+            "series": series_api.series_of_job(self.runs, job_id),
             "validated": drafts.is_validated(self.config_dir, draft),
             "stages": [],
             "running": process_running,
@@ -229,7 +239,11 @@ class UiApp:
         }
 
     def create_job(self, body: dict[str, Any]) -> dict[str, Any]:
-        return drafts.create_draft(
+        """Create a draft job; with ``series_id`` it also joins that series as its next volume."""
+        series_id = str(body.get("series_id") or "")
+        if series_id:
+            series_api.load_manifest(self.runs, series_id)  # refuse before creating anything
+        draft = drafts.create_draft(
             self.runs,
             self.config_dir,
             source=body.get("source", ""),
@@ -237,6 +251,18 @@ class UiApp:
             job_id=body.get("job_id", ""),
             template=self.template,
         )
+        if series_id:
+            try:
+                series_api.add_books(
+                    self.runs,
+                    series_id,
+                    [draft["job_id"]],
+                    drafts={draft["job_id"]: draft_direction(self.config_dir, draft["config"])},
+                )
+            except ValueError:
+                drafts.delete_draft(self.runs, draft["job_id"])
+                raise
+        return draft
 
     def job_config(self, job_id: str) -> dict[str, Any]:
         """Draft: the editable config file. Started job: the captured, read-only config."""
@@ -267,9 +293,38 @@ class UiApp:
         setup_api.save_config(self.config_dir, draft["config"], body["text"])
         text = setup_api.read_config(self.config_dir, draft["config"])
         check = setup_api.validate_setup(text, self.config_dir, self.runs, draft["source"], job_id)
+        check = self._check_series_rules(job_id, text, check)
         draft["validated_hash"] = drafts.config_hash(self.config_dir, draft["config"]) if check["ok"] else ""
         drafts.save_draft(self.runs, draft)
         return {**check, "validated": check["ok"]}
+
+    def _check_series_rules(self, job_id: str, text: str, check: dict[str, Any]) -> dict[str, Any]:
+        """A series book must match the series direction and pause at its glossary gate.
+
+        Without the pause an automatic approval would skip the series glossary.
+        """
+        membership = series_api.series_of_job(self.runs, job_id)
+        if membership is None:
+            return check
+        try:
+            config = setup_api.parse_config(text, self.config_dir)
+        except ValueError:
+            return check  # the syntax/schema problem is already reported
+        series = series_api.load_manifest(self.runs, str(membership["series_id"]))
+        problems = []
+        if config.translation.direction is not series.direction:
+            problems.append(
+                f"series {series.name} translates {series.direction.value}; set translation.direction to "
+                f"{series.direction.value}"
+            )
+        if not config.workflow.require_glossary_review or config.workflow.llm_glossary_review:
+            problems.append(
+                f"a book in series {series.name} must pause at its glossary gate so it can approve the series "
+                "glossary: set workflow.require_glossary_review: true and workflow.llm_glossary_review: false"
+            )
+        if not problems:
+            return check
+        return {**check, "ok": False, "problems": [*check.get("problems", []), *problems]}
 
     def start_job(self, job_id: str) -> dict[str, Any]:
         draft = drafts.load_draft(self.runs, job_id)
@@ -312,6 +367,121 @@ class UiApp:
             mark_running_stages(workspace, StageStatus.PAUSED, "stopped from the dashboard; resume to continue")
         return {"stopped": True}
 
+    # -- series glossaries (docs/SERIES_GLOSSARY_UI.md) ---------------------
+
+    def series_detail(self, series_id: str) -> dict[str, Any]:
+        """Series status, the jobs that could join it, and any LLM suggestion run."""
+        return {
+            **series_api.series_status(self.runs, series_id),
+            "addable": series_api.addable_jobs(self.runs, series_id),
+            "process": self.process_state(_series_process(series_id)),
+        }
+
+    def series_suggest(self, series_id: str, body: dict[str, Any]) -> dict[str, Any]:
+        """LLM suggestions run as a CLI child process, like every other model call."""
+        from ..series_llm import TASKS
+
+        task = str(body.get("task", ""))
+        if task not in TASKS:
+            raise ValueError(f"unknown suggestion task: {task}")
+        series_api.load_manifest(self.runs, series_id)  # refuses unknown series
+        return self.launch(
+            _series_process(series_id),
+            ["series", "suggest", "--runs", str(self.runs), series_id, "--task", task],
+            f"LLM {task}",
+        )
+
+    def series_log(self, series_id: str, lines: int = 400) -> dict[str, Any]:
+        """The output of the series' latest LLM run: this server's, else the newest on disk."""
+        series_api.load_manifest(self.runs, series_id)
+        key = _series_process(series_id)
+        entry = self._processes.get(key)
+        path = entry["output"] if entry else None
+        if path is None:
+            candidates = sorted((self.runs / ".ui-launch").glob(f"{key}-*.out"))
+            path = candidates[-1] if candidates else None
+        if path is None or not Path(path).is_file():
+            return {"file": None, "lines": [], "process": None}
+        text = Path(path).read_text(encoding="utf-8", errors="replace")
+        return {
+            "file": Path(path).name,
+            "lines": text.splitlines()[-lines:],
+            "process": self.process_state(key),
+        }
+
+    def series_suggestions(self, series_id: str, body: dict[str, Any]) -> dict[str, Any]:
+        from ..series_llm import accept_suggestions
+
+        term_ids = [str(item) for item in body.get("term_ids", [])]
+        if not term_ids:
+            raise ValueError("choose at least one suggestion")
+        accept_suggestions(self.runs, series_id, term_ids, bool(body.get("accept")))
+        return self.series_workbench(series_id)
+
+    def create_series(self, body: dict[str, Any]) -> dict[str, Any]:
+        manifest = series_api.create_series(
+            self.runs, str(body.get("series_id", "")), str(body.get("name", "")), str(body.get("direction", ""))
+        )
+        return manifest.model_dump(mode="json")
+
+    def series_add_books(self, series_id: str, body: dict[str, Any]) -> dict[str, Any]:
+        job_ids = [str(item) for item in body.get("job_ids", [])]
+        if not job_ids:
+            raise ValueError("choose at least one job")
+        series_api.add_books(self.runs, series_id, job_ids)
+        return self.series_detail(series_id)
+
+    def series_remove_book(self, series_id: str, body: dict[str, Any]) -> dict[str, Any]:
+        series_api.remove_book(self.runs, series_id, str(body.get("job_id", "")))
+        return self.series_detail(series_id)
+
+    def series_build(self, series_id: str, body: dict[str, Any]) -> dict[str, Any]:
+        """Deterministic and quick (no LLM), so it runs in the request."""
+        series_api.build_workbench(
+            self.runs,
+            series_id,
+            minimum_books=int(body.get("minimum_books", 2)),
+            consensus_ratio=float(body.get("consensus_ratio", 1.0)),
+        )
+        return self.series_detail(series_id)
+
+    def series_workbench(self, series_id: str) -> dict[str, Any]:
+        view = series_api.workbench_view(self.runs, series_id)
+        if view is None:
+            raise ValueError("no candidate yet; build it on the Books tab")
+        # Categories are stored as schema values; the UI shows English names.
+        return {**view, "category_labels": {c.value: c.name.title() for c in GlossaryCategory}}
+
+    def series_decide(self, series_id: str, body: dict[str, Any]) -> dict[str, Any]:
+        chinese = body.get("chinese")
+        series_api.decide_terms(
+            self.runs,
+            series_id,
+            [str(item) for item in body.get("term_ids", [])],
+            str(body.get("decision", "")),
+            reason=str(body.get("reason", "")),
+            chinese=str(chinese) if chinese else None,
+            category=str(body["category"]) if body.get("category") else None,
+            unlock=bool(body.get("unlock")),
+        )
+        return self.series_workbench(series_id)
+
+    def series_publish(self, series_id: str) -> dict[str, Any]:
+        record = series_api.publish_workbench(self.runs, series_id)
+        return {"published": record.model_dump(mode="json"), **self.series_detail(series_id)}
+
+    def series_version(self, series_id: str, version: str) -> dict[str, Any]:
+        manifest = series_api.load_manifest(self.runs, series_id)
+        if version not in {item.version for item in manifest.versions}:
+            raise ValueError(f"series {series_id} has no version {version}")
+        path = series_api.version_glossary_path(self.runs, series_id, version)
+        report = path.with_name(f"{version}.report.json")
+        return {
+            "version": version,
+            "glossary": json.loads(path.read_text(encoding="utf-8")),
+            "report": json.loads(report.read_text(encoding="utf-8")) if report.is_file() else None,
+        }
+
     def job_output(self, job_id: str) -> Path:
         """The translated book of a completed job."""
         workspace = open_job(self.runs, job_id)
@@ -337,6 +507,9 @@ class UiApp:
     def discard_draft(self, job_id: str) -> dict[str, Any]:
         if drafts.load_draft(self.runs, job_id) is None:
             raise ValueError("only a job that has not started can be discarded")
+        membership = series_api.series_of_job(self.runs, job_id)
+        if membership is not None:
+            series_api.remove_book(self.runs, str(membership["series_id"]), job_id)
         drafts.delete_draft(self.runs, job_id)
         return {"discarded": True}
 
@@ -345,8 +518,18 @@ class UiApp:
         return {**snapshot, "process": self.process_state(job_id)}
 
     def glossary_state(self, job_id: str) -> dict[str, Any]:
-        """Glossary payload plus whether an approval is in flight (then nothing is editable)."""
+        """Glossary payload plus whether an approval is in flight (then nothing is editable).
+
+        A book at its gate in a series with a published version reviews its glossary
+        synchronized to that version instead of the raw draft.
+        """
         payload = glossary_payload(open_job(self.runs, job_id))
+        overlay = series_api.overlay_for_job(self.runs, job_id) if payload["editable"] else None
+        if overlay is not None:
+            payload["entries"] = overlay["entries"]
+        payload["series_overlay"] = (
+            {key: overlay[key] for key in ("series_id", "name", "version")} if overlay else None
+        )
         process = self.process_state(job_id)
         running = payload["approve_status"] == "running" or bool(
             process and process["running"] and process["label"] == "glossary approval"
@@ -360,15 +543,22 @@ class UiApp:
 
     def approve_glossary(self, job_id: str, body: dict[str, Any]) -> dict[str, Any]:
         workspace = open_job(self.runs, job_id)
+        overlay = series_api.overlay_for_job(self.runs, job_id)
         args = ["approve", str(workspace.root)]
         if body.get("entries") is not None:
             path = write_reviewed_glossary(workspace, body["entries"])
             args += ["--glossary", str(path)]
+        elif body.get("llm") and overlay is not None:
+            # The LLM reviews the series-synchronized candidate, not the raw draft.
+            args += ["--glossary", str(overlay["path"])]
         if body.get("llm"):
             args.append("--llm-glossary")
         if len(args) == 2:
             raise ValueError("submit reviewed entries, request LLM review, or both")
         args.append("--resume")
+        if overlay is not None:
+            # Pin before the run so its preprocessing uses the series version.
+            series_api.bind_book(self.runs, str(overlay["series_id"]), job_id, str(overlay["version"]))
         return self.launch(job_id, args, "glossary approval")
 
 
@@ -415,7 +605,28 @@ def make_handler(app: UiApp, port_ref: list[int]) -> type[BaseHTTPRequestHandler
             ("POST", "review/compile"): lambda q, b: app.review(job_id).start_compile(),
         }
 
+    def series_routes(series_id: str) -> dict[tuple[str, str], Callable[[dict, dict], Any]]:
+        return {
+            ("GET", "detail"): lambda q, b: app.series_detail(series_id),
+            ("POST", "books"): lambda q, b: app.series_add_books(series_id, b),
+            ("POST", "books/remove"): lambda q, b: app.series_remove_book(series_id, b),
+            ("POST", "build"): lambda q, b: app.series_build(series_id, b),
+            ("GET", "workbench"): lambda q, b: app.series_workbench(series_id),
+            ("POST", "workbench/decide"): lambda q, b: app.series_decide(series_id, b),
+            ("POST", "publish"): lambda q, b: app.series_publish(series_id),
+            ("POST", "suggest"): lambda q, b: app.series_suggest(series_id, b),
+            ("POST", "workbench/suggestions"): lambda q, b: app.series_suggestions(series_id, b),
+            ("GET", "term"): lambda q, b: series_api.term_evidence(app.runs, series_id, q.get("id", [""])[0]),
+            ("GET", "log"): lambda q, b: app.series_log(series_id),
+            ("GET", "version"): lambda q, b: app.series_version(series_id, q.get("v", [""])[0]),
+        }
+
     global_routes: dict[tuple[str, str], Callable[[dict, dict], Any]] = {
+        ("GET", "series"): lambda q, b: {
+            "series": series_api.series_summaries(app.runs),
+            "directions": [item.value for item in TranslationDirection],
+        },
+        ("POST", "series"): lambda q, b: app.create_series(b),
         # Same-origin only: cross-site pages cannot read this response (no CORS),
         # and the Host check below stops DNS rebinding.
         ("GET", "session"): lambda q, b: {"token": app.token},
@@ -473,7 +684,7 @@ def make_handler(app: UiApp, port_ref: list[int]) -> type[BaseHTTPRequestHandler
                 return self._json({"error": "forbidden host"}, HTTPStatus.FORBIDDEN)
             url = urlparse(self.path)
             parts = [p for p in url.path.split("/") if p]
-            if method == "GET" and (not parts or parts[0] == "jobs"):
+            if method == "GET" and (not parts or parts[0] in {"jobs", "series"}):
                 return self._page(parts)
             if method == "GET" and len(parts) == 2 and parts[0] == "assets":
                 return self._asset(parts[1])
@@ -514,6 +725,9 @@ def make_handler(app: UiApp, port_ref: list[int]) -> type[BaseHTTPRequestHandler
                 if len(parts) >= 4 and parts[1] == "jobs":
                     validate_job_id(parts[2])
                     action = job_routes(parts[2]).get((method, "/".join(parts[3:])))
+                elif len(parts) >= 4 and parts[1] == "series":
+                    series_api.series_root(app.runs, parts[2])  # validates the id
+                    action = series_routes(parts[2]).get((method, "/".join(parts[3:])))
                 else:
                     action = global_routes.get((method, "/".join(parts[1:])))
                 if action is None:
@@ -536,10 +750,11 @@ def make_handler(app: UiApp, port_ref: list[int]) -> type[BaseHTTPRequestHandler
             self._json({"path": str(path)})
 
         def _page(self, parts: list[str]) -> None:
-            valid = not parts or (
-                len(parts) == 3
-                and parts[2] in _PAGES
-                and re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", parts[1])
+            name = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]*")
+            valid = (
+                not parts
+                or (parts[0] == "jobs" and len(parts) == 3 and parts[2] in _PAGES and name.fullmatch(parts[1]))
+                or (parts[0] == "series" and (len(parts) == 1 or (len(parts) == 2 and name.fullmatch(parts[1]))))
             )
             if not valid:
                 return self._json({"error": "not found"}, HTTPStatus.NOT_FOUND)

@@ -118,3 +118,50 @@ describe("directionLabel", () => {
     expect(outputUrl("my book")).toBe("/api/jobs/my%20book/output");
   });
 });
+
+describe("seriesIdFromName", () => {
+  it("turns a display name into a valid series id", async () => {
+    const { seriesIdFromName } = await import("./series");
+    expect(seriesIdFromName("The Qel Cycle")).toBe("the-qel-cycle");
+    expect(seriesIdFromName("  Élan: Book  ")).toBe("elan-book");
+    expect(seriesIdFromName("鲁滨逊")).toBe("");
+  });
+});
+
+describe("workbench views", () => {
+  it("files each term under the views it belongs to", async () => {
+    const { matchesView, WORKBENCH_VIEWS } = await import("./series");
+    const term = (patch: object) => ({
+      term_id: "T1", english: "Qelmar", chinese: "凯尔玛", category: "person", origin: "consensus",
+      books: {}, decision: "keep", decided_by: "rule", reason: "", locked_from: null, ...patch,
+    }) as Parameters<typeof matchesView>[0];
+    const views = (t: Parameters<typeof matchesView>[0]) => WORKBENCH_VIEWS.map(([k]) => k).filter((k) => matchesView(t, k));
+    expect(views(term({}))).toEqual(["keep", "all"]);
+    expect(views(term({ suggestion: { kind: "promote", chinese: null, rationale: "r", model: "m" } }))).toEqual(["suggested", "keep", "all"]);
+    expect(views(term({ origin: "conflict", decision: "pending" }))).toEqual(["pending", "conflict", "all"]);
+    expect(views(term({ origin: "single_book", decision: "drop" }))).toEqual(["single_book", "drop", "all"]);
+    expect(views(term({ origin: "carried", locked_from: "v001" }))).toEqual(["keep", "carried", "all"]);
+    const hudson = term({ origin: "single_book", decision: "drop", books: { b3: ["哈德森"] }, mentions: { b1: 4, b3: 9 } });
+    expect(views(hudson)).toEqual(["single_book", "elsewhere", "drop", "all"]);
+    expect(matchesView(hudson, "book:b3")).toBe(true);
+    expect(matchesView(hudson, "book:b1")).toBe(false);
+  });
+});
+
+describe("suggestionEligible", () => {
+  it("sends only undecided terms in scope for each task", async () => {
+    const { suggestionEligible } = await import("./series");
+    const term = (patch: object) => ({
+      term_id: "T1", english: "Qelmar", chinese: "凯尔玛", category: "person", origin: "consensus",
+      books: {}, decision: "keep", decided_by: "rule", reason: "", locked_from: null, suggestion: null, ...patch,
+    }) as Parameters<typeof suggestionEligible>[0];
+    expect(suggestionEligible(term({ origin: "conflict", decision: "pending" }), "conflicts")).toBe(true);
+    expect(suggestionEligible(term({ origin: "conflict", decision: "pending", decided_by: "user" }), "conflicts")).toBe(false);
+    expect(suggestionEligible(term({}), "generic")).toBe(true);
+    expect(suggestionEligible(term({ dismissed: ["drop_generic"] }), "generic")).toBe(false);
+    expect(suggestionEligible(term({ origin: "carried", locked_from: "v001" }), "generic")).toBe(false);
+    expect(suggestionEligible(term({ origin: "single_book", decision: "drop" }), "promote")).toBe(true);
+    expect(suggestionEligible(term({ origin: "single_book", decision: "drop",
+      suggestion: { kind: "promote", chinese: null, rationale: "r", model: "m" } }), "promote")).toBe(false);
+  });
+});

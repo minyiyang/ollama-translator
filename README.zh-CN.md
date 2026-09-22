@@ -262,6 +262,8 @@ python -m pytest
 - [整书一致性方案（英文，尚未实现）](docs/BOOK_CONSISTENCY.md)
 - [控制台界面本地化方案（英文，尚未实现）](docs/LOCALIZATION.md)
 - [控制台阶段控制：续跑、重跑与提前批准（英文）](docs/STAGE_CONTROL.md)
+- [全文对照审校与人工修改追踪方案（英文，尚未实现）](docs/FULL_TEXT_REVIEW.md)
+- [控制台系列术语表方案（英文，尚未实现）](docs/SERIES_GLOSSARY_UI.md)
 - [实施记录](docs/PLAN.md)
 - [推理框架基准测试方案（尚未执行）](docs/FRAMEWORK_BENCHMARK_PLAN.md)
 

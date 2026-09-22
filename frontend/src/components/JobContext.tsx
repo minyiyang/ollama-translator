@@ -12,6 +12,7 @@ export type JobInfo = {
   config: string;
   direction?: string;
   downloadable?: boolean;
+  series?: { series_id: string; name: string; version: string | null; latest: string | null } | null;
   validated?: boolean;
   stages: Stage[];
   running: boolean;

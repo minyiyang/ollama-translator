@@ -806,7 +806,7 @@ class EndpointCoverageTests(ServerTests):
         missing = sorted(
             f"{method} {route}"
             for method, route in routes
-            if not re.search(rf'/api/(jobs/[^/"\s]+/)?{re.escape(route)}(?=["?])', tests)
+            if not re.search(rf'/api/((jobs|series)/[^/"\s]+/)?{re.escape(route)}(?=["?])', tests)
         )
         assert missing == [], "API routes without an HTTP test: " + ", ".join(missing)
 
@@ -905,3 +905,313 @@ class DownloadAndDirectionTests(ServerTests):
             assert rows["zh"]["direction"] == "zh-en" and not rows["zh"]["downloadable"]
             assert rows["bad"]["direction"] == ""
             assert app.job_info("zh")["direction"] == "zh-en"
+
+
+class SeriesApiTests(ServerTests):
+    def test_series_pages_and_routes_over_http(self):
+        from book_agent import series as series_api
+        from tests.test_series import resolved_book
+
+        with tempfile.TemporaryDirectory() as directory:
+            runs = Path(directory) / "runs"
+            runs.mkdir()
+            resolved_book(runs, "qel-01", {"Qelmar": "凯尔玛", "Ostrel": "奥斯特雷"})
+            resolved_book(runs, "qel-02", {"Qelmar": "凯尔玛", "Vraxwright": "弗拉克赖特"})
+            app = UiApp(runs, Path(directory) / "configs", [])
+            server, call = self.serve(app)
+            token = {"X-UI-Token": app.token}
+
+            def get(path):
+                status, text = call(path)
+                return status, json.loads(text)
+
+            def post(path, body):
+                status, text = call(path, body, token)
+                return status, json.loads(text)
+
+            try:
+                assert call("/series")[0] == 200 and call("/series/qel")[0] == 200
+                assert call("/series/qel/extra")[0] == 404
+                status, listing = get("/api/series")
+                assert status == 200 and listing["series"] == [] and "en-zh" in listing["directions"]
+
+                assert post("/api/series", {"series_id": "qel", "name": "The Qel Cycle", "direction": "en-zh"})[0] == 200
+                assert post("/api/series", {"series_id": "qel", "name": "x", "direction": "en-zh"})[0] == 422
+                assert post("/api/series", {"series_id": "../x", "name": "x", "direction": "en-zh"})[0] == 422
+                assert call("/api/series/qel/detail", None, token)[0] == 200
+                assert get("/api/series/..%2Fx/detail")[0] in {404, 422}
+
+                status, detail = get("/api/series/qel/detail")
+                assert [job["job_id"] for job in detail["addable"]] == ["qel-01", "qel-02"]
+                status, detail = post("/api/series/qel/books", {"job_ids": ["qel-01", "qel-02"]})
+                assert status == 200 and [b["volume"] for b in detail["books"]] == [1, 2]
+                assert detail["addable"] == []
+                assert post("/api/series/qel/books", {"job_ids": []})[0] == 422
+
+                status, detail = post("/api/series/qel/build", {})
+                assert status == 200 and detail["workbench"]["keep"] == 1 and detail["workbench"]["pending"] == 0
+
+                assert app.job_info("qel-01")["series"] == {
+                    "series_id": "qel", "name": "The Qel Cycle", "version": None, "latest": None,
+                }
+                series_api.publish_workbench(runs, "qel")
+                series_api.bind_book(runs, "qel", "qel-01")
+                assert app.job_info("qel-01")["series"]["version"] == "v001"
+
+                status, version = get("/api/series/qel/version?v=v001")
+                assert status == 200 and [e["english"] for e in version["glossary"]["entries"]] == ["Qelmar"]
+                assert get("/api/series/qel/version?v=v009")[0] == 422
+
+                status, removed = post("/api/series/qel/books/remove", {"job_id": "qel-01"})
+                assert status == 422 and "pinned to v001" in removed["error"]
+                status, detail = post("/api/series/qel/books/remove", {"job_id": "qel-02"})
+                assert status == 200 and [b["job_id"] for b in detail["books"]] == ["qel-01"]
+
+                rows = get("/api/series")[1]["series"]
+                assert rows == [{
+                    "series_id": "qel", "name": "The Qel Cycle", "direction": "en-zh",
+                    "books": 1, "latest": "v001", "pending": 0,
+                }]
+            finally:
+                server.shutdown()
+                server.server_close()
+
+    def test_a_job_joins_only_one_series(self):
+        from book_agent import series as series_api
+        from tests.test_series import resolved_book
+
+        with tempfile.TemporaryDirectory() as directory:
+            runs = Path(directory) / "runs"
+            runs.mkdir()
+            resolved_book(runs, "qel-01", {"Qelmar": "凯尔玛"})
+            series_api.create_series(runs, "a", "A", "en-zh")
+            series_api.create_series(runs, "b", "B", "en-zh")
+            series_api.add_books(runs, "a", ["qel-01"])
+            assert series_api.addable_jobs(runs, "b") == []
+            with pytest.raises(ValueError, match="already in series a"):
+                series_api.add_books(runs, "b", ["qel-01"])
+
+
+class SeriesWorkbenchApiTests(ServerTests):
+    def test_curate_publish_and_approve_a_book_on_the_series_version(self):
+        from book_agent.series_binding import load_series_binding
+        from tests.test_series import resolved_book
+
+        with tempfile.TemporaryDirectory() as directory:
+            runs = Path(directory) / "runs"
+            runs.mkdir()
+            resolved_book(runs, "qel-01", {"Qelmar": "凯尔玛", "Vraxwright": "弗拉克斯赖特", "Ostrel": "奥斯特雷"})
+            resolved_book(runs, "qel-02", {"Qelmar": "凯尔玛", "Vraxwright": "弗拉克赖特"})
+            app = UiApp(runs, Path(directory) / "configs", [])
+            server, call = self.serve(app)
+            token = {"X-UI-Token": app.token}
+
+            def get(path):
+                status, text = call(path)
+                return status, json.loads(text)
+
+            def post(path, body):
+                status, text = call(path, body, token)
+                return status, json.loads(text)
+
+            try:
+                post("/api/series", {"series_id": "qel", "name": "Qel", "direction": "en-zh"})
+                assert get("/api/series/qel/workbench")[0] == 422  # not built yet
+                post("/api/series/qel/books", {"job_ids": ["qel-01", "qel-02"]})
+                post("/api/series/qel/build", {})
+
+                status, view = get("/api/series/qel/workbench")
+                assert status == 200 and view["next_version"] == "v001" and view["books"] == ["qel-01", "qel-02"]
+                ids = {term["english"]: term["term_id"] for term in view["terms"]}
+                assert view["publish"] == {
+                    "keep": 1, "pending": 1, "added": ["Qelmar"], "changed": [], "removed": [], "stale": False,
+                }
+
+                status, error = post("/api/series/qel/workbench/decide", {"term_ids": [ids["Vraxwright"]], "decision": "keep", "reason": ""})
+                assert status == 422 and "reason" in error["error"]
+                status, view = post("/api/series/qel/workbench/decide", {
+                    "term_ids": [ids["Vraxwright"]], "decision": "keep", "chinese": "弗拉克斯赖特", "reason": "Book 1 form.",
+                })
+                assert status == 200 and view["publish"]["pending"] == 0
+                status, view = post("/api/series/qel/workbench/decide", {
+                    "term_ids": [ids["Ostrel"]], "decision": "keep", "reason": "Main place; share it.",
+                    "category": GlossaryCategory.PLACE.value,
+                })
+                assert next(t for t in view["terms"] if t["term_id"] == ids["Ostrel"])["category"] == GlossaryCategory.PLACE.value
+                assert view["category_labels"][GlossaryCategory.PLACE.value] == "Place"
+                assert sorted(view["publish"]["added"]) == ["Ostrel", "Qelmar", "Vraxwright"]
+
+                status, published = post("/api/series/qel/publish", {})
+                assert status == 200 and published["published"]["version"] == "v001"
+                # The workbench stays open for the next version, carrying v001.
+                assert published["workbench"]["based_on"] == "v001"
+                assert post("/api/series/qel/publish", {})[0] == 422  # nothing changed yet
+
+                # The book's Glossary tab now reviews its series-synchronized glossary.
+                status, glossary = get("/api/jobs/qel-02/glossary")
+                assert glossary["series_overlay"] == {"series_id": "qel", "name": "Qel", "version": "v001"}
+                by_term = {entry["english"]: entry["chinese"] for entry in glossary["entries"]}
+                assert by_term["Vraxwright"] == "弗拉克斯赖特"  # series form replaces the book draft
+                assert {entry["english"]: entry["chinese"] for entry in glossary["draft_entries"]}["Vraxwright"] == "弗拉克赖特"
+
+                # LLM review without edits reviews the overlay, and approval pins the book.
+                with patch.object(UiApp, "launch", return_value={"running": True}) as launch:
+                    assert post("/api/jobs/qel-02/glossary/approve", {"llm": True})[0] == 200
+                args = launch.call_args.args[1]
+                assert "--llm-glossary" in args and "overlays" in args[args.index("--glossary") + 1]
+                assert load_series_binding(runs / "qel-02").version == "v001"
+
+                # A book outside any series is unchanged.
+                resolved_book(runs, "solo", {"Qelmar": "奎尔玛"})
+                assert get("/api/jobs/solo/glossary")[1]["series_overlay"] is None
+                with patch.object(UiApp, "launch", return_value={"running": True}) as launch:
+                    post("/api/jobs/solo/glossary/approve", {"llm": True})
+                assert "--glossary" not in launch.call_args.args[1]
+                assert load_series_binding(runs / "solo") is None
+            finally:
+                server.shutdown()
+                server.server_close()
+
+    def test_a_book_ready_after_publishing_gets_its_overlay_on_demand(self):
+        from book_agent import series as series_api
+        from tests.test_series import resolved_book
+
+        with tempfile.TemporaryDirectory() as directory:
+            runs = Path(directory) / "runs"
+            runs.mkdir()
+            resolved_book(runs, "qel-01", {"Qelmar": "凯尔玛"})
+            resolved_book(runs, "qel-02", {"Qelmar": "凯尔玛"})
+            series_api.create_series(runs, "qel", "Qel", "en-zh")
+            series_api.add_books(runs, "qel", ["qel-01", "qel-02"])
+            series_api.build_workbench(runs, "qel")
+            series_api.publish_workbench(runs, "qel")
+            resolved_book(runs, "qel-03", {"Qelmar": "凯尔马"})
+            series_api.add_books(runs, "qel", ["qel-03"])
+            overlay = series_api.overlay_for_job(runs, "qel-03")
+            assert overlay["version"] == "v001"
+            assert [(e["english"], e["chinese"]) for e in overlay["entries"]] == [("Qelmar", "凯尔玛")]
+
+
+class SeriesSuggestionApiTests(ServerTests):
+    def test_suggest_launches_the_cli_and_answers_are_accepted_over_http(self):
+        from book_agent import series as series_api
+        from book_agent.series import TermSuggestion, _save_workbench
+        from tests.test_series import two_book_series
+
+        with tempfile.TemporaryDirectory() as directory:
+            runs = Path(directory) / "runs"
+            runs.mkdir()
+            two_book_series(runs)
+            workbench = series_api.build_workbench(runs, "qel")
+            app = UiApp(runs, Path(directory) / "configs", [])
+            server, call = self.serve(app)
+            token = {"X-UI-Token": app.token}
+
+            def post(path, body):
+                status, text = call(path, body, token)
+                return status, json.loads(text)
+
+            try:
+                with patch.object(UiApp, "launch", return_value={"running": True}) as launch:
+                    assert post("/api/series/qel/suggest", {"task": "conflicts"})[0] == 200
+                key, args, label = launch.call_args.args
+                assert key == ".series-qel" and label == "LLM conflicts"
+                assert args[:2] == ["series", "suggest"] and args[args.index("--task") + 1] == "conflicts"
+                assert post("/api/series/qel/suggest", {"task": "everything"})[0] == 422
+                assert post("/api/series/nope/suggest", {"task": "generic"})[0] == 422
+                assert json.loads(call("/api/series/qel/detail")[1])["process"] is None
+
+                # Simulate a finished run that suggested a variant for the conflict.
+                terms = {term.english: term for term in workbench.terms}
+                vrax = terms["Vraxwright"].model_copy(update={
+                    "suggestion": TermSuggestion(kind="resolve", chinese="弗拉克斯赖特", rationale="Book 1 form.", model="m"),
+                })
+                _save_workbench(runs, workbench.model_copy(update={
+                    "terms": [vrax if t.term_id == vrax.term_id else t for t in workbench.terms],
+                }))
+                assert post("/api/series/qel/workbench/suggestions", {"term_ids": [], "accept": True})[0] == 422
+                status, view = post("/api/series/qel/workbench/suggestions", {"term_ids": [vrax.term_id], "accept": True})
+                assert status == 200
+                accepted = next(t for t in view["terms"] if t["term_id"] == vrax.term_id)
+                assert (accepted["decision"], accepted["chinese"], accepted["decided_by"]) == ("keep", "弗拉克斯赖特", "llm-accepted")
+                status, error = post("/api/series/qel/workbench/suggestions", {"term_ids": [vrax.term_id], "accept": False})
+                assert status == 422 and "no suggestion" in error["error"]
+
+                # The run log: nothing yet, then the newest output file on disk.
+                assert json.loads(call("/api/series/qel/log")[1]) == {"file": None, "lines": [], "process": None}
+                launch_dir = runs / ".ui-launch"
+                launch_dir.mkdir(exist_ok=True)
+                (launch_dir / ".series-qel-20260101T000000-series.out").write_text("old\n", encoding="utf-8")
+                (launch_dir / ".series-qel-20260102T000000-series.out").write_text("batch 1/2\nbatch 2/2\n", encoding="utf-8")
+                log = json.loads(call("/api/series/qel/log")[1])
+                assert log["file"].startswith(".series-qel-20260102") and log["lines"] == ["batch 1/2", "batch 2/2"]
+                assert call("/api/series/nope/log")[0] == 422
+
+                status, evidence = call(f"/api/series/qel/term?id={vrax.term_id}")
+                assert status == 200 and [b["job_id"] for b in json.loads(evidence)["books"]] == ["qel-01", "qel-02"]
+            finally:
+                server.shutdown()
+                server.server_close()
+
+
+class SeriesNewBookTests:
+    def make_app(self, base: Path):
+        from book_agent import series as series_api
+
+        (base / "configs").mkdir()
+        (base / "runs").mkdir()
+        template = base / "config.example.yaml"
+        template.write_text("translation: {direction: en-zh}\n", encoding="utf-8")
+        source = base / "Book One.epub"
+        source.write_bytes(b"epub")
+        series_api.create_series(base / "runs", "qel", "Qel", "en-zh")
+        return UiApp(base / "runs", base / "configs", [], template), source
+
+    def test_a_new_job_can_join_a_series_as_its_next_volume(self):
+        from book_agent import series as series_api
+
+        with tempfile.TemporaryDirectory() as directory:
+            app, source = self.make_app(Path(directory))
+            draft = app.create_job({"source": str(source), "config": "qel.yaml", "job_id": "qel-book-one", "series_id": "qel"})
+            assert draft["job_id"] == "qel-book-one"
+            status = series_api.series_status(app.runs, "qel")
+            assert [(b["job_id"], b["volume"], b["glossary"]) for b in status["books"]] == [("qel-book-one", 1, "draft")]
+            assert app.job_info("qel-book-one")["series"]["series_id"] == "qel"
+
+            # A second book shares the series config and becomes volume 2.
+            second = Path(directory) / "Book Two.epub"
+            second.write_bytes(b"epub")
+            assert not app.create_job({"source": str(second), "config": "qel.yaml", "job_id": "qel-book-two", "series_id": "qel"})["created_config"]
+            assert [b.volume for b in series_api.load_manifest(app.runs, "qel").books] == [1, 2]
+
+            # Discarding a draft leaves the series.
+            app.discard_draft("qel-book-two")
+            assert [b.job_id for b in series_api.load_manifest(app.runs, "qel").books] == ["qel-book-one"]
+
+    def test_a_config_in_another_direction_is_refused_and_nothing_is_created(self):
+        from book_agent import series as series_api
+
+        with tempfile.TemporaryDirectory() as directory:
+            app, source = self.make_app(Path(directory))
+            (app.config_dir / "zh.yaml").write_text("translation: {direction: zh-en}\n", encoding="utf-8")
+            with pytest.raises(ValueError, match="translates zh-en"):
+                app.create_job({"source": str(source), "config": "zh.yaml", "job_id": "wrong", "series_id": "qel"})
+            assert drafts.load_draft(app.runs, "wrong") is None
+            assert series_api.load_manifest(app.runs, "qel").books == []
+            with pytest.raises(ValueError, match="no series named"):
+                app.create_job({"source": str(source), "config": "x.yaml", "job_id": "x", "series_id": "nope"})
+            assert drafts.load_draft(app.runs, "x") is None
+
+    def test_validation_requires_the_series_direction_and_a_paused_glossary_gate(self):
+        with tempfile.TemporaryDirectory() as directory:
+            app, source = self.make_app(Path(directory))
+            app.create_job({"source": str(source), "config": "qel.yaml", "job_id": "qel-book-one", "series_id": "qel"})
+            models = ["qwen3.8:latest", "gemma4:31b", "gemma4:26b", "qwen3.8:27b"]
+            base = "ollama: {model: qwen3.8:latest}\nglossary: {extraction_model: qwen3.8:latest}\n"
+            with patch.object(setup_api, "installed_models", return_value=models):
+                auto = app.validate_job("qel-book-one", {"text": base + "workflow: {llm_glossary_review: true}\n"})
+                assert not auto["validated"] and any("glossary gate" in p for p in auto["problems"])
+                other = app.validate_job("qel-book-one", {"text": base + "translation: {direction: zh-en}\n"})
+                assert not other["validated"] and any("series Qel translates en-zh" in p for p in other["problems"])
+                good = app.validate_job("qel-book-one", {"text": base})
+            assert good["validated"], good["problems"]

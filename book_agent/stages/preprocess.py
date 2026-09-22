@@ -13,6 +13,7 @@ from ..glossary import (
     merge_prioritized_sources,
 )
 from ..hashing import hash_named_values, sha256_file
+from ..series_binding import bound_glossary_file, load_series_binding
 from ..pipeline_state import (
     WorkflowStage,
     build_stage_input_hash,
@@ -276,6 +277,19 @@ def _load_effective_glossary(
         hashes[f"series_glossary:{index:03d}:{resolved.name}"] = sha256_file(
             resolved
         )
+    # A dashboard series pins one immutable version; a different pin (an
+    # explicit upgrade) changes this hash and so reruns preprocessing.
+    binding = load_series_binding(workspace.root)
+    if binding is not None:
+        pinned = bound_glossary_file(workspace.root, binding)
+        sources.append(
+            GlossarySource(
+                name=f"series-bound-{binding.series_id}-{binding.version}",
+                kind=GlossarySourceKind.SERIES,
+                entries=tuple(load_glossary_file(pinned).entries),
+            )
+        )
+        hashes["series_binding"] = f"{binding.series_id}:{binding.version}:{binding.sha256}"
     sources.append(
         GlossarySource(
             name="approved-book",

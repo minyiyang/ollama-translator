@@ -131,6 +131,8 @@ reasoning to justify the additional runtime.
 - [Book-level consistency proposal](docs/BOOK_CONSISTENCY.md)
 - [Dashboard localization plan](docs/LOCALIZATION.md)
 - [Dashboard stage control: resume, rerun, early approval](docs/STAGE_CONTROL.md)
+- [Full-text review and tracked manual edits plan](docs/FULL_TEXT_REVIEW.md)
+- [Series glossary in the dashboard plan](docs/SERIES_GLOSSARY_UI.md)
 - [Working plan](docs/PLAN.md)
 - [Unrun inference-framework benchmark plan](docs/FRAMEWORK_BENCHMARK_PLAN.md)
 
@@ -450,6 +452,32 @@ after preprocessing has completed, explicitly restart downstream work with
 `book-agent retry WORKSPACE --stage preprocess --resume`; the changed series
 hash then invalidates the affected preprocessing and translation artifacts.
 
+#### Versioned series glossaries
+
+`book-agent series` manages the same process with immutable versions, so a
+later volume never changes an existing book's glossary: each book pins one
+version, and only an explicit `bind --upgrade` moves it (and re-translates it).
+
+```powershell
+book-agent series create qel --name "The Qel Cycle" --direction en-zh
+book-agent series add qel qel-series-01-en-zh qel-series-02-en-zh
+book-agent series build qel      # workbench: consensus, conflicts, single-book terms
+book-agent series status qel
+book-agent series decide qel T00012 --decision keep --chinese 凯尔玛 --reason "Book 1 form is canonical."
+book-agent series publish qel    # v001 + per-book overlays under runs/.series/qel/overlays/v001/
+book-agent series bind qel qel-series-01-en-zh
+book-agent approve .\runs\qel-series-01-en-zh --resume `
+  --glossary .\runs\.series\qel\overlays\v001\qel-series-01-en-zh.glossary.review.json
+```
+
+`book-agent series suggest <id> --task conflicts|generic|promote` asks the LLM
+for suggestions that change nothing until accepted (`series accept`, or the
+Series page). `.\scripts\demo-holmes.ps1` builds a series from the Sherlock
+Holmes sample books. An existing series file can be published as a version
+with `series import`.
+See [the series glossary plan](docs/SERIES_GLOSSARY_UI.md) for the design and
+the dashboard phases.
+
 Each extraction run writes `documents.screening.report.json` before inference
 and `candidates.screening.report.json` afterward, retaining a raw merged
 candidate artifact beside the screened one. Resolution deterministically
@@ -519,7 +547,8 @@ leaving LLM review disabled performs no independent review.
 - **Jobs** lists jobs with their translation direction (for example
   `EN → ZH`) and creates new ones; a completed job has a *Download* button for
   its translated book, also in the job header. Each job's **Config** tab edits,
-  validates, and starts it. The job header pauses (after the current LLM
+  validates, and starts it. **Series** groups jobs that share a versioned
+  series glossary (see [the plan](docs/SERIES_GLOSSARY_UI.md)). The job header pauses (after the current LLM
   call), stops, or resumes a run. `book-agent pause <workspace>` pauses a run
   started from a terminal the same way.
 - **Progress** follows any job in `--runs` from `state.sqlite3` and its session
