@@ -77,6 +77,17 @@
 .filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
 .filters input[type=text] { max-width: 360px; }
 .term-table thead th { top: var(--header-h, 56px); z-index: 1; }
+.text-pairs thead th { top: var(--header-h, 56px); z-index: 1; }
+.text-pairs td.sid { width: 130px; color: var(--muted); font-size: 11px; }
+.text-pairs tr.flagged td { background: var(--warn-bg); }
+.text-pairs tr.queued td { background: var(--bad-bg); }
+.text-pairs tr.conflict td { background: var(--bad-bg); }
+.text-pairs .editable-text { cursor: text; border-radius: 4px; padding: 2px 4px; margin: -2px -4px; }
+.text-pairs .editable-text:hover { background: var(--bg); outline: 1px dashed var(--line); }
+.editor-row td { background: var(--bg); }
+.text-editor .editor { min-height: 120px; }
+.text-history { display: flex; flex-direction: column; gap: 10px; }
+.hist-event { border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; }
 .term-table tbody.group > tr.group-head td { background: var(--bg); padding: 0; }
 .group-head button { display: flex; gap: 8px; align-items: center; width: 100%; border: 0; border-radius: 0; background: none; padding: 7px 8px; font-weight: 600; text-align: left; }
 .group-head .caret { display: inline-block; width: 12px; color: var(--muted); transition: transform .15s; }

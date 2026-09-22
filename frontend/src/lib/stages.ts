@@ -26,7 +26,7 @@ export const STAGE_LABELS: Record<string, string> = {
 
 export const stageLabel = (name: string) => STAGE_LABELS[name] ?? name;
 
-export type TabKey = "config" | "glossary" | "progress" | "review";
+export type TabKey = "config" | "glossary" | "progress" | "text" | "review";
 export type TabState = "running" | "waiting";
 
 // Which tab covers each pipeline stage.

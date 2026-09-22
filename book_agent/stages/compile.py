@@ -21,6 +21,14 @@ from ..pipeline_state import (
     stage_is_current,
 )
 from ..rtf import compile_rtf_document
+from ..text_edits import (
+    active_edit_texts,
+    current_draft_revision,
+    draft_revision_hash,
+    hash_active_edits,
+    overlay_active_edits,
+    unresolved_review_gate,
+)
 from ..state import (
     StageStatus,
     connect_state,
@@ -49,6 +57,10 @@ from .validate_repaired import (
 COMPILE_STAGE_VERSION = "6"
 
 
+class FinalDraftApprovalRequired(RuntimeError):
+    """The exact validated draft plus edit overlay has not been approved."""
+
+
 def run_epub_compile_stage(
     workspace: JobWorkspace,
     config: AppConfig,
@@ -60,28 +72,33 @@ def run_epub_compile_stage(
         decompile = _require_completed(connection, WorkflowStage.DECOMPILE)
         validated = _require_completed(connection, WorkflowStage.VALIDATE_REPAIRED)
         validation_report = load_repaired_validation_report(workspace)
-        unresolved_count = len(validation_report.review_segment_ids)
+        active_edits = active_edit_texts(workspace)
+        edit_hash = hash_active_edits(active_edits)
+        if config.workflow.require_final_review:
+            revision = draft_revision_hash(str(validated["output_hash"]), edit_hash)
+            if get_job_metadata(connection, "final_review_approved_for") != revision:
+                raise FinalDraftApprovalRequired("final draft approval required")
+        gate = unresolved_review_gate(workspace, validation_report)
         unresolved_limit = config.workflow.compile_max_unresolved_review_segments
         manual_review_path = write_unresolved_review_report(
             workspace,
-            validation_report.review_segment_ids,
+            gate.unresolved_review_ids,
             unresolved_limit,
             connection=connection,
             validation_report=validation_report,
         )
-        if unresolved_count > unresolved_limit:
-            review_ids = ", ".join(validation_report.review_segment_ids)
+        if gate.total_count > unresolved_limit:
+            review_ids = ", ".join(gate.unresolved_review_ids)
             report_path = get_job_metadata(connection, "repaired_validation_report")
-            defect_count = validation_report.remaining_defect_count
-            approval_count = validation_report.approval_required_count
-            if unresolved_count and defect_count == 0 and approval_count == 0:
-                defect_count = unresolved_count
             raise RuntimeError(
                 "repaired draft has "
-                f"{defect_count} unresolved defect(s) and "
-                f"{approval_count} approval-only segment(s) "
-                f"({unresolved_count} total), exceeding the configured "
-                f"compile limit of {unresolved_limit}; compilation is refused. IDs: {review_ids}. "
+                f"{gate.defect_count} unresolved defect(s), "
+                f"{gate.approval_count} approval-only segment(s), and "
+                f"{len(gate.conflict_ids)} edit conflict(s) "
+                f"({gate.total_count} total), exceeding the configured "
+                f"compile limit of {unresolved_limit}; compilation is refused. "
+                f"Review IDs: {review_ids or '(none)'}. "
+                f"Edit conflict IDs: {', '.join(gate.conflict_ids) or '(none)'}. "
                 f"Review report: {report_path or 'not recorded'}. "
                 f"Manual review details: {manual_review_path}"
             )
@@ -102,6 +119,7 @@ def run_epub_compile_stage(
                 "chapter_heading_labels": "\n".join(
                     config.epub.chapter_heading_labels
                 ),
+                "active_edits": edit_hash,
                 "stage_version": COMPILE_STAGE_VERSION,
             }
         )
@@ -125,12 +143,14 @@ def run_epub_compile_stage(
             input_hash=input_hash,
         )
         manifest = load_decompile_manifest(workspace)
-        repaired = load_validated_repaired_documents(workspace)
+        repaired = overlay_active_edits(load_validated_repaired_documents(workspace), active_edits)
         manifest_relative = get_job_metadata(connection, "decompile_manifest")
         if not manifest_relative:
             raise FileNotFoundError("decompile manifest is not recorded")
         package_root = workspace.directory(manifest_relative).parent / "package"
-        output_name = f"{workspace.source_file.stem}.translated.epub"
+        # Keep downloads distinguishable across reviewed revisions while the
+        # complete input hash remains the authoritative build identity.
+        output_name = f"{workspace.source_file.stem}.translated-{input_hash[:6]}.epub"
         output_path = workspace.directory("output") / output_name
         report = (
             compile_rtf_document(manifest, repaired, output_path)
@@ -177,6 +197,12 @@ def run_epub_compile_stage(
             connection,
             "compiled_unresolved_review_segments",
             "\n".join(validation_report.review_segment_ids),
+        )
+        set_job_metadata(connection, "compiled_active_edit_hash", edit_hash)
+        set_job_metadata(
+            connection,
+            "compiled_active_edits",
+            json.dumps(active_edits, ensure_ascii=False, sort_keys=True),
         )
         output_hash = build_stage_output_hash(connection, WorkflowStage.COMPILE)
         set_stage_status(
@@ -271,7 +297,7 @@ def write_unresolved_review_report(
             workspace, connection=active
         )
         if unresolved_ids is None:
-            unresolved_ids = validation_report.review_segment_ids
+            unresolved_ids = unresolved_review_gate(workspace, validation_report).unresolved_review_ids
         if compile_limit is None:
             config = AppConfig.model_validate_json(
                 workspace.config_file.read_text(encoding="utf-8")
@@ -520,7 +546,12 @@ def _write_unresolved_review_report(
     validation_stage = get_stage_status(
         connection, WorkflowStage.VALIDATE_REPAIRED.value
     )
-    draft_output_hash = str(validation_stage["output_hash"]) if validation_stage else ""
+    validated_output_hash = str(validation_stage["output_hash"]) if validation_stage else ""
+    draft_output_hash = (
+        current_draft_revision(workspace, validated_output_hash)
+        if validated_output_hash
+        else ""
+    )
     worksheet = ManualReviewWorksheet(
         workspace=str(workspace.root),
         draft_output_hash=draft_output_hash,

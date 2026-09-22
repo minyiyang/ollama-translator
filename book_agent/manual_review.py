@@ -1,4 +1,13 @@
-"""Apply explicit human resolutions to the current repaired-review queue."""
+"""Apply explicit human resolutions to the current repaired-review queue.
+
+Each resolution becomes an ``edit`` event in the same tracked edit log the
+Text tab writes to (``book_agent.text_edits``, docs/FULL_TEXT_REVIEW.md), so
+Final review and manual text edits share one history and one compile
+overlay. validate_repaired's stored draft is never rewritten here; a
+resolved segment is one with an active edit, computed dynamically by
+``unresolved_review_gate`` rather than by mutating the stored validation
+report.
+"""
 
 from __future__ import annotations
 
@@ -9,48 +18,29 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from .numeric_adjudication import rule_numeric_findings
 from .atomic_io import atomic_write_text
-from .audit import (
-    AuditCategory,
-    AuditSeverity,
-    audit_translated_document,
-    reapply_quantity_adjudications,
-)
-from .config import AppConfig
-from .hashing import sha256_file
-from .pipeline_state import (
-    WorkflowStage,
-    build_stage_input_hash,
-    build_stage_output_hash,
-    invalidate_stage_and_dependents,
-)
-from .repair import (
-    RepairDisposition,
-    RepairedDocument,
-    RepairedDocumentValidation,
-    RepairedValidationReport,
-    SegmentRepair,
-)
+from .hashing import sha256_file, sha256_text
+from .pipeline_state import WorkflowStage, invalidate_stage_and_dependents
+from .repair import RepairedValidationReport
 from .state import (
     StageStatus,
     connect_state,
-    get_artifact,
-    get_job_metadata,
     get_stage_status,
-    list_artifacts,
     record_artifact,
     set_job_metadata,
-    set_stage_status,
 )
-from .stage_artifacts import list_active_stage_artifacts
-from .translation import render_translated_document
+from .text_edits import (
+    SegmentEditRequest,
+    active_edit_texts,
+    apply_edit_batch,
+    classify_check,
+    current_draft_revision,
+    events_by_segment,
+    preview_manual_resolution,
+    unresolved_review_gate,
+)
 from .workspace import JobWorkspace
-from .stages.preprocess import load_preprocessed_documents
-from .stages.audit import load_document_audits
 from .stages.validate_repaired import (
-    VALIDATE_REPAIRED_STAGE_VERSION,
-    load_repaired_document_validations,
     load_repaired_validation_report,
     load_validated_repaired_documents,
 )
@@ -97,15 +87,6 @@ class ManualReviewResolutionSet(BaseModel):
         if len(ids) != len(set(ids)):
             raise ValueError("manual review resolution IDs must be unique")
         return self
-
-
-_NON_OVERRIDABLE_MANUAL_CATEGORIES = {
-    AuditCategory.STRUCTURE,
-    AuditCategory.EMPTY,
-    AuditCategory.UNTRANSLATED,
-    AuditCategory.DUPLICATION,
-    AuditCategory.PUNCTUATION,
-}
 
 
 class ManualReviewDecision(str, Enum):
@@ -220,7 +201,7 @@ def load_manual_review_resolution_file(
             raise RuntimeError(
                 "validate_repaired must be complete before resolving its worksheet"
             )
-        current_hash = str(stage["output_hash"])
+        current_hash = current_draft_revision(workspace, str(stage["output_hash"]))
     finally:
         connection.close()
     if worksheet.draft_output_hash != current_hash:
@@ -249,92 +230,27 @@ def load_manual_review_resolution_file(
     return worksheet.completed_resolution_set()
 
 
-def preview_manual_resolution(
-    workspace: JobWorkspace,
-    segment_id: str,
-    translated_text: str | None,
-) -> list[dict[str, str]]:
-    """Return the deterministic issues that would block one proposed resolution.
-
-    ``translated_text=None`` previews an acceptance of the current translation,
-    which overrides overridable findings exactly as ``resolve_manual_review``
-    does. Nothing is written.
-    """
-    config = AppConfig.model_validate_json(
-        workspace.config_file.read_text(encoding="utf-8")
-    )
-    repaired = next(
-        (
-            item
-            for item in load_validated_repaired_documents(workspace)
-            if any(s.segment_id == segment_id for s in item.document.segments)
-        ),
-        None,
-    )
-    if repaired is None:
-        raise ValueError(f"segment is absent from the validated draft: {segment_id}")
-    document_id = repaired.document.manifest_id
-    source = next(
-        item for item in load_preprocessed_documents(workspace)
-        if item.manifest_id == document_id
-    )
-    document = repaired.document
-    if translated_text is not None:
-        document = document.model_copy(
-            update={
-                "segments": [
-                    item.model_copy(update={"translated_text": translated_text})
-                    if item.segment_id == segment_id
-                    else item
-                    for item in document.segments
-                ]
-            }
-        )
-    initial = {item.document_id: item for item in load_document_audits(workspace)}
-    audit = reapply_quantity_adjudications(
-        audit_translated_document(
-            source,
-            document,
-            config.audit,
-            rule_numeric_findings(workspace, config, None, []),
-        ),
-        initial.get(document_id),
-    )
-    accepting = translated_text is None
-    return [
-        {
-            "category": issue.category.value,
-            "severity": issue.severity.value,
-            "message": issue.message,
-        }
-        for issue in audit.issues
-        if issue.segment_id == segment_id
-        and issue.severity.rank >= AuditSeverity.MEDIUM.rank
-        and not (accepting and issue.category not in _NON_OVERRIDABLE_MANUAL_CATEGORIES)
-    ]
-
-
 def resolve_manual_review(
     workspace: JobWorkspace,
     resolution_set: ManualReviewResolutionSet,
 ) -> RepairedValidationReport:
-    """Apply reviewed resolutions and publish a deterministically checked draft."""
-    config = AppConfig.model_validate_json(
-        workspace.config_file.read_text(encoding="utf-8")
-    )
-    sources = {item.manifest_id: item for item in load_preprocessed_documents(workspace)}
+    """Apply reviewed resolutions as tracked edit-log events.
+
+    validate_repaired's stored draft is never rewritten: each resolution is
+    checked (the same deterministic check an edit uses) and, if it passes,
+    appended to the edit log. A segment counts as resolved for the review
+    queue as soon as it has an active edit; see ``unresolved_review_gate``.
+    """
     documents = {
         item.document.manifest_id: item for item in load_validated_repaired_documents(workspace)
-    }
-    validations = {
-        item.document_id: item for item in load_repaired_document_validations(workspace)
     }
     current_report = load_repaired_validation_report(workspace)
     resolution_by_id = {
         item.segment_id: item for item in resolution_set.resolutions
     }
     requested_ids = {item.segment_id for item in resolution_set.resolutions}
-    unresolved_ids = set(current_report.review_segment_ids)
+    gate_before = unresolved_review_gate(workspace, current_report)
+    unresolved_ids = set(gate_before.unresolved_review_ids)
     unsafe_acceptances = sorted(
         segment_id
         for segment_id in requested_ids - unresolved_ids
@@ -348,24 +264,25 @@ def resolve_manual_review(
         )
 
     segment_owner: dict[str, str] = {}
+    pipeline_text_by_id: dict[str, str] = {}
     for document_id, repaired in documents.items():
         for segment in repaired.document.segments:
+            pipeline_text_by_id[segment.segment_id] = segment.translated_text
             if segment.segment_id in requested_ids:
                 segment_owner[segment.segment_id] = document_id
     missing = sorted(requested_ids - set(segment_owner))
     if missing:
         raise ValueError("manual resolution segments are absent: " + ", ".join(missing))
 
-    changed_documents: set[str] = set()
+    active_before = active_edit_texts(workspace)
+    event_groups = events_by_segment(workspace)
+
+    # Phase 1: compute and check every proposed replacement before writing anything,
+    # so the set is applied atomically (all pass, or none are appended).
+    plans: dict[str, tuple[str, str, str, str]] = {}
     verdict_rows: list[dict[str, object]] = []
     for segment_id, resolution in resolution_by_id.items():
-        document_id = segment_owner[segment_id]
-        repaired = documents[document_id]
-        current_text = next(
-            item.translated_text
-            for item in repaired.document.segments
-            if item.segment_id == segment_id
-        )
+        current_text = active_before.get(segment_id, pipeline_text_by_id[segment_id])
         replacement = (
             resolution.translated_text
             if resolution.translated_text is not None
@@ -379,10 +296,25 @@ def resolve_manual_review(
                     f"old_span occurrence, found {occurrences}"
                 )
             replacement = replacement.replace(edit.old_span, edit.new_span, 1)
-        changed = replacement != current_text
+        override_reason = (
+            resolution.reason if resolution.override_deterministic_findings else ""
+        )
+        classification = classify_check(workspace, segment_id, replacement)
+        if classification["hard"]:
+            messages = "; ".join(item["message"] for item in classification["hard"])
+            raise ValueError(
+                "manual resolutions failed deterministic validation: "
+                f"{segment_id} ({messages})"
+            )
+        if classification["overridable"] and not override_reason:
+            messages = "; ".join(item["message"] for item in classification["overridable"])
+            raise ValueError(
+                "manual resolutions failed deterministic validation: "
+                f"{segment_id} ({messages})"
+            )
         source_text = next(
             item.source_text
-            for item in repaired.document.segments
+            for item in documents[segment_owner[segment_id]].document.segments
             if item.segment_id == segment_id
         )
         verdict_rows.append(
@@ -391,236 +323,68 @@ def resolve_manual_review(
                 "source_text": source_text,
                 "previous_translation": current_text,
                 "final_translation": replacement,
-                "decision": "replace" if changed else "accept",
+                "decision": "replace" if replacement != current_text else "accept",
                 "reason": resolution.reason,
                 "deterministic_override": resolution.override_deterministic_findings,
             }
         )
-        repaired.document = repaired.document.model_copy(
-            update={
-                "segments": [
-                    item.model_copy(update={"translated_text": replacement})
-                    if item.segment_id == segment_id
-                    else item
-                    for item in repaired.document.segments
-                ]
-            }
-        )
-        found_repair = False
-        updated_repairs = []
-        for repair in repaired.repairs:
-            if repair.segment_id != segment_id:
-                updated_repairs.append(repair)
-                continue
-            found_repair = True
-            updated_repairs.append(
-                repair.model_copy(
-                    update={
-                        "disposition": (
-                            RepairDisposition.REPAIRED
-                            if changed
-                            else RepairDisposition.ACCEPTED
-                        ),
-                        "repaired_translation": replacement if changed else "",
-                        "message": f"manual review resolved: {resolution.reason}",
-                    }
-                )
-            )
-        if not found_repair:
-            prior_issues = [
-                issue
-                for issue in validations[document_id].deterministic_audit.issues
-                if issue.segment_id == segment_id
-            ]
-            updated_repairs.append(
-                SegmentRepair(
-                    segment_id=segment_id,
-                    disposition=(
-                        RepairDisposition.REPAIRED
-                        if changed
-                        else RepairDisposition.ACCEPTED
-                    ),
-                    original_translation=current_text,
-                    repaired_translation=replacement if changed else "",
-                    issues=prior_issues,
-                    attempts=0,
-                    message=f"manual review resolved: {resolution.reason}",
-                )
-            )
-        repaired.repairs = updated_repairs
-        changed_documents.add(document_id)
-
-    initial_audits = {
-        item.document_id: item for item in load_document_audits(workspace)
-    }
-    numeric_rulings = rule_numeric_findings(workspace, config, None, [])
-    deterministic_by_document = {
-        document_id: reapply_quantity_adjudications(
-            audit_translated_document(
-                sources[document_id], repaired.document, config.audit, numeric_rulings
-            ),
-            initial_audits.get(document_id),
-        )
-        for document_id, repaired in documents.items()
-    }
-    overridden_ids = {
-        segment_id
-        for segment_id, resolution in resolution_by_id.items()
-        if resolution.override_deterministic_findings
-    }
-    unsafe: list[str] = []
-    for segment_id in requested_ids:
-        audit = deterministic_by_document[segment_owner[segment_id]]
-        if any(
-            issue.segment_id == segment_id
-            and issue.severity.rank >= AuditSeverity.MEDIUM.rank
-            and not (
-                segment_id in overridden_ids
-                and issue.category not in _NON_OVERRIDABLE_MANUAL_CATEGORIES
-            )
-            for issue in audit.issues
-        ):
-            unsafe.append(segment_id)
-    if unsafe:
-        raise ValueError(
-            "manual resolutions failed deterministic validation: "
-            + ", ".join(sorted(unsafe))
+        prior_events = event_groups.get(segment_id, [])
+        expected_event_id = prior_events[-1].event_id if prior_events else ""
+        plans[segment_id] = (
+            replacement,
+            pipeline_text_by_id[segment_id],
+            override_reason,
+            expected_event_id,
         )
 
-    remaining_all: set[str] = set()
-    remaining_all_defects: set[str] = set()
-    remaining_all_approvals: set[str] = set()
-    updated_validations: dict[str, RepairedDocumentValidation] = {}
-    for document_id, validation in validations.items():
-        deterministic = deterministic_by_document[document_id]
-        remaining_defects = set(validation.defect_segment_ids) - requested_ids
-        remaining_approvals = set(validation.approval_segment_ids) - requested_ids
-        if (
-            validation.review_segment_ids
-            and not validation.defect_segment_ids
-            and not validation.approval_segment_ids
-        ):
-            remaining_defects.update(
-                set(validation.review_segment_ids) - requested_ids
+    # Phase 2: commit every resolution under one edit-log lock. A concurrent
+    # writer or any revalidation failure rejects the whole batch before bytes
+    # are appended.
+    apply_edit_batch(
+        workspace,
+        [
+            SegmentEditRequest(
+                segment_id=segment_id,
+                text=plans[segment_id][0],
+                reason=resolution.reason,
+                base_target_sha256=sha256_text(plans[segment_id][1]),
+                override_reason=plans[segment_id][2],
+                expected_event_id=plans[segment_id][3],
             )
-        remaining_defects.update(
-            issue.segment_id
-            for issue in deterministic.issues
-            if issue.severity.rank >= AuditSeverity.MEDIUM.rank
-            and not (
-                issue.segment_id in overridden_ids
-                and issue.category not in _NON_OVERRIDABLE_MANUAL_CATEGORIES
-            )
-        )
-        remaining_approvals.difference_update(remaining_defects)
-        remaining = remaining_defects | remaining_approvals
-        semantic = [
-            item.model_copy(
-                update={
-                    "passed": True,
-                    "current_acceptable": True,
-                    "message": "Resolved by explicit human review.",
-                }
-            )
-            if item.segment_id in requested_ids
-            else item
-            for item in validation.semantic_verifications
-        ]
-        updated_validations[document_id] = validation.model_copy(
-            update={
-                "deterministic_audit": deterministic,
-                "semantic_verifications": semantic,
-                "passed": not remaining,
-                "review_segment_ids": sorted(remaining),
-                "defect_segment_ids": sorted(remaining_defects),
-                "approval_segment_ids": sorted(remaining_approvals),
-            }
-        )
-        remaining_all.update(remaining)
-        remaining_all_defects.update(remaining_defects)
-        remaining_all_approvals.update(remaining_approvals)
+            for segment_id, resolution in resolution_by_id.items()
+        ],
+    )
 
+    gate_after = unresolved_review_gate(workspace, current_report)
+    remaining_defects = set(current_report.defect_segment_ids) & set(
+        gate_after.unresolved_review_ids
+    )
+    remaining_approvals = set(current_report.approval_segment_ids) & set(
+        gate_after.unresolved_review_ids
+    )
     report = RepairedValidationReport(
         document_count=current_report.document_count,
         segment_count=current_report.segment_count,
-        passed=not remaining_all,
-        remaining_issue_count=len(remaining_all),
-        review_segment_ids=sorted(remaining_all),
-        remaining_defect_count=len(remaining_all_defects),
-        approval_required_count=len(remaining_all_approvals),
-        defect_segment_ids=sorted(remaining_all_defects),
-        approval_segment_ids=sorted(remaining_all_approvals),
+        passed=not gate_after.unresolved_review_ids,
+        remaining_issue_count=len(gate_after.unresolved_review_ids),
+        review_segment_ids=gate_after.unresolved_review_ids,
+        remaining_defect_count=gate_after.defect_count,
+        approval_required_count=gate_after.approval_count,
+        defect_segment_ids=sorted(remaining_defects),
+        approval_segment_ids=sorted(remaining_approvals),
     )
 
     connection = connect_state(workspace.state_file)
     try:
-        stage_name = WorkflowStage.VALIDATE_REPAIRED.value
-        stage = get_stage_status(connection, stage_name)
+        stage = get_stage_status(connection, WorkflowStage.VALIDATE_REPAIRED.value)
         if stage is None or stage["status"] != StageStatus.COMPLETED.value:
             raise RuntimeError("validate_repaired must be complete before manual resolution")
-        repair_review_stage = get_stage_status(
-            connection, WorkflowStage.REPAIR_REVIEW.value
-        )
-        if (
-            repair_review_stage is None
-            or repair_review_stage["status"] != StageStatus.COMPLETED.value
-        ):
-            raise RuntimeError("repair_review must be complete before manual resolution")
-        current_input_hash = build_stage_input_hash(
-            {
-                "repair_review": str(repair_review_stage["output_hash"]),
-                "audit": config.audit.checkpoint_json(),
-                "model": config.audit.verifier_model or config.audit.model,
-                "stage_version": VALIDATE_REPAIRED_STAGE_VERSION,
-            }
-        )
-        report_relative = get_job_metadata(connection, "repaired_validation_report")
-        if not report_relative:
-            raise FileNotFoundError("repaired validation report is not recorded")
-        report_path = workspace.directory(report_relative)
-
-        artifacts = list_active_stage_artifacts(
-            connection,
-            stage_name,
-            root_metadata_key="validated_repaired_root",
-            report_metadata_key="repaired_validation_report",
-        )
-        document_paths: dict[str, Path] = {}
-        validation_paths: dict[str, Path] = {}
-        for artifact in artifacts:
-            path = workspace.directory(str(artifact["path"]))
-            if artifact["kind"] == "validated_repaired_document_json":
-                item = RepairedDocument.model_validate_json(path.read_text(encoding="utf-8"))
-                document_paths[item.document.manifest_id] = path
-            elif artifact["kind"] == "repaired_document_validation":
-                item = RepairedDocumentValidation.model_validate_json(
-                    path.read_text(encoding="utf-8")
-                )
-                validation_paths[item.document_id] = path
-
-        for document_id in changed_documents:
-            json_path = document_paths[document_id]
-            text_path = json_path.with_suffix(".txt")
-            atomic_write_text(json_path, documents[document_id].model_dump_json(indent=2))
-            atomic_write_text(
-                text_path, render_translated_document(documents[document_id].document)
-            )
-            _record_existing_artifact(connection, workspace, json_path)
-            _record_existing_artifact(connection, workspace, text_path)
-
-        for document_id, validation in updated_validations.items():
-            path = validation_paths[document_id]
-            atomic_write_text(path, validation.model_dump_json(indent=2))
-            _record_existing_artifact(connection, workspace, path)
-
-        atomic_write_text(report_path, report.model_dump_json(indent=2))
-        _record_existing_artifact(connection, workspace, report_path)
-        resolution_path = report_path.parent / "manual-review-resolutions.json"
+        resolution_path = workspace.directory("reports") / "manual-review-resolutions.json"
         atomic_write_text(resolution_path, resolution_set.model_dump_json(indent=2))
         record_artifact(
             connection,
             resolution_path.relative_to(workspace.root).as_posix(),
-            stage_name,
+            WorkflowStage.VALIDATE_REPAIRED.value,
             "manual_review_resolutions",
             sha256_file(resolution_path),
             resolution_path.stat().st_size,
@@ -634,41 +398,15 @@ def resolve_manual_review(
             connection,
             workspace,
             verdict_rows,
-            sorted(remaining_all),
+            gate_after.unresolved_review_ids,
         )
+        # So `--resume` re-attempts compile: its input hash already changes with
+        # the edit log, but its stored stage status would otherwise stay
+        # "completed" and be skipped by the workflow loop.
         invalidate_stage_and_dependents(connection, WorkflowStage.COMPILE)
-        output_hash = build_stage_output_hash(connection, WorkflowStage.VALIDATE_REPAIRED)
-        set_stage_status(
-            connection,
-            stage_name,
-            StageStatus.COMPLETED,
-            attempts=int(stage["attempts"]),
-            input_hash=current_input_hash,
-            output_hash=output_hash,
-            message=(
-                f"{len(remaining_all)} segment(s) require human review"
-                if remaining_all
-                else "manual review resolved"
-            ),
-        )
         return report
     finally:
         connection.close()
-
-
-def _record_existing_artifact(connection, workspace: JobWorkspace, path: Path) -> None:
-    relative = path.relative_to(workspace.root).as_posix()
-    existing = get_artifact(connection, relative)
-    if existing is None:
-        raise FileNotFoundError(f"artifact is not recorded: {relative}")
-    record_artifact(
-        connection,
-        relative,
-        str(existing["stage"]),
-        str(existing["kind"]),
-        sha256_file(path),
-        path.stat().st_size,
-    )
 
 
 def _write_manual_review_verdict(

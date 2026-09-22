@@ -9,6 +9,7 @@ const TABS = [
   ["config", "Config"],
   ["glossary", "Glossary"],
   ["progress", "Progress"],
+  ["text", "Text"],
   ["review", "Final review"],
 ] as const;
 

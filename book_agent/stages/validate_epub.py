@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+
 from ..atomic_io import atomic_write_text
 from ..config import AppConfig
 from ..epub_compile import (
@@ -28,13 +30,14 @@ from ..state import (
     set_job_metadata,
     set_stage_status,
 )
+from ..text_edits import overlay_active_edits
 from ..workspace import JobWorkspace
 from .compile import load_compiled_epub_path
 from .decompile import load_decompile_manifest
 from .validate_repaired import load_validated_repaired_documents
 
 
-VALIDATE_EPUB_STAGE_VERSION = "4"
+VALIDATE_EPUB_STAGE_VERSION = "5"
 
 
 def run_epub_validation_stage(
@@ -77,6 +80,18 @@ def run_epub_validation_stage(
         output_path = load_compiled_epub_path(workspace)
         manifest = load_decompile_manifest(workspace)
         repaired = load_validated_repaired_documents(workspace)
+        # Validate against the exact edit snapshot compile consumed, rather
+        # than the unedited pipeline draft or edits saved after compilation.
+        compiled_edits_json = get_job_metadata(connection, "compiled_active_edits")
+        compiled_edits = (
+            {
+                str(segment_id): str(text)
+                for segment_id, text in json.loads(compiled_edits_json).items()
+            }
+            if compiled_edits_json is not None
+            else {}
+        )
+        repaired = overlay_active_edits(repaired, compiled_edits)
         manifest_relative = get_job_metadata(connection, "decompile_manifest")
         if not manifest_relative:
             raise FileNotFoundError("decompile manifest is not recorded")

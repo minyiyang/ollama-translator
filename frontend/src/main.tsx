@@ -10,6 +10,7 @@ import { JobsPage } from "./pages/JobsPage";
 import { ProgressPage } from "./pages/ProgressPage";
 import { ReviewPage } from "./pages/ReviewPage";
 import { SeriesListPage, SeriesPage } from "./pages/SeriesPage";
+import { TextPage } from "./pages/TextPage";
 import "./styles.css";
 import "./pages.css";
 
@@ -27,6 +28,7 @@ createRoot(document.getElementById("root")!).render(
               <Route path="config" element={<ConfigPage />} />
               <Route path="glossary" element={<GlossaryPage />} />
               <Route path="progress" element={<ProgressPage />} />
+              <Route path="text" element={<TextPage />} />
               <Route path="review" element={<ReviewPage />} />
             </Route>
             <Route path="*" element={<Navigate to="/" replace />} />
