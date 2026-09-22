@@ -15,10 +15,13 @@ const TABS = [
 /** Sticky header with job tabs; publishes its height as --header-h for sticky children. */
 export function Shell({
   jobId,
+  crumb,
   tools,
   children,
 }: {
   jobId?: string;
+  /** Breadcrumb for pages outside a job (defaults to the section name). */
+  crumb?: ReactNode;
   tools?: ReactNode;
   children: ReactNode;
 }) {
@@ -40,7 +43,19 @@ export function Shell({
     <>
       <header className="shell" ref={header}>
         <Link className="brand" to="/">Ollama Translator</Link>
-        <span className={jobId ? "crumb mono" : "crumb"}>{jobId ?? "Jobs"}</span>
+        {!jobId && (
+          <nav className="tabs">
+            <NavLink to="/" end className={({ isActive }) => (isActive ? "on" : "")}>Jobs</NavLink>
+            <NavLink to="/series" className={({ isActive }) => (isActive ? "on" : "")}>Series</NavLink>
+          </nav>
+        )}
+        {(jobId || crumb) && <span className={jobId ? "crumb mono" : "crumb"}>{jobId ?? crumb}</span>}
+        {jobId && info?.series && (
+          <Link className="chip series-chip" to={`/series/${encodeURIComponent(info.series.series_id)}`}
+            title={info.series.version ? `Pinned to series glossary ${info.series.version}` : "In this series; not pinned to a version yet"}>
+            Series {info.series.name} · {info.series.version ?? "not pinned"}
+          </Link>
+        )}
         {jobId && (
           <nav className="tabs">
             {TABS.map(([key, label]) => (

@@ -26,6 +26,7 @@ type Payload = {
   other_category: string;
   process: { label: string; running: boolean; outcome?: string; exit_code?: number | null; output_tail?: string } | null;
   approval_running: boolean;
+  series_overlay?: { series_id: string; name: string; version: string } | null;
 };
 /** keep: enforce this translation. defer: decide later (kept as drafted if approved).
  *  drop: not a glossary term (e.g. a generic word); the translator handles it in context. */
@@ -365,6 +366,15 @@ export function GlossaryPage() {
       {started && !data && !error && <p className="meta">Loading…</p>}
       {data && !data.ready && (
         <div className="banner warn">The glossary draft is not ready yet; extraction and resolution run first. <Link to={progressLink}>Watch progress →</Link></div>
+      )}
+      {data?.ready && data.editable && data.series_overlay && (
+        <div className="banner info">
+          This book is in series{" "}
+          <Link to={`/series/${encodeURIComponent(data.series_overlay.series_id)}`}>{data.series_overlay.name}</Link>: the
+          candidate below is its glossary synchronized to series glossary <b>{data.series_overlay.version}</b>, so shared
+          terms use the series translation. Approving pins this book to {data.series_overlay.version}; its own entries
+          still take precedence for book-specific exceptions.
+        </div>
       )}
       {data?.ready && (
         <>

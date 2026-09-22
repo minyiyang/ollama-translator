@@ -28,6 +28,17 @@ from .manual_review import (
 from .pipeline_state import WorkflowStage
 from .ollama_client import GenerationProgressEvent, OllamaClient, PauseRequested
 from .styles import TranslationStyle
+from .languages import TranslationDirection
+from .series import (
+    add_books,
+    bind_book,
+    build_workbench,
+    create_series,
+    decide_terms,
+    import_version,
+    publish_workbench,
+    series_status,
+)
 from .series_glossary import (
     build_series_glossary,
     resolve_series_glossary_conflicts,
@@ -326,7 +337,125 @@ def build_parser() -> argparse.ArgumentParser:
         action="store_true",
         help="disable styled LLM progress output",
     )
+    _add_series_parser(subparsers)
     return parser
+
+
+def _add_series_parser(subparsers) -> None:
+    """``book-agent series …``: versioned series glossaries (docs/SERIES_GLOSSARY_UI.md)."""
+    series = subparsers.add_parser(
+        "series", help="manage a versioned series glossary shared by several books"
+    )
+    actions = series.add_subparsers(dest="series_command", required=True)
+
+    def action(name: str, help_text: str):
+        sub = actions.add_parser(name, help=help_text)
+        sub.add_argument("--runs", default="runs", help="runs directory holding the jobs (default: runs)")
+        sub.add_argument("series_id", help="series id (letters, digits, . _ -)")
+        return sub
+
+    create = action("create", "create an empty series")
+    create.add_argument("--name", default="", help="display name (default: the id)")
+    create.add_argument("--direction", required=True, choices=[d.value for d in TranslationDirection])
+    add = action("add", "add jobs as the next volumes, in order")
+    add.add_argument("jobs", nargs="+", help="job ids in --runs")
+    build = action("build", "build the next version's candidate (workbench); no LLM")
+    build.add_argument("--minimum-books", type=int, default=2)
+    build.add_argument("--consensus-ratio", type=float, default=1.0)
+    decide = action("decide", "keep or drop workbench terms")
+    decide.add_argument("terms", nargs="+", help="term ids, e.g. T00012")
+    decide.add_argument("--decision", required=True, choices=("keep", "drop", "pending"))
+    decide.add_argument("--reason", required=True)
+    decide.add_argument("--chinese", help="new target translation (one term only)")
+    decide.add_argument("--category", help="new category, e.g. person or place (one term only)")
+    decide.add_argument("--unlock", action="store_true", help="allow changing a term published in an earlier version")
+    action("publish", "freeze the workbench into the next immutable version")
+    bind = action("bind", "pin a member book to a version")
+    bind.add_argument("job", help="job id")
+    bind.add_argument("--version", help="version such as v002 (default: latest)")
+    bind.add_argument(
+        "--upgrade",
+        action="store_true",
+        help="confirm rebinding an already preprocessed book; it is translated again on resume",
+    )
+    imported = action("import", "publish an existing series glossary file as the next version")
+    imported.add_argument("file", help="glossary JSON or legacy text file")
+    action("status", "show books, their glossary state and pinned version, versions, and the workbench")
+    suggest = action("suggest", "ask the LLM for workbench suggestions (applied only when accepted)")
+    suggest.add_argument("--task", required=True, choices=("conflicts", "generic", "promote"))
+    suggest.add_argument(
+        "--config",
+        dest="config_file",
+        help="YAML configuration for the model and context (default: the first member book's)",
+    )
+    suggest.add_argument("--plain", action="store_true", help="disable styled LLM progress output")
+    accept = action("accept", "accept (or --reject) LLM suggestions on workbench terms")
+    accept.add_argument("terms", nargs="+", help="term ids, e.g. T00012")
+    accept.add_argument("--reject", action="store_true", help="discard the suggestions instead")
+
+
+def _series_config(runs: Path, series_id: str, config_file: str | None) -> AppConfig:
+    """An explicit config file, else the first member book's captured configuration."""
+    if config_file:
+        path = Path(config_file).resolve()
+        return resolve_config_paths(load_config(path), path.parent)
+    from .series import load_manifest
+
+    for book in load_manifest(runs, series_id).books:
+        try:
+            return load_workspace_config(open_job_workspace(runs.resolve() / book.job_id))
+        except (ValueError, OSError):
+            continue
+    raise ValueError("no member book has a readable configuration; pass --config")
+
+
+def _run_series_command(args, generation_progress=None) -> dict[str, object]:
+    runs = Path(args.runs)
+    command = args.series_command
+    if command == "suggest":
+        from .series_llm import suggest
+
+        config = _series_config(runs, args.series_id, args.config_file)
+        client = OllamaClient(config.ollama, progress=generation_progress)
+        client.validate_model_context(config.glossary.resolution_max_num_ctx, model=config.ollama.model)
+        return {"series_id": args.series_id, "task": args.task, **suggest(runs, args.series_id, args.task, client, config)}
+    if command == "accept":
+        from .series_llm import accept_suggestions
+
+        accept_suggestions(runs, args.series_id, args.terms, not args.reject)
+        return {"series_id": args.series_id, "terms": args.terms, "accepted": not args.reject}
+    if command == "create":
+        return create_series(runs, args.series_id, args.name, args.direction).model_dump(mode="json")
+    if command == "add":
+        return add_books(runs, args.series_id, args.jobs).model_dump(mode="json")
+    if command == "build":
+        workbench = build_workbench(
+            runs, args.series_id, minimum_books=args.minimum_books, consensus_ratio=args.consensus_ratio
+        )
+        counts: dict[str, int] = {}
+        for term in workbench.terms:
+            counts[f"{term.origin}/{term.decision}"] = counts.get(f"{term.origin}/{term.decision}", 0) + 1
+        return {
+            "series_id": workbench.series_id,
+            "based_on": workbench.based_on,
+            "source_jobs": workbench.source_jobs,
+            "not_ready": workbench.not_ready,
+            "terms": len(workbench.terms),
+            "by_origin_and_decision": dict(sorted(counts.items())),
+        }
+    if command == "decide":
+        workbench = decide_terms(
+            runs, args.series_id, args.terms, args.decision,
+            reason=args.reason, chinese=args.chinese, category=args.category, unlock=args.unlock,
+        )
+        return {"series_id": workbench.series_id, "decided": args.terms, "decision": args.decision}
+    if command == "publish":
+        return publish_workbench(runs, args.series_id).model_dump(mode="json")
+    if command == "bind":
+        return bind_book(runs, args.series_id, args.job, args.version, upgrade=args.upgrade)
+    if command == "import":
+        return import_version(runs, args.series_id, Path(args.file)).model_dump(mode="json")
+    return series_status(runs, args.series_id)
 
 
 def format_config(config: AppConfig) -> str:
@@ -1291,6 +1420,13 @@ def main(argv: Sequence[str] | None = None) -> int:
                 for artifact in report["reports"]:
                     print(f"- {artifact['path']}")
             return _status_exit_code(str(report["overall"]))
+        if args.command == "series":
+            printer = None
+            if args.series_command == "suggest":
+                progress_context.stage = f"series_{args.task}"
+                printer = make_generation_progress_printer(plain=args.plain, context=progress_context)
+            print(format_json(_run_series_command(args, printer)))
+            return ExitCode.COMPLETE
         if args.command == "build-series-glossary":
             if args.config_file and not args.llm_conflicts:
                 raise ValueError("--config requires --llm-conflicts")

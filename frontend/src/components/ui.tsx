@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
-export const Chip = ({ kind = "", children }: { kind?: string; children: ReactNode }) => (
-  <span className={`chip ${kind}`}>{children}</span>
+export const Chip = ({ kind = "", title, children }: { kind?: string; title?: string; children: ReactNode }) => (
+  <span className={`chip ${kind}`} title={title}>{children}</span>
 );
 
 export const Bar = ({ percent, running = false }: { percent: number; running?: boolean }) => (

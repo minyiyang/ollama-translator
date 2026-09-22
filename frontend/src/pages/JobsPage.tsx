@@ -12,7 +12,7 @@ type Job = {
   job_id: string; overall: string; source: string; direction: string; downloadable: boolean;
   current_stage: string; completed: number; total: number; updated: string;
 };
-type Setup = { configs: { name: string }[]; config_dir: string; runs: string; template: string; jobs: Job[] };
+export type Setup = { configs: { name: string }[]; config_dir: string; runs: string; template: string; jobs: Job[] };
 
 const PAGE_SIZE = 10;
 const fileName = (path: string) => path.split(/[\\/]/).pop() ?? path;
@@ -80,12 +80,20 @@ function JobsTable({ jobs }: { jobs: Job[] }) {
   );
 }
 
-function NewJobDialog({ setup, onClose }: { setup: Setup; onClose: () => void }) {
+/** Create a draft job; with ``series`` the job also joins that series as its next volume. */
+export function NewJobDialog({ setup, series, onClose }: {
+  setup: Setup;
+  series?: { series_id: string; name: string };
+  onClose: () => void;
+}) {
   const toast = useToast();
   const navigate = useNavigate();
   const [source, setSource] = useState("");
   const [book, setBook] = useState<BookInfo | null>(null);
-  const [configName, setConfigName] = useState("");
+  // A series shares one config across its volumes.
+  const [configName, setConfigName] = useState(series ? `${series.series_id}.yaml` : "");
+  const [suggestedId, setSuggestedId] = useState("");
+  const seriesId = series?.series_id ?? "";
   const [jobId, setJobId] = useState("");
   const [configTouched, setConfigTouched] = useState(false);
   const [jobTouched, setJobTouched] = useState(false);
@@ -98,10 +106,14 @@ function NewJobDialog({ setup, onClose }: { setup: Setup; onClose: () => void })
   useEffect(() => {
     if (!source) return;
     api<{ config: string; job_id: string }>(`/api/jobs/suggest?source=${encodeURIComponent(source)}`).then((s) => {
-      if (!configTouched) setConfigName(s.config);
+      if (!configTouched && !seriesId) setConfigName(s.config);
+      setSuggestedId(seriesId ? `${seriesId}-${s.job_id}` : "");
     });
-  }, [source, configTouched]);
-  useEffect(() => { if (!jobTouched) setJobId(stem(configName)); }, [configName, jobTouched]);
+  }, [source, configTouched, seriesId]);
+  // Job ID: from the config name, or for a series book from the book (the config is shared).
+  useEffect(() => {
+    if (!jobTouched) setJobId(seriesId ? suggestedId : stem(configName));
+  }, [configName, suggestedId, jobTouched, seriesId]);
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === "Escape") onClose(); };
     window.addEventListener("keydown", onKey);
@@ -131,7 +143,9 @@ function NewJobDialog({ setup, onClose }: { setup: Setup; onClose: () => void })
   const create = async () => {
     setBusy(true);
     try {
-      const draft = await api<{ job_id: string; created_config: boolean }>("/api/jobs/new", { source, config: configName, job_id: jobId });
+      const draft = await api<{ job_id: string; created_config: boolean }>("/api/jobs/new", {
+        source, config: configName, job_id: jobId, series_id: series?.series_id ?? "",
+      });
       toast("ok", draft.created_config ? `Created ${configName} from ${fileName(setup.template) || "an empty config"}.` : `Using existing ${configName}.`);
       navigate(`/jobs/${encodeURIComponent(draft.job_id)}/config`);
     } catch (e) {
@@ -147,7 +161,13 @@ function NewJobDialog({ setup, onClose }: { setup: Setup; onClose: () => void })
   return (
     <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <section className="card modal" role="dialog" aria-modal="true" aria-labelledby="new-job-title">
-        <h2 id="new-job-title">New translation job</h2>
+        <h2 id="new-job-title">{series ? `New book in ${series.name}` : "New translation job"}</h2>
+        {series && (
+          <p className="meta">
+            The job joins the series as its next volume. Its config must pause at the glossary gate
+            (the default) so the book can approve the series glossary; validation checks this.
+          </p>
+        )}
 
         <div className="field">
           <label>Source EPUB or RTF</label>
@@ -172,7 +192,7 @@ function NewJobDialog({ setup, onClose }: { setup: Setup; onClose: () => void })
           <span className="hint">
             {!configName ? "Pick a source to get a suggested name."
               : !nameOk ? "Use a simple file name ending in .yaml."
-              : existing ? `${configName} already exists in ${setup.config_dir}; the job uses it as is.`
+              : existing ? `${configName} already exists in ${setup.config_dir}; the job uses it as is${series ? " (shared by the series' books)" : ""}.`
               : `A new ${configName} is created in ${setup.config_dir} from ${fileName(setup.template) || "an empty config"}; you adjust it on the Config tab.`}
           </span>
         </div>
@@ -181,7 +201,11 @@ function NewJobDialog({ setup, onClose }: { setup: Setup; onClose: () => void })
           <label htmlFor="job-id">Job ID</label>
           <input id="job-id" type="text" value={jobId} spellCheck={false}
             onChange={(e) => { setJobTouched(true); setJobId(e.target.value); }} />
-          <span className="hint">{taken ? "A job with this ID already exists." : "Defaults to the config file name. Used as the workspace folder name."}</span>
+          <span className="hint">
+            {taken ? "A job with this ID already exists."
+              : series ? "Defaults to the series ID plus the book name. Used as the workspace folder name."
+              : "Defaults to the config file name. Used as the workspace folder name."}
+          </span>
         </div>
 
         <div className="row" style={{ justifyContent: "flex-end" }}>
