@@ -13,6 +13,9 @@ dist/
 .venv/
 venv/
 
+# Sample and external files
+sample/
+
 # Generated translation workspaces and logs
 runs/
 *.log

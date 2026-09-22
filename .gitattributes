@@ -8,5 +8,17 @@ LICENSE text eol=lf
 *.txt text eol=lf
 *.toml text eol=lf
 *.yaml text eol=lf
+*.yml text eol=lf
+*.ps1 text eol=lf
+
+# The dashboard: sources and the committed Vite build. A CRLF checkout of
+# index.html makes the build emit CRLF (and a stray CR), so the committed
+# bundle no longer matches one built on Linux and CI reports it stale.
+*.html text eol=lf
+*.css text eol=lf
+*.ts text eol=lf
+*.tsx text eol=lf
+*.js text eol=lf
+*.json text eol=lf
 
 *.epub binary
