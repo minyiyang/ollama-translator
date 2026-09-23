@@ -12,7 +12,6 @@ from book_agent.manual_review import (
     load_manual_review_resolution_file,
     resolve_manual_review,
 )
-from book_agent.pipeline_state import build_stage_input_hash
 from book_agent.stages.compile import run_epub_compile_stage
 from book_agent.stages.validate_repaired import load_validated_repaired_documents
 from book_agent.state import connect_state, get_stage_status
@@ -108,15 +107,23 @@ class ManualReviewResolutionTests:
             from book_agent.stages.validate_repaired import (
                 load_repaired_validation_report,
             )
+            from book_agent.text_edits import active_edit_texts, history_for_segment
 
             before = load_repaired_validation_report(workspace)
             assert len(before.review_segment_ids) == 1
+            segment_id = before.review_segment_ids[0]
+            connection = connect_state(workspace.state_file)
+            try:
+                validate_stage_before = dict(get_stage_status(connection, "validate_repaired"))
+            finally:
+                connection.close()
+
             result = resolve_manual_review(
                 workspace,
                 ManualReviewResolutionSet(
                     resolutions=[
                         ManualReviewResolution(
-                            segment_id=before.review_segment_ids[0],
+                            segment_id=segment_id,
                             reason="Obfuscated human review accepted the current wording.",
                         )
                     ]
@@ -124,26 +131,23 @@ class ManualReviewResolutionTests:
             )
             assert result.passed
             assert result.review_segment_ids == []
+
+            # validate_repaired's stored draft and stage record are untouched: the
+            # resolution is a tracked edit-log event, not a stage-output rewrite.
             connection = connect_state(workspace.state_file)
             try:
-                validate_stage = get_stage_status(connection, "validate_repaired")
-                repair_review_stage = get_stage_status(connection, "repair_review")
-                assert validate_stage["message"] == "manual review resolved"
-                from book_agent.stages.validate_repaired import (
-                    VALIDATE_REPAIRED_STAGE_VERSION,
-                )
-
-                assert validate_stage["input_hash"] == (build_stage_input_hash(
-                        {
-                            "repair_review": str(repair_review_stage["output_hash"]),
-                            "audit": config.audit.checkpoint_json(),
-                            "model": config.audit.verifier_model or config.audit.model,
-                            "stage_version": VALIDATE_REPAIRED_STAGE_VERSION,
-                        }
-                    ))
+                validate_stage_after = get_stage_status(connection, "validate_repaired")
+                for key in ("message", "input_hash", "output_hash"):
+                    assert validate_stage_after[key] == validate_stage_before[key]
+                # Resolving still needs to wake compile up for the next --resume.
                 assert get_stage_status(connection, "compile")["status"] == "pending"
             finally:
                 connection.close()
+
+            assert segment_id in active_edit_texts(workspace)
+            history = history_for_segment(workspace, segment_id)
+            assert len(history) == 1 and history[0].action.value == "edit"
+
             assert run_epub_compile_stage(workspace, config).output_size > 0
 
     def test_duplicate_manual_resolution_ids_are_rejected(self):
@@ -234,11 +238,15 @@ class ManualReviewResolutionTests:
                 ),
             )
             assert report.review_segment_ids == sorted(unresolved)
-            updated = load_validated_repaired_documents(workspace)[0].document
-            updated_segment = next(
-                item for item in updated.segments if item.segment_id == segment.segment_id
+            from book_agent.text_edits import active_edit_texts
+
+            assert "修订译文" in active_edit_texts(workspace)[segment.segment_id]
+            # validate_repaired's stored draft is untouched; the edit only overlays.
+            unchanged = load_validated_repaired_documents(workspace)[0].document
+            unchanged_segment = next(
+                item for item in unchanged.segments if item.segment_id == segment.segment_id
             )
-            assert "修订译文" in updated_segment.translated_text
+            assert unchanged_segment.translated_text == segment.translated_text
 
     def test_obfuscated_manual_resolution_supports_one_exact_replacement(self):
         resolution = ManualReviewResolution(

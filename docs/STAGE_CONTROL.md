@@ -56,10 +56,16 @@ Before a rerun, the dialog (Cancel is the default, Rerun is red) shows:
 | The whole book is translated again | X is `translate` or earlier |
 | Manual review decisions and the final-draft approval are discarded | X is `validate_repaired` or earlier, and review work exists: applied resolutions, a saved review draft, or an approval |
 | The compiled EPUB is replaced | `compile` has completed |
+| Manual text edits are kept; segments whose translation changes become conflicts | X is `validate_repaired` or earlier, and at least one Text tab edit is active (`edited` or `conflict`) |
 
 Kept across a rerun: stored numeric-check rulings
 (`audit/numeric-rulings.json`), which are keyed by exact text, so unchanged
-segments are not asked again.
+segments are not asked again; and every Text tab edit
+(`edits/segment-edits.jsonl`, docs/FULL_TEXT_REVIEW.md) — the log is owned by
+no stage, so no rerun ever wipes it. If the rerun changes a segment's
+`validate_repaired` output out from under an active edit, that segment
+becomes a conflict: still applied at compile, but also blocking compile like
+an unresolved review segment until unblocked on the Text tab.
 
 ## 4. Early approval (Final review tab)
 

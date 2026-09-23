@@ -696,6 +696,36 @@ class RerunTests:
             codes = {w["code"] for w in app.rerun_preview(job, "validate_repaired")["warnings"]}
             assert "manual_review" in codes and "full_translation" not in codes
 
+    def test_text_edits_warning_appears_only_with_active_edits(self):
+        from book_agent.hashing import sha256_text
+        from book_agent.stages.validate_repaired import load_validated_repaired_documents
+        from book_agent.text_edits import apply_edit
+        from tests.test_review_ui import paused_workspace
+
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = paused_workspace(directory)
+            job = workspace.root.name
+            app = UiApp(workspace.root.parent, Path(directory), [])
+            codes = {w["code"] for w in app.rerun_preview(job, "validate_repaired")["warnings"]}
+            assert "text_edits" not in codes
+            codes = {w["code"] for w in app.rerun_preview(job, "compile")["warnings"]}
+            assert "text_edits" not in codes  # only relevant at or before validate_repaired
+
+            segment = load_validated_repaired_documents(workspace)[0].document.segments[0]
+            apply_edit(
+                workspace,
+                segment_id=segment.segment_id,
+                text="手改文本。",
+                reason="Testing the rerun warning.",
+                base_target_sha256=sha256_text(segment.translated_text),
+            )
+            codes = {w["code"] for w in app.rerun_preview(job, "validate_repaired")["warnings"]}
+            assert "text_edits" in codes
+            codes = {w["code"] for w in app.rerun_preview(job, "translate")["warnings"]}
+            assert "text_edits" in codes
+            codes = {w["code"] for w in app.rerun_preview(job, "compile")["warnings"]}
+            assert "text_edits" not in codes
+
 
 class EndpointCoverageTests(ServerTests):
     """Every API route answers over HTTP, and no route is left without such a test."""
@@ -740,6 +770,91 @@ class EndpointCoverageTests(ServerTests):
                 assert get(f"/api/jobs/{job}/review/compile")[1]["state"] == "idle"
                 with patch.object(ReviewSession, "start_compile", return_value={"state": "running"}):
                     assert post(f"/api/jobs/{job}/review/compile", {})[1] == {"state": "running"}
+
+                status, outline = get(f"/api/jobs/{job}/text")
+                assert status == 200 and outline["editable"] and outline["chapters"]
+                document_id = outline["chapters"][0]["document_id"]
+                status, chapter = get(f"/api/jobs/{job}/text/chapter?document_id={document_id}")
+                assert status == 200 and chapter["segments"]
+
+                clean = next(s for s in chapter["segments"] if not s["in_review_queue"])
+                status, check = post(
+                    f"/api/jobs/{job}/text/check", {"segment_id": clean["segment_id"], "text": "改写文本。"}
+                )
+                assert status == 200 and check["hard"] == [] and check["overridable"] == []
+                status, edit = post(
+                    f"/api/jobs/{job}/text/edit",
+                    {
+                        "segment_id": clean["segment_id"],
+                        "text": "改写文本。",
+                        "reason": "Testing the edit route over HTTP.",
+                        "base_target_sha256": clean["base_target_sha256"],
+                        "expected_event_id": clean["edit_revision"],
+                    },
+                )
+                assert status == 200 and edit["action"] == "edit" and edit["text"] == "改写文本。"
+                status, history = get(f"/api/jobs/{job}/text/history?segment={clean['segment_id']}")
+                assert status == 200 and len(history["events"]) == 1
+                status, stale = post(
+                    f"/api/jobs/{job}/text/edit",
+                    {
+                        "segment_id": clean["segment_id"],
+                        "text": "再改一次。",
+                        "reason": "Reusing a stale base hash.",
+                        "base_target_sha256": "0" * 64,
+                    },
+                )
+                assert status == 422 and "changed since" in stale["error"]
+                status, stale_edit = post(
+                    f"/api/jobs/{job}/text/edit",
+                    {
+                        "segment_id": clean["segment_id"],
+                        "text": "再改一次。",
+                        "reason": "Reusing a stale edit revision.",
+                        "base_target_sha256": clean["base_target_sha256"],
+                        "expected_event_id": clean["edit_revision"],
+                    },
+                )
+                assert status == 422 and "edited after" in stale_edit["error"]
+                status, reverted = post(
+                    f"/api/jobs/{job}/text/revert",
+                    {
+                        "segment_id": clean["segment_id"],
+                        "reason": "Undoing the test edit.",
+                        "expected_event_id": edit["event_id"],
+                    },
+                )
+                assert status == 200 and reverted["action"] == "revert"
+
+                from tests.test_compile_stages import _retarget_pipeline_text
+
+                status, conflict_edit = post(
+                    f"/api/jobs/{job}/text/edit",
+                    {
+                        "segment_id": clean["segment_id"],
+                        "text": "再次改写。",
+                        "reason": "Setting up a conflict over HTTP.",
+                        "base_target_sha256": clean["base_target_sha256"],
+                        "expected_event_id": reverted["event_id"],
+                    },
+                )
+                assert status == 200
+                _retarget_pipeline_text(workspace, clean["segment_id"], "重新翻译。")
+                status, bad_choice = post(
+                    f"/api/jobs/{job}/text/conflict",
+                    {"segment_id": clean["segment_id"], "choice": "discard", "reason": "Invalid choice."},
+                )
+                assert status == 422 and "choice" in bad_choice["error"]
+                status, kept = post(
+                    f"/api/jobs/{job}/text/conflict",
+                    {
+                        "segment_id": clean["segment_id"],
+                        "choice": "keep",
+                        "reason": "Keeping my edit over HTTP.",
+                        "expected_event_id": conflict_edit["event_id"],
+                    },
+                )
+                assert status == 200 and kept["action"] == "keep"
 
                 status, preview = get(f"/api/jobs/{job}/rerun?stage=validate_repaired")
                 assert status == 200 and preview["stages"][0]["name"] == "validate_repaired"
@@ -854,7 +969,8 @@ class DownloadAndDirectionTests(ServerTests):
                     disposition = response.headers["Content-Disposition"]
                     assert response.headers["Content-Type"] == "application/epub+zip"
                 assert body[:2] == b"PK"  # a zip container
-                assert disposition.startswith("attachment;") and ".translated.epub" in disposition
+                assert disposition.startswith("attachment;")
+                assert re.search(r"\.translated-[0-9a-f]{6}\.epub", disposition)
             finally:
                 server.shutdown()
                 server.server_close()
@@ -876,7 +992,7 @@ class DownloadAndDirectionTests(ServerTests):
     def test_non_ascii_download_names_use_an_rfc5987_header(self):
         with tempfile.TemporaryDirectory() as directory:
             workspace, _ = paused_glossary_workspace(Path(directory))
-            book = Path(directory) / "鲁滨逊漂流记.translated.epub"
+            book = Path(directory) / "鲁滨逊漂流记.translated-a1b2c3.epub"
             book.write_bytes(b"PK\x03\x04")
             app = UiApp(workspace.root.parent, Path(directory), [])
             server, call = self.serve(app)
@@ -884,7 +1000,7 @@ class DownloadAndDirectionTests(ServerTests):
                 with patch.object(UiApp, "job_output", return_value=book):
                     with urllib.request.urlopen(f"{call.base}/api/jobs/fixture/output") as response:
                         disposition = response.headers["Content-Disposition"]
-                assert 'filename="______.translated.epub"' in disposition
+                assert 'filename="______.translated-a1b2c3.epub"' in disposition
                 assert "filename*=UTF-8''" + urllib.parse.quote(book.name) in disposition
             finally:
                 server.shutdown()

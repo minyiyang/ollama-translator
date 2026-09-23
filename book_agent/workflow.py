@@ -36,9 +36,11 @@ from .state import (
     set_job_metadata,
     set_stage_status,
 )
+from .text_edits import current_draft_revision, unresolved_review_gate
 from .workspace import JobWorkspace
 from .stages.audit import run_translation_audit_stage
 from .stages.compile import (
+    FinalDraftApprovalRequired,
     run_document_compile_stage,
     write_unresolved_review_report,
 )
@@ -300,6 +302,18 @@ def run_workflow(
                 return WorkflowRunResult(
                     WorkflowResult.PAUSED, ExitCode.PAUSED, stage.value, str(error)
                 )
+            except FinalDraftApprovalRequired as error:
+                _pause_stage(workspace, stage, str(error))
+                callback(
+                    ProgressEvent(
+                        stage.value,
+                        StageStatus.PAUSED.value,
+                        f"result=pending; {error}",
+                    )
+                )
+                return WorkflowRunResult(
+                    WorkflowResult.PAUSED, ExitCode.PAUSED, stage.value, str(error)
+                )
             callback(
                 ProgressEvent(
                     stage.value,
@@ -468,7 +482,7 @@ def approve_glossary(
 
 
 def approve_final_draft(workspace: JobWorkspace) -> str:
-    """Approve the current repaired-validation artifact for compilation."""
+    """Approve the current validated draft plus active manual-edit overlay."""
     config = load_workspace_config(workspace)
     unresolved_message = _unresolved_compile_review_message(workspace, config)
     if unresolved_message:
@@ -478,14 +492,15 @@ def approve_final_draft(workspace: JobWorkspace) -> str:
         record = get_stage_status(connection, WorkflowStage.VALIDATE_REPAIRED.value)
         if record is None or record["status"] != StageStatus.COMPLETED.value:
             raise ValueError("the repaired draft has not completed validation")
-        output_hash = str(record["output_hash"])
-        if not output_hash:
+        validated_output_hash = str(record["output_hash"])
+        if not validated_output_hash:
             raise ValueError("the repaired validation output hash is missing")
-        set_job_metadata(connection, "final_review_approved_for", output_hash)
+        revision = current_draft_revision(workspace, validated_output_hash)
+        set_job_metadata(connection, "final_review_approved_for", revision)
         compile_record = get_stage_status(connection, WorkflowStage.COMPILE.value)
         if compile_record and compile_record["status"] == StageStatus.PAUSED.value:
             set_stage_status(connection, WorkflowStage.COMPILE.value, StageStatus.PENDING)
-        return output_hash
+        return revision
     finally:
         connection.close()
 
@@ -706,7 +721,8 @@ def _final_review_is_required(workspace: JobWorkspace, config: AppConfig) -> boo
         validated = get_stage_status(connection, WorkflowStage.VALIDATE_REPAIRED.value)
         if validated is None or validated["status"] != StageStatus.COMPLETED.value:
             return False
-        return get_job_metadata(connection, "final_review_approved_for") != validated["output_hash"]
+        revision = current_draft_revision(workspace, str(validated["output_hash"]))
+        return get_job_metadata(connection, "final_review_approved_for") != revision
     finally:
         connection.close()
 
@@ -730,19 +746,17 @@ def _unresolved_compile_review_message(
     ):
         return ""
     report = load_repaired_validation_report(workspace)
-    count = len(report.review_segment_ids)
+    gate = unresolved_review_gate(workspace, report)
     limit = config.workflow.compile_max_unresolved_review_segments
-    if count <= limit:
+    if gate.total_count <= limit:
         return ""
-    defect_count = report.remaining_defect_count
-    approval_count = report.approval_required_count
-    if count and defect_count == 0 and approval_count == 0:
-        defect_count = count
-    ids = ", ".join(report.review_segment_ids)
+    ids = ", ".join(gate.unresolved_review_ids)
+    conflict_ids = ", ".join(gate.conflict_ids)
     return (
-        f"{defect_count} unresolved defect(s) and {approval_count} approval-only "
-        f"segment(s) ({count} total) exceed the compile limit of {limit}; "
-        f"resolve them before final approval. IDs: {ids}"
+        f"{gate.defect_count} unresolved defect(s), {gate.approval_count} approval-only "
+        f"segment(s), and {len(gate.conflict_ids)} edit conflict(s) ({gate.total_count} "
+        f"total) exceed the compile limit of {limit}; resolve them before final "
+        f"approval. IDs: {ids or '(none)'}. Edit conflict IDs: {conflict_ids or '(none)'}"
     )
 
 

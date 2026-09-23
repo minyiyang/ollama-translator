@@ -574,6 +574,90 @@ class CliTests:
             assert json.loads(output.getvalue())["dry_run"]
             assert not (root / "runs").exists()
 
+    def test_build_parser_parses_edits_command(self) -> None:
+        args = build_parser().parse_args(["edits", "job", "--export", "xliff", "--output", "out.xlf"])
+        assert args.command == "edits"
+        assert args.export == "xliff"
+        assert args.output == "out.xlf"
+
+    def test_main_edits_lists_events_and_conflicts_as_json(self) -> None:
+        from book_agent.text_edits import apply_edit
+        from tests.test_compile_stages import CompileStageTests
+        from book_agent.stages.validate_repaired import load_validated_repaired_documents
+        from book_agent.hashing import sha256_text
+
+        with tempfile.TemporaryDirectory() as directory:
+            config = AppConfig.model_validate({"audit": {"semantic_enabled": False}})
+            workspace = CompileStageTests().prepare_workspace(Path(directory), config)
+            segment = next(
+                s for s in load_validated_repaired_documents(workspace)[0].document.segments
+                if s.source_text == "Chapter One"
+            )
+            apply_edit(
+                workspace,
+                segment_id=segment.segment_id,
+                text="第一章",
+                reason="Testing the edits CLI command.",
+                base_target_sha256=sha256_text(segment.translated_text),
+            )
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                result = main(["edits", str(workspace.root), "--json"])
+            assert result == 0
+            payload = json.loads(output.getvalue())
+            assert payload["event_count"] == 1
+            assert payload["events"][0]["segment_id"] == segment.segment_id
+            assert payload["conflict_segment_ids"] == []
+
+    def test_main_edits_plain_listing_shows_events_and_conflicts(self) -> None:
+        from book_agent.hashing import sha256_text
+        from book_agent.stages.validate_repaired import load_validated_repaired_documents
+        from book_agent.text_edits import apply_edit
+        from tests.test_compile_stages import CompileStageTests, _retarget_pipeline_text
+
+        with tempfile.TemporaryDirectory() as directory:
+            config = AppConfig.model_validate({"audit": {"semantic_enabled": False}})
+            workspace = CompileStageTests().prepare_workspace(Path(directory), config)
+            segment = next(
+                s for s in load_validated_repaired_documents(workspace)[0].document.segments
+                if s.source_text == "Chapter One"
+            )
+            apply_edit(
+                workspace,
+                segment_id=segment.segment_id,
+                text="第一章",
+                reason="Testing the edits CLI plain listing.",
+                base_target_sha256=sha256_text(segment.translated_text),
+            )
+            _retarget_pipeline_text(workspace, segment.segment_id, "全新翻译。")
+
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                result = main(["edits", str(workspace.root)])
+            assert result == 0
+            text = output.getvalue()
+            assert "1 edit event(s); 1 conflict(s) need unblocking." in text
+            assert segment.segment_id in text
+            assert f"Conflicts: {segment.segment_id}" in text
+
+    def test_main_edits_exports_xliff_to_a_file(self) -> None:
+        from tests.test_compile_stages import CompileStageTests
+
+        with tempfile.TemporaryDirectory() as directory:
+            config = AppConfig.model_validate({"audit": {"semantic_enabled": False}})
+            workspace = CompileStageTests().prepare_workspace(Path(directory), config)
+            output_path = Path(directory) / "book.xlf"
+            output = io.StringIO()
+            with contextlib.redirect_stdout(output):
+                result = main(
+                    ["edits", str(workspace.root), "--export", "xliff", "--output", str(output_path)]
+                )
+            assert result == 0
+            assert "Wrote" in output.getvalue()
+            xml = output_path.read_text(encoding="utf-8")
+            assert "urn:oasis:names:tc:xliff:document:2.1" in xml
+            assert "<unit id=" in xml
+
     def test_main_reports_clean_error_for_missing_workspace(self) -> None:
         error = io.StringIO()
         with contextlib.redirect_stderr(error):
