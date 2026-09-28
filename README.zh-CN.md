@@ -47,6 +47,8 @@ decompile
 book-agent ui          # http://127.0.0.1:8765/
 ```
 
+> 控制台界面仍在调整中，截图暂时省略，界面稳定后会重新截取。
+
 **1. 配置与启动。** 任务页分页列出全部任务（每页 10 个）。点击 *Add new job*
 只需选择源书（从已知文件中选择、浏览或直接拖入）、填写配置文件名，任务 ID 默认
 取配置文件名；已存在的配置（如 [`configs/demo-alice.yaml`](configs/demo-alice.yaml)）
@@ -76,13 +78,14 @@ book-agent ui          # http://127.0.0.1:8765/
 **4. 最终人工审校。** 在 Final review 页面（也可用
 `book-agent review-ui .\runs\demo-alice-en-zh` 直接打开）处理待复核段落。每个段落都会展示原文及上下文、审校发现（点击即可高亮引用
 片段）、流水线各版本译文，以及带实时差异对比的编辑器；编辑器会执行与
-`resolve-review` 相同的确定性校验：
+`resolve-review` 相同的确定性校验。提交决定后草稿即获批准，审校台随后编译并校验 EPUB。
 
-![审校台处理待复核段落](assets/demo-final-review-desk-processing.png)
-
-提交决定后草稿即获批准，审校台随后编译并校验 EPUB：
-
-![审校台提交并完成编译](assets/demo-final-review-desk-results.png)
+**5. 通读并修改全书。** **Text** 标签页以原文、译文对照的形式展示每一章。
+任意片段都可直接修改，需填写理由，并执行同样的确定性校验和差异对比。每一次
+修改（包括每个 Final review 决定）都是同一份修改日志中的一条记录，重跑不会
+清除，可以撤销并查看历史。重跑若改变了已修改片段的译文，该片段会变为冲突，
+由你决定取舍。**重新编译**只需几秒即可把修改写进成书。**⤓ Export XLIFF**
+将全书交给 CAT 工具，**⤒ Import XLIFF** 把译者返回的文件先预览、确认后再写入。
 
 ## 设计取舍
 
@@ -211,14 +214,37 @@ book-agent approve "D:\runs\my-job" --llm-glossary --resume
 - **Progress**：根据 `state.sqlite3` 与会话日志跟踪 `--runs` 下的任意任务。
   流水线每一行：失败或暂停的阶段可**续跑**（保留已完成的工作）或**重跑**；
   已完成的阶段可**从此处重跑**。重跑（即 `retry --stage X --resume`）执行前
-  会弹窗列出需要重做的阶段及将丢失的内容；
+  会弹窗列出需要重做的阶段及将丢失的内容。“Last change”一列显示每个阶段最近
+  一次状态变化（开始、完成、失败、停止、暂停、等待审校、被重置）及其时间；
 - **Glossary**：编辑并批准暂停中的术语表，或交给模型复核
   （对应 `approve --glossary` / `--llm-glossary`）；
+- **Text**：按章节以原文、译文对照的形式展示全书，可筛选出被标记、在复核队列、
+  已修改或有冲突的片段。`validate_repaired` 完成后可直接修改任意片段：保存时
+  必须填写理由，并通过同样的确定性检查（结构或标记损坏、空译、未翻译、重复、
+  标点错误直接拦截，其余问题需填写放行理由）。修改记录在
+  `edits/segment-edits.jsonl`，这是一份不属于任何阶段的追加式日志，重跑不会
+  清除；编译时叠加到已校验的译稿上，修改晚于成书时可一键**重新编译**。若重跑
+  改变了已修改片段的译文，该片段变为冲突，需选择保留自己的修改或采用新译文后
+  才能编译。每条修改都有历史并可撤销。**⤓ Export XLIFF** 将全书导出为
+  XLIFF 2.1；**⤒ Import XLIFF** 按片段预览译者返回的文件（按单元 ID 且原文
+  未变才匹配），确认后才以同一理由写入为修改（见
+  [XLIFF 导入](docs/XLIFF_IMPORT.md)，英文）；
 - **Final review**：以与 `resolve-review` 相同的校验处理人工复核队列；接受
-  当前译文前必须选择预设理由或填写自定义理由。未决片段数降到
+  当前译文前必须选择预设理由或填写自定义理由。复核决定与 Text 标签页的修改
+  写入同一份修改日志，在 Text 标签页修改复核队列中的片段也视为已处理。未决片段数降到
   `workflow.compile_max_unresolved_review_segments` 以内时，会询问继续处理，
   还是先应用已决定的片段并批准终稿。`book-agent review-ui <workspace>`
   可直接打开此页面。
+
+控制台遇到意外错误时会显示带错误信息、技术细节和**重新加载**按钮的提示条，
+而不是空白页面。
+
+修改记录可在命令行查看，也可导出为 XLIFF 2.1：
+
+```powershell
+book-agent edits "D:\runs\my-job"
+book-agent edits "D:\runs\my-job" --export xliff --output my-job.xlf
+```
 
 控制台发起的操作都以子进程方式调用常规命令行，因此日志与检查点与终端运行
 完全一致，关闭控制台后任务仍会继续。
@@ -230,7 +256,7 @@ book-agent approve "D:\runs\my-job" --llm-glossary --resume
 cd frontend
 npm ci
 npm run dev      # 热更新开发；/api 代理到正在运行的 `book-agent ui`
-npm test
+npm test         # 工具函数单元测试与组件测试（jsdom + Testing Library）
 npm run build    # 类型检查并重新生成 book_agent/web/static，请一并提交
 ```
 
@@ -262,8 +288,9 @@ python -m pytest
 - [整书一致性方案（英文，尚未实现）](docs/BOOK_CONSISTENCY.md)
 - [控制台界面本地化方案（英文，尚未实现）](docs/LOCALIZATION.md)
 - [控制台阶段控制：续跑、重跑与提前批准（英文）](docs/STAGE_CONTROL.md)
-- [全文对照审校与人工修改追踪方案（英文，尚未实现）](docs/FULL_TEXT_REVIEW.md)
-- [控制台系列术语表方案（英文，尚未实现）](docs/SERIES_GLOSSARY_UI.md)
+- [全文对照审校与人工修改追踪（英文）](docs/FULL_TEXT_REVIEW.md)
+- [XLIFF 导入（英文）](docs/XLIFF_IMPORT.md)
+- [控制台系列术语表（英文）](docs/SERIES_GLOSSARY_UI.md)
 - [实施记录](docs/PLAN.md)
 - [推理框架基准测试方案（尚未执行）](docs/FRAMEWORK_BENCHMARK_PLAN.md)
 

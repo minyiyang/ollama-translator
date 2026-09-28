@@ -10,6 +10,7 @@ from typing import Any
 
 from ..pipeline_state import WorkflowStage, downstream_stages
 from ..state import StageStatus, connect_state, get_job_metadata
+from ..text_edits import active_edit_texts
 from ..workflow import workflow_status
 from ..workspace import JobWorkspace
 from .estimate import stage_seconds
@@ -81,14 +82,23 @@ def rerun_preview(workspace: JobWorkspace, name: str) -> dict[str, Any]:
         warnings.append({
             "code": "manual_review",
             "message": (
-                "Manual review decisions and the final-draft approval are discarded; "
-                "the review queue is rebuilt from the new draft."
+                "The final-draft approval and any unapplied Final review decisions are "
+                "discarded, and the review queue is rebuilt from the new draft. Applied "
+                "decisions are kept as Text tab edits."
             ),
         })
     if statuses.get(WorkflowStage.COMPILE.value, {}).get("status") == StageStatus.COMPLETED.value:
         warnings.append({
             "code": "compiled_epub",
             "message": "The compiled EPUB is replaced by the new output.",
+        })
+    if _at_or_before(stage, WorkflowStage.VALIDATE_REPAIRED) and active_edit_texts(workspace):
+        warnings.append({
+            "code": "text_edits",
+            "message": (
+                "Manual text edits are kept; segments whose translation changes "
+                "become conflicts."
+            ),
         })
     known = [item["seconds"] for item in stages if item["seconds"] is not None]
     return {

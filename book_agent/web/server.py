@@ -26,6 +26,7 @@ from urllib.parse import parse_qs, quote, urlparse
 
 from .. import series as series_api
 from ..languages import TranslationDirection
+from ..pipeline_state import WorkflowStage
 from ..schemas import GlossaryCategory
 from ..review_ui import ReviewSession
 from .rerun import parse_stage, rerun_preview
@@ -47,10 +48,30 @@ from . import setup as setup_api
 from .glossary_view import glossary_payload, write_reviewed_glossary
 from ..stages.compile import load_compiled_epub_path
 from .jobs import ProgressReader, draft_direction, job_direction, job_path, list_jobs, open_job
+from .text_view import text_chapter, text_outline
+from ..xliff_export import export_xliff
+from ..xliff_import import (
+    ImportOptions,
+    apply_import,
+    cancel_import,
+    dismiss_import,
+    import_report_csv,
+    import_state,
+    start_import,
+)
+from ..text_edits import (
+    BlockingCheckError,
+    apply_edit,
+    apply_keep,
+    apply_revert,
+    apply_take_pipeline,
+    classify_check,
+    history_for_segment,
+)
 
 _MAX_BODY_BYTES = 8 * 1024 * 1024
 _MAX_UPLOAD_BYTES = 1024 * 1024 * 1024
-_PAGES = {"config", "progress", "glossary", "review"}
+_PAGES = {"config", "progress", "glossary", "review", "text"}
 _DOWNLOAD_TYPES = {".epub": "application/epub+zip", ".rtf": "application/rtf"}
 _ASSET_TYPES = {
     ".js": "text/javascript; charset=utf-8",
@@ -489,6 +510,32 @@ class UiApp:
             raise ValueError("the job has not completed; there is no translated book yet")
         return Path(load_compiled_epub_path(workspace))
 
+    def job_xliff(self, job_id: str) -> tuple[bytes, str]:
+        """The whole book as XLIFF 2.1 and its download name; edited segments are marked reviewed."""
+        workspace = open_job(self.runs, job_id)
+        stages = {str(stage["name"]): stage for stage in workflow_status(workspace)["stages"]}
+        validated = stages.get(WorkflowStage.VALIDATE_REPAIRED.value, {})
+        if validated.get("status") != StageStatus.COMPLETED.value:
+            raise ValueError("XLIFF export needs the validated draft; wait for Validate draft to complete")
+        direction = load_workspace_config(workspace).translation.direction.value
+        name = f"{workspace.source_file.stem}.{direction}.xlf"
+        return export_xliff(workspace).encode("utf-8"), name
+
+    def apply_xliff_import(self, job_id: str, body: dict[str, Any]) -> dict[str, Any]:
+        """Apply a pending XLIFF import (docs/XLIFF_IMPORT.md); refused while the job runs."""
+        if self.job_info(job_id)["running"]:
+            raise ValueError("the job is running; wait for it to finish or pause it before importing")
+        return apply_import(
+            open_job(self.runs, job_id),
+            str(body.get("import_id", "")),
+            str(body.get("reason", "")),
+            ImportOptions(
+                include_stale=bool(body.get("include_stale")),
+                include_edited=bool(body.get("include_edited")),
+                include_overridable=bool(body.get("include_overridable")),
+            ),
+        )
+
     def rerun_preview(self, job_id: str, stage: str) -> dict[str, Any]:
         return rerun_preview(open_job(self.runs, job_id), stage)
 
@@ -562,6 +609,21 @@ class UiApp:
         return self.launch(job_id, args, "glossary approval")
 
 
+def _resolve_conflict(workspace, body: dict[str, Any]) -> dict[str, Any]:
+    """Unblock one edit conflict: keep the edit (re-based) or take the new pipeline text."""
+    choice = str(body.get("choice", ""))
+    resolver = {"keep": apply_keep, "take_pipeline": apply_take_pipeline}.get(choice)
+    if resolver is None:
+        raise ValueError("choice must be 'keep' or 'take_pipeline'")
+    event = resolver(
+        workspace,
+        segment_id=body["segment_id"],
+        reason=body.get("reason", ""),
+        expected_event_id=body.get("expected_event_id"),
+    )
+    return event.model_dump(mode="json")
+
+
 def make_handler(app: UiApp, port_ref: list[int]) -> type[BaseHTTPRequestHandler]:
     """Build the request handler; POSTs require the per-server token.
 
@@ -603,6 +665,48 @@ def make_handler(app: UiApp, port_ref: list[int]) -> type[BaseHTTPRequestHandler
             ),
             ("GET", "review/compile"): lambda q, b: app.review(job_id).compile_state(),
             ("POST", "review/compile"): lambda q, b: app.review(job_id).start_compile(),
+            ("GET", "text"): lambda q, b: text_outline(workspace()),
+            ("GET", "text/chapter"): lambda q, b: text_chapter(
+                workspace(), q.get("document_id", [""])[0]
+            ),
+            ("POST", "text/check"): lambda q, b: {
+                "segment_id": b["segment_id"],
+                **classify_check(workspace(), b["segment_id"], b["text"]),
+            },
+            ("POST", "text/edit"): lambda q, b: apply_edit(
+                workspace(),
+                segment_id=b["segment_id"],
+                text=b["text"],
+                reason=b.get("reason", ""),
+                base_target_sha256=b.get("base_target_sha256", ""),
+                override_reason=b.get("override_reason", ""),
+                expected_event_id=b.get("expected_event_id"),
+            ).model_dump(mode="json"),
+            ("POST", "text/revert"): lambda q, b: apply_revert(
+                workspace(),
+                segment_id=b["segment_id"],
+                reason=b.get("reason", ""),
+                expected_event_id=b.get("expected_event_id"),
+            ).model_dump(mode="json"),
+            ("POST", "text/conflict"): lambda q, b: _resolve_conflict(workspace(), b),
+            ("GET", "text/history"): lambda q, b: {
+                "segment_id": q.get("segment", [""])[0],
+                "events": [
+                    event.model_dump(mode="json")
+                    for event in history_for_segment(workspace(), q.get("segment", [""])[0])
+                ],
+            },
+            ("GET", "text/import"): lambda q, b: import_state(workspace()),
+            ("POST", "text/import"): lambda q, b: start_import(
+                workspace(), str(b.get("file_name", "")), str(b["xliff"])
+            ),
+            ("POST", "text/import/apply"): lambda q, b: app.apply_xliff_import(job_id, b),
+            ("POST", "text/import/cancel"): lambda q, b: (
+                cancel_import(workspace(), str(b.get("import_id", ""))) or {"cancelled": True}
+            ),
+            ("POST", "text/import/dismiss"): lambda q, b: (
+                dismiss_import(workspace(), str(b.get("import_id", ""))) or {"dismissed": True}
+            ),
         }
 
     def series_routes(series_id: str) -> dict[tuple[str, str], Callable[[dict, dict], Any]]:
@@ -706,6 +810,25 @@ def make_handler(app: UiApp, port_ref: list[int]) -> type[BaseHTTPRequestHandler
                     return self._json({"error": str(error)}, HTTPStatus.NOT_FOUND)
                 media_type = _DOWNLOAD_TYPES.get(output.suffix.lower(), "application/octet-stream")
                 return self._send(data, media_type, download=output.name)
+            if method == "GET" and len(parts) == 5 and parts[1] == "jobs" and parts[3:] == ["text", "export"]:
+                export_format = parse_qs(url.query).get("format", ["xliff"])[0]
+                if export_format != "xliff":
+                    return self._json({"error": f"unsupported export format: {export_format}"}, HTTPStatus.BAD_REQUEST)
+                try:
+                    validate_job_id(parts[2])
+                    data, name = app.job_xliff(parts[2])
+                except (ValueError, OSError) as error:
+                    return self._json({"error": str(error)}, HTTPStatus.NOT_FOUND)
+                return self._send(data, "application/xliff+xml; charset=utf-8", download=name)
+            if method == "GET" and len(parts) == 6 and parts[1] == "jobs" and parts[3:] == ["text", "import", "report"]:
+                try:
+                    validate_job_id(parts[2])
+                    data, name = import_report_csv(
+                        open_job(app.runs, parts[2]), parse_qs(url.query).get("import_id", [""])[0]
+                    )
+                except (ValueError, OSError) as error:
+                    return self._json({"error": str(error)}, HTTPStatus.NOT_FOUND)
+                return self._send(data, "text/csv; charset=utf-8", download=name)
             if method == "POST" and parts == ["api", "uploads"]:
                 return self._upload(parse_qs(url.query).get("name", [""])[0])
             if method == "POST":
@@ -733,6 +856,11 @@ def make_handler(app: UiApp, port_ref: list[int]) -> type[BaseHTTPRequestHandler
                 if action is None:
                     return self._json({"error": "not found"}, HTTPStatus.NOT_FOUND)
                 self._json(action(query, body))
+            except BlockingCheckError as error:
+                self._json(
+                    {"error": str(error), "findings": error.findings},
+                    HTTPStatus.UNPROCESSABLE_ENTITY,
+                )
             except Exception as error:
                 self._json({"error": str(error)}, HTTPStatus.UNPROCESSABLE_ENTITY)
 

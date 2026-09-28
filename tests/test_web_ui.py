@@ -693,8 +693,40 @@ class RerunTests:
             assert "manual_review" not in codes
             session = app.review(job)
             session.save(session.payload()["worksheet"])  # saved review work exists now
+            warnings = {w["code"]: w["message"] for w in app.rerun_preview(job, "validate_repaired")["warnings"]}
+            assert "manual_review" in warnings and "full_translation" not in warnings
+            # Applied decisions are edit-log events, which no rerun discards.
+            assert "Applied decisions are kept" in warnings["manual_review"]
+
+    def test_text_edits_warning_appears_only_with_active_edits(self):
+        from book_agent.hashing import sha256_text
+        from book_agent.stages.validate_repaired import load_validated_repaired_documents
+        from book_agent.text_edits import apply_edit
+        from tests.test_review_ui import paused_workspace
+
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = paused_workspace(directory)
+            job = workspace.root.name
+            app = UiApp(workspace.root.parent, Path(directory), [])
             codes = {w["code"] for w in app.rerun_preview(job, "validate_repaired")["warnings"]}
-            assert "manual_review" in codes and "full_translation" not in codes
+            assert "text_edits" not in codes
+            codes = {w["code"] for w in app.rerun_preview(job, "compile")["warnings"]}
+            assert "text_edits" not in codes  # only relevant at or before validate_repaired
+
+            segment = load_validated_repaired_documents(workspace)[0].document.segments[0]
+            apply_edit(
+                workspace,
+                segment_id=segment.segment_id,
+                text="手改文本。",
+                reason="Testing the rerun warning.",
+                base_target_sha256=sha256_text(segment.translated_text),
+            )
+            codes = {w["code"] for w in app.rerun_preview(job, "validate_repaired")["warnings"]}
+            assert "text_edits" in codes
+            codes = {w["code"] for w in app.rerun_preview(job, "translate")["warnings"]}
+            assert "text_edits" in codes
+            codes = {w["code"] for w in app.rerun_preview(job, "compile")["warnings"]}
+            assert "text_edits" not in codes
 
 
 class EndpointCoverageTests(ServerTests):
@@ -740,6 +772,91 @@ class EndpointCoverageTests(ServerTests):
                 assert get(f"/api/jobs/{job}/review/compile")[1]["state"] == "idle"
                 with patch.object(ReviewSession, "start_compile", return_value={"state": "running"}):
                     assert post(f"/api/jobs/{job}/review/compile", {})[1] == {"state": "running"}
+
+                status, outline = get(f"/api/jobs/{job}/text")
+                assert status == 200 and outline["editable"] and outline["chapters"]
+                document_id = outline["chapters"][0]["document_id"]
+                status, chapter = get(f"/api/jobs/{job}/text/chapter?document_id={document_id}")
+                assert status == 200 and chapter["segments"]
+
+                clean = next(s for s in chapter["segments"] if not s["in_review_queue"])
+                status, check = post(
+                    f"/api/jobs/{job}/text/check", {"segment_id": clean["segment_id"], "text": "改写文本。"}
+                )
+                assert status == 200 and check["hard"] == [] and check["overridable"] == []
+                status, edit = post(
+                    f"/api/jobs/{job}/text/edit",
+                    {
+                        "segment_id": clean["segment_id"],
+                        "text": "改写文本。",
+                        "reason": "Testing the edit route over HTTP.",
+                        "base_target_sha256": clean["base_target_sha256"],
+                        "expected_event_id": clean["edit_revision"],
+                    },
+                )
+                assert status == 200 and edit["action"] == "edit" and edit["text"] == "改写文本。"
+                status, history = get(f"/api/jobs/{job}/text/history?segment={clean['segment_id']}")
+                assert status == 200 and len(history["events"]) == 1
+                status, stale = post(
+                    f"/api/jobs/{job}/text/edit",
+                    {
+                        "segment_id": clean["segment_id"],
+                        "text": "再改一次。",
+                        "reason": "Reusing a stale base hash.",
+                        "base_target_sha256": "0" * 64,
+                    },
+                )
+                assert status == 422 and "changed since" in stale["error"]
+                status, stale_edit = post(
+                    f"/api/jobs/{job}/text/edit",
+                    {
+                        "segment_id": clean["segment_id"],
+                        "text": "再改一次。",
+                        "reason": "Reusing a stale edit revision.",
+                        "base_target_sha256": clean["base_target_sha256"],
+                        "expected_event_id": clean["edit_revision"],
+                    },
+                )
+                assert status == 422 and "edited after" in stale_edit["error"]
+                status, reverted = post(
+                    f"/api/jobs/{job}/text/revert",
+                    {
+                        "segment_id": clean["segment_id"],
+                        "reason": "Undoing the test edit.",
+                        "expected_event_id": edit["event_id"],
+                    },
+                )
+                assert status == 200 and reverted["action"] == "revert"
+
+                from tests.test_compile_stages import _retarget_pipeline_text
+
+                status, conflict_edit = post(
+                    f"/api/jobs/{job}/text/edit",
+                    {
+                        "segment_id": clean["segment_id"],
+                        "text": "再次改写。",
+                        "reason": "Setting up a conflict over HTTP.",
+                        "base_target_sha256": clean["base_target_sha256"],
+                        "expected_event_id": reverted["event_id"],
+                    },
+                )
+                assert status == 200
+                _retarget_pipeline_text(workspace, clean["segment_id"], "重新翻译。")
+                status, bad_choice = post(
+                    f"/api/jobs/{job}/text/conflict",
+                    {"segment_id": clean["segment_id"], "choice": "discard", "reason": "Invalid choice."},
+                )
+                assert status == 422 and "choice" in bad_choice["error"]
+                status, kept = post(
+                    f"/api/jobs/{job}/text/conflict",
+                    {
+                        "segment_id": clean["segment_id"],
+                        "choice": "keep",
+                        "reason": "Keeping my edit over HTTP.",
+                        "expected_event_id": conflict_edit["event_id"],
+                    },
+                )
+                assert status == 200 and kept["action"] == "keep"
 
                 status, preview = get(f"/api/jobs/{job}/rerun?stage=validate_repaired")
                 assert status == 200 and preview["stages"][0]["name"] == "validate_repaired"
@@ -854,7 +971,8 @@ class DownloadAndDirectionTests(ServerTests):
                     disposition = response.headers["Content-Disposition"]
                     assert response.headers["Content-Type"] == "application/epub+zip"
                 assert body[:2] == b"PK"  # a zip container
-                assert disposition.startswith("attachment;") and ".translated.epub" in disposition
+                assert disposition.startswith("attachment;")
+                assert re.search(r"\.translated-[0-9a-f]{6}\.epub", disposition)
             finally:
                 server.shutdown()
                 server.server_close()
@@ -873,10 +991,64 @@ class DownloadAndDirectionTests(ServerTests):
                 server.shutdown()
                 server.server_close()
 
+    def test_validated_draft_exports_xliff_with_edits_marked_reviewed(self):
+        from xml.etree import ElementTree
+
+        from book_agent.hashing import sha256_text
+        from book_agent.stages.validate_repaired import load_validated_repaired_documents
+        from book_agent.text_edits import apply_edit
+        from tests.test_compile_stages import CompileStageTests
+
+        with tempfile.TemporaryDirectory() as directory:
+            config = AppConfig.model_validate({"audit": {"semantic_enabled": False}})
+            workspace = CompileStageTests().prepare_workspace(Path(directory), config)
+            segment = load_validated_repaired_documents(workspace)[0].document.segments[0]
+            apply_edit(
+                workspace,
+                segment_id=segment.segment_id,
+                text="第一章",
+                reason="Edited before export.",
+                base_target_sha256=sha256_text(segment.translated_text),
+            )
+            app = UiApp(workspace.root.parent, Path(directory), [])
+            server, call = self.serve(app)
+            try:
+                url = f"{call.base}/api/jobs/{workspace.root.name}/text/export?format=xliff"
+                with urllib.request.urlopen(url) as response:
+                    body = response.read()
+                    content_type = response.headers["Content-Type"]
+                    disposition = response.headers["Content-Disposition"]
+            finally:
+                server.shutdown()
+                server.server_close()
+
+        assert content_type == "application/xliff+xml; charset=utf-8"
+        assert disposition.startswith("attachment;") and 'filename="fixture.en-zh.xlf"' in disposition
+        namespace = {"x": "urn:oasis:names:tc:xliff:document:2.0"}
+        root = ElementTree.fromstring(body)
+        unit = next(u for u in root.iterfind(".//x:unit", namespace) if u.get("id") == segment.segment_id)
+        assert unit.find("x:segment", namespace).get("state") == "reviewed"
+        assert unit.find("x:segment/x:target", namespace).text == "第一章"
+
+    def test_xliff_export_refuses_an_unready_draft_and_unknown_formats(self):
+        with tempfile.TemporaryDirectory() as directory:
+            workspace, _ = paused_glossary_workspace(Path(directory))  # validate_repaired has not run
+            app = UiApp(workspace.root.parent, Path(directory), [])
+            server, call = self.serve(app)
+            try:
+                status, body = call("/api/jobs/fixture/text/export?format=xliff")
+                assert status == 404 and "validated draft" in json.loads(body)["error"]
+                status, body = call("/api/jobs/fixture/text/export?format=tmx")
+                assert status == 400 and "unsupported export format" in json.loads(body)["error"]
+                assert call("/api/jobs/..%2Fx/text/export?format=xliff")[0] == 404
+            finally:
+                server.shutdown()
+                server.server_close()
+
     def test_non_ascii_download_names_use_an_rfc5987_header(self):
         with tempfile.TemporaryDirectory() as directory:
             workspace, _ = paused_glossary_workspace(Path(directory))
-            book = Path(directory) / "鲁滨逊漂流记.translated.epub"
+            book = Path(directory) / "鲁滨逊漂流记.translated-a1b2c3.epub"
             book.write_bytes(b"PK\x03\x04")
             app = UiApp(workspace.root.parent, Path(directory), [])
             server, call = self.serve(app)
@@ -884,7 +1056,7 @@ class DownloadAndDirectionTests(ServerTests):
                 with patch.object(UiApp, "job_output", return_value=book):
                     with urllib.request.urlopen(f"{call.base}/api/jobs/fixture/output") as response:
                         disposition = response.headers["Content-Disposition"]
-                assert 'filename="______.translated.epub"' in disposition
+                assert 'filename="______.translated-a1b2c3.epub"' in disposition
                 assert "filename*=UTF-8''" + urllib.parse.quote(book.name) in disposition
             finally:
                 server.shutdown()
@@ -905,6 +1077,78 @@ class DownloadAndDirectionTests(ServerTests):
             assert rows["zh"]["direction"] == "zh-en" and not rows["zh"]["downloadable"]
             assert rows["bad"]["direction"] == ""
             assert app.job_info("zh")["direction"] == "zh-en"
+
+
+class XliffImportApiTests(ServerTests):
+    """The Text tab's XLIFF import flow over HTTP (docs/XLIFF_IMPORT.md)."""
+
+    def test_upload_review_report_apply_dismiss_and_refusals(self):
+        from book_agent.text_edits import history_for_segment
+        from book_agent.xliff_export import export_xliff
+        from tests.test_compile_stages import CompileStageTests
+        from tests.test_xliff_import import S1, _edit_export
+
+        with tempfile.TemporaryDirectory() as directory:
+            config = AppConfig.model_validate({"audit": {"semantic_enabled": False}})
+            workspace = CompileStageTests().prepare_workspace(Path(directory), config)
+            job = workspace.root.name
+            app = UiApp(workspace.root.parent, Path(directory), [])
+            server, call = self.serve(app)
+            token = {"X-UI-Token": app.token}
+
+            def get(path):
+                status, text = call(path)
+                return status, json.loads(text)
+
+            def post(path, body):
+                status, text = call(path, body, token)
+                return status, json.loads(text)
+
+            try:
+                assert get(f"/api/jobs/{job}/text/import") == (200, {"pending": None, "last": None})
+
+                xliff = _edit_export(export_xliff(workspace), targets={S1: "第一章"})
+                status, preview = post(f"/api/jobs/{job}/text/import", {"file_name": "book.en-zh.xlf", "xliff": xliff})
+                assert status == 200 and preview["counts"] == {"import": 1, "unchanged": 3}
+                import_id = preview["import_id"]
+                status, state = get(f"/api/jobs/{job}/text/import")
+                assert status == 200 and state["pending"]["import_id"] == import_id
+
+                url = f"{call.base}/api/jobs/{job}/text/import/report?import_id={import_id}"
+                with urllib.request.urlopen(url) as response:
+                    assert response.headers["Content-Type"] == "text/csv; charset=utf-8"
+                    assert 'filename="book.en-zh.import-report.csv"' in response.headers["Content-Disposition"]
+                    assert "will import" in response.read().decode("utf-8-sig")
+                assert call(f"/api/jobs/{job}/text/import/report?import_id=nope")[0] == 404
+
+                status, refused = post(f"/api/jobs/{job}/text/import/apply", {"import_id": import_id, "reason": "ok"})
+                assert status == 422 and "reason" in refused["error"]
+                running = {**app.job_info(job), "running": True}
+                with patch.object(UiApp, "job_info", return_value=running):
+                    status, refused = post(
+                        f"/api/jobs/{job}/text/import/apply", {"import_id": import_id, "reason": "Translator pass."}
+                    )
+                assert status == 422 and "running" in refused["error"]
+
+                status, result = post(
+                    f"/api/jobs/{job}/text/import/apply",
+                    {"import_id": import_id, "reason": "Translator pass.", "include_stale": False},
+                )
+                assert status == 200 and [item["segment_id"] for item in result["applied"]] == [S1]
+                assert history_for_segment(workspace, S1)[-1].reason == "Translator pass. (imported from book.en-zh.xlf)"
+                status, state = get(f"/api/jobs/{job}/text/import")
+                assert state["pending"] is None and state["last"]["import_id"] == import_id
+                assert post(f"/api/jobs/{job}/text/import/dismiss", {"import_id": import_id}) == (200, {"dismissed": True})
+                assert get(f"/api/jobs/{job}/text/import")[1]["last"] is None
+
+                status, refused = post(f"/api/jobs/{job}/text/import", {"file_name": "bad.xlf", "xliff": "<xliff"})
+                assert status == 422 and "not well-formed" in refused["error"]
+                status, again = post(f"/api/jobs/{job}/text/import", {"file_name": "b.xlf", "xliff": export_xliff(workspace)})
+                assert post(f"/api/jobs/{job}/text/import/cancel", {"import_id": again["import_id"]}) == (200, {"cancelled": True})
+                assert get(f"/api/jobs/{job}/text/import")[1]["pending"] is None
+            finally:
+                server.shutdown()
+                server.server_close()
 
 
 class SeriesApiTests(ServerTests):

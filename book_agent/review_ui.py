@@ -24,6 +24,7 @@ from .pipeline_state import WorkflowStage
 from .stages.compile import load_compiled_epub_path
 from .stages.validate_repaired import load_repaired_validation_report
 from .state import connect_state, get_stage_status
+from .text_edits import current_draft_revision
 from .workflow import (
     ProgressEvent,
     approve_final_draft,
@@ -89,6 +90,8 @@ class ReviewSession:
         if not original:
             raise ValueError("no final-review worksheet exists for this job")
         if worksheet.get("draft_output_hash") != original.get("draft_output_hash"):
+            raise ValueError("worksheet belongs to an older draft; reload the page")
+        if worksheet.get("draft_output_hash") != self._validated_draft_hash():
             raise ValueError("worksheet belongs to an older draft; reload the page")
         model = ManualReviewWorksheet.model_validate(worksheet)
         with self._lock:
@@ -203,7 +206,11 @@ class ReviewSession:
         connection = connect_state(self.workspace.state_file)
         try:
             record = get_stage_status(connection, WorkflowStage.VALIDATE_REPAIRED.value)
-            return str(record["output_hash"]) if record else ""
+            return (
+                current_draft_revision(self.workspace, str(record["output_hash"]))
+                if record
+                else ""
+            )
         finally:
             connection.close()
 

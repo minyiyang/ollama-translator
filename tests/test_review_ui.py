@@ -5,7 +5,10 @@ import pytest
 
 from book_agent.config import AppConfig
 from book_agent.review_ui import ReviewSession
-from book_agent.stages.compile import run_epub_compile_stage
+from book_agent.stages.compile import FinalDraftApprovalRequired, run_epub_compile_stage
+from book_agent.text_edits import apply_edit
+from book_agent.web.text_view import text_chapter, text_outline
+from book_agent.workflow import _final_review_is_required
 
 CONFIG = {"audit": {"semantic_sample_every": 2}, "workflow": {"max_retries": 0}}
 
@@ -43,7 +46,57 @@ class ReviewSessionTests:
 
             assert result["report"]["passed"]
             assert result["approved"]
+            # Applying the worksheet creates an edit-log revision. The submitted
+            # worksheet is now stale, while approval is bound to the new revision.
             assert session.payload()["stale"]
+            config = AppConfig.model_validate_json(
+                session.workspace.config_file.read_text(encoding="utf-8")
+            )
+            config.workflow.require_final_review = True
+            assert not _final_review_is_required(session.workspace, config)
+
+            chapter = text_outline(session.workspace)["chapters"][0]
+            other = next(
+                segment
+                for segment in text_chapter(
+                    session.workspace, chapter["document_id"]
+                )["segments"]
+                if segment["segment_id"] != item["segment_id"]
+            )
+            apply_edit(
+                session.workspace,
+                segment_id=other["segment_id"],
+                text="后续人工修改。",
+                reason="Changed after final approval.",
+                base_target_sha256=other["base_target_sha256"],
+                expected_event_id=other["edit_revision"],
+            )
+            assert _final_review_is_required(session.workspace, config)
+            with pytest.raises(FinalDraftApprovalRequired):
+                run_epub_compile_stage(session.workspace, config)
+
+    def test_save_rejects_a_worksheet_after_a_text_tab_edit(self):
+        with tempfile.TemporaryDirectory() as directory:
+            session = ReviewSession(paused_workspace(directory))
+            worksheet = session.payload()["worksheet"]
+            chapter = text_outline(session.workspace)["chapters"][0]
+            segment = next(
+                item
+                for item in text_chapter(
+                    session.workspace, chapter["document_id"]
+                )["segments"]
+                if not item["in_review_queue"]
+            )
+            apply_edit(
+                session.workspace,
+                segment_id=segment["segment_id"],
+                text="文本页中的新修改。",
+                reason="Make the open worksheet stale.",
+                base_target_sha256=segment["base_target_sha256"],
+                expected_event_id=segment["edit_revision"],
+            )
+            with pytest.raises(ValueError, match="older draft"):
+                session.save(worksheet)
 
     def test_check_reports_blocking_issue_for_untranslated_edit(self):
         with tempfile.TemporaryDirectory() as directory:

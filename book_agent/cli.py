@@ -48,6 +48,8 @@ from .series_glossary import (
 )
 from .stages.glossary import load_approved_glossary, load_glossary_draft
 from .stages.preprocess import load_preprocessing_report
+from .text_edits import conflicted_segment_ids, load_events
+from .xliff_export import export_xliff
 from .workflow import (
     ExitCode,
     ProgressEvent,
@@ -254,6 +256,22 @@ def build_parser() -> argparse.ArgumentParser:
         help="resume compilation after a successful --approve-final",
     )
     resolve_parser.add_argument("--plain", action="store_true", help="disable styled progress output")
+
+    edits_parser = subparsers.add_parser(
+        "edits",
+        help="list tracked Text tab / final-review edits, or export them as XLIFF",
+    )
+    edits_parser.add_argument("workspace", help="job workspace path")
+    edits_parser.add_argument(
+        "--export",
+        choices=["xliff"],
+        help="export the current translation, with edited segments marked reviewed",
+    )
+    edits_parser.add_argument(
+        "--output",
+        help="write the export to this file instead of stdout",
+    )
+    edits_parser.add_argument("--json", action="store_true", help="list edits as machine-readable JSON")
 
     ui_parser = subparsers.add_parser(
         "ui",
@@ -1534,6 +1552,36 @@ def main(argv: Sequence[str] | None = None) -> int:
                 )
                 return result.exit_code
             return ExitCode.COMPLETE if report.passed else ExitCode.PAUSED
+        if args.command == "edits":
+            workspace = open_job_workspace(args.workspace)
+            if args.export == "xliff":
+                xml = export_xliff(workspace)
+                if args.output:
+                    atomic_write_text(Path(args.output), xml)
+                    print(f"Wrote {args.output}")
+                else:
+                    print(xml)
+                return ExitCode.COMPLETE
+            events = load_events(workspace)
+            conflicts = sorted(conflicted_segment_ids(workspace))
+            if args.json:
+                print(format_json(
+                    {
+                        "event_count": len(events),
+                        "conflict_segment_ids": conflicts,
+                        "events": [event.model_dump(mode="json") for event in events],
+                    }
+                ))
+            else:
+                print(f"{len(events)} edit event(s); {len(conflicts)} conflict(s) need unblocking.")
+                for event in events:
+                    print(
+                        f"  {event.event_id}  {event.action.value:<12} "
+                        f"{event.segment_id}  {event.author}  {event.at}"
+                    )
+                if conflicts:
+                    print("Conflicts: " + ", ".join(conflicts))
+            return ExitCode.COMPLETE
     except PauseRequested as pause:
         # Only reachable outside run_workflow, e.g. during `approve --llm-glossary`.
         print(f"paused: {pause}", file=sys.stderr)

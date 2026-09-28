@@ -137,6 +137,14 @@ python -m book_agent.cli resolve-review `
 Add `--resume` only when you want compilation to start immediately. Otherwise,
 approve first, inspect the final reports, and invoke `resume` yourself.
 
+Applied decisions are recorded as events in `edits/segment-edits.jsonl`, not
+written into the `validate_repaired` artifacts, and compile overlays them.
+They therefore survive `retry` of `validate_repaired` or an earlier stage; a
+decided segment whose pipeline translation changes becomes a conflict that
+blocks compile until it is settled on the dashboard's Text tab. The final
+approval itself is tied to the draft revision and must be given again.
+`book-agent edits <job>` lists every event and conflict.
+
 ## Retrying a pipeline stage
 
 Use `retry` only when inputs/configuration or an implementation fix requires
