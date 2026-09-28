@@ -145,6 +145,15 @@ describe("Text tab", () => {
       expect(within(rowOf("Plain item.")).getByRole("button", { name: "Resolve conflict" })).toBeInTheDocument();
     });
 
+    it("offers the whole book as an XLIFF download next to the totals", async () => {
+      textApi();
+      renderTextTab();
+      const link = await screen.findByRole("link", { name: "⤓ Export XLIFF" });
+      expect(link).toHaveAttribute("href", "/api/jobs/demo/text/export?format=xliff");
+      expect(link).toHaveAttribute("download");
+      expect(link.closest(".stats")).not.toBeNull();
+    });
+
     it("loads another chapter when it is picked in the sidebar", async () => {
       const api = textApi();
       const user = renderTextTab();
@@ -187,6 +196,7 @@ describe("Text tab", () => {
 
       expect(screen.getByText(/Read-only: showing the latest translation stage/)).toBeInTheDocument();
       expect(screen.queryByRole("button", { name: "Edit" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("link", { name: "⤓ Export XLIFF" })).not.toBeInTheDocument(); // needs the validated draft
       await user.click(screen.getByText("你好，世界。"));
       expect(document.querySelector("textarea.editor")).toBeNull();
     });

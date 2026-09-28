@@ -8,6 +8,7 @@ import { SideItem, SideLayout } from "../components/SideLayout";
 import { useToast } from "../components/Toast";
 import { Chip } from "../components/ui";
 import { diffChars } from "../lib/diff";
+import { xliffExportUrl } from "../lib/format";
 import { matchesTextQuery, matchesTextView, retainTextDocumentId, textRowClass, type TextView } from "../lib/text";
 
 type Chapter = {
@@ -498,6 +499,16 @@ export function TextPage() {
               <div className="stat"><b>{outline.totals.in_review_queue}</b><span>in review queue</span></div>
               <div className="stat"><b>{outline.totals.edited}</b><span>edited</span></div>
               <div className="stat"><b>{outline.totals.conflicts}</b><span>conflicts</span></div>
+              {outline.editable && (
+                <a
+                  className="button small stats-action"
+                  href={xliffExportUrl(jobId)}
+                  download
+                  title="Download the whole book as XLIFF 2.1 for a CAT tool. Includes edits not yet compiled; edited segments are marked reviewed."
+                >
+                  ⤓ Export XLIFF
+                </a>
+              )}
             </div>
           </section>
           <section className="card">

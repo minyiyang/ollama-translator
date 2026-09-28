@@ -26,6 +26,7 @@ from urllib.parse import parse_qs, quote, urlparse
 
 from .. import series as series_api
 from ..languages import TranslationDirection
+from ..pipeline_state import WorkflowStage
 from ..schemas import GlossaryCategory
 from ..review_ui import ReviewSession
 from .rerun import parse_stage, rerun_preview
@@ -48,6 +49,7 @@ from .glossary_view import glossary_payload, write_reviewed_glossary
 from ..stages.compile import load_compiled_epub_path
 from .jobs import ProgressReader, draft_direction, job_direction, job_path, list_jobs, open_job
 from .text_view import text_chapter, text_outline
+from ..xliff_export import export_xliff
 from ..text_edits import (
     BlockingCheckError,
     apply_edit,
@@ -499,6 +501,17 @@ class UiApp:
             raise ValueError("the job has not completed; there is no translated book yet")
         return Path(load_compiled_epub_path(workspace))
 
+    def job_xliff(self, job_id: str) -> tuple[bytes, str]:
+        """The whole book as XLIFF 2.1 and its download name; edited segments are marked reviewed."""
+        workspace = open_job(self.runs, job_id)
+        stages = {str(stage["name"]): stage for stage in workflow_status(workspace)["stages"]}
+        validated = stages.get(WorkflowStage.VALIDATE_REPAIRED.value, {})
+        if validated.get("status") != StageStatus.COMPLETED.value:
+            raise ValueError("XLIFF export needs the validated draft; wait for Validate draft to complete")
+        direction = load_workspace_config(workspace).translation.direction.value
+        name = f"{workspace.source_file.stem}.{direction}.xlf"
+        return export_xliff(workspace).encode("utf-8"), name
+
     def rerun_preview(self, job_id: str, stage: str) -> dict[str, Any]:
         return rerun_preview(open_job(self.runs, job_id), stage)
 
@@ -762,6 +775,16 @@ def make_handler(app: UiApp, port_ref: list[int]) -> type[BaseHTTPRequestHandler
                     return self._json({"error": str(error)}, HTTPStatus.NOT_FOUND)
                 media_type = _DOWNLOAD_TYPES.get(output.suffix.lower(), "application/octet-stream")
                 return self._send(data, media_type, download=output.name)
+            if method == "GET" and len(parts) == 5 and parts[1] == "jobs" and parts[3:] == ["text", "export"]:
+                export_format = parse_qs(url.query).get("format", ["xliff"])[0]
+                if export_format != "xliff":
+                    return self._json({"error": f"unsupported export format: {export_format}"}, HTTPStatus.BAD_REQUEST)
+                try:
+                    validate_job_id(parts[2])
+                    data, name = app.job_xliff(parts[2])
+                except (ValueError, OSError) as error:
+                    return self._json({"error": str(error)}, HTTPStatus.NOT_FOUND)
+                return self._send(data, "application/xliff+xml; charset=utf-8", download=name)
             if method == "POST" and parts == ["api", "uploads"]:
                 return self._upload(parse_qs(url.query).get("name", [""])[0])
             if method == "POST":

@@ -35,3 +35,6 @@ export function directionLabel(direction: string | undefined): string {
 
 /** Download URL of a completed job's translated book. */
 export const outputUrl = (jobId: string) => `/api/jobs/${encodeURIComponent(jobId)}/output`;
+
+/** Download URL of the whole book's current translation (edits included) as XLIFF 2.1. */
+export const xliffExportUrl = (jobId: string) => `/api/jobs/${encodeURIComponent(jobId)}/text/export?format=xliff`;

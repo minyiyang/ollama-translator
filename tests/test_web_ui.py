@@ -989,6 +989,60 @@ class DownloadAndDirectionTests(ServerTests):
                 server.shutdown()
                 server.server_close()
 
+    def test_validated_draft_exports_xliff_with_edits_marked_reviewed(self):
+        from xml.etree import ElementTree
+
+        from book_agent.hashing import sha256_text
+        from book_agent.stages.validate_repaired import load_validated_repaired_documents
+        from book_agent.text_edits import apply_edit
+        from tests.test_compile_stages import CompileStageTests
+
+        with tempfile.TemporaryDirectory() as directory:
+            config = AppConfig.model_validate({"audit": {"semantic_enabled": False}})
+            workspace = CompileStageTests().prepare_workspace(Path(directory), config)
+            segment = load_validated_repaired_documents(workspace)[0].document.segments[0]
+            apply_edit(
+                workspace,
+                segment_id=segment.segment_id,
+                text="第一章",
+                reason="Edited before export.",
+                base_target_sha256=sha256_text(segment.translated_text),
+            )
+            app = UiApp(workspace.root.parent, Path(directory), [])
+            server, call = self.serve(app)
+            try:
+                url = f"{call.base}/api/jobs/{workspace.root.name}/text/export?format=xliff"
+                with urllib.request.urlopen(url) as response:
+                    body = response.read()
+                    content_type = response.headers["Content-Type"]
+                    disposition = response.headers["Content-Disposition"]
+            finally:
+                server.shutdown()
+                server.server_close()
+
+        assert content_type == "application/xliff+xml; charset=utf-8"
+        assert disposition.startswith("attachment;") and 'filename="fixture.en-zh.xlf"' in disposition
+        namespace = {"x": "urn:oasis:names:tc:xliff:document:2.1"}
+        root = ElementTree.fromstring(body)
+        unit = next(u for u in root.iterfind(".//x:unit", namespace) if u.get("id") == segment.segment_id)
+        assert unit.find("x:segment", namespace).get("state") == "reviewed"
+        assert unit.find("x:segment/x:target", namespace).text == "第一章"
+
+    def test_xliff_export_refuses_an_unready_draft_and_unknown_formats(self):
+        with tempfile.TemporaryDirectory() as directory:
+            workspace, _ = paused_glossary_workspace(Path(directory))  # validate_repaired has not run
+            app = UiApp(workspace.root.parent, Path(directory), [])
+            server, call = self.serve(app)
+            try:
+                status, body = call("/api/jobs/fixture/text/export?format=xliff")
+                assert status == 404 and "validated draft" in json.loads(body)["error"]
+                status, body = call("/api/jobs/fixture/text/export?format=tmx")
+                assert status == 400 and "unsupported export format" in json.loads(body)["error"]
+                assert call("/api/jobs/..%2Fx/text/export?format=xliff")[0] == 404
+            finally:
+                server.shutdown()
+                server.server_close()
+
     def test_non_ascii_download_names_use_an_rfc5987_header(self):
         with tempfile.TemporaryDirectory() as directory:
             workspace, _ = paused_glossary_workspace(Path(directory))

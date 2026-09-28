@@ -4,8 +4,9 @@ Status: **all five phases implemented.** The Text tab reads and edits
 segments, with a tracked history that compile overlays onto the book, that
 survives reruns as conflicts you unblock, and that Final review now shares:
 a resolution is an edit-log event, not a rewrite of validate_repaired's
-stored draft. XLIFF 2.1 export (not import) is available via
-`book-agent edits <job> --export xliff`. Last updated: 2026-09-21.
+stored draft. XLIFF 2.1 export (not import) is available from the Text
+tab's **⤓ Export XLIFF** button and via `book-agent edits <job> --export
+xliff`. Last updated: 2026-09-28.
 
 A dashboard tab for reading the whole book as source and translation side by
 side and editing any translated segment, with every manual edit tracked, kept
@@ -193,6 +194,12 @@ conflicts is not wired up: `tabStates()` only sees `/info`'s stage data,
 not the Text tab's own outline; the totals bar and the per-chapter sidebar
 counts already surface conflicts once you're on the tab.
 
+**Export:** a **⤓ Export XLIFF** link sits at the right end of the totals
+card, since it covers the whole book rather than the filtered rows below.
+It appears once the validated draft exists (the export is built from it)
+and downloads `<source>.<direction>.xlf`, including edits not yet
+compiled.
+
 ## 9. API
 
 | Route | Purpose |
@@ -205,6 +212,7 @@ counts already surface conflicts once you're on the tab.
 | `POST /api/jobs/<id>/text/conflict` `{segment_id, choice: keep\|take_pipeline, reason, expected_event_id}` | Unblocks a conflict if the active event still matches |
 | `GET /api/jobs/<id>/text/history?segment=ID` | The segment's events |
 | `POST /api/jobs/<id>/rerun` `{stage: "compile"}` | Existing route, used by Recompile |
+| `GET /api/jobs/<id>/text/export?format=xliff` | File download (`application/xliff+xml`, attachment `<source>.<direction>.xlf`); 404 before the validated draft exists, 400 for an unknown format. Handled in the request dispatcher like `…/output`, so it is outside the JSON route table. |
 
 The author is sent by the page (reviewer name setting) and defaults to the OS
 user name on the server.
@@ -308,6 +316,10 @@ user name on the server.
   `state="reviewed"` with its edited text.
 - CLI (`tests/test_cli.py`): `edits --json` and the plain listing both show
   events and conflicts; `edits --export xliff --output` writes the file.
+- XLIFF download over HTTP (`tests/test_web_ui.py::DownloadAndDirectionTests`):
+  content type, attachment name, an edited unit exported `reviewed`, and the
+  404 / 400 refusals. The Text tab test checks the link's URL, `download`
+  attribute, placement in the totals card, and absence when read-only.
 
 ## 13. Open questions
 

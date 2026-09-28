@@ -72,6 +72,7 @@
 
 /* Glossary */
 .stats { display: flex; gap: 24px; flex-wrap: wrap; }
+.stats .stats-action { margin-left: auto; align-self: center; }
 .stat b { display: block; font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .stat span { color: var(--muted); font-size: 12px; }
 .filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
