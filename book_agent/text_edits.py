@@ -22,18 +22,19 @@ from __future__ import annotations
 import getpass
 import sys
 import threading
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from enum import Enum
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
 from pydantic import BaseModel, ConfigDict, Field
 
 from .atomic_io import atomic_write_text
 from .audit import (
     AuditCategory,
+    AuditIssue,
     AuditSeverity,
     audit_translated_document,
     reapply_quantity_adjudications,
@@ -386,6 +387,86 @@ NON_OVERRIDABLE_CATEGORIES = {
 }
 
 
+@dataclass(frozen=True)
+class _CheckContext:
+    """Everything the deterministic check reads, loaded once for any number of segments."""
+
+    config: AppConfig
+    drafts: dict[str, RepairedDocument]
+    owners: dict[str, str]
+    sources: dict[str, Any]
+    initial_audits: dict[str, Any]
+    rulings: Any
+
+
+def _load_check_context(workspace: JobWorkspace) -> _CheckContext:
+    config = AppConfig.model_validate_json(
+        workspace.config_file.read_text(encoding="utf-8")
+    )
+    drafts = {
+        item.document.manifest_id: item for item in load_validated_repaired_documents(workspace)
+    }
+    return _CheckContext(
+        config=config,
+        drafts=drafts,
+        owners={
+            segment.segment_id: document_id
+            for document_id, item in drafts.items()
+            for segment in item.document.segments
+        },
+        sources={item.manifest_id: item for item in load_preprocessed_documents(workspace)},
+        initial_audits={item.document_id: item for item in load_document_audits(workspace)},
+        rulings=rule_numeric_findings(workspace, config, None, []),
+    )
+
+
+def _chapter_issues(
+    context: _CheckContext,
+    document_id: str,
+    replacements: Mapping[str, str],
+    segment_ids: set[str],
+) -> list[AuditIssue]:
+    """Audit one chapter of the validated draft with ``replacements`` applied.
+
+    Returns the medium-or-worse issues on ``segment_ids``, in audit order.
+    """
+    document = context.drafts[document_id].document
+    if replacements:
+        document = document.model_copy(
+            update={
+                "segments": [
+                    item.model_copy(update={"translated_text": replacements[item.segment_id]})
+                    if item.segment_id in replacements
+                    else item
+                    for item in document.segments
+                ]
+            }
+        )
+    audit = reapply_quantity_adjudications(
+        audit_translated_document(
+            context.sources[document_id],
+            document,
+            context.config.audit,
+            context.rulings,
+        ),
+        context.initial_audits.get(document_id),
+    )
+    return [
+        issue
+        for issue in audit.issues
+        if issue.segment_id in segment_ids
+        and issue.severity.rank >= AuditSeverity.MEDIUM.rank
+    ]
+
+
+def _finding(issue: AuditIssue) -> dict[str, str]:
+    return {
+        "category": issue.category.value,
+        "severity": issue.severity.value,
+        "message": issue.message,
+    }
+
+
 def preview_manual_resolution(
     workspace: JobWorkspace,
     segment_id: str,
@@ -397,58 +478,45 @@ def preview_manual_resolution(
     which overrides overridable findings exactly as an ``edit`` event's check does.
     Nothing is written.
     """
-    config = AppConfig.model_validate_json(
-        workspace.config_file.read_text(encoding="utf-8")
-    )
-    repaired = next(
-        (
-            item
-            for item in load_validated_repaired_documents(workspace)
-            if any(s.segment_id == segment_id for s in item.document.segments)
-        ),
-        None,
-    )
-    if repaired is None:
+    context = _load_check_context(workspace)
+    document_id = context.owners.get(segment_id)
+    if document_id is None:
         raise ValueError(f"segment is absent from the validated draft: {segment_id}")
-    document_id = repaired.document.manifest_id
-    source = next(
-        item for item in load_preprocessed_documents(workspace)
-        if item.manifest_id == document_id
-    )
-    document = repaired.document
-    if translated_text is not None:
-        document = document.model_copy(
-            update={
-                "segments": [
-                    item.model_copy(update={"translated_text": translated_text})
-                    if item.segment_id == segment_id
-                    else item
-                    for item in document.segments
-                ]
-            }
-        )
-    initial = {item.document_id: item for item in load_document_audits(workspace)}
-    audit = reapply_quantity_adjudications(
-        audit_translated_document(
-            source,
-            document,
-            config.audit,
-            rule_numeric_findings(workspace, config, None, []),
-        ),
-        initial.get(document_id),
-    )
     accepting = translated_text is None
+    replacements = {} if accepting else {segment_id: translated_text}
     return [
-        {
-            "category": issue.category.value,
-            "severity": issue.severity.value,
-            "message": issue.message,
-        }
-        for issue in audit.issues
-        if issue.segment_id == segment_id
-        and issue.severity.rank >= AuditSeverity.MEDIUM.rank
-        and not (accepting and issue.category not in NON_OVERRIDABLE_CATEGORIES)
+        _finding(issue)
+        for issue in _chapter_issues(context, document_id, replacements, {segment_id})
+        if not (accepting and issue.category not in NON_OVERRIDABLE_CATEGORIES)
     ]
+
+
+def check_edits(
+    workspace: JobWorkspace, proposed: Mapping[str, str]
+) -> dict[str, dict[str, list[dict[str, str]]]]:
+    """Check several proposed texts together, split like ``classify_check``.
+
+    Each affected chapter is audited once, as the validated draft with every
+    proposed text in it applied, so a batch is checked as the draft it would
+    produce. For a single proposal this is exactly ``classify_check``.
+    """
+    if not proposed:
+        return {}
+    context = _load_check_context(workspace)
+    missing = sorted(segment_id for segment_id in proposed if segment_id not in context.owners)
+    if missing:
+        raise ValueError(f"segment is absent from the validated draft: {missing[0]}")
+    by_document: dict[str, dict[str, str]] = {}
+    for segment_id, text in proposed.items():
+        by_document.setdefault(context.owners[segment_id], {})[segment_id] = text
+    result: dict[str, dict[str, list[dict[str, str]]]] = {
+        segment_id: {"hard": [], "overridable": []} for segment_id in proposed
+    }
+    for document_id, replacements in by_document.items():
+        for issue in _chapter_issues(context, document_id, replacements, set(replacements)):
+            bucket = "hard" if issue.category in NON_OVERRIDABLE_CATEGORIES else "overridable"
+            result[issue.segment_id][bucket].append(_finding(issue))
+    return result
 
 
 def check_edit(workspace: JobWorkspace, segment_id: str, text: str | None) -> list[dict[str, str]]:
@@ -472,25 +540,37 @@ def classify_check(workspace: JobWorkspace, segment_id: str, text: str | None) -
     return {"hard": hard, "overridable": overridable}
 
 
-def _segment_context(workspace: JobWorkspace, segment_id: str) -> tuple[str, str, str]:
-    """The owning document id, current source text, and current validated-draft text."""
-    source_by_id = {
+_BookTexts = tuple[dict[str, tuple[str, str]], dict[str, str]]
+
+
+def _book_texts(workspace: JobWorkspace) -> _BookTexts:
+    """(segment id -> (document id, source text), segment id -> validated-draft text)."""
+    sources = {
         segment.segment_id: (document.manifest_id, segment.original_text)
         for document in load_preprocessed_documents(workspace)
         for segment in document.segments
     }
-    if segment_id not in source_by_id:
-        raise ValueError(f"no such segment: {segment_id}")
-    document_id, source_text = source_by_id[segment_id]
-    pipeline_by_id = {
+    pipeline = {
         segment.segment_id: segment.translated_text
         for repaired in load_validated_repaired_documents(workspace)
-        if repaired.document.manifest_id == document_id
         for segment in repaired.document.segments
     }
-    if segment_id not in pipeline_by_id:
+    return sources, pipeline
+
+
+def _context_from(texts: _BookTexts, segment_id: str) -> tuple[str, str, str]:
+    sources, pipeline = texts
+    if segment_id not in sources:
+        raise ValueError(f"no such segment: {segment_id}")
+    document_id, source_text = sources[segment_id]
+    if segment_id not in pipeline:
         raise ValueError(f"segment is absent from the validated draft: {segment_id}")
-    return document_id, source_text, pipeline_by_id[segment_id]
+    return document_id, source_text, pipeline[segment_id]
+
+
+def _segment_context(workspace: JobWorkspace, segment_id: str) -> tuple[str, str, str]:
+    """The owning document id, current source text, and current validated-draft text."""
+    return _context_from(_book_texts(workspace), segment_id)
 
 
 def _last_event_id(events: Sequence[SegmentEditEvent], segment_id: str) -> str:
@@ -533,24 +613,27 @@ class _PreparedEdit:
     expected_event_id: str
 
 
-def _prepare_edit(
-    workspace: JobWorkspace,
-    request: SegmentEditRequest,
-    current_events: Sequence[SegmentEditEvent],
-) -> _PreparedEdit:
+def _check_request(request: SegmentEditRequest, texts: _BookTexts) -> tuple[str, str, str]:
+    """Reason and staleness gates; returns the segment's (document, source, pipeline) texts."""
     if len(request.reason.strip()) < 3:
         raise ValueError("an edit needs a reason of at least 3 characters")
-    document_id, source_text, pipeline_text = _segment_context(
-        workspace, request.segment_id
-    )
+    document_id, source_text, pipeline_text = _context_from(texts, request.segment_id)
     if sha256_text(pipeline_text) != request.base_target_sha256:
         raise StaleEditError(
             f"{request.segment_id} has changed since this edit was based on it; "
             "reload the segment"
         )
-    hard, overridable = _split_blocking(
-        check_edit(workspace, request.segment_id, request.text)
-    )
+    return document_id, source_text, pipeline_text
+
+
+def _prepare_edit(
+    request: SegmentEditRequest,
+    context: tuple[str, str, str],
+    findings: dict[str, list[dict[str, str]]],
+    current_events: Sequence[SegmentEditEvent],
+) -> _PreparedEdit:
+    document_id, source_text, pipeline_text = context
+    hard, overridable = findings["hard"], findings["overridable"]
     if hard:
         raise BlockingCheckError(request.segment_id, hard)
     overrides: list[str] = []
@@ -579,8 +662,11 @@ def apply_edit_batch(
     """Validate every edit, then append the complete batch under one lock.
 
     No event is written unless every deterministic and optimistic-concurrency
-    check passes. The log bytes are emitted in one write so readers observe the
-    complete batch or fail closed on a corrupt trailing write.
+    check passes. The batch is checked as the draft it would produce: each
+    affected chapter is audited once with every edit in it applied
+    (``check_edits``), which for a single edit is the ordinary per-edit check.
+    The log bytes are emitted in one write so readers observe the complete
+    batch or fail closed on a corrupt trailing write.
     """
     if not requests:
         return []
@@ -588,7 +674,13 @@ def apply_edit_batch(
     if len(segment_ids) != len(set(segment_ids)):
         raise ValueError("an edit batch cannot contain duplicate segment IDs")
     before = load_events(workspace)
-    prepared = [_prepare_edit(workspace, request, before) for request in requests]
+    texts = _book_texts(workspace)
+    contexts = [_check_request(request, texts) for request in requests]
+    findings = check_edits(workspace, {request.segment_id: request.text for request in requests})
+    prepared = [
+        _prepare_edit(request, context, findings[request.segment_id], before)
+        for request, context in zip(requests, contexts)
+    ]
     path = _log_path(workspace)
     lock_path = _lock_path(workspace)
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -597,14 +689,15 @@ def apply_edit_batch(
         try:
             existing = path.read_text(encoding="utf-8") if path.is_file() else ""
             locked_events = _parse_events(existing)
+            locked_texts = _book_texts(workspace)
             for item in prepared:
                 _assert_expected_event(
                     locked_events,
                     item.request.segment_id,
                     item.expected_event_id,
                 )
-                document_id, source_text, pipeline_text = _segment_context(
-                    workspace, item.request.segment_id
+                document_id, source_text, pipeline_text = _context_from(
+                    locked_texts, item.request.segment_id
                 )
                 if (
                     document_id != item.document_id

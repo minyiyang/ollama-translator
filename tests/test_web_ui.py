@@ -693,8 +693,10 @@ class RerunTests:
             assert "manual_review" not in codes
             session = app.review(job)
             session.save(session.payload()["worksheet"])  # saved review work exists now
-            codes = {w["code"] for w in app.rerun_preview(job, "validate_repaired")["warnings"]}
-            assert "manual_review" in codes and "full_translation" not in codes
+            warnings = {w["code"]: w["message"] for w in app.rerun_preview(job, "validate_repaired")["warnings"]}
+            assert "manual_review" in warnings and "full_translation" not in warnings
+            # Applied decisions are edit-log events, which no rerun discards.
+            assert "Applied decisions are kept" in warnings["manual_review"]
 
     def test_text_edits_warning_appears_only_with_active_edits(self):
         from book_agent.hashing import sha256_text
@@ -1022,7 +1024,7 @@ class DownloadAndDirectionTests(ServerTests):
 
         assert content_type == "application/xliff+xml; charset=utf-8"
         assert disposition.startswith("attachment;") and 'filename="fixture.en-zh.xlf"' in disposition
-        namespace = {"x": "urn:oasis:names:tc:xliff:document:2.1"}
+        namespace = {"x": "urn:oasis:names:tc:xliff:document:2.0"}
         root = ElementTree.fromstring(body)
         unit = next(u for u in root.iterfind(".//x:unit", namespace) if u.get("id") == segment.segment_id)
         assert unit.find("x:segment", namespace).get("state") == "reviewed"
@@ -1075,6 +1077,78 @@ class DownloadAndDirectionTests(ServerTests):
             assert rows["zh"]["direction"] == "zh-en" and not rows["zh"]["downloadable"]
             assert rows["bad"]["direction"] == ""
             assert app.job_info("zh")["direction"] == "zh-en"
+
+
+class XliffImportApiTests(ServerTests):
+    """The Text tab's XLIFF import flow over HTTP (docs/XLIFF_IMPORT.md)."""
+
+    def test_upload_review_report_apply_dismiss_and_refusals(self):
+        from book_agent.text_edits import history_for_segment
+        from book_agent.xliff_export import export_xliff
+        from tests.test_compile_stages import CompileStageTests
+        from tests.test_xliff_import import S1, _edit_export
+
+        with tempfile.TemporaryDirectory() as directory:
+            config = AppConfig.model_validate({"audit": {"semantic_enabled": False}})
+            workspace = CompileStageTests().prepare_workspace(Path(directory), config)
+            job = workspace.root.name
+            app = UiApp(workspace.root.parent, Path(directory), [])
+            server, call = self.serve(app)
+            token = {"X-UI-Token": app.token}
+
+            def get(path):
+                status, text = call(path)
+                return status, json.loads(text)
+
+            def post(path, body):
+                status, text = call(path, body, token)
+                return status, json.loads(text)
+
+            try:
+                assert get(f"/api/jobs/{job}/text/import") == (200, {"pending": None, "last": None})
+
+                xliff = _edit_export(export_xliff(workspace), targets={S1: "第一章"})
+                status, preview = post(f"/api/jobs/{job}/text/import", {"file_name": "book.en-zh.xlf", "xliff": xliff})
+                assert status == 200 and preview["counts"] == {"import": 1, "unchanged": 3}
+                import_id = preview["import_id"]
+                status, state = get(f"/api/jobs/{job}/text/import")
+                assert status == 200 and state["pending"]["import_id"] == import_id
+
+                url = f"{call.base}/api/jobs/{job}/text/import/report?import_id={import_id}"
+                with urllib.request.urlopen(url) as response:
+                    assert response.headers["Content-Type"] == "text/csv; charset=utf-8"
+                    assert 'filename="book.en-zh.import-report.csv"' in response.headers["Content-Disposition"]
+                    assert "will import" in response.read().decode("utf-8-sig")
+                assert call(f"/api/jobs/{job}/text/import/report?import_id=nope")[0] == 404
+
+                status, refused = post(f"/api/jobs/{job}/text/import/apply", {"import_id": import_id, "reason": "ok"})
+                assert status == 422 and "reason" in refused["error"]
+                running = {**app.job_info(job), "running": True}
+                with patch.object(UiApp, "job_info", return_value=running):
+                    status, refused = post(
+                        f"/api/jobs/{job}/text/import/apply", {"import_id": import_id, "reason": "Translator pass."}
+                    )
+                assert status == 422 and "running" in refused["error"]
+
+                status, result = post(
+                    f"/api/jobs/{job}/text/import/apply",
+                    {"import_id": import_id, "reason": "Translator pass.", "include_stale": False},
+                )
+                assert status == 200 and [item["segment_id"] for item in result["applied"]] == [S1]
+                assert history_for_segment(workspace, S1)[-1].reason == "Translator pass. (imported from book.en-zh.xlf)"
+                status, state = get(f"/api/jobs/{job}/text/import")
+                assert state["pending"] is None and state["last"]["import_id"] == import_id
+                assert post(f"/api/jobs/{job}/text/import/dismiss", {"import_id": import_id}) == (200, {"dismissed": True})
+                assert get(f"/api/jobs/{job}/text/import")[1]["last"] is None
+
+                status, refused = post(f"/api/jobs/{job}/text/import", {"file_name": "bad.xlf", "xliff": "<xliff"})
+                assert status == 422 and "not well-formed" in refused["error"]
+                status, again = post(f"/api/jobs/{job}/text/import", {"file_name": "b.xlf", "xliff": export_xliff(workspace)})
+                assert post(f"/api/jobs/{job}/text/import/cancel", {"import_id": again["import_id"]}) == (200, {"cancelled": True})
+                assert get(f"/api/jobs/{job}/text/import")[1]["pending"] is None
+            finally:
+                server.shutdown()
+                server.server_close()
 
 
 class SeriesApiTests(ServerTests):

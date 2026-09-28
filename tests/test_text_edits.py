@@ -20,6 +20,8 @@ from book_agent.text_edits import (
     apply_keep,
     apply_revert,
     apply_take_pipeline,
+    check_edits,
+    classify_check,
     conflicted_segment_ids,
     events_by_segment,
     load_events,
@@ -125,10 +127,16 @@ class TextEditsTests:
         with tempfile.TemporaryDirectory() as directory:
             workspace, segment_id, pipeline_text = _clean_workspace(Path(directory))
             monkeypatch.setattr(
-                "book_agent.text_edits.check_edit",
-                lambda ws, sid, text: [
-                    {"category": "naturalness", "severity": "high", "message": "reads stiffly"}
-                ],
+                "book_agent.text_edits.check_edits",
+                lambda ws, proposed: {
+                    sid: {
+                        "hard": [],
+                        "overridable": [
+                            {"category": "naturalness", "severity": "high", "message": "reads stiffly"}
+                        ],
+                    }
+                    for sid in proposed
+                },
             )
             with pytest.raises(BlockingCheckError) as excinfo:
                 apply_edit(
@@ -383,6 +391,39 @@ class SegmentStatusTests:
         )
         assert status.state is SegmentEditState.PIPELINE
         assert status.text == "a new pipeline text"
+
+
+class CheckEditsTests:
+    def test_a_single_proposal_matches_the_per_edit_check(self):
+        with tempfile.TemporaryDirectory() as directory:
+            workspace, segment_id, _ = _clean_workspace(Path(directory))
+            text = "Hello revised world."  # English left in: hard and overridable findings
+            expected = classify_check(workspace, segment_id, text)
+            assert expected["hard"] and expected["overridable"]
+            assert check_edits(workspace, {segment_id: text}) == {segment_id: expected}
+
+    def test_a_batch_is_checked_as_the_draft_it_produces(self):
+        with tempfile.TemporaryDirectory() as directory:
+            workspace, _, _ = _clean_workspace(Path(directory))
+            segments = load_validated_repaired_documents(workspace)[0].document.segments
+            first, second = segments[2].segment_id, segments[3].segment_id  # different sources
+            same = "这是一段足够长的相同译文用于测试。"
+
+            def duplicated(findings):
+                return any(item["category"] == "duplication" for item in findings["hard"])
+
+            # Alone, each copy sits next to the other's pipeline text: no duplicate.
+            assert not duplicated(classify_check(workspace, first, same))
+            assert not duplicated(classify_check(workspace, second, same))
+            together = check_edits(workspace, {first: same, second: same})
+            assert duplicated(together[second])
+
+    def test_an_unknown_segment_is_refused(self):
+        with tempfile.TemporaryDirectory() as directory:
+            workspace, _, _ = _clean_workspace(Path(directory))
+            with pytest.raises(ValueError, match="absent from the validated draft"):
+                check_edits(workspace, {"D9999-S999999": "文本"})
+            assert check_edits(workspace, {}) == {}
 
 
 class UnresolvedReviewGateTests:

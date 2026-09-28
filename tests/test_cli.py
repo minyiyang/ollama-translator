@@ -655,7 +655,7 @@ class CliTests:
             assert result == 0
             assert "Wrote" in output.getvalue()
             xml = output_path.read_text(encoding="utf-8")
-            assert "urn:oasis:names:tc:xliff:document:2.1" in xml
+            assert "urn:oasis:names:tc:xliff:document:2.0" in xml
             assert "<unit id=" in xml
 
     def test_main_reports_clean_error_for_missing_workspace(self) -> None:

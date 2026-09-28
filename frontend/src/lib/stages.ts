@@ -77,3 +77,24 @@ export function stageActions(stage: Stage): StageAction[] {
   if (stage.status === "paused" && !HUMAN_GATES.has(stage.name)) return ["resume", "rerun"];
   return [];
 }
+
+/**
+ * What last happened to a stage, for the Progress table's "Last change" column.
+ * A stage's `updated_at` moves only when its status changes, so it dates this
+ * action. Null for a stage that has never run.
+ */
+export function lastStageAction(stage: Stage): string | null {
+  if (!stage.updated_at) return null;
+  switch (stage.status) {
+    case "running": return "started";
+    case "completed": return "done";
+    case "failed": return "failed";
+    case "paused":
+      if (HUMAN_GATES.has(stage.name) && !/stopped|paused on request/.test(stage.message)) return "waiting for review";
+      if (stage.message.includes("stopped from the dashboard")) return "stopped";
+      return "paused";
+    // A pending stage that has run before was reset by a rerun of it or an earlier stage.
+    case "pending": return stage.attempts > 0 ? "reset" : null;
+    default: return stage.status;
+  }
+}

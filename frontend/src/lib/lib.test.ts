@@ -108,6 +108,37 @@ describe("stageActions", () => {
   });
 });
 
+describe("lastStageAction", () => {
+  it("names what last happened to a stage", async () => {
+    const { lastStageAction } = await import("./stages");
+    const at = (name: string, status: string, message = "", attempts = 1) =>
+      lastStageAction({ name, status, attempts, message, updated_at: "2026-09-18T03:11:03+00:00" });
+    expect(at("translate", "running")).toBe("started");
+    expect(at("translate", "completed")).toBe("done");
+    expect(at("translate", "failed")).toBe("failed");
+    expect(at("translate", "paused", "stopped from the dashboard; resume to continue")).toBe("stopped");
+    expect(at("translate", "paused", "paused on request; resume to continue")).toBe("paused");
+    expect(at("compile", "paused", "result=pending; 2 segment(s) require human review")).toBe("waiting for review");
+    expect(at("compile", "paused", "stopped from the dashboard; resume to continue")).toBe("stopped");
+    expect(at("audit_translation", "pending")).toBe("reset");
+    expect(at("audit_translation", "pending", "", 0)).toBeNull(); // never ran
+    expect(lastStageAction({ name: "translate", status: "completed", attempts: 1, message: "" })).toBeNull();
+  });
+});
+
+describe("shortTimestamp", () => {
+  it("shortens the date the nearer it is", async () => {
+    const { shortTimestamp } = await import("./format");
+    const now = new Date(2026, 8, 28, 16, 30);
+    const iso = (...parts: [number, number, number, number, number]) => new Date(...parts).toISOString();
+    expect(shortTimestamp(iso(2026, 8, 28, 9, 5), now)).toBe("09:05");
+    expect(shortTimestamp(iso(2026, 8, 18, 11, 8), now)).toBe("Sep 18 11:08");
+    expect(shortTimestamp(iso(2025, 11, 31, 23, 59), now)).toBe("2025-12-31 23:59");
+    expect(shortTimestamp("", now)).toBe("");
+    expect(shortTimestamp("not a date", now)).toBe("");
+  });
+});
+
 describe("directionLabel", () => {
   it("shows a translation direction as source → target", async () => {
     const { directionLabel, outputUrl, xliffExportUrl } = await import("./format");

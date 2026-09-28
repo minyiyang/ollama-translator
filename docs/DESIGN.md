@@ -112,6 +112,11 @@ ollama-translator/
     styles.py            built-in/custom prose profiles
     stages/              one module per workflow stage
     validators/          deterministic artifact checks
+    text_edits.py        tracked manual edit log, checks, and compile overlay
+    xliff_export.py      XLIFF 2.1 export of the current translation
+    xliff_import.py      XLIFF import: parse, classify, preview, apply
+    web/                 loopback dashboard server; built UI in web/static
+  frontend/              dashboard source (React + TypeScript)
   prompts/               versioned task and style prompts
   tests/                 unit, integration, and fixture tests
 ```
@@ -390,6 +395,12 @@ Validation publishes corrected documents separately from repair-stage drafts,
 preserving the earlier version as a safety artifact. Compilation reads only
 these revalidated documents, and final EPUB validation compares extracted text
 against those same artifacts rather than the superseded repair-stage drafts.
+Human changes (Final review decisions and Text tab edits) are not written into
+those artifacts. They are events in `edits/segment-edits.jsonl`, a log owned by
+no stage, which compile overlays onto the revalidated documents; each event
+records the hash of the pipeline text it was based on, so a rerun that changes
+that text turns the edit into a conflict instead of silently discarding either
+version (see [FULL_TEXT_REVIEW.md](FULL_TEXT_REVIEW.md)).
 A structurally invalid or semantically rejected
 feedback repair remains in review and compilation stays blocked.
 

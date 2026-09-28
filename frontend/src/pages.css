@@ -56,6 +56,7 @@
 .stages tr.paused td, .stages tr.failed td { background: var(--warn-bg); }
 .stages .msg { color: var(--muted); font-size: 12px; max-width: 520px; overflow-wrap: anywhere; }
 .stages .work { min-width: 170px; }
+.stages .last-change { white-space: nowrap; }
 .stages .work .bar { margin-top: 4px; }
 .icon.completed { color: var(--ok); }
 .icon.running { color: var(--accent); }
@@ -72,7 +73,7 @@
 
 /* Glossary */
 .stats { display: flex; gap: 24px; flex-wrap: wrap; }
-.stats .stats-action { margin-left: auto; align-self: center; }
+.stats .stats-actions { margin-left: auto; align-self: center; display: flex; gap: 8px; }
 .stat b { display: block; font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
 .stat span { color: var(--muted); font-size: 12px; }
 .filters { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; margin-bottom: 12px; }
@@ -350,3 +351,13 @@ select.term-category { width: auto; }
 .evidence-book { display: grid; gap: 4px; }
 .evidence-entry { font-size: 13px; }
 .series-log { max-height: 280px; }
+
+/* XLIFF import (docs/XLIFF_IMPORT.md) */
+.import-card .import-head { display: flex; align-items: center; gap: 8px; margin: 0 0 10px; }
+.import-card .import-head h2 { margin: 0; flex: 1; }
+.import-card .spacer { flex: 1; }
+.import-card .import-optins { display: flex; flex-direction: column; gap: 4px; margin: 10px 0; }
+.import-card .import-apply { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 10px; }
+.import-card .import-apply input[type="text"] { flex: 1; min-width: 240px; }
+.import-card .import-skipped { margin-top: 10px; }
+.text-pairs tr.import-will > td:first-child { box-shadow: inset 3px 0 0 var(--ok); }

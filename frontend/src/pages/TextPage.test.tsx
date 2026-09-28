@@ -101,6 +101,7 @@ function textApi(overrides: Record<string, unknown> = {}) {
       url.searchParams.get("document_id") === "chapter-2" ? chapterTwo() : chapterOne(),
     "POST /api/jobs/demo/text/check": CLEAN_CHECK,
     "POST /api/jobs/demo/text/edit": { event_id: "E000009", action: "edit" },
+    "GET /api/jobs/demo/text/import": { pending: null, last: null },
     ...overrides,
   });
 }
@@ -477,6 +478,274 @@ describe("Text tab", () => {
       renderTextTab();
       await screen.findByText(/1 edit not in the compiled book/);
       expect(screen.getByRole("button", { name: "Recompile" })).toBeDisabled();
+    });
+  });
+
+  describe("importing XLIFF", () => {
+    const importItem = (overrides: Record<string, unknown>) => ({
+      segment_id: null,
+      document_id: null,
+      message: "",
+      imported_text: null,
+      stale: false,
+      edited_since_export: false,
+      hard: [],
+      overridable: [],
+      ...overrides,
+    });
+
+    const preview = () => ({
+      import_id: "I20260928T101500-abc123",
+      file_name: "demo.zh.xlf",
+      created_at: "2026-09-28T10:15:00+08:00",
+      warnings: [],
+      counts: {},
+      items: [
+        importItem({
+          unit_id: "D0000-S000001", segment_id: "D0000-S000001", document_id: "chapter-1",
+          category: "import", imported_text: "您好，世界。", current_text: "你好，世界。",
+        }),
+        importItem({
+          unit_id: "D0000-S000002", segment_id: "D0000-S000002", document_id: "chapter-1",
+          category: "edited_since_export", edited_since_export: true,
+          message: "edited in the Text tab after export", imported_text: "译者的段落。", current_text: "嵌套段落。",
+        }),
+        importItem({
+          unit_id: "D0000-S000003", segment_id: "D0000-S000003", document_id: "chapter-1",
+          category: "fails_checks", imported_text: "", current_text: "我的译文。",
+          hard: [{ category: "empty", severity: "high", message: "translation is empty" }],
+        }),
+        importItem({
+          unit_id: "D0001-S000001", segment_id: "D0001-S000001", document_id: "chapter-2",
+          category: "unchanged", imported_text: "第二章。", current_text: "第二章。",
+        }),
+        importItem({ unit_id: "D0099-S000001", category: "unknown_id", message: "no such segment in this book" }),
+      ],
+    });
+
+    const lastImport = () => ({
+      import_id: "I20260927T090000-def456",
+      file_name: "earlier.xlf",
+      applied_at: "2026-09-27T09:00:00+08:00",
+      applied: [{ segment_id: "D0000-S000001", document_id: "chapter-1", event_id: "E000010" }],
+      skipped: [
+        { unit_id: "D0000-S000003", segment_id: "D0000-S000003", document_id: "chapter-1", category: "fails_checks", message: "translation is empty", imported_text: "坏的译文" },
+        { unit_id: "D0001-S000001", segment_id: "D0001-S000001", document_id: "chapter-2", category: "stale", message: "the pipeline text changed after export", imported_text: "第二章！" },
+      ],
+      unchanged_count: 1,
+      dropped_at_apply: 0,
+    });
+
+    const xliffFile = () => new File(["<xliff/>"], "demo.zh.xlf", { type: "application/xml" });
+
+    async function uploadPreview(api = textApi({ "POST /api/jobs/demo/text/import": preview() })) {
+      const user = renderTextTab();
+      await screen.findByText("Hello world.");
+      await user.upload(screen.getByTestId("xliff-file"), xliffFile());
+      await screen.findByRole("region", { name: "Import preview" });
+      return { api, user };
+    }
+
+    it("puts Import beside Export in the stats card", async () => {
+      textApi();
+      renderTextTab();
+      await screen.findByText("Hello world.");
+      const actions = screen.getByRole("link", { name: "⤓ Export XLIFF" }).parentElement as HTMLElement;
+      expect(within(actions).getByRole("button", { name: "⤒ Import XLIFF" })).toBeEnabled();
+      expect(screen.getByTestId("xliff-file")).toHaveAttribute("accept", ".xlf,.xliff,.xml");
+    });
+
+    it("hides Import when the book isn't editable yet", async () => {
+      textApi({
+        "GET /api/jobs/demo/text": outline({ editable: false }),
+        "GET /api/jobs/demo/text/chapter": chapterOne(false),
+      });
+      renderTextTab();
+      await screen.findByText("Hello world.");
+      expect(screen.queryByRole("button", { name: "⤒ Import XLIFF" })).not.toBeInTheDocument();
+    });
+
+    it("uploads the file and switches the tab into review mode", async () => {
+      const { api } = await uploadPreview();
+
+      expect(api.posted("/api/jobs/demo/text/import")).toEqual([{ file_name: "demo.zh.xlf", xliff: "<xliff/>" }]);
+      const card = screen.getByRole("region", { name: "Import preview" });
+      expect(card).toHaveTextContent("Import preview · demo.zh.xlf");
+      const filter = within(card).getByRole("radiogroup", { name: "Import filter" });
+      expect(within(filter).getByRole("radio", { name: "Will import 1" })).toHaveAttribute("aria-checked", "true");
+      expect(within(filter).getByRole("radio", { name: "Skipped 3" })).toBeInTheDocument();
+      expect(within(filter).getByRole("radio", { name: "Unchanged 1" })).toBeInTheDocument();
+      expect(within(filter).getByRole("radio", { name: "Not in file 0" })).toBeInTheDocument();
+      expect(card).toHaveTextContent("1 unit in the file is not in this book: D0099-S000001");
+
+      // The stats card, view filter and edit actions give way to the review.
+      expect(screen.queryByRole("link", { name: "⤓ Export XLIFF" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("radiogroup", { name: "Filter segments" })).not.toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Edit" })).not.toBeInTheDocument();
+
+      // Only the importable row shows, as a diff against the current text.
+      expect(screen.getByText("1 of 3 segments")).toBeInTheDocument();
+      expect(within(rowOf("Hello world.")).getByText("will import")).toBeInTheDocument();
+      expect(within(rowOf("Hello world.")).getByText("您", { selector: "ins" })).toBeInTheDocument();
+      const sidebar = screen.getByRole("complementary");
+      expect(within(sidebar).getByRole("button", { name: /Chapter One/ })).toHaveTextContent("1 to import");
+    });
+
+    it("shows skipped rows with their reasons", async () => {
+      const { user } = await uploadPreview();
+      await user.click(screen.getByRole("radio", { name: "Skipped 3" }));
+
+      expect(screen.queryByText("Hello world.")).not.toBeInTheDocument();
+      expect(within(rowOf("Nested paragraph.")).getByText("edited since export")).toBeInTheDocument();
+      expect(within(rowOf("Plain item.")).getByText("fails checks")).toBeInTheDocument();
+      expect(within(rowOf("Plain item.")).getByText("translation is empty")).toBeInTheDocument();
+    });
+
+    it("updates the counts live as opt-ins change", async () => {
+      const { user } = await uploadPreview();
+      const card = screen.getByRole("region", { name: "Import preview" });
+
+      // Only opt-ins that would add something are offered.
+      expect(within(card).queryByText(/stale segment/)).not.toBeInTheDocument();
+      await user.click(within(card).getByRole("checkbox", { name: /1 segment edited in the Text tab after export/ }));
+
+      expect(within(card).getByRole("radio", { name: "Will import 2" })).toBeInTheDocument();
+      expect(within(card).getByRole("radio", { name: "Skipped 2" })).toBeInTheDocument();
+      expect(within(rowOf("Nested paragraph.")).getByText("will import")).toBeInTheDocument();
+      expect(within(screen.getByRole("complementary")).getByRole("button", { name: /Chapter One/ })).toHaveTextContent("2 to import");
+    });
+
+    it("needs a reason, then applies with the chosen opt-ins and shows the Last import card", async () => {
+      const result = { ...lastImport(), import_id: "I20260928T101500-abc123", file_name: "demo.zh.xlf", skipped: [] };
+      const { api, user } = await uploadPreview(textApi({
+        "POST /api/jobs/demo/text/import": preview(),
+        "POST /api/jobs/demo/text/import/apply": result,
+      }));
+      const card = screen.getByRole("region", { name: "Import preview" });
+      await user.click(within(card).getByRole("checkbox", { name: /edited in the Text tab/ }));
+
+      const apply = within(card).getByRole("button", { name: "Import 2" });
+      expect(apply).toBeDisabled();
+      await user.type(within(card).getByRole("textbox", { name: "Import reason" }), "Translator pass");
+      expect(apply).toBeEnabled();
+      await user.click(apply);
+
+      expect(await screen.findByText("Imported 1 segment.")).toBeInTheDocument();
+      expect(api.posted("/api/jobs/demo/text/import/apply")).toEqual([{
+        import_id: "I20260928T101500-abc123",
+        reason: "Translator pass",
+        include_stale: false,
+        include_edited: true,
+        include_overridable: false,
+      }]);
+      expect(screen.queryByRole("region", { name: "Import preview" })).not.toBeInTheDocument();
+      expect(screen.getByRole("region", { name: "Last import" })).toHaveTextContent("demo.zh.xlf: imported 1, skipped 0");
+      expect(screen.getByRole("link", { name: "⤓ Export XLIFF" })).toBeInTheDocument();
+    });
+
+    it("keeps Import disabled while the job is running", async () => {
+      await uploadPreview(textApi({
+        "GET /api/jobs/demo/info": jobInfo({ running: true, overall: "running" }),
+        "POST /api/jobs/demo/text/import": preview(),
+      }));
+      const card = screen.getByRole("region", { name: "Import preview" });
+      await userEvent.type(within(card).getByRole("textbox", { name: "Import reason" }), "Translator pass");
+      expect(within(card).getByRole("button", { name: "Import 1" })).toBeDisabled();
+    });
+
+    it("cancels the preview and returns to the normal view", async () => {
+      const { api, user } = await uploadPreview(textApi({
+        "POST /api/jobs/demo/text/import": preview(),
+        "POST /api/jobs/demo/text/import/cancel": { cancelled: true },
+      }));
+      await user.click(screen.getByRole("button", { name: "Cancel import" }));
+
+      await waitFor(() => expect(screen.queryByRole("region", { name: "Import preview" })).not.toBeInTheDocument());
+      expect(api.posted("/api/jobs/demo/text/import/cancel")).toEqual([{ import_id: "I20260928T101500-abc123" }]);
+      expect(screen.getByRole("radiogroup", { name: "Filter segments" })).toBeInTheDocument();
+      expect(screen.getByText("3 of 3 segments")).toBeInTheDocument();
+    });
+
+    it("resumes a pending preview after a reload", async () => {
+      textApi({ "GET /api/jobs/demo/text/import": { pending: preview(), last: null } });
+      renderTextTab();
+      expect(await screen.findByRole("region", { name: "Import preview" })).toHaveTextContent("demo.zh.xlf");
+    });
+
+    it("reports a file the server refuses without entering review mode", async () => {
+      textApi({
+        "POST /api/jobs/demo/text/import": jsonResponse({ error: "this is XLIFF 1.2; export XLIFF 2.x" }, 400),
+      });
+      const user = renderTextTab();
+      await screen.findByText("Hello world.");
+      await user.upload(screen.getByTestId("xliff-file"), xliffFile());
+
+      expect(await screen.findByText(/this is XLIFF 1.2/)).toBeInTheDocument();
+      expect(screen.queryByRole("region", { name: "Import preview" })).not.toBeInTheDocument();
+    });
+
+    // Regression: error toasts are sticky, so a refused file's error stayed up after
+    // the next file was accepted and read as that file's result.
+    it("clears an earlier file's error when the next file is accepted", async () => {
+      let refuse = true;
+      textApi({
+        "POST /api/jobs/demo/text/import": () =>
+          refuse ? jsonResponse({ error: "the file was exported from a different book" }, 400) : preview(),
+      });
+      const user = renderTextTab();
+      await screen.findByText("Hello world.");
+      await user.upload(screen.getByTestId("xliff-file"), new File(["<xliff/>"], "other-book.xlf"));
+      expect(await screen.findByText(/different book/)).toBeInTheDocument();
+
+      refuse = false;
+      await user.upload(screen.getByTestId("xliff-file"), xliffFile());
+      await screen.findByRole("region", { name: "Import preview" });
+      expect(screen.queryByText(/different book/)).not.toBeInTheDocument();
+      expect(screen.getByRole("status")).toHaveTextContent("Checked demo.zh.xlf.");
+    });
+
+    it("refuses a file too large to send", async () => {
+      const api = textApi();
+      const user = renderTextTab();
+      await screen.findByText("Hello world.");
+      const file = xliffFile();
+      Object.defineProperty(file, "size", { value: 8 * 1024 * 1024 });
+      await user.upload(screen.getByTestId("xliff-file"), file);
+
+      expect(await screen.findByText(/too large to import/)).toBeInTheDocument();
+      expect(api.posted("/api/jobs/demo/text/import")).toEqual([]);
+    });
+
+    it("opens a skipped segment from the Last import card, pre-filled, even in another chapter", async () => {
+      textApi({ "GET /api/jobs/demo/text/import": { pending: null, last: lastImport() } });
+      const user = renderTextTab();
+      const card = await screen.findByRole("region", { name: "Last import" });
+      expect(card).toHaveTextContent("earlier.xlf: imported 1, skipped 2");
+      expect(within(card).getByRole("link", { name: "Download report" })).toHaveAttribute(
+        "href", "/api/jobs/demo/text/import/report?import_id=I20260927T090000-def456",
+      );
+
+      await user.click(within(card).getByRole("button", { name: "Show skipped ▾" }));
+      const [sameChapter, otherChapter] = within(card).getAllByRole("button", { name: "Open" });
+      await user.click(sameChapter);
+      expect(editorOf("坏的译文")).toBeInTheDocument();
+
+      await user.click(otherChapter);
+      expect(await screen.findByDisplayValue("第二章！")).toBeInTheDocument();
+      expect(screen.getByText("Second chapter.")).toBeInTheDocument();
+    });
+
+    it("dismisses the Last import card", async () => {
+      const api = textApi({
+        "GET /api/jobs/demo/text/import": { pending: null, last: lastImport() },
+        "POST /api/jobs/demo/text/import/dismiss": { dismissed: true },
+      });
+      const user = renderTextTab();
+      const card = await screen.findByRole("region", { name: "Last import" });
+      await user.click(within(card).getByRole("button", { name: "Dismiss" }));
+
+      await waitFor(() => expect(screen.queryByRole("region", { name: "Last import" })).not.toBeInTheDocument());
+      expect(api.posted("/api/jobs/demo/text/import/dismiss")).toEqual([{ import_id: "I20260927T090000-def456" }]);
     });
   });
 });

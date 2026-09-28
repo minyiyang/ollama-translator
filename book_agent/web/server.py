@@ -50,6 +50,15 @@ from ..stages.compile import load_compiled_epub_path
 from .jobs import ProgressReader, draft_direction, job_direction, job_path, list_jobs, open_job
 from .text_view import text_chapter, text_outline
 from ..xliff_export import export_xliff
+from ..xliff_import import (
+    ImportOptions,
+    apply_import,
+    cancel_import,
+    dismiss_import,
+    import_report_csv,
+    import_state,
+    start_import,
+)
 from ..text_edits import (
     BlockingCheckError,
     apply_edit,
@@ -512,6 +521,21 @@ class UiApp:
         name = f"{workspace.source_file.stem}.{direction}.xlf"
         return export_xliff(workspace).encode("utf-8"), name
 
+    def apply_xliff_import(self, job_id: str, body: dict[str, Any]) -> dict[str, Any]:
+        """Apply a pending XLIFF import (docs/XLIFF_IMPORT.md); refused while the job runs."""
+        if self.job_info(job_id)["running"]:
+            raise ValueError("the job is running; wait for it to finish or pause it before importing")
+        return apply_import(
+            open_job(self.runs, job_id),
+            str(body.get("import_id", "")),
+            str(body.get("reason", "")),
+            ImportOptions(
+                include_stale=bool(body.get("include_stale")),
+                include_edited=bool(body.get("include_edited")),
+                include_overridable=bool(body.get("include_overridable")),
+            ),
+        )
+
     def rerun_preview(self, job_id: str, stage: str) -> dict[str, Any]:
         return rerun_preview(open_job(self.runs, job_id), stage)
 
@@ -672,6 +696,17 @@ def make_handler(app: UiApp, port_ref: list[int]) -> type[BaseHTTPRequestHandler
                     for event in history_for_segment(workspace(), q.get("segment", [""])[0])
                 ],
             },
+            ("GET", "text/import"): lambda q, b: import_state(workspace()),
+            ("POST", "text/import"): lambda q, b: start_import(
+                workspace(), str(b.get("file_name", "")), str(b["xliff"])
+            ),
+            ("POST", "text/import/apply"): lambda q, b: app.apply_xliff_import(job_id, b),
+            ("POST", "text/import/cancel"): lambda q, b: (
+                cancel_import(workspace(), str(b.get("import_id", ""))) or {"cancelled": True}
+            ),
+            ("POST", "text/import/dismiss"): lambda q, b: (
+                dismiss_import(workspace(), str(b.get("import_id", ""))) or {"dismissed": True}
+            ),
         }
 
     def series_routes(series_id: str) -> dict[tuple[str, str], Callable[[dict, dict], Any]]:
@@ -785,6 +820,15 @@ def make_handler(app: UiApp, port_ref: list[int]) -> type[BaseHTTPRequestHandler
                 except (ValueError, OSError) as error:
                     return self._json({"error": str(error)}, HTTPStatus.NOT_FOUND)
                 return self._send(data, "application/xliff+xml; charset=utf-8", download=name)
+            if method == "GET" and len(parts) == 6 and parts[1] == "jobs" and parts[3:] == ["text", "import", "report"]:
+                try:
+                    validate_job_id(parts[2])
+                    data, name = import_report_csv(
+                        open_job(app.runs, parts[2]), parse_qs(url.query).get("import_id", [""])[0]
+                    )
+                except (ValueError, OSError) as error:
+                    return self._json({"error": str(error)}, HTTPStatus.NOT_FOUND)
+                return self._send(data, "text/csv; charset=utf-8", download=name)
             if method == "POST" and parts == ["api", "uploads"]:
                 return self._upload(parse_qs(url.query).get("name", [""])[0])
             if method == "POST":

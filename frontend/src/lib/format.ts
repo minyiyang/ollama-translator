@@ -38,3 +38,20 @@ export const outputUrl = (jobId: string) => `/api/jobs/${encodeURIComponent(jobI
 
 /** Download URL of the whole book's current translation (edits included) as XLIFF 2.1. */
 export const xliffExportUrl = (jobId: string) => `/api/jobs/${encodeURIComponent(jobId)}/text/export?format=xliff`;
+
+/** Download URL of an XLIFF import's per-unit CSV report. */
+export const importReportUrl = (jobId: string, importId: string) =>
+  `/api/jobs/${encodeURIComponent(jobId)}/text/import/report?import_id=${encodeURIComponent(importId)}`;
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+
+/** Compact local time for a table cell: "14:05" today, "Sep 18 14:05" this year, else "2025-09-18 14:05". */
+export function shortTimestamp(iso: string, now = new Date()): string {
+  const at = new Date(iso);
+  if (!iso || Number.isNaN(at.getTime())) return "";
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const time = `${pad(at.getHours())}:${pad(at.getMinutes())}`;
+  if (at.toDateString() === now.toDateString()) return time;
+  if (at.getFullYear() === now.getFullYear()) return `${MONTHS[at.getMonth()]} ${at.getDate()} ${time}`;
+  return `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())} ${time}`;
+}

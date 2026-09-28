@@ -40,6 +40,9 @@ Chinese. Everything below happens in the local browser dashboard:
 book-agent ui          # http://127.0.0.1:8765/
 ```
 
+> Screenshots are omitted while the dashboard UI is still changing; they
+> will be recaptured once it is stable.
+
 **1. Configure and start.** The Jobs page lists every job, ten per page.
 *Add new job* asks only for the source book (pick a known file, browse, or
 drop one), a config file name, and a job ID that defaults to the config name;
@@ -81,14 +84,18 @@ its own.
 segment shows the source with
 neighboring context, the findings (click one to highlight the quoted words),
 earlier pipeline versions, and an editor with a live diff and the same
-deterministic check that `resolve-review` applies:
+deterministic check that `resolve-review` applies. Applying the decisions
+approves the draft; the desk then compiles and validates the EPUB.
 
-![Final Review Desk resolving a flagged segment](assets/demo-final-review-desk-processing.png)
-
-Applying the decisions approves the draft; the desk then compiles and
-validates the EPUB:
-
-![Final Review Desk after applying decisions and compiling](assets/demo-final-review-desk-results.png)
+**5. Read and edit the whole book.** The **Text** tab shows every chapter as
+paired source and translation rows. Any segment can be edited in place, with
+a reason, the same deterministic check, and a diff. Every change, including
+each Final review decision, is an event in one edit log that no rerun wipes,
+so it can be reverted and its history read. A rerun that changes a segment
+under an edit turns it into a conflict for you to settle. *Recompile*
+rebuilds the book with the edits in seconds. **⤓ Export XLIFF** hands the
+book to a CAT tool, and **⤒ Import XLIFF** brings the translator's file back
+through a preview before anything is written.
 
 ## Design goals
 
@@ -131,7 +138,8 @@ reasoning to justify the additional runtime.
 - [Book-level consistency proposal](docs/BOOK_CONSISTENCY.md)
 - [Dashboard localization plan](docs/LOCALIZATION.md)
 - [Dashboard stage control: resume, rerun, early approval](docs/STAGE_CONTROL.md)
-- [Full-text review and tracked manual edits plan](docs/FULL_TEXT_REVIEW.md)
+- [Full-text review and tracked manual edits](docs/FULL_TEXT_REVIEW.md)
+- [XLIFF import](docs/XLIFF_IMPORT.md)
 - [Series glossary in the dashboard plan](docs/SERIES_GLOSSARY_UI.md)
 - [Working plan](docs/PLAN.md)
 - [Unrun inference-framework benchmark plan](docs/FRAMEWORK_BENCHMARK_PLAN.md)
@@ -554,15 +562,38 @@ leaving LLM review disabled performs no independent review.
 - **Progress** follows any job in `--runs` from `state.sqlite3` and its session
   logs. A failed or paused stage offers *Resume* (finished work is kept) and
   *Rerun*; a completed one offers *Rerun from here*. A rerun (`retry --stage X
-  --resume`) first warns which stages are redone and what is lost.
+  --resume`) first warns which stages are redone and what is lost. A *Last
+  change* column shows what last happened to each stage (started, done,
+  failed, stopped, paused, waiting for review, reset) and when.
 - **Glossary** edits and approves a paused glossary, or hands it to the LLM
   reviewer (`approve --glossary` / `--llm-glossary`).
+- **Text** shows the book chapter by chapter as paired source and translation
+  rows, filterable to flagged, queued, edited, or conflicting segments.
+  Once `validate_repaired` completes, any segment can be edited in place:
+  saving needs a reason and passes the deterministic check (broken
+  structure or markers, empty, untranslated, duplicated text, and punctuation
+  errors block; other findings need an override reason). Edits go to
+  `edits/segment-edits.jsonl`, an append-only log no stage owns, so reruns
+  keep them; compile applies them on top of the validated draft, and
+  *Recompile* rebuilds the book when edits are newer than it. If a rerun
+  changes a segment's translation under an edit, it becomes a conflict that
+  blocks compile until you keep your edit or take the new text. Each edit
+  has a history and can be reverted. **⤓ Export XLIFF** downloads the book as
+  XLIFF 2.1; **⤒ Import XLIFF** previews a translated file segment by
+  segment, matching units by ID and unchanged source text, and writes only
+  what you confirm, as edits with one reason (see
+  [XLIFF import](docs/XLIFF_IMPORT.md)).
 - **Final review** resolves the human-review queue with the same stale-safe
   validation as `resolve-review`; accepting a segment requires a preset or
-  custom reason. Once the undecided segments fit
+  custom reason. Decisions are written to the same edit log as Text tab
+  edits, and a Text tab edit also resolves a queued segment. Once the
+  undecided segments fit
   `workflow.compile_max_unresolved_review_segments`, it offers to apply the
   decided ones and approve the final draft. `book-agent review-ui <workspace>`
   opens this page.
+
+If the dashboard hits an unexpected error, it shows a banner with the
+message, technical details, and a *Reload* button instead of a blank page.
 
 See [Dashboard stage control](docs/STAGE_CONTROL.md) for resume, rerun, and
 early approval.
@@ -579,7 +610,7 @@ Node.js. To change the UI (Node 24):
 cd frontend
 npm ci
 npm run dev      # hot-reloading UI; proxies /api to a running `book-agent ui`
-npm test         # unit tests for the pure helpers
+npm test         # helper unit tests and component tests (jsdom + Testing Library)
 npm run build    # type-check and rebuild book_agent/web/static; commit the result
 ```
 
@@ -758,7 +789,10 @@ python -m book_agent.cli resolve-review `
 Application publishes `final-human-review-verdict.md` and `.json`, containing
 the reviewer decision, reason, before/after translation, remaining queue, and
 the final approval readiness state. The older compact
-`{"resolutions": [...]}` input remains supported for automation.
+`{"resolutions": [...]}` input remains supported for automation. Each applied
+decision is recorded as an event in `edits/segment-edits.jsonl` rather than
+rewriting the validated draft, so it survives a rerun and appears in the
+dashboard's Text tab history; compile applies it on top of the draft.
 
 Post-repair processing uses three resumable stages so Ollama does not switch
 models for every rejected document:
@@ -825,6 +859,15 @@ book-agent report "D:\runs\my-job" --json
 
 `report` includes captured metadata, every recorded artifact, and the report
 artifact paths. JSON output is intended for scripts.
+
+Manual edits (Text tab edits and Final review decisions) are listed, and the
+current translation exported as XLIFF 2.1, with:
+
+```powershell
+book-agent edits "D:\runs\my-job"
+book-agent edits "D:\runs\my-job" --json
+book-agent edits "D:\runs\my-job" --export xliff --output my-job.xlf
+```
 
 Named production configurations are captured with a profile version and source
 file hash. `status` reports source-config drift, and the effective field-level

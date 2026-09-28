@@ -4,9 +4,10 @@ Status: **all five phases implemented.** The Text tab reads and edits
 segments, with a tracked history that compile overlays onto the book, that
 survives reruns as conflicts you unblock, and that Final review now shares:
 a resolution is an edit-log event, not a rewrite of validate_repaired's
-stored draft. XLIFF 2.1 export (not import) is available from the Text
-tab's **⤓ Export XLIFF** button and via `book-agent edits <job> --export
-xliff`. Last updated: 2026-09-28.
+stored draft. XLIFF 2.1 export is available from the Text tab's
+**⤓ Export XLIFF** button and via `book-agent edits <job> --export xliff`;
+import (**⤒ Import XLIFF**, reviewed before anything is written) is
+described in docs/XLIFF_IMPORT.md. Last updated: 2026-09-28.
 
 A dashboard tab for reading the whole book as source and translation side by
 side and editing any translated segment, with every manual edit tracked, kept
@@ -198,7 +199,8 @@ counts already surface conflicts once you're on the tab.
 card, since it covers the whole book rather than the filtered rows below.
 It appears once the validated draft exists (the export is built from it)
 and downloads `<source>.<direction>.xlf`, including edits not yet
-compiled.
+compiled. **⤒ Import XLIFF** sits beside it and brings a translated file
+back through a review mode of this tab (docs/XLIFF_IMPORT.md).
 
 ## 9. API
 
@@ -240,8 +242,9 @@ user name on the server.
   and `flagged` are dynamic (excluded once a segment has an active edit).
 - `book_agent/xliff_export.py`: `export_xliff` — one `.xlf` for the book, one
   `<file>` per chapter, `<I000>` markers mapped to paired `<pc>` elements,
-  `state="reviewed"` for an active edit else `"translated"`. Export only;
-  import is not built.
+  `state="reviewed"` for an active edit else `"translated"`, plus
+  book-agent metadata that import reads back. Import is
+  `book_agent/xliff_import.py` (docs/XLIFF_IMPORT.md).
 - `frontend/src/pages/TextPage.tsx`, with a link to Final review from a
   queued segment. Not a shared `SegmentEditor` component with Final review —
   ReviewPage.tsx's is a full-page one-segment-at-a-time editor; TextPage's is
@@ -258,7 +261,7 @@ user name on the server.
 | 2 ✅ | Edit log module, check/edit/revert/history APIs, in-place editor with reasons, diff, history | Edit any segment with a tracked history |
 | 3 ✅ | Compile overlay, active-edit hash, "edits not compiled" badge, Recompile | Download a book that contains the edits |
 | 4 ✅ | Conflict detection after reruns, compile gate integration, unblock actions, rerun warning text | Edits survive reruns safely |
-| 5 ✅ | Final review decisions written as edit-log events; XLIFF 2.1 export (import not built) | One history for all human changes; CAT-tool hand-off |
+| 5 ✅ | Final review decisions written as edit-log events; XLIFF 2.1 export (import added later, docs/XLIFF_IMPORT.md) | One history for all human changes; CAT-tool hand-off |
 
 ## 12. Tests
 
@@ -337,8 +340,7 @@ user name on the server.
    per book (chapters as separate `<file>` elements inside it); unedited
    segments export `state="translated"`, only actively-edited ones
    `state="reviewed"`.
-4. XLIFF import is not built. If it's wanted later: does an imported
-   `state="reviewed"` segment become an `edit` event (indistinguishable from
-   a Text tab edit) or its own event kind, and how do foreign `<unit>` ids
-   (from a CAT tool) map back onto our `segment_id`s if a translator
-   renumbers or splits units?
+4. ~~How would XLIFF import map back?~~ Decided in docs/XLIFF_IMPORT.md:
+   imported segments become ordinary `edit` events (the reason names the
+   file), and units match only on our unit id plus identical source text;
+   renumbered or split units are skipped and reported.

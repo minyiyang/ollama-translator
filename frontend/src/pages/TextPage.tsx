@@ -7,9 +7,25 @@ import { Shell } from "../components/Shell";
 import { SideItem, SideLayout } from "../components/SideLayout";
 import { useToast } from "../components/Toast";
 import { Chip } from "../components/ui";
+import { ImportPreviewCard, LastImportCard } from "../components/XliffImport";
 import { diffChars } from "../lib/diff";
 import { xliffExportUrl } from "../lib/format";
 import { matchesTextQuery, matchesTextView, retainTextDocumentId, textRowClass, type TextView } from "../lib/text";
+import {
+  CATEGORY_LABELS,
+  NO_OPT_INS,
+  canPrefill,
+  importsByChapter,
+  matchesImportFilter,
+  willImport,
+  type ImportFilter,
+  type ImportItem,
+  type ImportOptions,
+  type ImportPreview,
+  type ImportResult,
+  type ImportState,
+  type SkippedItem,
+} from "../lib/xliffImport";
 
 type Chapter = {
   document_id: string;
@@ -62,6 +78,9 @@ const STATE_CHIP: Record<Segment["state"], { kind: string; label: string } | nul
   orphaned: { kind: "warn", label: "orphaned" },
 };
 
+/** The server takes request bodies up to 8 MiB; leave room for JSON escaping. */
+const MAX_IMPORT_BYTES = 7.5 * 1024 * 1024;
+
 function Diff({ before, after }: { before: string; after: string }) {
   return (
     <div className="diff" lang="zh-CN">
@@ -72,7 +91,11 @@ function Diff({ before, after }: { before: string; after: string }) {
   );
 }
 
-/** Book outline and paired source/translation view, editable once validate_repaired completes (docs/FULL_TEXT_REVIEW.md, phases 1-2). */
+/**
+ * Book outline and paired source/translation view, editable once validate_repaired completes
+ * (docs/FULL_TEXT_REVIEW.md). While an XLIFF import is pending the tab is in review mode
+ * (docs/XLIFF_IMPORT.md): the preview card replaces the stats, and rows show the file's changes.
+ */
 export function TextPage() {
   const { jobId, info } = useJob();
   const started = info?.kind === "job";
@@ -105,6 +128,18 @@ export function TextPage() {
   const [conflictReason, setConflictReason] = useState("");
   const [resolvingConflict, setResolvingConflict] = useState(false);
 
+  const [importState, setImportState] = useState<ImportState | null>(null);
+  const [importOptions, setImportOptions] = useState<ImportOptions>(NO_OPT_INS);
+  const [importFilter, setImportFilter] = useState<ImportFilter>("will_import");
+  const [importReason, setImportReason] = useState("");
+  const [importChecking, setImportChecking] = useState("");
+  const [importApplying, setImportApplying] = useState(false);
+  const fileInput = useRef<HTMLInputElement>(null);
+  /** A segment to open in the editor once its chapter loads (Open on the Last import card). */
+  const pendingOpen = useRef<{ segmentId: string; text: string | null } | null>(null);
+  const pending = importState?.pending ?? null;
+  const reviewing = !!pending;
+
   useEffect(() => {
     if (!started) return;
     let timer: number | undefined;
@@ -123,17 +158,30 @@ export function TextPage() {
 
   const loadChapter = (id: string) =>
     jobApi<ChapterDetail>(jobId, `text/chapter?document_id=${encodeURIComponent(id)}`)
-      .then((payload) => { setDetail(payload); setDetailError(""); })
-      .catch((e: Error) => setDetailError(e.message));
+      .then((payload) => { setDetail(payload); setDetailError(""); return payload; })
+      .catch((e: Error) => { setDetailError(e.message); return null; });
 
   useEffect(() => {
     if (!documentId) return;
     setEditingId(null);
     setHistoryId(null);
     setConflictId(null);
-    loadChapter(documentId);
+    loadChapter(documentId).then((payload) => {
+      const open = pendingOpen.current;
+      pendingOpen.current = null;
+      const segment = open && payload?.segments.find((s) => s.segment_id === open.segmentId);
+      if (open && segment) openForFix(segment, open.text);
+    });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobId, documentId]);
+
+  const loadImportState = () =>
+    jobApi<ImportState>(jobId, "text/import").then(setImportState).catch(() => {});
+
+  useEffect(() => {
+    if (started) loadImportState();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [jobId, started]);
 
   const refreshOutline = () => jobApi<Outline>(jobId, "text").then(setOutline).catch(() => {});
 
@@ -156,12 +204,30 @@ export function TextPage() {
 
   // -- filters and search ---------------------------------------------------
 
+  const importItems = useMemo(() => {
+    const bySegment = new Map<string, ImportItem>();
+    for (const item of pending?.items ?? []) if (item.segment_id) bySegment.set(item.segment_id, item);
+    return bySegment;
+  }, [pending]);
+
   const visible = useMemo(
-    () => (detail?.segments ?? []).filter((s) => matchesTextView(s, view) && matchesTextQuery(s, query)),
-    [detail, view, query],
+    () =>
+      (detail?.segments ?? []).filter((s) =>
+        (reviewing ? matchesImportFilter(importItems.get(s.segment_id), importFilter, importOptions) : matchesTextView(s, view))
+        && matchesTextQuery(s, query),
+      ),
+    [detail, view, query, reviewing, importItems, importFilter, importOptions],
   );
 
   // -- in-place editor --------------------------------------------------------
+
+  /** Open the editor on a segment, optionally pre-filled with other text (e.g. from an import). */
+  const openForFix = (segment: Segment, text: string | null) => {
+    setView("all");
+    setQuery("");
+    startEdit(segment);
+    if (text !== null) setEditText(text);
+  };
 
   const startEdit = (segment: Segment) => {
     setHistoryId(null);
@@ -289,7 +355,97 @@ export function TextPage() {
     }
   };
 
+  // -- XLIFF import -----------------------------------------------------------
+
+  const chooseImportFile = async (file: File | undefined) => {
+    if (fileInput.current) fileInput.current.value = "";
+    if (!file) return;
+    if (file.size > MAX_IMPORT_BYTES) {
+      toast("bad", `${file.name} is too large to import (${(file.size / 1024 / 1024).toFixed(1)} MB; the limit is 7.5 MB).`, 0);
+      return;
+    }
+    // A sticky error from an earlier file would otherwise read as this file's result.
+    toast("info", null);
+    setImportChecking(file.name);
+    try {
+      const preview = await jobApi<ImportPreview>(jobId, "text/import", { file_name: file.name, xliff: await file.text() });
+      setEditingId(null);
+      setHistoryId(null);
+      setConflictId(null);
+      setImportOptions(NO_OPT_INS);
+      setImportFilter("will_import");
+      setImportReason("");
+      setImportState((current) => ({ pending: preview, last: current?.last ?? null }));
+      toast("ok", `Checked ${file.name}. Review the changes below, then import.`);
+    } catch (e) {
+      toast("bad", <>Can't import {file.name}:<pre>{(e as Error).message}</pre></>, 0);
+    } finally {
+      setImportChecking("");
+    }
+  };
+
+  const applyImport = async () => {
+    if (!pending) return;
+    setImportApplying(true);
+    try {
+      const result = await jobApi<ImportResult>(jobId, "text/import/apply", {
+        import_id: pending.import_id,
+        reason: importReason,
+        ...importOptions,
+      });
+      setImportState({ pending: null, last: result });
+      const n = result.applied.length;
+      const dropped = result.dropped_at_apply;
+      toast("ok", `Imported ${n} segment${n === 1 ? "" : "s"}.${dropped > 0 ? ` ${dropped} failed the checks when applied and ${dropped === 1 ? "was" : "were"} skipped.` : ""}`);
+      if (documentId) await loadChapter(documentId);
+      await refreshOutline();
+    } catch (e) {
+      toast("bad", <>Not imported:<pre>{(e as Error).message}</pre></>, 0);
+      await loadImportState();
+    } finally {
+      setImportApplying(false);
+    }
+  };
+
+  const cancelImport = async () => {
+    if (!pending) return;
+    try {
+      await jobApi(jobId, "text/import/cancel", { import_id: pending.import_id });
+      setImportState((current) => ({ pending: null, last: current?.last ?? null }));
+    } catch (e) {
+      toast("bad", (e as Error).message, 0);
+    }
+  };
+
+  const dismissImport = async () => {
+    const last = importState?.last;
+    if (!last) return;
+    try {
+      await jobApi(jobId, "text/import/dismiss", { import_id: last.import_id });
+      setImportState((current) => ({ pending: current?.pending ?? null, last: null }));
+    } catch (e) {
+      toast("bad", (e as Error).message, 0);
+    }
+  };
+
+  const openSkipped = (item: SkippedItem) => {
+    if (!item.segment_id || !item.document_id) return;
+    const text = canPrefill(item.category) ? item.imported_text : null;
+    if (item.document_id === documentId && detail) {
+      const segment = detail.segments.find((s) => s.segment_id === item.segment_id);
+      if (segment) openForFix(segment, text);
+      return;
+    }
+    pendingOpen.current = { segmentId: item.segment_id, text };
+    setDocumentId(item.document_id);
+  };
+
   // -- rendering ------------------------------------------------------------
+
+  const importCounts = useMemo(
+    () => (pending ? importsByChapter(pending.items, importOptions) : new Map<string, number>()),
+    [pending, importOptions],
+  );
 
   const sidebar = outline?.available ? (
     <>
@@ -300,7 +456,9 @@ export function TextPage() {
           active={documentId === chapter.document_id}
           onClick={() => setDocumentId(chapter.document_id)}
           count={chapter.segment_count}
-          sub={
+          sub={reviewing ? (
+            (importCounts.get(chapter.document_id) ?? 0) > 0 && <span>{importCounts.get(chapter.document_id)} to import</span>
+          ) : (
             (chapter.conflict_count > 0 || chapter.in_review_queue_count > 0 || chapter.flagged_count > 0 || chapter.edited_count > 0) && (
               <>
                 {chapter.conflict_count > 0 && <span>{chapter.conflict_count} conflict{chapter.conflict_count === 1 ? "" : "s"}</span>}
@@ -309,7 +467,7 @@ export function TextPage() {
                 {chapter.edited_count > 0 && <span>{(chapter.conflict_count > 0 || chapter.in_review_queue_count > 0 || chapter.flagged_count > 0) ? " · " : ""}{chapter.edited_count} edited</span>}
               </>
             )
-          }
+          )}
         >
           {chapter.title || chapter.document_id}
         </SideItem>
@@ -466,6 +624,40 @@ export function TextPage() {
     );
   };
 
+  const importRow = (segment: Segment, item: ImportItem | undefined) => {
+    const changed = !!item && item.imported_text !== null && item.category !== "unchanged" && item.category !== "source_differs";
+    const imports = !!item && willImport(item, importOptions);
+    const findings = item ? [...item.hard, ...item.overridable] : [];
+    return (
+      <tr key={segment.segment_id} className={imports ? "import-will" : ""}>
+        <td className="sid mono">{segment.segment_id}</td>
+        <td lang="en">
+          {segment.source}
+          {item?.category === "source_differs" && item.imported_source && (
+            <div className="meta">In the file: {item.imported_source}</div>
+          )}
+        </td>
+        <td lang="zh-CN">
+          {changed ? <Diff before={item.current_text ?? segment.text} after={item.imported_text ?? ""} /> : segment.text}
+        </td>
+        <td>
+          {!item ? (
+            <span className="meta">not in file</span>
+          ) : item.category === "unchanged" ? (
+            <span className="meta">unchanged</span>
+          ) : (
+            <>
+              <Chip kind={imports ? "ok" : "warn"}>{imports ? "will import" : CATEGORY_LABELS[item.category]}</Chip>
+              {imports && item.category !== "import" && <span className="meta"> ({CATEGORY_LABELS[item.category]})</span>}
+              {item.message && <div className="meta">{item.message}</div>}
+              {findings.map((finding, i) => <div className="meta" key={i}>{finding.message}</div>)}
+            </>
+          )}
+        </td>
+      </tr>
+    );
+  };
+
   const body = (
     <>
       {info?.kind === "draft" && <NotStarted what="book text" />}
@@ -491,6 +683,27 @@ export function TextPage() {
       )}
       {outline?.available && (
         <>
+          {!reviewing && importState?.last && (
+            <LastImportCard jobId={jobId} result={importState.last} onOpen={openSkipped} onDismiss={dismissImport} />
+          )}
+          {importChecking && <div className="banner info">Checking {importChecking}…</div>}
+          {pending ? (
+            <ImportPreviewCard
+              jobId={jobId}
+              preview={pending}
+              options={importOptions}
+              onOptions={setImportOptions}
+              filter={importFilter}
+              onFilter={setImportFilter}
+              notInFile={Math.max(0, outline.totals.segments - importItems.size)}
+              reason={importReason}
+              onReason={setImportReason}
+              applying={importApplying}
+              blocked={info?.running ? "The job is running; import once it finishes." : ""}
+              onApply={applyImport}
+              onCancel={cancelImport}
+            />
+          ) : (
           <section className="card">
             <div className="stats">
               <div className="stat"><b>{outline.totals.documents}</b><span>chapters</span></div>
@@ -500,17 +713,36 @@ export function TextPage() {
               <div className="stat"><b>{outline.totals.edited}</b><span>edited</span></div>
               <div className="stat"><b>{outline.totals.conflicts}</b><span>conflicts</span></div>
               {outline.editable && (
-                <a
-                  className="button small stats-action"
-                  href={xliffExportUrl(jobId)}
-                  download
-                  title="Download the whole book as XLIFF 2.1 for a CAT tool. Includes edits not yet compiled; edited segments are marked reviewed."
-                >
-                  ⤓ Export XLIFF
-                </a>
+                <div className="stats-actions">
+                  <a
+                    className="button small"
+                    href={xliffExportUrl(jobId)}
+                    download
+                    title="Download the whole book as XLIFF 2.1 for a CAT tool. Includes edits not yet compiled; edited segments are marked reviewed."
+                  >
+                    ⤓ Export XLIFF
+                  </a>
+                  <button
+                    className="small"
+                    disabled={!!importChecking}
+                    onClick={() => fileInput.current?.click()}
+                    title="Bring back a translated XLIFF file from a CAT tool. You review the changes before anything is written."
+                  >
+                    ⤒ Import XLIFF
+                  </button>
+                  <input
+                    ref={fileInput}
+                    type="file"
+                    accept=".xlf,.xliff,.xml"
+                    hidden
+                    data-testid="xliff-file"
+                    onChange={(e) => chooseImportFile(e.target.files?.[0])}
+                  />
+                </div>
               )}
             </div>
           </section>
+          )}
           <section className="card">
             <div className="filters">
               <input
@@ -519,7 +751,7 @@ export function TextPage() {
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
-              <div className="segmented" role="radiogroup" aria-label="Filter segments">
+              {!reviewing && <div className="segmented" role="radiogroup" aria-label="Filter segments">
                 {(
                   [
                     ["all", "All"],
@@ -540,7 +772,7 @@ export function TextPage() {
                     {label}
                   </button>
                 ))}
-              </div>
+              </div>}
               {detail && <span className="meta">{visible.length} of {detail.segments.length} segments</span>}
             </div>
             {detailError && <div className="banner bad">{detailError}</div>}
@@ -551,6 +783,7 @@ export function TextPage() {
                 </thead>
                 <tbody>
                   {visible.map((segment) => {
+                    if (reviewing) return importRow(segment, importItems.get(segment.segment_id));
                     const chip = STATE_CHIP[segment.state];
                     return (
                       <Fragment key={segment.segment_id}>

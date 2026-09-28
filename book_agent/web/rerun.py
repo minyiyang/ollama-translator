@@ -82,8 +82,9 @@ def rerun_preview(workspace: JobWorkspace, name: str) -> dict[str, Any]:
         warnings.append({
             "code": "manual_review",
             "message": (
-                "Manual review decisions and the final-draft approval are discarded; "
-                "the review queue is rebuilt from the new draft."
+                "The final-draft approval and any unapplied Final review decisions are "
+                "discarded, and the review queue is rebuilt from the new draft. Applied "
+                "decisions are kept as Text tab edits."
             ),
         })
     if statuses.get(WorkflowStage.COMPILE.value, {}).get("status") == StageStatus.COMPLETED.value:

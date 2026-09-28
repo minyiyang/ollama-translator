@@ -7,8 +7,8 @@ import { StageTip } from "../components/StageTip";
 import { NotStarted, useJob } from "../components/JobContext";
 import { useToast } from "../components/Toast";
 import { Bar, Card, Chip } from "../components/ui";
-import { count, duration, roughDuration } from "../lib/format";
-import { attentionFrom, stageActions, stageLabel, type Stage, type WorkflowStatus } from "../lib/stages";
+import { count, duration, relativeTime, roughDuration, shortTimestamp } from "../lib/format";
+import { attentionFrom, lastStageAction, stageActions, stageLabel, type Stage, type WorkflowStatus } from "../lib/stages";
 
 type Activity = {
   tasks: number;
@@ -210,6 +210,18 @@ function lineClass(line: string) {
   return "";
 }
 
+/** When a stage last changed status, and to what: "done · Sep 18 12:08". */
+function LastChange({ stage }: { stage: Stage }) {
+  const action = lastStageAction(stage);
+  if (!action || !stage.updated_at) return null;
+  const at = new Date(stage.updated_at);
+  return (
+    <span title={`${at.toLocaleString()} (${relativeTime(stage.updated_at)})`}>
+      <span className="meta">{action}</span> <span className="mono">{shortTimestamp(stage.updated_at)}</span>
+    </span>
+  );
+}
+
 export function ProgressPage() {
   const { jobId, info } = useJob();
   const started = info?.kind === "job";
@@ -325,7 +337,7 @@ export function ProgressPage() {
             <Card title="Pipeline">
               <table className="grid stages">
                 <thead>
-                  <tr><th /><th>Stage</th><th>Work (this session)</th><th className="num">LLM calls</th><th className="num">Output tokens</th><th className="num">Time</th><th className="num">Estimate</th><th className="num">Attempts</th><th /></tr>
+                  <tr><th /><th>Stage</th><th>Work (this session)</th><th className="num">LLM calls</th><th className="num">Output tokens</th><th className="num">Time</th><th className="num">Estimate</th><th className="num">Attempts</th><th>Last change</th><th /></tr>
                 </thead>
                 <tbody>
                   {stages.map((stage) => {
@@ -347,6 +359,7 @@ export function ProgressPage() {
                         <td className="num meta">{activity ? duration(activity.first, activity.last) : ""}</td>
                         <td className="num meta">{stageEstimate(stage.name, stage.status)}</td>
                         <td className="num meta">{stage.attempts || ""}</td>
+                        <td className="last-change"><LastChange stage={stage} /></td>
                         <td className="num"><StageActionButtons stage={stage} live={live} onLaunched={poll} /></td>
                       </tr>
                     );

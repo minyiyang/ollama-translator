@@ -33,7 +33,7 @@ from .text_edits import (
     SegmentEditRequest,
     active_edit_texts,
     apply_edit_batch,
-    classify_check,
+    check_edits,
     current_draft_revision,
     events_by_segment,
     preview_manual_resolution,
@@ -278,9 +278,11 @@ def resolve_manual_review(
     event_groups = events_by_segment(workspace)
 
     # Phase 1: compute and check every proposed replacement before writing anything,
-    # so the set is applied atomically (all pass, or none are appended).
-    plans: dict[str, tuple[str, str, str, str]] = {}
-    verdict_rows: list[dict[str, object]] = []
+    # so the set is applied atomically (all pass, or none are appended). The set is
+    # checked together, as the draft it would produce (the same check the batch
+    # append runs).
+    current_by_id: dict[str, str] = {}
+    replacement_by_id: dict[str, str] = {}
     for segment_id, resolution in resolution_by_id.items():
         current_text = active_before.get(segment_id, pipeline_text_by_id[segment_id])
         replacement = (
@@ -296,10 +298,19 @@ def resolve_manual_review(
                     f"old_span occurrence, found {occurrences}"
                 )
             replacement = replacement.replace(edit.old_span, edit.new_span, 1)
+        current_by_id[segment_id] = current_text
+        replacement_by_id[segment_id] = replacement
+    checks = check_edits(workspace, replacement_by_id)
+
+    plans: dict[str, tuple[str, str, str, str]] = {}
+    verdict_rows: list[dict[str, object]] = []
+    for segment_id, resolution in resolution_by_id.items():
+        current_text = current_by_id[segment_id]
+        replacement = replacement_by_id[segment_id]
         override_reason = (
             resolution.reason if resolution.override_deterministic_findings else ""
         )
-        classification = classify_check(workspace, segment_id, replacement)
+        classification = checks[segment_id]
         if classification["hard"]:
             messages = "; ".join(item["message"] for item in classification["hard"])
             raise ValueError(

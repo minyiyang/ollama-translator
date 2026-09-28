@@ -1,6 +1,6 @@
 # Dashboard stage control: resume, rerun, and early approval
 
-Status: **implemented.** Last updated: 2026-09-18.
+Status: **implemented.** Last updated: 2026-09-28.
 
 How the browser dashboard (`book-agent ui`) continues a stopped pipeline, reruns
 a finished stage, and approves a final draft before every review segment is
@@ -39,6 +39,14 @@ Each row of the pipeline table offers:
   the later stages have not run yet.
 - Both buttons are disabled while the job runs, with a tooltip saying to pause
   or stop first.
+- A **Last change** column shows what last happened to each stage and when,
+  so resumes and reruns can be followed across sessions: *started*, *done*,
+  *failed*, *stopped* (Stop in the dashboard), *paused* (Pause on request),
+  *waiting for review* (a human gate), or *reset* (a rerun of this or an
+  earlier stage returned it to pending); blank if it never ran. The time is
+  the stage's `updated_at`, which moves only when its status changes; hover
+  for the full local time. A resume shows as *started*, with Attempts
+  counting up; earlier transitions are in the session log.
 
 ## 3. Rerun warning
 
@@ -54,7 +62,7 @@ Before a rerun, the dialog (Cancel is the default, Rerun is red) shows:
 |---|---|
 | The glossary must be approved again; the run pauses at that gate | X is `approve_glossary` or earlier |
 | The whole book is translated again | X is `translate` or earlier |
-| Manual review decisions and the final-draft approval are discarded | X is `validate_repaired` or earlier, and review work exists: applied resolutions, a saved review draft, or an approval |
+| The final-draft approval and any unapplied Final review decisions are discarded; applied decisions are kept as Text tab edits | X is `validate_repaired` or earlier, and review work exists: applied resolutions, a saved review draft, or an approval |
 | The compiled EPUB is replaced | `compile` has completed |
 | Manual text edits are kept; segments whose translation changes become conflicts | X is `validate_repaired` or earlier, and at least one Text tab edit is active (`edited` or `conflict`) |
 
@@ -119,7 +127,8 @@ reset will do. Code: `book_agent/web/rerun.py`, `UiApp.rerun_preview` and
   within it, the leftover segment stays queued and the draft is approved; a
   full apply still requires every decision.
 - `frontend/src/lib/lib.test.ts`: `stageActions` picks Resume and Rerun,
-  Rerun only, or nothing for each stage status and gate.
+  Rerun only, or nothing for each stage status and gate; `lastStageAction`
+  and `shortTimestamp` label and date the Last change column.
 
 ## 8. Limits
 
