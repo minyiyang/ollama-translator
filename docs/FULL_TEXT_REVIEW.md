@@ -267,7 +267,22 @@ user name on the server.
   base rejection, override reason required.
 - Frontend: `frontend/src/lib/text.test.ts` covers Text-tab view filters,
   dynamic flagged state, source/translation search, and row-style precedence.
-  The repository still has no component-level browser test harness.
+  Component tests (vitest + jsdom + Testing Library; setup in
+  `frontend/src/test/`) render the real `App` against a mocked API:
+  - `pages/TextPage.test.tsx`: tab placement; outline, chapter switching,
+    filters and search; read-only, not-yet-available and draft states; the
+    editor's check gates (hard block, override reason) and the exact
+    `text/edit` body including `expected_event_id`; a refused save; Esc,
+    Alt+↓ and Ctrl+Enter; history and revert; keep / take-pipeline conflict
+    resolution; Recompile confirm, cancel, disabled-while-running, and its
+    Progress link.
+  - `App.test.tsx`: a `<Link>` renders inside a toast and a dialog (the
+    provider-order regression that blanked the page after Recompile), and a
+    throwing page shows the error banner.
+  - `components/ErrorBoundary.test.tsx`: fallback message, details, Reload.
+  Not covered: marker-chip protection (not built), and the other pages
+  (Config, Glossary, Progress, Final review, Jobs, Series) have no component
+  tests yet.
 - `unresolved_review_gate` (`tests/test_text_edits.py::UnresolvedReviewGateTests`):
   defect/approval classification, the "uncategorized review ids" fallback,
   an edit resolving queue membership without mutating the report object

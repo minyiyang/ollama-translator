@@ -467,7 +467,7 @@ export function TextPage() {
 
   const body = (
     <>
-      {info?.kind === "draft" && <NotStarted what="the book text" />}
+      {info?.kind === "draft" && <NotStarted what="book text" />}
       {error && <div className="banner bad">{error}</div>}
       {started && !outline && !error && <p className="meta">Loading…</p>}
       {outline && !outline.available && (
