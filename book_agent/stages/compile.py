@@ -23,6 +23,7 @@ from ..pipeline_state import (
 from ..rtf import compile_rtf_document
 from ..text_edits import (
     active_edit_texts,
+    compiled_consistency_issues,
     current_draft_revision,
     draft_revision_hash,
     hash_active_edits,
@@ -354,6 +355,9 @@ def _write_unresolved_review_report(
         item.document_id: item for item in _safe_load(load_document_audits, workspace)
     }
     repaired_review_results = _safe_load(load_repaired_review_results, workspace) or {}
+    book_consistency: dict[str, list] = {}
+    for issue in compiled_consistency_issues(workspace):
+        book_consistency.setdefault(issue.segment_id, []).append(issue)
 
     segments = []
     for document_id, source in sorted(sources.items(), key=lambda item: item[1].order):
@@ -430,6 +434,12 @@ def _write_unresolved_review_report(
                         and comparison.status != "match"
                     ):
                         findings.append(_quantity_finding("final_quantity_audit", comparison))
+
+            # Drift in the text as compiled (with edits); skip what the final audit already lists.
+            listed = {finding["message"] for finding in findings}
+            for issue in book_consistency.get(segment_id, []):
+                if issue.message not in listed:
+                    findings.append(_audit_finding("book_consistency", issue))
 
             verifier_history = []
             if review_result is not None:

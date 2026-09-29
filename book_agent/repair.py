@@ -30,6 +30,7 @@ from .preprocessing import (
 )
 from .ollama_client import estimate_request_tokens
 from .quantities import compare_quantity_texts
+from .style_sheet import format_relevant_style, select_relevant_style
 from .styles import build_style_prompt, load_style_instruction
 from .translation import (
     TranslatedDocument,
@@ -367,10 +368,20 @@ def build_repair_prompt(
             "formats when needed. Example: SOURCE `when <I000>I</I000> find`, broken "
             "CURRENT `当我<I000>我</I000>发现`, corrected `当<I000>我</I000>发现`."
         )
+    style_sheet = ""
+    if source.relevant_style is not None and config.consistency.style_sheet.enabled:
+        style_sheet = format_relevant_style(
+            select_relevant_style(
+                source.relevant_style,
+                source_by_id[segment_id],
+                max_entries=config.consistency.style_sheet.max_entries_per_chunk,
+            )
+        )
     return (
         f"{style}\n\n{task}\n\n"
         f"Audit findings:\n{diagnostics}\n\nRelevant glossary:\n{glossary or '(none)'}\n\n"
-        f"Context:\n{context_text}\n\n"
+        + (f"{style_sheet}\n\n" if style_sheet else "")
+        + f"Context:\n{context_text}\n\n"
         f"Output exactly <{segment_id}>corrected translation</{segment_id}> and nothing else."
     )
 

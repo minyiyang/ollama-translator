@@ -78,6 +78,31 @@ export const COMMON_GROUPS: CommonGroup[] = [
     ],
   },
   {
+    title: "Book consistency",
+    help: "Book-wide checks with no model calls. Drift goes to repair; what repair cannot fix joins the review queue.",
+    options: [
+      { path: "consistency.enabled", label: "Consistency checks", help: "Find repeated lines, and repeated lines of dialogue, translated differently in different places." },
+      { path: "consistency.quoted_speech", label: "Repeated dialogue", help: "Also compare quoted lines inside longer paragraphs, such as a character's catchphrase." },
+      { path: "consistency.conventions", label: "Punctuation conventions", help: "Flag a single — where the book uses ——, and straight \" in Chinese text." },
+      { path: "consistency.min_repeat_characters", label: "Shortest repeat", help: "Lines shorter than this are ignored, so “Yes.” or “Oh!” may vary." },
+      {
+        path: "consistency.style_sheet.enabled",
+        label: "Book style sheet",
+        help: "Also extract, with the glossary, lines the book repeats (rendered the same way throughout) and notes on each character. Character notes are context only: the source wording and the scene decide pronouns and 你/您.",
+      },
+      {
+        path: "consistency.style_sheet.review",
+        label: "Style sheet review",
+        help: "human: the glossary gate waits for you to review the style sheet on the Glossary tab, even when the glossary itself is LLM-reviewed. glossary: follow the glossary's review setting.",
+      },
+      {
+        path: "consistency.close_variant_similarity",
+        label: "Drift threshold",
+        help: "How similar two renderings must be to count as drift (repaired). Less similar wording is treated as intentional and only listed.",
+      },
+    ],
+  },
+  {
     title: "Review and output",
     options: [
       { path: "workflow.require_final_review", label: "Always require final approval", help: "Pause before compiling even when nothing is left in the review queue." },

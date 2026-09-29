@@ -1,6 +1,10 @@
 # Book-level consistency: proposal
 
-Status: **proposal, not implemented.** Last updated: 2026-09-18.
+Status: **phases 0 (measurement) and 1 (translation memory and the
+audit_consistency stage) implemented; phase 2 (style sheet) in progress.**
+Last updated: 2026-09-28.
+Updated for the tracked edit log, Text tab, and XLIFF round trip
+(docs/FULL_TEXT_REVIEW.md, docs/XLIFF_IMPORT.md) that landed after the first draft.
 
 This document plans how the pipeline keeps a whole book (and a series)
 consistent, not just each passage. It lists what exists today, the gaps, and
@@ -25,9 +29,13 @@ continuity is already handled. The later passes are much narrower:
 | Targeted repair context | One neighbor each side, read-only | ±1 segment |
 | Prose rewrite | Small batches with previous-source context | ~4 segments |
 | Fallback harmonization | Voice of rescued passages vs. the primary model | Local |
+| Tracked manual edits (`edits/segment-edits.jsonl`) | Human fixes from the Text tab, Final review, and XLIFF import; kept across reruns and applied at compile | Segment |
+| Edit check (`text_edits.check_edits`) | The deterministic audit re-run on a chapter with the proposed edits applied | Chapter |
 
 Nothing carries a *decision* made in chapter 3 into chapter 9 unless it is a
-glossary noun.
+glossary noun. A human can now fix drift by hand on the Text tab, but nothing
+points them at it, and nothing stops a manual edit or an XLIFF import from
+introducing new drift.
 
 ## 2. Gaps
 
@@ -68,8 +76,12 @@ decompile
   -> reprose_translation     (+ style-sheet items as protected signatures)
   -> review_repaired -> repair_review
   -> validate_repaired       (+ deterministic consistency re-check: blocking -> review queue)
-  -> compile -> validate_epub
+  -> compile                 (overlays the edit log; + consistency re-check on the edited text)
+  -> validate_epub
 ```
+
+Outside the stage list, the edit check (Text tab, Final review, XLIFF import)
+gains the same deterministic consistency checks; see 3.5.
 
 Placing `audit_consistency` **before** `repair_translation` means consistency
 fixes reuse the existing repair and verification machinery in the same pass.
@@ -135,6 +147,40 @@ A structured, reviewed record alongside the glossary:
   category `consistency`, explanation, fix), so repair, verification, the
   review queue, and the Final review tab work unchanged.
 
+### 3.5 Human edits and the edit log
+
+Human changes are not written into `validate_repaired`'s output. They are
+events in `edits/segment-edits.jsonl`, applied on top of it at compile
+(docs/FULL_TEXT_REVIEW.md). A consistency check that reads only stage output
+therefore checks the wrong text. Three consequences:
+
+- **Check the text as compiled.** The book-level audit and the
+  `validate_repaired` re-check read the validated draft with active edits
+  applied (`overlay_active_edits`). Compile runs the deterministic
+  consistency checks again on that text, because an edit made after
+  `validate_repaired` never passes through it.
+- **An edited rendering is the reference** (decision 7.4). When occurrences
+  of a repeated line disagree, the proposed fix for the others is, in order:
+  a human edit (active in the edit log), a verified LLM repair, the majority
+  rendering, the first in reading order. Two human edits that disagree go to
+  the reviewer rather than being resolved automatically.
+- **Edits are checked book-wide.** `check_edits` audits chapter by chapter
+  today. The translation-memory and style-sheet checks need the whole book,
+  so the edit check gains a book-level pass: an edit in chapter 9 is compared
+  with chapter 3. Consistency findings on an edit are overridable with a
+  reason (category `consistency`), not hard-blocking, since intentional
+  variation exists. An XLIFF import batch is checked as one set, so imported
+  occurrences that agree with each other but not with the rest of the book
+  are still caught.
+
+**UI.** Consistency findings appear where findings already do: the Text
+tab's status column and Flagged filter, the Final review queue when
+blocking, and the editor's live check. The Text tab gains a **Consistency**
+filter, and a finding links to the other occurrences so they can be fixed
+together. Because one fix may touch several chapters, the batch edit API
+(`apply_edit_batch`) applies one decision to every occurrence with a single
+reason.
+
 ## 4. Proposed configuration
 
 All keys are new and optional. The defaults below keep today's behavior,
@@ -175,7 +221,8 @@ Options view, with the same help-text treatment as other options.
 | Translation-memory index and mismatches | `preprocessed/`, `reports/consistency.*` | Progress stage tooltip; Final review findings |
 | Style sheet draft / approved | `glossary/…/style-sheet.{draft,approved}.json` | Glossary tab, new "Style sheet" section |
 | Chapter summaries | `story/summaries.json` | Progress stage tooltip; optional read-only panel |
-| Consistency findings | per-document audit findings, category `consistency` | Final review tab (existing) |
+| Consistency findings | per-document audit findings, category `consistency` | Final review tab (existing); Text tab status column and Consistency filter |
+| Phase 0 measurement | stdout, or a file you name (`book-agent consistency-report`) | Terminal; nothing is written into the job folder |
 
 Stage descriptions for the Progress tab's ⓘ tooltips are added to
 `frontend/src/lib/stageInfo.ts` together with each stage.
@@ -184,7 +231,7 @@ Stage descriptions for the Progress tab's ⓘ tooltips are added to
 
 | Phase | Scope | Model cost | Value |
 |---|---|---|---|
-| 0 | **Measure first:** a read-only consistency report on existing runs (repeated-line variants; pronoun and 你/您 per character) | none | Confirms which gaps matter on real books before building |
+| 0 | **Measure first:** `book-agent consistency-report` on existing runs (see 6.1) | none | Confirms which gaps matter on real books before building |
 | 1 | Translation memory (3.1) + deterministic consistency audit (3.4) | none | Catches repeated-line drift and cross-chapter glossary misses |
 | 2 | Style sheet (3.2) | ~none (same extraction pass); review at the gate | Largest quality gain: voice, pronouns, address, refrains |
 | 3 | Story context (3.3) | ~1 call per chapter | Better choices at chunk boundaries and for callbacks |
@@ -193,12 +240,329 @@ Stage descriptions for the Progress tab's ⓘ tooltips are added to
 Each phase ships with tests on synthetic fixtures (the suite stays offline)
 and is verified on the *Alice* sample before the next phase starts.
 
-## 7. Decisions needed
+**Estimated added runtime**, scaled from measured per-call times. Alice: 875
+segments, 12 chapters, 1.3 h today. Crusoe: 832 segments, 23 chapters, 3.4 h,
+2.5 h of it semantic audit at ~17 s per call. Estimates, not measurements:
 
-1. **Scope now:** phase 0 + 1 only, or through phase 2?
-2. **Style-sheet review:** the same gate as the glossary (LLM or human per
-   `workflow.llm_glossary_review`), or always a human pause?
-3. **Cost budget:** is ~1 extra call per chapter (story context) plus a few
-   per main character (voice check) acceptable when switched on?
-4. **Tie-breaking** for translation-memory mismatches: majority, first
-   occurrence, or always ask in the review queue?
+| Phase | Alice | Crusoe |
+|---|---|---|
+| 0–1 (deterministic) | seconds | seconds |
+| 2 style sheet | +2–5 min | +2–5 min |
+| 3 story context (~1 call per chapter, mostly prompt reading) | +3–8 min | +6–15 min |
+| 4 voice check | +3–7 min | +3–7 min |
+| Repairing the new findings (~2.6 s per repair call) | +1–5 min | +2–8 min |
+| **All on** | **~+15–25 min (+20–30%)** | **~+20–35 min (+10–15%)** |
+
+### 6.1 Phase 0: the measurement report
+
+`book-agent consistency-report <job> [--json] [--output FILE]` reads the
+current translation and the approved glossary. The current translation is
+the validated draft with active edits applied, or, before
+`validate_repaired`, the latest stage that produced output. It makes no
+model calls and writes nothing into the job folder.
+
+| Section | What it measures | Limits |
+|---|---|---|
+| Repeated source lines | Segments whose normalized source (markers and whitespace removed, at least `--min-chars` characters) occurs more than once, and how many distinct renderings each has | Whole segments only |
+| Repeated sentences (source only) | Sentences recurring across segments, speech tags (*said the King*) and symbol rows left out | Renderings are not compared: that needs sentence alignment |
+| Glossary compliance, book-wide | Per entry: segments whose source contains the term but whose translation contains neither its rendering nor a Chinese alias; a term inside a longer matched term is not checked on its own | Word-boundary match, case-sensitive for capitalized terms; a single capitalized word the book also uses in lowercase (*Two*) is skipped at the start of a sentence |
+| Recurring names without an entry | `find_unglossed_proper_nouns` over the source | The same list the glossary stage already reports |
+| Formal address (EN→ZH) | Segments using 你 and 您 in quoted speech, and every 您 segment listed | Does not know who is speaking to whom; the list is for a reader to judge |
+| Pronouns and address per character (EN→ZH) | For each person entry (entries sharing a rendering merged): 他 / 她 / 它 in segments naming only that character, beside he / she / it in the source; 你 / 您 in quoted speech in segments naming them | Only 他 vs 她 is flagged as mixed, since 它 is mostly an object; a pronoun can still refer to someone else |
+| Conventions (EN→ZH) | Quotation marks, nested quotes (never flagged), ellipses, dashes, and Arabic digits in the translation, with example segments | Counts styles; does not decide which is right |
+
+**First results, *Alice* (2026-09-28, validated draft with 5 manual edits;
+the report takes about 1 s):**
+
+- Exact repeated segments are rare: 2, both rendered consistently. Repeated
+  *sentences* are not: 36, including the Queen's "Off with her/his head!"
+  (8 segments) and "Give your evidence" (3), plus every chapter title shared
+  by the table of contents and the chapter heading. So phase 1's translation
+  memory needs sentence-level matching (or the style sheet's recurring
+  expressions) to be worth much on literary prose.
+- The glossary is followed book-wide: one miss, in the Gutenberg licence.
+- Recurring names without an entry: Mouse (27), Majesty (12). The Mouse's
+  pronoun and form of address go unchecked, the case the style sheet targets.
+- 您 appears in 8 segments of quoted speech, against 你 in 212: Alice to
+  the Mouse (chapter II), the Caterpillar and the Pigeon (chapter V), and the
+  Mock Turtle, and the White Rabbit's 陛下，您 to the King. Whether each
+  character is addressed the same way throughout still needs a reader; it is
+  the register choice a style sheet would record.
+- Mixed 他/她: the Queen (she 12, he 7), the Mock Turtle, Bill; to be read
+  in context, since a pronoun can point at another character.
+- Conventions: 16 segments use a single `—` where the rest use `——` (for
+  example `唱道：—`, a copied English colon-dash), and one straight `"`.
+
+Characters without a glossary entry (in *Alice*: the Mouse, the Cat, the
+Rabbit) get no per-character rows. That is itself a finding, and it is what
+the style sheet (phase 2) is for.
+
+## 7. Decisions (2026-09-28)
+
+1. **Scope:** build through phase 2 (translation memory, the deterministic
+   consistency audit, and the style sheet). Phases 3 and 4 wait.
+2. **Style-sheet review:** at the same gate as the glossary. Revised
+   2026-09-29 after the benchmark: a human reviews it by default
+   (`consistency.style_sheet.review: human`), on the Glossary tab's Style
+   sheet section or with `approve --style FILE`, even when the glossary is
+   LLM-reviewed; `review: glossary` follows the glossary's own setting.
+6. **Source wording first** (2026-09-29): pronouns and forms of address
+   (你/您) change with the scene, so character entries are context notes, not
+   rules. Prompts say so, translation uses a note only where the source leaves
+   the choice open, and nothing checks or enforces them. Book-level
+   continuity is enforced for recurring expressions and repeated lines.
+7. **Similarity rule** (confirmed 2026-09-29): the medium/low split by
+   similarity applies whatever the reference is. A human edit that fixes a
+   slip (他→它) makes the other copies close variants, which are queued; a
+   substantial rewrite of one copy is treated as context-specific, so the
+   other copies are listed (low), not queued (section 8.2).
+3. **Cost:** before any model-calling part is built, benchmark it on a 2–3
+   chapter subset of a real book (`scripts/create_epub_spine_subset.py`) to
+   measure actual calls, tokens, and time instead of relying on the
+   estimates in section 6.
+4. **Tie-breaking** for translation-memory mismatches: an edited rendering
+   wins, first a human edit (Text tab, Final review, XLIFF import), then a
+   verified LLM repair; then the majority rendering; then the first in
+   reading order.
+5. **Consistency findings on manual edits:** overridable with a reason, never
+   hard-blocking.
+
+## 8. Implementation design (phases 1–2)
+
+Written after mapping the code the new work plugs into. Phase 1 is
+deterministic and needs no benchmark; phase 2 calls models, so the 2–3
+chapter benchmark (decision 7.3) runs before and after it.
+
+### 8.1 What phase 0 changed in the plan
+
+- **Repeats must be matched below the segment.** On *Alice* only 2 whole
+  segments repeat, but 36 sentences do. Quoted speech gives a reliable,
+  model-free alignment: 675 of 680 quoted segments (99%) have the same number
+  of `“…”` spans in source and translation, so spans pair up in order. Of 26
+  repeated quoted lines, 5 are rendered more than one way, including "Off with
+  his head!" as 砍掉他的头！ twice and 砍掉它的头！ once. Narration outside
+  quotes is left to the style sheet's recurring expressions (phase 2).
+- **Book-wide glossary compliance adds almost nothing**: the per-document
+  audit already checks the glossary, and phase 0 found one miss, in the
+  Gutenberg licence. It stays in the measurement report and is not a new
+  finding source.
+
+### 8.2 Phase 1: the `audit_consistency` stage
+
+A deterministic stage between `audit_translation` and `repair_translation`
+(`STAGE_DEPENDENCIES`: after the audit; repair depends on it).
+
+**Detectors** (reusing `consistency_report`):
+
+| Detector | Finding on | Severity |
+|---|---|---|
+| Repeated segments (normalized source ≥ `min_repeat_characters`) | every occurrence whose rendering differs from the reference | medium when the variant is close to the reference (similarity ≥ `close_variant_similarity`, i.e. drift such as 他→它); otherwise low (likely intentional, context-dependent wording) |
+| Aligned quoted speech (same span count in source and translation) | as above, per quoted span | as above |
+| Conventions | a single `—` where the book uses `——`; a straight `"` in Chinese text | medium |
+
+The **reference** rendering follows decision 7.4: an active human edit, then
+(in the `validate_repaired` re-check, where repairs exist) a verified repair,
+then the majority, then the first in reading order. Two human edits that
+disagree produce a finding on both, with no automatic fix.
+
+The severity rule applies whatever the reference is: when a human rewrites
+one occurrence substantially, the other copies differ clearly from it, so
+they are listed (low) rather than queued. A human edit that fixes a slip
+(他→它) makes the other copies close variants, which are queued.
+
+Findings are ordinary `AuditIssue`s with a new category `consistency` and
+`source="consistency"`, a real `segment_id`, the reference in
+`suggested_fix` ("render as in D0009-S000019: 砍掉她的头！"), and the other
+occurrences named in the message. Low findings are listed in the stage
+report and the Text tab only; they are not repaired and do not block.
+
+**Artifacts:** `consistency/<hash16>/NNNN-<document>.consistency.json` per
+document with findings, plus `consistency.report.json` (always written, since
+a stage must record at least one artifact). Metadata: `consistency_root`,
+`consistency_report`.
+
+**Flow into repair and review** (each point below closes a path by which
+the findings would otherwise be dropped silently):
+
+1. `repair_translation` merges the consistency findings per document after
+   `reconcile_document_audit` (which keeps only semantic findings) and before
+   `select_repair_targets`. Its input hash gains the consistency output hash
+   only when that stage produced findings, so jobs without findings keep
+   their cached repair units.
+2. `repair_review` does not retire a review item whose issue has
+   `source="consistency"`; today it restores the original text for any
+   non-semantic finding it cannot reproduce.
+3. `validate_repaired` runs the book-level detectors again on the final
+   drafts and merges the medium findings into the final deterministic audit,
+   so unresolved drift joins `defect_ids` (the human review queue) and a
+   repair that did not really fix it is caught. It is merged into the final
+   audit only, not the preflight, which would revert targeted repairs.
+   `_accept_unreproduced_deterministic_reviews` is left as it is: the re-check
+   is what reproduces them. The consistency settings join its input hash.
+4. **Compile** runs the detectors once more on the text as compiled (the
+   validated draft with active edits). A new finding, for example drift
+   introduced by an edit in another chapter, adds its segment to the
+   `unresolved_review_gate`; like any review segment, a Final review decision
+   or a Text tab edit with a reason clears it (decision 7.5: overridable).
+5. **Edit check:** `check_edits` adds a book-level pass. A proposed text is
+   compared with the other occurrences of its repeated segment or quoted
+   span, with the other active edits applied, and a mismatch is an
+   overridable `consistency` finding. An XLIFF import is checked as one
+   batch.
+
+**Existing jobs.** A new stage would make every finished job read as
+`pending`. When `initialize_pipeline_stages` adds `audit_consistency` to a
+workspace whose `repair_translation` has already completed, it records the
+stage as completed with the message "added after this job was repaired;
+rerun from here to apply", and no artifacts. Resume then skips it, and the
+job stays complete. *Rerun from here* on the Progress tab applies it.
+
+**Configuration**, a new top-level section (not under `audit` or
+`translation`, whose settings feed existing checkpoint hashes):
+
+```yaml
+consistency:
+  enabled: true                   # deterministic; no model calls
+  min_repeat_characters: 12
+  quoted_speech: true
+  conventions: true
+  close_variant_similarity: 0.6   # at or above: medium (repaired); below: low (listed only)
+```
+
+**Registration:** `WorkflowStage` and `STAGE_DEPENDENCIES`; the runner in
+`workflow.default_stage_runners`; `web/estimate.py` `_QUICK_STAGES` and
+`_stage_enabled`; `web/setup.py` section title; the frontend `STAGE_LABELS`,
+`STAGE_INFO` (the ⓘ tooltip, required by a test), and a Consistency group
+in the Config tab's Options; the stage lists in the READMEs and docs;
+the bundle rebuilt. The CLI's stage lists are already generated from the
+enum.
+
+**UI:** consistency findings show on the Text tab like other findings, with
+a Consistency filter; a finding lists the other occurrences (linked).
+
+### 8.3 Phase 2: the style sheet
+
+**Built (2026-09-28), opt-in:** `consistency.style_sheet.enabled: true`
+(default off, so existing prompts, checkpoints, and preprocessed files are
+byte-for-byte unchanged). As built, it differs from the plan below in three
+ways: address forms ("Your Majesty" = 陛下) are recurring expressions rather
+than a separate list; conventions are the target language's defaults rather
+than extracted (they cannot be read from the source); and translation picks
+each chunk's entries from `PreprocessedDocument.relevant_style`, filled by
+preprocessing. Code: `book_agent/style_sheet.py`; the extraction, resolution
+(`style.draft.json`) and approval (`style.approved.json`, one LLM review call
+in LLM mode, `approve --style FILE` for a reviewed file) steps in
+`book_agent/stages/glossary.py`; the Glossary tab's **Style sheet** section;
+expression checks in `audit_consistency`, the `validate_repaired` re-check,
+compile, and the edit check; tests in `tests/test_style_sheet.py`. Measured on
+the benchmark (8.4).
+
+The original plan:
+
+- **Model:** a separate artifact, not new fields on `GlossaryResult` (which
+  forbids extra fields and is read by many loaders): `StyleSheet` with
+  `characters` (name, pronoun, how others address them, voice note),
+  `address_forms`, `expressions` (source → rendering), and `conventions`
+  (quotes, ellipsis, dash, numerals).
+- **Extraction:** one more optional section in the glossary extraction's
+  structured output, so no extra pass over the book. This changes the
+  extraction prompt, so every extraction unit reruns once
+  (`EXTRACTION_STAGE_VERSION` bump). The benchmark measures the added output
+  tokens and time.
+- **Resolution:** deterministic merge per character and expression; entries
+  with conflicting values are kept as alternatives for review.
+- **Approval:** the same gate and settings as the glossary (decision 7.2).
+  The LLM reviewer reviews style entries with their own decision schema; a
+  human reviews them in a new **Style sheet** section of the Glossary tab,
+  and `book-agent approve --style FILE` accepts an edited file. The approved
+  `style.approved.json` is recorded under `approve_glossary`, so a change
+  re-runs preprocessing.
+- **Use:** preprocess selects the entries relevant to each document
+  (`relevant_style`, next to `relevant_glossary`); translate and repair
+  prompts get a short "Book style sheet" block (characters present,
+  expressions present, conventions), capped by `max_entries_per_chunk`;
+  reprose treats expression renderings as protected.
+- **Checks:** `audit_consistency` gains style-sheet compliance: an
+  expression's approved rendering where its source occurs, and the declared
+  quote/dash conventions. Pronoun and address checks stay in the measurement
+  report until the benchmark shows how noisy they are.
+
+### 8.4 Benchmark (decision 7.3)
+
+A 3-chapter *Alice* subset built with `scripts/create_epub_spine_subset.py`:
+chapters II (`item5`: the Mouse, 您), VIII (`item11`: "Off with her head!")
+and IX (`item12`: the Mock Turtle, the Queen), 191 segments, about 22% of
+the book. Run once on the current pipeline for the baseline, and again after
+phase 2, comparing calls, tokens, and time per stage from
+`reports/session-performance-*.json`.
+
+```powershell
+python scripts/create_epub_spine_subset.py "sample/Alice's Adventures in Wonderland by Lewis Carroll.epub" runs/bench/alice-3ch.epub --idref item5 --idref item11 --idref item12
+book-agent run runs/bench/alice-3ch.epub --config configs/demo-alice.yaml --job-id bench-alice-3ch-baseline --plain
+```
+
+**Baseline (2026-09-28, before phase 1):** 14.0 min and 56 model calls in
+total.
+
+| Stage | Calls | Time | Output tokens |
+|---|---:|---:|---:|
+| extract_glossary | 2 | 1.0 min | 2,864 |
+| resolve_glossary | 1 | 0.5 min | 2,448 |
+| approve_glossary | 1 | 3 s | 202 |
+| translate | 5 | 2.7 min | 12,818 |
+| audit_translation | 17 | 5.8 min | 7,286 |
+| repair_translation | 6 | 0.5 min | 607 |
+| reprose_translation | 13 | 1.5 min | 6,421 |
+| review_repaired | 6 | 1.8 min | 863 |
+
+Phase 2 adds its style-sheet section to the two extraction calls, so
+`extract_glossary` (1.0 min, 2,864 output tokens) is the line to compare. On
+this baseline's output, the phase 1 detectors find the same drift as on the
+whole book: "Off with his head!" once as 砍掉它的头！ against 砍掉他的头！
+twice (medium), and "Come on, then" reworded (low).
+
+**Phase 1 on the same subset (2026-09-28):** `audit_consistency` reported
+exactly those two findings, sent the medium one to repair, and listed the low
+one. Repair rewrote `D0001-S000060` to “砍掉他的头！”, matching the other two
+occurrences; the `validate_repaired` re-check found no remaining drift, the
+review queue stayed empty, and the book compiled and validated.
+
+**Phase 2 on the same subset (2026-09-28, `runs/bench/alice-style.yaml`, LLM
+review):**
+
+| Stage | Baseline | With style sheet | Change |
+|---|---|---|---|
+| extract_glossary | 2 calls, 1.0 min, 2,864 output tokens | 2 calls, 1.2 min, 4,312 output tokens | +0.2 min, +1,448 tokens (+51%) |
+| approve_glossary | 1 call, 3 s | 2 calls, 0.4 min | +1 call (the style review) |
+| translate prompts | 22,002 prompt tokens | 22,700 | +3% |
+
+The run took 53.9 min, but not because of the style sheet: the semantic
+audit's generation speed fell from about 30 to 1–4 tokens/s with the same
+prompts and context (16,384), a machine-memory slowdown in a stage the style
+sheet does not touch. The style sheet's own cost is about **+0.6 min and one
+call** on this subset, so roughly +2–3 min on a whole book.
+
+What it produced: 15 characters and 14 expressions drafted; the LLM review
+rejected Dinah (a pet that does not act as a person) and a poem fragment. The
+effect on the translation:
+
+- **Refrain drift prevented upstream.** "Off with his head!" came out as
+  砍掉他的头！ everywhere; the 砍掉它的头！ variant that phase 1 had to repair
+  never appeared (0 findings for repair, against 1).
+- **Register followed the sheet.** It approved the Mouse as addressed with
+  你, so quoted 您 fell from 6 segments to 1. That is a register choice the
+  gate should surface to a human; the demo config approves it by LLM.
+- **Pronouns only partly.** The sheet says 他 for the Mouse, but chapter II
+  still refers to it with 它 where the English says "it": the source wording
+  outweighed the style-sheet line.
+- **Bug found and fixed:** the LLM reviewer answered "revise" for the Gryphon
+  (它 → 他) but left the pronoun field empty and put the correction only in
+  its reason, so nothing changed. Review decisions now require the final
+  values for every entry (`StyleCharacterDecision`, `StyleExpressionDecision`),
+  with a regression test.
+
+**Follow-up (2026-09-29, decisions 7.2 and 7.6):** the Mouse's 它 where the
+English says "it", and 你 against the baseline's 您, are both the source and
+the scene deciding, which is now the intended behaviour: character entries
+became context notes, and the style sheet is reviewed by a person at the gate
+by default.

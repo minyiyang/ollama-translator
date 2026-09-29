@@ -1,4 +1,4 @@
-export type TextView = "all" | "flagged" | "queue" | "edited" | "conflict";
+export type TextView = "all" | "flagged" | "queue" | "edited" | "conflict" | "consistency";
 
 export type TextFilterSegment = {
   source: string;
@@ -6,6 +6,7 @@ export type TextFilterSegment = {
   state: "pipeline" | "edited" | "conflict" | "orphaned";
   in_review_queue: boolean;
   flagged: boolean;
+  findings?: ReadonlyArray<{ category: string }>;
 };
 
 export function retainTextDocumentId(
@@ -21,6 +22,8 @@ export function matchesTextView(segment: TextFilterSegment, view: TextView): boo
   if (view === "queue") return segment.in_review_queue;
   if (view === "edited") return segment.state === "edited";
   if (view === "conflict") return segment.state === "conflict";
+  // Book-level drift (docs/BOOK_CONSISTENCY.md): a repeated line rendered differently elsewhere.
+  if (view === "consistency") return (segment.findings ?? []).some((finding) => finding.category === "consistency");
   return true;
 }
 

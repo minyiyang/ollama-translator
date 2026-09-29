@@ -22,7 +22,8 @@ pipeline treats each of those as a separate, individually checkpointed problem.
 decompile
   -> extract_glossary -> resolve_glossary -> approve_glossary
   -> preprocess -> translate
-  -> audit_translation -> repair_translation -> reprose_translation
+  -> audit_translation -> audit_consistency -> repair_translation
+  -> reprose_translation
   -> review_repaired -> repair_review -> validate_repaired
   -> compile -> validate_epub
 ```
@@ -868,6 +869,32 @@ book-agent edits "D:\runs\my-job"
 book-agent edits "D:\runs\my-job" --json
 book-agent edits "D:\runs\my-job" --export xliff --output my-job.xlf
 ```
+
+Measure book-level consistency of the current translation (repeated lines
+and sentences, book-wide glossary misses, recurring names without an entry,
+你/您 and pronouns per character, punctuation conventions). It is read-only,
+makes no model calls, and writes nothing into the job folder; see
+[Book-level consistency](docs/BOOK_CONSISTENCY.md), section 6.1:
+
+```powershell
+book-agent consistency-report "D:\runs\my-job"
+book-agent consistency-report "D:\runs\my-job" --output my-job.consistency.md
+book-agent consistency-report "D:\runs\my-job" --json
+```
+
+The pipeline itself checks consistency in the `audit_consistency` stage
+(on by default, no model calls): a line or line of dialogue the book repeats
+must be rendered the same way everywhere, and punctuation must follow the
+book's own conventions. Drift goes to repair; what repair cannot fix joins the
+review queue. Optionally, `consistency.style_sheet.enabled: true` also
+extracts a **book style sheet** with the glossary: recurring expressions,
+rendered the same way wherever the line recurs, and notes on each character.
+The notes are context only; the source wording and the scene decide pronouns
+and 你/您. The gate waits for a person to review the sheet on the Glossary
+tab's Style sheet section (or `approve --style FILE`), even when the glossary
+is LLM-reviewed; `consistency.style_sheet.review: glossary` follows the
+glossary's review setting instead. See
+[Book-level consistency](docs/BOOK_CONSISTENCY.md).
 
 Named production configurations are captured with a profile version and source
 file hash. `status` reports source-config drift, and the effective field-level

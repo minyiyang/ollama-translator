@@ -120,13 +120,17 @@ def _stage_enabled(stage: str, config: AppConfig) -> bool:
         return bool(config.translation.fallback_models)
     if stage == WorkflowStage.REPROSE_TRANSLATION.value:
         return config.reprose.enabled
+    if stage == WorkflowStage.AUDIT_CONSISTENCY.value:
+        return config.consistency.enabled
     if stage in {WorkflowStage.EXTRACT_GLOSSARY.value, WorkflowStage.RESOLVE_GLOSSARY.value}:
         return config.glossary.extraction_enabled
     return True
 
 
 # Deterministic stages that take seconds; without history they count as zero, not "unknown".
-_QUICK_STAGES = {"decompile", "preprocess", "compile", "validate_epub", "validate_repaired"}
+_QUICK_STAGES = {
+    "decompile", "preprocess", "audit_consistency", "compile", "validate_epub", "validate_repaired",
+}
 
 
 def _is_human_gate(stage: str, config: AppConfig) -> bool:

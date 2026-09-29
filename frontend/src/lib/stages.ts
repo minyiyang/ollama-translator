@@ -15,6 +15,7 @@ export const STAGE_LABELS: Record<string, string> = {
   translate: "Translate",
   rescue_translation: "Rescue with fallback models",
   audit_translation: "Audit translation",
+  audit_consistency: "Check consistency",
   repair_translation: "Repair findings",
   reprose_translation: "Prose rewrite",
   review_repaired: "Review repairs",

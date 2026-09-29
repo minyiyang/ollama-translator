@@ -66,6 +66,12 @@ export const STAGE_INFO: Record<string, StageInfo> = {
     checks: "Findings without a concrete fix, or that only state a style preference, are dropped.",
     model: "audit.model",
   },
+  audit_consistency: {
+    does: "Checks the whole book for drift: a repeated line, or a repeated line of dialogue, translated differently in different places, and punctuation that departs from the book's own conventions (a single — where the book uses ——). No model calls.",
+    input: "Translated documents, with your manual edits in place of the pipeline text.",
+    output: "Consistency findings per document, each naming the rendering to follow; close variants go to repair, clearly different wording is only listed.",
+    checks: "The rendering to follow is your edit if there is one, else the majority, else the first in reading order. Findings are re-checked after repair and again at compile, on the text with your edits.",
+  },
   repair_translation: {
     does: "Rewrites only the segments with findings at or above the repair threshold; nothing else is touched.",
     input: "Audit findings.",

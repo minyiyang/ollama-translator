@@ -13,7 +13,8 @@ their implementation history and rationale.
 decompile
   -> extract_glossary -> resolve_glossary -> approve_glossary
   -> preprocess -> translate
-  -> audit_translation -> repair_translation -> reprose_translation
+  -> audit_translation -> audit_consistency -> repair_translation
+  -> reprose_translation
   -> review_repaired -> repair_review -> validate_repaired
   -> compile -> validate_epub
 ```

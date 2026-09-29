@@ -45,7 +45,7 @@ from . import drafts
 from .book_info import allowed_book, book_cover, book_info
 from .estimate import estimate as estimate_job
 from . import setup as setup_api
-from .glossary_view import glossary_payload, write_reviewed_glossary
+from .glossary_view import glossary_payload, write_reviewed_glossary, write_reviewed_style_sheet
 from ..stages.compile import load_compiled_epub_path
 from .jobs import ProgressReader, draft_direction, job_direction, job_path, list_jobs, open_job
 from .text_view import text_chapter, text_outline
@@ -598,6 +598,9 @@ class UiApp:
         elif body.get("llm") and overlay is not None:
             # The LLM reviews the series-synchronized candidate, not the raw draft.
             args += ["--glossary", str(overlay["path"])]
+        if body.get("style") is not None:
+            # A reviewed style sheet is approved as is, even with LLM review of the glossary.
+            args += ["--style", str(write_reviewed_style_sheet(workspace, body["style"]))]
         if body.get("llm"):
             args.append("--llm-glossary")
         if len(args) == 2:

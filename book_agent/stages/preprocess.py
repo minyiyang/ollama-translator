@@ -12,7 +12,7 @@ from ..glossary import (
     load_glossary_file,
     merge_prioritized_sources,
 )
-from ..hashing import hash_named_values, sha256_file
+from ..hashing import hash_named_values, sha256_file, sha256_text
 from ..series_binding import bound_glossary_file, load_series_binding
 from ..pipeline_state import (
     WorkflowStage,
@@ -49,10 +49,11 @@ from ..stage_artifacts import (
     require_document_totals,
     require_unique_items,
 )
+from ..style_sheet import select_relevant_style
 from ..workspace import JobWorkspace
 from ..schemas import GlossaryResult, normalize_term
 from .decompile import load_decompile_manifest
-from .glossary import load_approved_glossary
+from .glossary import load_approved_glossary, load_style_sheet
 
 
 PREPROCESS_STAGE_VERSION = "6"
@@ -70,6 +71,11 @@ def run_preprocessing_stage(
         approval = _require_completed(connection, WorkflowStage.APPROVE_GLOSSARY)
         manifest = load_decompile_manifest(workspace, connection=connection)
         glossary, series_hashes = _load_effective_glossary(workspace, config)
+        # The approved style sheet, when switched on; only then does it touch any hash.
+        style = load_style_sheet(workspace) if config.consistency.style_sheet.enabled else None
+        style_fields = (
+            {"style_sheet": sha256_text(style.model_dump_json())} if style is not None else {}
+        )
         effective_glossary_hash = hash_named_values(
             {
                 "approved": str(approval["output_hash"]),
@@ -85,6 +91,7 @@ def run_preprocessing_stage(
                 "conflict_policy": config.preprocessing.conflict_policy,
                 "stage_version": PREPROCESS_STAGE_VERSION,
                 **series_hashes,
+                **style_fields,
             }
         )
         if stage_is_current(
@@ -127,6 +134,7 @@ def run_preprocessing_stage(
                     "direction": config.translation.direction.value,
                     "mode": config.preprocessing.mode,
                     "conflicts": config.preprocessing.conflict_policy,
+                    **style_fields,
                 }
             )
             stem = f"{source_document.order:04d}-{source_document.manifest_id}"
@@ -175,6 +183,11 @@ def run_preprocessing_stage(
                     source_sha256=source_document.source_sha256,
                     segments=processed_segments,
                     relevant_glossary=relevant,
+                    relevant_style=(
+                        select_relevant_style(style, original_text, max_entries=10_000)
+                        if style is not None
+                        else None
+                    ),
                 )
                 atomic_write_text(json_path, document.model_dump_json(indent=2))
                 atomic_write_text(text_path, render_preprocessed_document(document))

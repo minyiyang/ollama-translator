@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import asdict
 
 from ..atomic_io import atomic_write_text
-from ..audit import is_decorative_separator, reconcile_document_audit
+from ..audit import is_decorative_separator, merge_audit_issues, reconcile_document_audit
 from ..numeric_adjudication import rule_numeric_findings
 from ..config import AppConfig
 from ..hashing import hash_named_values, sha256_file
@@ -59,6 +59,7 @@ from ..stage_artifacts import list_active_stage_artifacts, require_unique_items
 from ..translation import render_translated_document
 from ..workspace import JobWorkspace
 from .audit import load_document_audits
+from .audit_consistency import load_consistency_issues
 from .preprocess import load_preprocessed_documents
 from .translate import load_translated_documents
 
@@ -85,8 +86,17 @@ def run_translation_repair_stage(
         initialize_state(connection)
         audit_stage = _require_completed(connection, WorkflowStage.AUDIT_TRANSLATION)
         translation_stage = _require_completed(connection, WorkflowStage.TRANSLATE)
+        # Book-level findings from audit_consistency, when it published any. Only
+        # then does its output join the input hash, so jobs without consistency
+        # findings keep their cached repair units (docs/BOOK_CONSISTENCY.md, 8.2).
+        consistency_findings = load_consistency_issues(workspace)
+        consistency_fields = {}
+        if consistency_findings:
+            consistency_stage = get_stage_status(connection, WorkflowStage.AUDIT_CONSISTENCY.value)
+            consistency_fields["consistency"] = str(consistency_stage["output_hash"])
         input_hash = build_stage_input_hash(
             {
+                **consistency_fields,
                 "audit": str(audit_stage["output_hash"]),
                 "translation": str(translation_stage["output_hash"]),
                 "minimum_severity": config.audit.repair_min_severity,
@@ -136,6 +146,19 @@ def run_translation_repair_stage(
             )
             for item in historical_audits
         ]
+        # Reconciliation keeps only semantic findings from history, so the
+        # consistency findings are merged after it.
+        if consistency_findings:
+            audits = [
+                audit.model_copy(
+                    update={
+                        "issues": merge_audit_issues(
+                            audit.issues, consistency_findings.get(audit.document_id, [])
+                        )
+                    }
+                )
+                for audit in audits
+            ]
         targets = select_repair_targets(audits, config.audit.repair_min_severity)
         stage_root = workspace.directory(f"repaired/{input_hash[:16]}")
         segment_root = stage_root / "segments"

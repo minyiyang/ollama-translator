@@ -89,6 +89,7 @@ EPUB or RTF
   -> preserve source and select context-relevant glossary entries
   -> first-pass translation
   -> deterministic and semantic audit
+  -> book-level consistency check (repeated lines and dialogue, punctuation conventions)
        -> pass
        -> repair only flagged paragraphs
        -> human review

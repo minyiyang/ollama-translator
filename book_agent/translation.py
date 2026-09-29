@@ -360,6 +360,7 @@ def build_translation_prompt(
     chunk: TranslationChunk,
     relevant_glossary: list[GlossaryEntry],
     config: AppConfig,
+    style_text: str = "",
 ) -> str:
     """Assemble direction, style, naturalness, glossary, and marker constraints."""
     instruction = load_style_instruction(
@@ -413,7 +414,8 @@ def build_translation_prompt(
         f"{style_prompt}\n\n"
         "Approved relevant glossary:\n"
         f"{glossary or '(none)'}\n\n"
-        "Translation contract:\n"
+        + (f"{style_text}\n\n" if style_text else "")
+        + "Translation contract:\n"
         f"- Translate the content inside every marker into {target}.\n"
         f"{glossary_policy}\n"
         f"{source_policy}\n"

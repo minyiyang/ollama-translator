@@ -332,6 +332,19 @@ def apply_validated_prose_decision(
                 "prose rewrite changed protected semantic signatures: "
                 + ", ".join(protected_changes),
             )
+    # Approved style-sheet expressions are fixed wording (docs/BOOK_CONSISTENCY.md, phase 2).
+    if source.relevant_style is not None and config.consistency.style_sheet.enabled:
+        dropped = [
+            item.rendering
+            for item in source.relevant_style.expressions
+            if item.rendering in original and item.rendering not in candidate
+        ]
+        if dropped:
+            return (
+                repaired,
+                False,
+                "prose rewrite changed style-sheet expressions: " + ", ".join(dropped),
+            )
     issue = AuditIssue(
         segment_id=decision.segment_id,
         category=AuditCategory.NATURALNESS,

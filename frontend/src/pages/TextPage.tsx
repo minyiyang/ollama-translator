@@ -759,6 +759,7 @@ export function TextPage() {
                     ["queue", "In review queue"],
                     ["edited", "Edited"],
                     ["conflict", "Conflicts"],
+                    ["consistency", "Consistency"],
                   ] as [TextView, string][]
                 ).map(([value, label]) => (
                   <button

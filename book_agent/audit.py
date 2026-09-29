@@ -53,6 +53,12 @@ class AuditCategory(str, Enum):
     NATURALNESS = "naturalness"
     AI_STYLE = "ai_style"
     PUNCTUATION = "punctuation"
+    # Book-level drift found by audit_consistency (book_agent/consistency.py), never by a model.
+    CONSISTENCY = "consistency"
+
+
+# Categories only the pipeline assigns; hidden from the semantic auditor's response schema.
+PIPELINE_ONLY_CATEGORIES = frozenset({AuditCategory.CONSISTENCY.value})
 
 
 class AuditSeverity(str, Enum):
@@ -133,6 +139,21 @@ class AuditIssue(BaseModel):
 class SemanticAuditResult(BaseModel):
     model_config = ConfigDict(extra="forbid")
     issues: list[AuditIssue] = Field(default_factory=list)
+
+    @classmethod
+    def model_json_schema(cls, *args, **kwargs):  # type: ignore[override]
+        """The schema sent to the semantic auditor, without pipeline-only categories.
+
+        Keeps the auditor's structured output exactly as it was before those
+        categories existed, so it cannot start labelling findings `consistency`.
+        """
+        schema = super().model_json_schema(*args, **kwargs)
+        category = schema.get("$defs", {}).get("AuditCategory")
+        if category and "enum" in category:
+            category["enum"] = [
+                value for value in category["enum"] if value not in PIPELINE_ONLY_CATEGORIES
+            ]
+        return schema
 
 
 class DocumentAudit(BaseModel):

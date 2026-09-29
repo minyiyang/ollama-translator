@@ -29,7 +29,8 @@
 decompile
   -> extract_glossary -> resolve_glossary -> approve_glossary
   -> preprocess -> translate
-  -> audit_translation -> repair_translation -> reprose_translation
+  -> audit_translation -> audit_consistency -> repair_translation
+  -> reprose_translation
   -> review_repaired -> repair_review -> validate_repaired
   -> compile -> validate_epub
 ```
@@ -245,6 +246,16 @@ book-agent approve "D:\runs\my-job" --llm-glossary --resume
 book-agent edits "D:\runs\my-job"
 book-agent edits "D:\runs\my-job" --export xliff --output my-job.xlf
 ```
+
+流水线中的 `audit_consistency` 阶段（默认开启，不调用模型）检查全书一致性：
+重复出现的句子和对白须处处译法一致，标点须遵循本书自身的惯例；不一致之处交给
+修复阶段，修复不了的进入人工复核队列。另可设置
+`consistency.style_sheet.enabled: true`，在提取术语表的同时提取**全书风格表**
+（反复出现的表达，以及各角色的说明），与术语表在同一关卡由人工审定
+（在术语表标签页的“Style sheet”区域，或用 `approve --style FILE` 提交），
+即使术语表本身交由模型复核也是如此。反复出现的表达全书译法一致；角色说明
+仅供参考，代词与你/您由原文措辞和具体情境决定。
+详见 [全书一致性方案](docs/BOOK_CONSISTENCY.md)（英文）。
 
 控制台发起的操作都以子进程方式调用常规命令行，因此日志与检查点与终端运行
 完全一致，关闭控制台后任务仍会继续。

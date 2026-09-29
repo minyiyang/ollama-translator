@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from ..numeric_adjudication import rule_numeric_findings
 from ..atomic_io import atomic_write_text
+from ..consistency import CONSISTENCY_SOURCE
 from ..audit import (
     AuditCategory,
     AuditIssue,
@@ -158,7 +159,9 @@ def run_review_repair_stage(
                 if repair.disposition is RepairDisposition.REVIEW
                 and repair.segment_id not in blocking_ids
                 and not any(
-                    issue.source in {"semantic", "reprose"}
+                    # Book-level consistency drift is invisible to this per-document
+                    # audit, so an unreproduced finding is not a resolved one.
+                    issue.source in {"semantic", "reprose", CONSISTENCY_SOURCE}
                     for issue in repair.issues
                 )
             }

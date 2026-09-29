@@ -39,6 +39,7 @@ from .state import (
 from .text_edits import current_draft_revision, unresolved_review_gate
 from .workspace import JobWorkspace
 from .stages.audit import run_translation_audit_stage
+from .stages.audit_consistency import run_consistency_audit_stage
 from .stages.compile import (
     FinalDraftApprovalRequired,
     run_document_compile_stage,
@@ -138,6 +139,9 @@ def default_stage_runners() -> dict[WorkflowStage, StageRunner]:
         ),
         WorkflowStage.AUDIT_TRANSLATION: lambda workspace, config, client: run_translation_audit_stage(
             workspace, config, client
+        ),
+        WorkflowStage.AUDIT_CONSISTENCY: lambda workspace, config, client: run_consistency_audit_stage(
+            workspace, config
         ),
         WorkflowStage.REPAIR_TRANSLATION: lambda workspace, config, client: run_translation_repair_stage(
             workspace, config, client
@@ -398,6 +402,12 @@ def _stage_result_message(stage: WorkflowStage, result: object) -> str:
             f"review_segments={review_count}"
         )
 
+    if stage is WorkflowStage.AUDIT_CONSISTENCY:
+        issue_count = int(getattr(result, "issue_count", 0) or 0)
+        repair_count = int(getattr(result, "repair_count", 0) or 0)
+        state = "passed" if not issue_count else "drift-found"
+        return f"result={state}; findings={issue_count}; to_repair={repair_count}"
+
     if stage is WorkflowStage.REPROSE_TRANSLATION:
         candidates = int(getattr(result, "candidate_segment_count", 0) or 0)
         proposed = int(getattr(result, "proposed_rewrite_count", 0) or 0)
@@ -458,8 +468,9 @@ def approve_glossary(
     *,
     llm_review: bool = False,
     generation_progress: Callable[[GenerationProgressEvent], None] | None = None,
+    reviewed_style_file: str | Path | None = None,
 ) -> None:
-    """Approve a human- or LLM-reviewed glossary and leave stages ready to resume."""
+    """Approve a human- or LLM-reviewed glossary (and style sheet) and leave stages ready to resume."""
     resolved = config or load_workspace_config(workspace)
     client = None
     if llm_review:
@@ -478,6 +489,7 @@ def approve_glossary(
         reviewed_file=reviewed_file,
         llm_review=llm_review,
         client=client,
+        reviewed_style_file=reviewed_style_file,
     )
 
 

@@ -284,6 +284,44 @@ class ProseRewriteConfig(StrictModel):
         return self
 
 
+class StyleSheetConfig(StrictModel):
+    """The book style sheet (docs/BOOK_CONSISTENCY.md, phase 2); extracted with the glossary."""
+
+    enabled: bool = False
+    # human: the glossary gate waits for a person to review the style sheet (Glossary
+    # tab, or `approve --style FILE`), even when the glossary itself is LLM-reviewed.
+    # glossary: follow the glossary's review setting (LLM, human, or none).
+    review: Literal["human", "glossary"] = "human"
+    max_characters_per_chunk: int = Field(default=20, ge=1, le=60)
+    max_expressions_per_chunk: int = Field(default=20, ge=1, le=60)
+    # Style-sheet lines added to one translation or repair prompt.
+    max_entries_per_chunk: int = Field(default=12, ge=1, le=60)
+
+
+class ConsistencyConfig(StrictModel):
+    """Book-level consistency checks (docs/BOOK_CONSISTENCY.md); deterministic, no model calls."""
+
+    enabled: bool = True
+    min_repeat_characters: int = Field(default=12, ge=4)
+    quoted_speech: bool = True
+    conventions: bool = True
+    # A variant at least this similar to the reference is drift (medium: repaired);
+    # a less similar one is likely intentional wording (low: listed only).
+    close_variant_similarity: float = Field(default=0.6, ge=0.0, le=1.0)
+    style_sheet: StyleSheetConfig = Field(default_factory=StyleSheetConfig)
+
+    def settings(self, target_language: str):
+        from .consistency import ConsistencySettings
+
+        return ConsistencySettings(
+            min_repeat_characters=self.min_repeat_characters,
+            quoted_speech=self.quoted_speech,
+            conventions=self.conventions,
+            close_variant_similarity=self.close_variant_similarity,
+            target_language=target_language,
+        )
+
+
 class WorkflowConfig(StrictModel):
     production_profile: str = ""
     production_profile_version: int = Field(default=0, ge=0)
@@ -311,6 +349,7 @@ class AppConfig(StrictModel):
     epub: EpubConfig = EpubConfig()
     audit: AuditConfig = AuditConfig()
     reprose: ProseRewriteConfig = ProseRewriteConfig()
+    consistency: ConsistencyConfig = ConsistencyConfig()
     workflow: WorkflowConfig = WorkflowConfig()
     paths: PathsConfig = PathsConfig()
 
