@@ -49,11 +49,13 @@ from ..stage_artifacts import (
     require_document_totals,
     require_unique_items,
 )
+from ..story_context import story_context_by_document
 from ..style_sheet import select_relevant_style
 from ..workspace import JobWorkspace
 from ..schemas import GlossaryResult, normalize_term
 from .decompile import load_decompile_manifest
 from .glossary import load_approved_glossary, load_style_sheet
+from .story_context import load_story_summaries
 
 
 PREPROCESS_STAGE_VERSION = "6"
@@ -76,6 +78,17 @@ def run_preprocessing_stage(
         style_fields = (
             {"style_sheet": sha256_text(style.model_dump_json())} if style is not None else {}
         )
+        # Each document's "story so far", when story context is on.
+        story_blocks = (
+            story_context_by_document(
+                load_story_summaries(workspace),
+                chapters_before=config.consistency.story_context.chapters_before,
+            )
+            if config.consistency.story_context.enabled
+            else {}
+        )
+        if story_blocks:
+            style_fields["story_context"] = hash_named_values(story_blocks)
         effective_glossary_hash = hash_named_values(
             {
                 "approved": str(approval["output_hash"]),
@@ -137,6 +150,11 @@ def run_preprocessing_stage(
                     **style_fields,
                 }
             )
+            if story_blocks:
+                document_input_hash = hash_named_values({
+                    "base": document_input_hash,
+                    "story": story_blocks.get(source_document.manifest_id, ""),
+                })
             stem = f"{source_document.order:04d}-{source_document.manifest_id}"
             json_path = stage_root / f"{stem}.json"
             text_path = stage_root / f"{stem}.txt"
@@ -188,6 +206,7 @@ def run_preprocessing_stage(
                         if style is not None
                         else None
                     ),
+                    story_context=story_blocks.get(source_document.manifest_id) or None,
                 )
                 atomic_write_text(json_path, document.model_dump_json(indent=2))
                 atomic_write_text(text_path, render_preprocessed_document(document))

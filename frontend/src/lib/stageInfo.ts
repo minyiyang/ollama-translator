@@ -66,6 +66,13 @@ export const STAGE_INFO: Record<string, StageInfo> = {
     checks: "Findings without a concrete fix, or that only state a style preference, are dropped.",
     model: "audit.model",
   },
+  build_story_context: {
+    does: "Optional: summarizes each chapter from the source (who appears, what happens, open threads), so each translation chunk knows the story so far. Off unless consistency.story_context is enabled.",
+    input: "Decompiled chapters.",
+    output: "One short summary per chapter; preprocessing turns them into each chapter's “story so far” for the translation prompts.",
+    checks: "Context only: the prompt tells the translator not to translate or quote it, and the source wording and the scene still decide every choice.",
+    model: "consistency.story_context.model (default: ollama.model)",
+  },
   audit_consistency: {
     does: "Checks the whole book for drift: a repeated line, or a repeated line of dialogue, translated differently in different places, and punctuation that departs from the book's own conventions (a single — where the book uses ——). No model calls.",
     input: "Translated documents, with your manual edits in place of the pipeline text.",

@@ -298,6 +298,18 @@ class StyleSheetConfig(StrictModel):
     max_entries_per_chunk: int = Field(default=12, ge=1, le=60)
 
 
+class StoryContextConfig(StrictModel):
+    """Chapter summaries as translation context (docs/BOOK_CONSISTENCY.md, phase 3)."""
+
+    enabled: bool = False
+    # Summaries of this many earlier chapters join each chunk's "story so far".
+    chapters_before: int = Field(default=2, ge=0, le=6)
+    max_summary_words: int = Field(default=120, ge=30, le=300)
+    # Longer chapters are summarized from their beginning.
+    max_source_characters: int = Field(default=40_000, ge=2_000)
+    model: str | None = None  # default: ollama.model
+
+
 class ConsistencyConfig(StrictModel):
     """Book-level consistency checks (docs/BOOK_CONSISTENCY.md); deterministic, no model calls."""
 
@@ -309,6 +321,7 @@ class ConsistencyConfig(StrictModel):
     # a less similar one is likely intentional wording (low: listed only).
     close_variant_similarity: float = Field(default=0.6, ge=0.0, le=1.0)
     style_sheet: StyleSheetConfig = Field(default_factory=StyleSheetConfig)
+    story_context: StoryContextConfig = Field(default_factory=StoryContextConfig)
 
     def settings(self, target_language: str):
         from .consistency import ConsistencySettings

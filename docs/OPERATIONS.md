@@ -12,6 +12,7 @@ their implementation history and rationale.
 ```text
 decompile
   -> extract_glossary -> resolve_glossary -> approve_glossary
+  -> build_story_context (optional)
   -> preprocess -> translate
   -> audit_translation -> audit_consistency -> repair_translation
   -> reprose_translation

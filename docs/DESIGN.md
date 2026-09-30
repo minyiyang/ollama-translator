@@ -86,6 +86,7 @@ EPUB or RTF
   -> extract glossary candidates by chunk
   -> merge, resolve, categorize, and validate glossary
   -> optional independent Qwen or human glossary approval
+  -> optional chapter summaries for story context
   -> preserve source and select context-relevant glossary entries
   -> first-pass translation
   -> deterministic and semantic audit

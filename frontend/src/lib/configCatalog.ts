@@ -91,6 +91,12 @@ export const COMMON_GROUPS: CommonGroup[] = [
         help: "Also extract, with the glossary, lines the book repeats (rendered the same way throughout) and notes on each character. Character notes are context only: the source wording and the scene decide pronouns and 你/您.",
       },
       {
+        path: "consistency.story_context.enabled",
+        label: "Story context",
+        help: "Summarize each chapter first (about 6 s per chapter) and give each translation chunk the story so far: the previous chapters and its own. Context only; the source still decides.",
+      },
+      { path: "consistency.story_context.chapters_before", label: "Earlier chapters in context", help: "How many previous chapter summaries each chunk sees." },
+      {
         path: "consistency.style_sheet.review",
         label: "Style sheet review",
         help: "human: the glossary gate waits for you to review the style sheet on the Glossary tab, even when the glossary itself is LLM-reviewed. glossary: follow the glossary's review setting.",

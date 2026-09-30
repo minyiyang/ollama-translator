@@ -397,12 +397,25 @@ def chunk_style_text(
     )
 
 
+def _story_text(document: PreprocessedDocument, config: AppConfig) -> str:
+    """The document's "story so far" (docs/BOOK_CONSISTENCY.md, phase 3), or ""."""
+    if not config.consistency.story_context.enabled:
+        return ""
+    return document.story_context or ""
+
+
 def _style_hash(
     document: PreprocessedDocument, chunk: TranslationChunk, config: AppConfig
 ) -> dict[str, str]:
-    """A chunk's style block joins its unit hash only when there is one."""
+    """A chunk's style and story blocks join its unit hash only when there are any."""
+    fields = {}
     text = chunk_style_text(document, chunk, config)
-    return {"style": text} if text else {}
+    if text:
+        fields["style"] = text
+    story = _story_text(document, config)
+    if story:
+        fields["story"] = story
+    return fields
 
 
 def _build_chunk_prompt(
@@ -413,7 +426,11 @@ def _build_chunk_prompt(
 ) -> str:
     """Build a target-only prompt with optional immutable boundary context."""
     prompt = build_translation_prompt(
-        chunk, relevant_glossary, config, chunk_style_text(document, chunk, config)
+        chunk,
+        relevant_glossary,
+        config,
+        chunk_style_text(document, chunk, config),
+        _story_text(document, config),
     )
     if config.translation.boundary_context != "adjacent-read-only":
         return prompt

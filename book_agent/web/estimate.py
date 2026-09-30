@@ -122,6 +122,8 @@ def _stage_enabled(stage: str, config: AppConfig) -> bool:
         return config.reprose.enabled
     if stage == WorkflowStage.AUDIT_CONSISTENCY.value:
         return config.consistency.enabled
+    if stage == WorkflowStage.BUILD_STORY_CONTEXT.value:
+        return config.consistency.story_context.enabled
     if stage in {WorkflowStage.EXTRACT_GLOSSARY.value, WorkflowStage.RESOLVE_GLOSSARY.value}:
         return config.glossary.extraction_enabled
     return True

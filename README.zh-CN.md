@@ -28,6 +28,7 @@
 ```text
 decompile
   -> extract_glossary -> resolve_glossary -> approve_glossary
+  -> build_story_context (optional)
   -> preprocess -> translate
   -> audit_translation -> audit_consistency -> repair_translation
   -> reprose_translation
@@ -254,7 +255,10 @@ book-agent edits "D:\runs\my-job" --export xliff --output my-job.xlf
 （反复出现的表达，以及各角色的说明），与术语表在同一关卡由人工审定
 （在术语表标签页的“Style sheet”区域，或用 `approve --style FILE` 提交），
 即使术语表本身交由模型复核也是如此。反复出现的表达全书译法一致；角色说明
-仅供参考，代词与你/您由原文措辞和具体情境决定。
+仅供参考，代词与你/您由原文措辞和具体情境决定。设置
+`consistency.story_context.enabled: true` 可启用可选的 `build_story_context`
+阶段：为每章生成一段简短摘要（每章约 6 秒），翻译时每个分块都会看到“前情提要”，
+仅作参考，不直接翻译。
 详见 [全书一致性方案](docs/BOOK_CONSISTENCY.md)（英文）。
 
 控制台发起的操作都以子进程方式调用常规命令行，因此日志与检查点与终端运行

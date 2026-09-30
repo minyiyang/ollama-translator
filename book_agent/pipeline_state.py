@@ -18,6 +18,7 @@ class WorkflowStage(str, Enum):
     EXTRACT_GLOSSARY = "extract_glossary"
     RESOLVE_GLOSSARY = "resolve_glossary"
     APPROVE_GLOSSARY = "approve_glossary"
+    BUILD_STORY_CONTEXT = "build_story_context"
     PREPROCESS = "preprocess"
     TRANSLATE = "translate"
     RESCUE_TRANSLATION = "rescue_translation"
@@ -37,7 +38,9 @@ STAGE_DEPENDENCIES: dict[WorkflowStage, tuple[WorkflowStage, ...]] = {
     WorkflowStage.EXTRACT_GLOSSARY: (WorkflowStage.DECOMPILE,),
     WorkflowStage.RESOLVE_GLOSSARY: (WorkflowStage.EXTRACT_GLOSSARY,),
     WorkflowStage.APPROVE_GLOSSARY: (WorkflowStage.RESOLVE_GLOSSARY,),
-    WorkflowStage.PREPROCESS: (WorkflowStage.APPROVE_GLOSSARY,),
+    # Summaries depend only on the source, so a glossary change does not redo them.
+    WorkflowStage.BUILD_STORY_CONTEXT: (WorkflowStage.DECOMPILE,),
+    WorkflowStage.PREPROCESS: (WorkflowStage.APPROVE_GLOSSARY, WorkflowStage.BUILD_STORY_CONTEXT),
     WorkflowStage.TRANSLATE: (WorkflowStage.PREPROCESS,),
     WorkflowStage.RESCUE_TRANSLATION: (WorkflowStage.TRANSLATE,),
     WorkflowStage.AUDIT_TRANSLATION: (WorkflowStage.RESCUE_TRANSLATION,),
@@ -53,6 +56,14 @@ STAGE_DEPENDENCIES: dict[WorkflowStage, tuple[WorkflowStage, ...]] = {
 
 
 ADDED_AFTER_REPAIR_MESSAGE = "added after this job was repaired; rerun from here to apply"
+ADDED_LATER_MESSAGE = "added after this job had passed this point; rerun from here to apply"
+
+# Stages added to the pipeline later, and the stage after which an existing job
+# counts as past them (docs/BOOK_CONSISTENCY.md, 8.2 and 8.5).
+_ADDED_STAGES = {
+    WorkflowStage.AUDIT_CONSISTENCY: (WorkflowStage.REPAIR_TRANSLATION, ADDED_AFTER_REPAIR_MESSAGE),
+    WorkflowStage.BUILD_STORY_CONTEXT: (WorkflowStage.PREPROCESS, ADDED_LATER_MESSAGE),
+}
 
 
 def initialize_pipeline_stages(connection: sqlite3.Connection) -> None:
@@ -66,15 +77,11 @@ def initialize_pipeline_stages(connection: sqlite3.Connection) -> None:
     for stage in WorkflowStage:
         if get_stage_status(connection, stage.value) is not None:
             continue
-        if stage is WorkflowStage.AUDIT_CONSISTENCY:
-            repair = get_stage_status(connection, WorkflowStage.REPAIR_TRANSLATION.value)
-            if repair is not None and repair["status"] == StageStatus.COMPLETED.value:
-                set_stage_status(
-                    connection,
-                    stage.value,
-                    StageStatus.COMPLETED,
-                    message=ADDED_AFTER_REPAIR_MESSAGE,
-                )
+        if stage in _ADDED_STAGES:
+            later, message = _ADDED_STAGES[stage]
+            record = get_stage_status(connection, later.value)
+            if record is not None and record["status"] == StageStatus.COMPLETED.value:
+                set_stage_status(connection, stage.value, StageStatus.COMPLETED, message=message)
                 continue
         set_stage_status(connection, stage.value, StageStatus.PENDING)
 

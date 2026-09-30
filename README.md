@@ -21,6 +21,7 @@ pipeline treats each of those as a separate, individually checkpointed problem.
 ```text
 decompile
   -> extract_glossary -> resolve_glossary -> approve_glossary
+  -> build_story_context (optional)
   -> preprocess -> translate
   -> audit_translation -> audit_consistency -> repair_translation
   -> reprose_translation
@@ -893,8 +894,10 @@ The notes are context only; the source wording and the scene decide pronouns
 and 你/您. The gate waits for a person to review the sheet on the Glossary
 tab's Style sheet section (or `approve --style FILE`), even when the glossary
 is LLM-reviewed; `consistency.style_sheet.review: glossary` follows the
-glossary's review setting instead. See
-[Book-level consistency](docs/BOOK_CONSISTENCY.md).
+glossary's review setting instead. `consistency.story_context.enabled: true`
+adds the optional `build_story_context` stage: one short summary per chapter
+(about 6 s each), from which every translation chunk gets the story so far,
+as context only. See [Book-level consistency](docs/BOOK_CONSISTENCY.md).
 
 Named production configurations are captured with a profile version and source
 file hash. `status` reports source-config drift, and the effective field-level

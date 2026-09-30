@@ -1,8 +1,10 @@
 # Book-level consistency: proposal
 
-Status: **phases 0 (measurement) and 1 (translation memory and the
-audit_consistency stage) implemented; phase 2 (style sheet) in progress.**
-Last updated: 2026-09-28.
+Status: **phases 0–3 implemented** (measurement; translation memory and the
+audit_consistency stage; the style sheet; story context). Phase 4 unscheduled
+(decision 7.8). Phase 3 is opt-in and not recommended: no measurable benefit
+in two benchmarks (section 8.5).
+Last updated: 2026-09-29.
 Updated for the tracked edit log, Text tab, and XLIFF round trip
 (docs/FULL_TEXT_REVIEW.md, docs/XLIFF_IMPORT.md) that landed after the first draft.
 
@@ -316,6 +318,102 @@ the style sheet (phase 2) is for.
    slip (他→它) makes the other copies close variants, which are queued; a
    substantial rewrite of one copy is treated as context-specific, so the
    other copies are listed (low), not queued (section 8.2).
+8. **Phase 3 next, phase 4 unscheduled** (2026-09-29): story context gives
+   the translator more of the scene, in line with decision 6; a per-character
+   voice check (phase 4) conflicts with it, since voice and register change
+   with the scene.
+
+### 8.5 Phase 3: story context
+
+**Cost probe (decision 7.3, 2026-09-29):** one structured summary call per
+chapter with the translation model (`qwen3.8:latest`, thinking off) on the
+three benchmark chapters (`runs/bench/measure_story.py`, read-only):
+
+| Chapter | Segments | Prompt tokens | Output tokens | Time |
+|---|---:|---:|---:|---:|
+| II (`item5`) | 26 | 2,769 | 354 | 19.5 s (13.9 s model load) |
+| VIII (`item11`) | 72 | 3,344 | 367 | 5.7 s |
+| IX (`item12`) | 93 | 3,214 | 361 | 6.3 s |
+
+About 6 s per chapter once the model is loaded (translation loads the same
+model anyway): roughly 1.2 min for *Alice* (12 chapters) and 2.3 min for
+*Crusoe* (23), well under the 3–15 min estimated in section 6. The summaries
+were accurate: characters, events in order, and open threads (for example
+"the Mock Turtle's history regarding games, which the Gryphon demands he tell
+next"). Each translation chunk's prompt grows by about 1,000 tokens (two
+previous chapters and the current one), about +20% prompt tokens; prompt
+reading takes seconds, so translation time barely changes.
+
+**Built (2026-09-29), opt-in:** `consistency.story_context.enabled: true`
+(default off; with it off, prompts and preprocessed files are unchanged).
+`build_story_context` runs after `approve_glossary` and depends only on the
+decompiled source, so a glossary change does not redo it; each chapter is a
+resumable work unit. Preprocessing turns the summaries into each document's
+`story_context` (the `chapters_before` earlier chapters and its own), and the
+translation prompt adds it as "Story so far (context only …)". Settings:
+`chapters_before` (2), `max_summary_words` (120), `max_source_characters`
+(40,000; longer chapters are summarized from their beginning), `model`
+(default `ollama.model`). A job preprocessed before the stage existed records
+it as completed ("added after this job had passed this point"); *Rerun from
+here* applies it. Code: `book_agent/story_context.py`,
+`book_agent/stages/story_context.py`; tests: `tests/test_story_context.py`.
+
+**End to end on the benchmark subset (2026-09-29, `runs/bench/alice-story.yaml`,
+story context only):**
+
+| | Baseline | Story context |
+|---|---|---|
+| build_story_context | — | 3 calls, 0.3 min |
+| translate | 2.7 min, 22,002 prompt tokens | 3.0 min, 24,005 (+9%) |
+| whole run | 14.0 min, 51 calls | 10.4 min, 58 calls |
+| semantic audit findings | 8 | 7 |
+| review queue | empty | empty |
+
+The shorter total is the audit writing less (7,286 → 2,768 output tokens),
+not a measured quality gain. 139 of 191 segments came out differently, almost
+all as paraphrase (奔向 / 赶往, 蠢货 / 傻瓜): a longer prompt shifts the
+wording even at temperature 0. Two changes went against the source: the
+Mock Turtle's old teacher, "him" in English, became 它 instead of 他
+(`D0002-S000057`/`058`), and "Once, … I was a real Turtle" became 有一次
+instead of 曾经. The "Off with his head!" drift happened here too, and
+`audit_consistency` repaired it, as in phase 1.
+
+**Conclusion:** the cost is small (about +0.6 min on the subset), but this
+subset cannot show the benefit. Its chapters (II, VIII, IX) are not
+contiguous, so each "story so far" skips the chapters in between, and the
+benefit story context aims at (callbacks to people and events from chapters
+ago) needs a continuous book. It stays opt-in and off by default until a run
+on a whole book, or a contiguous stretch, shows fewer context errors than
+without it.
+
+**Contiguous test (2026-09-29): *The Sign of the Four*, chapters I–VI**
+(303 segments, full of callbacks: Captain Morstan, Major Sholto, the yearly
+pearls, Thaddeus and Bartholomew, the Agra treasure). Two runs of the Holmes
+demo configuration with LLM glossary approval, identical except for story
+context (`runs/bench/holmes-base.yaml`, `holmes-story.yaml`; comparison
+script `runs/bench/compare_story.py`, output `runs/bench/sign-comparison.md`).
+
+- **Cost:** `build_story_context` took 6 calls and 0.6 min for six chapters;
+  the story run's whole pipeline took 23.5 min. (The base run was stopped
+  for low memory and resumed, and its first session's metrics were lost, so
+  its total is not comparable.)
+- **Source agreement:** one segment in each run uses a pronoun the English
+  does not; the same count, with no story-only deviations.
+- **Semantic audit:** 17 findings without, 22 with; 8 segments flagged in
+  both, 9 only without, 11 only with. The extra findings are local slips
+  (too literal, a word left untranslated, a glossary miss), none about
+  referents or earlier chapters.
+- **Callback passages:** 228 of 303 segments differ, almost all paraphrase.
+  One improved: Thaddeus's "the course which has seemed right to me" became
+  我认为 instead of 他认为. One got worse: "Your servant, Miss Morstan" became
+  您是我的仆人 ("you are my servant") instead of 愿为您效劳.
+
+**Conclusion:** no measurable benefit on a contiguous, callback-heavy
+stretch either; the differences are the variance of changed wording. The
+translator already sees whole chapters as its chunk context, and at this
+book length that is evidently enough for referents. Phase 3 stays built,
+opt-in, and off by default; it is not recommended, and no further work is
+planned on it unless a longer book shows context errors that it would fix.
 3. **Cost:** before any model-calling part is built, benchmark it on a 2–3
    chapter subset of a real book (`scripts/create_epub_spine_subset.py`) to
    measure actual calls, tokens, and time instead of relying on the

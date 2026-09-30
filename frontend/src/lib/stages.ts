@@ -11,6 +11,7 @@ export const STAGE_LABELS: Record<string, string> = {
   extract_glossary: "Extract glossary",
   resolve_glossary: "Resolve glossary",
   approve_glossary: "Approve glossary",
+  build_story_context: "Build story context",
   preprocess: "Preprocess",
   translate: "Translate",
   rescue_translation: "Rescue with fallback models",
