@@ -201,6 +201,28 @@ def merge_style_candidates(
     )
 
 
+MIN_EXPRESSION_CHARACTERS = 6
+
+
+def keep_recurring_expressions(sheet: StyleSheet, texts: Iterable[str]) -> StyleSheet:
+    """Drop expressions that do not recur verbatim in the book's source.
+
+    Extraction proposes many "recurring" lines that occur once or not at all
+    (on *The Wind in the Willows*, 84 of 101): a style-sheet expression must
+    occur at least twice. Very short ones ("O my!", a nickname) are dropped
+    too; names belong in the glossary.
+    """
+    # Segments are joined with a separator no expression contains, so a match cannot span two.
+    book = " | ".join(unicodedata.normalize("NFKC", _visible(text)).casefold() for text in texts)
+    kept = [
+        item
+        for item in sheet.expressions
+        if len(item.source) >= MIN_EXPRESSION_CHARACTERS
+        and book.count(" ".join(unicodedata.normalize("NFKC", item.source).casefold().split())) >= 2
+    ]
+    return sheet.model_copy(update={"expressions": kept})
+
+
 # -- LLM review ------------------------------------------------------------------------
 
 

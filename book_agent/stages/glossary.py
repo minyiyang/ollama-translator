@@ -17,6 +17,7 @@ from ..style_sheet import (
     build_style_review_schema,
     candidate_from_model,
     extraction_instructions,
+    keep_recurring_expressions,
     load_style_sheet,
     merge_style_candidates,
     review_decisions,
@@ -567,8 +568,11 @@ def run_glossary_resolution_stage(
         _record_file(connection, workspace, quality_path, WorkflowStage.RESOLVE_GLOSSARY, "glossary_draft_quality_report")
         _record_file(connection, workspace, harmonization_path, WorkflowStage.RESOLVE_GLOSSARY, "glossary_draft_harmonization_report")
         if config.consistency.style_sheet.enabled:
-            style_draft = merge_style_candidates(
-                _load_style_candidates(connection, workspace), config.translation.direction
+            style_draft = keep_recurring_expressions(
+                merge_style_candidates(
+                    _load_style_candidates(connection, workspace), config.translation.direction
+                ),
+                (segment.text for document in eligible_documents for segment in document.segments),
             )
             style_path = stage_root / "style.draft.json"
             atomic_write_text(style_path, style_draft.model_dump_json(indent=2))

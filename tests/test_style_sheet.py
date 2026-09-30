@@ -166,7 +166,8 @@ def test_the_extraction_prompt_is_unchanged_when_the_style_sheet_is_off():
 CHAPTER = b"""<?xml version='1.0'?>
 <html xmlns='http://www.w3.org/1999/xhtml'><head><title>Fixture</title></head>
 <body><h1>Chapter One</h1><p>The Mouse looked at Alice with great suspicion.</p>
-<p>Off with her head! the Queen shouted once more.</p></body></html>"""
+<p>Off with her head! the Queen shouted once more.</p>
+<p>Off with her head! she said again, to nobody.</p></body></html>"""
 
 
 class SchemaFakeClient:
@@ -327,6 +328,30 @@ class GlossaryGateTests:
             # Switched off, the same document gives the prompt without a style block.
             off = AppConfig.model_validate({"workflow": {"require_glossary_review": False}})
             assert "Book style sheet" not in _build_chunk_prompt(document, chunks[0], [], off)
+
+
+def test_only_expressions_that_recur_in_the_source_are_kept():
+    from book_agent.style_sheet import keep_recurring_expressions
+
+    sheet = _sheet(expressions=[
+        StyleExpression(source="Off with her head!", rendering="砍掉她的头！"),  # twice
+        StyleExpression(source="Come along in, both of you.", rendering="进来吧。"),  # once
+        StyleExpression(source="Not in the book at all", rendering="无"),  # never
+        StyleExpression(source="O my!", rendering="哎呀！"),  # too short, however often
+    ])
+    texts = [
+        "“Off with her <I000>head</I000>!” she roared.",
+        "“Come along in, both of you.” “O my!”",
+        "“OFF WITH HER HEAD!” again. “O my!”",
+    ]
+    kept = keep_recurring_expressions(sheet, texts)
+    assert [e.source for e in kept.expressions] == ["Off with her head!"]
+
+
+def test_a_missed_expression_is_listed_not_queued():
+    sheet = _sheet(expressions=[StyleExpression(source="Off with her head!", rendering="砍掉她的头！")])
+    (issue,) = expression_issues([("S1", "“Off with her head!” she roared.", "“砍了她！”她吼道。")], sheet)
+    assert issue.severity.value == "low"
 
 
 def test_prose_rewrite_keeps_approved_expressions():

@@ -119,6 +119,39 @@ class RepeatedLineTests:
         )
         assert [(i.segment_id, i.severity) for i in issues] == [("D0002-S000001", AuditSeverity.LOW)]
 
+    def test_you_and_polite_you_are_not_drift(self):
+        """你/您 follows who speaks to whom (decision 7.6); English "you" does not decide it."""
+        issues = repeated_line_issues(
+            [
+                _seg("D0001-S000001", "“How do you know that, Watson?”", "“你怎么知道的，华生？”"),
+                _seg("D0002-S000001", "“How do you know that, Watson?”", "“您怎么知道的，华生？”"),
+            ],
+            SETTINGS,
+        )
+        assert issues == []
+
+    def test_short_replies_are_listed_never_queued(self):
+        """The Return of Sherlock Holmes: "Certainly not." answers different questions."""
+        issues = repeated_line_issues(
+            [
+                _seg("D0001-S000001", "“Certainly not, sir.”", "“当然不会，先生。”"),
+                _seg("D0002-S000001", "“Certainly not, sir.”", "“当然不会，先生。”"),
+                _seg("D0003-S000001", "“Certainly not, sir.”", "“当然不知道，先生。”"),
+            ],
+            SETTINGS,
+        )
+        assert [(i.segment_id, i.severity) for i in issues] == [("D0003-S000001", AuditSeverity.LOW)]
+        # Four words is a refrain, not a reply: still drift.
+        refrain = repeated_line_issues(
+            [
+                _seg("D0001-S000001", "“Off with his head!” she said.", "“砍掉他的头！”她说。"),
+                _seg("D0002-S000001", "“Off with his head!” she cried.", "“砍掉他的头！”她喊道。"),
+                _seg("D0003-S000001", "“Off with his head!” she roared.", "“砍掉它的头！”她吼道。"),
+            ],
+            SETTINGS,
+        )
+        assert [(i.segment_id, i.severity) for i in refrain] == [("D0003-S000001", AuditSeverity.MEDIUM)]
+
     def test_quoted_speech_is_paired_in_order_inside_longer_segments(self):
         issues = repeated_line_issues(
             [

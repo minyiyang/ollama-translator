@@ -63,11 +63,13 @@ class FakeAuditClient:
         self.progress_labels = []
         self.output_token_limits = []
         self.max_attempts = []
+        self.contexts = []
 
     def generate_structured(
         self, prompt, schema, *, model=None, think=None, progress_label="",
-        context_maximum=None, max_output_tokens=None, max_attempts=None
+        context_minimum=None, context_maximum=None, max_output_tokens=None, max_attempts=None
     ):
+        self.contexts.append((context_minimum, context_maximum))
         self.prompts.append(prompt)
         self.models.append(model)
         self.thinking.append(think)
@@ -232,6 +234,9 @@ class AuditStageTests:
             assert len(client.prompts) == 1
             assert client.models == ["gemma4:31b"]
             assert client.thinking == [False]
+            # A small prompt gets one exact, small context (audit.semantic_min_num_ctx),
+            # not the shared 16K minimum: a smaller footprint and no reloads.
+            assert client.contexts == [(10_240, 10_240)]
             assert client.max_attempts == [1]
             assert client.output_token_limits == [1_536]
             assert "batch=1/1 id=audit-0000-00001 document=1/1 attempt=1/4" in client.progress_labels[0]

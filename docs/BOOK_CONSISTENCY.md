@@ -664,3 +664,88 @@ English says "it", and 你 against the baseline's 您, are both the source and
 the scene deciding, which is now the intended behaviour: character entries
 became context notes, and the style sheet is reviewed by a person at the gate
 by default.
+
+### 8.6 Whole-book tests (2026-09-30)
+
+Two books from the candidate list: *The Wind in the Willows* (talking
+animals, for the style sheet) and *The Return of Sherlock Holmes* (many
+stock lines, a false-positive stress test for phase 1). Both use the Holmes
+demo configuration made unattended (`runs/bench/unattended-base.yaml`: LLM
+glossary approval, prose rewrite off, 2-minute model keep-alive); the runs
+are scripted in `runs/bench/run-consistency-tests.ps1` and evaluated by
+`runs/bench/evaluate_tests.py`.
+
+**The Wind in the Willows** (Project Gutenberg #289, 911 segments of text),
+without and with the style sheet (`runs/bench/wind-style.yaml`, LLM-reviewed
+because nobody was at the gate). Results: `runs/bench/wind-results.md`.
+
+- **Pronouns needed no help.** Without the style sheet the translator
+  already refers to Mole, Rat, Toad, and Badger with 他 in every chapter, and
+  never uses 它 where the English says "he"; with it, the same. The English
+  wording decides, as decision 7.6 intends.
+- **The style sheet made review worse.** The review queue grew from 4 to 28
+  segments. All 24 extra entries came from the expression check. The LLM
+  review had approved all 101 extracted "recurring expressions", but 84 of
+  them occur once or never in the source (one-off sentences, "Good night!"),
+  and the check demanded the approved wording verbatim. Of the five distinct
+  expectations behind the 24, one was arguably real ("Ratty" rendered 拉蒂
+  instead of 水鼠, a nickname that belongs in the glossary); the rest were
+  legitimate variation ("Poop-poop!" as 噗噗声 in narration) or not
+  recurring at all.
+- **Fixes, from this data:**
+  1. Resolution keeps an expression only if it occurs verbatim at least twice
+     in the source and has at least 6 characters
+     (`keep_recurring_expressions`). On this book, 101 become 16, all real
+     refrains and set phrases ("Poop-poop!", "When the Toad—came—home!",
+     "Who comes there?", "Mole End", "old chap").
+  2. A missed expression is a low finding (listed, not queued). The style
+     sheet's value is prevention in the prompt, as with "Off with his head!"
+     on *Alice*; agreement between the actual renderings of a repeated line
+     is already enforced by `repeated_line_issues` with the similarity rule
+     (decision 7.7).
+  With both, the 24 extra entries would not have been queued.
+- **Cost:** the style run took 116 minutes in all (13 extraction calls, 2
+  approval calls, 30 translation calls). The run without the style sheet was
+  stopped twice for low memory and resumed, so only its later stages were
+  timed, and totals are not comparable.
+
+**The Return of Sherlock Holmes** (sample #108, 13 stories, 2,563 segments),
+phase 1 defaults. Results: `runs/bench/return-results.md`.
+
+- **Time:** 389 minutes (6.5 h), of which the semantic audit took 322
+  (425 calls, about 45 s each). The audit model ran at 23 tokens/s on
+  average against 35 on a healthy run, and 22% of its calls fell below
+  10 tokens/s: the 31B audit model spilling out of GPU memory. At normal
+  speed the audit alone is about 2.5 h for a book this size. On this machine,
+  large books need other applications closed during the audit, or
+  `audit.model: gemma4:26b`.
+- **Consistency:** 9 findings, 4 medium (repaired) and 5 low. The false
+  positives this book was chosen to expose appeared among the medium ones:
+  "How do you know?" and "Whom do you suspect" rendered with 您 in one story
+  and 你 in another, and "Certainly not." rendered 当然不知道 and 当然不会
+  as answers to different questions. Repair made them match, which is wrong:
+  the register and the meaning of a short reply follow the scene. The
+  fourth ("Holmes smiled." 微笑了 / 笑了) was harmless.
+- **Fixes** (refining decisions 7.6 and 7.7):
+  1. 你 and 您 compare equal: English "you" does not decide register.
+  2. A line of three words or fewer (six CJK characters or fewer in Chinese)
+     is a reply or interjection: listed (low), never queued, however similar.
+     Four-word refrains such as "Off with his head!" still count.
+  Replayed on every benchmark's text: *Return* goes from 4 medium findings
+  to 0; *Alice* keeps "Off with his head!" (砍掉它的头) as medium; *Wind*
+  keeps two, one a real catch (the chapter title "LIKE SUMMER TEMPESTS CAME
+  HIS TEARS" is 泪如夏日骤雨 in the table of contents but 泪如夏日风暴骤至 in
+  the heading).
+- **Otherwise clean:** no punctuation-convention findings, and no
+  consistency finding left in the review queue after validation (the 7
+  queued segments are semantic ones).
+- **Audit context (2026-09-30):** Ollama already evicts the translation model
+  before loading the audit model (its log: "predicted to exceed available
+  memory, evicting", then all layers on the GPU). The slowdown came in
+  bursts by time of day (20 of 21 calls slow in one hour, 1 of 66 in
+  another): the 31B model at 16K needs about 21 GiB of the 24 GiB card, and
+  other applications' GPU memory pushed it into Windows shared memory
+  (system RAM). The semantic audit now uses one exact 10K context
+  (`audit.semantic_min_num_ctx: 10240`) for every call whose prompt plus the
+  largest answer fits, instead of the shared 16K minimum; larger prompts
+  still grow as before. Not yet measured on a real run.

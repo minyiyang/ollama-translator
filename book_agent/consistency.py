@@ -99,8 +99,26 @@ def source_key(text: str) -> str:
 
 
 def rendering_key(text: str) -> str:
-    """A rendering with punctuation and spacing removed, for comparing two renderings."""
-    return _RENDERING_NOISE.sub("", visible_text(text)).casefold()
+    """A rendering with punctuation and spacing removed, for comparing two renderings.
+
+    你 and 您 compare equal: English "you" does not decide the register, the
+    scene does (decision 7.6), so a 你/您 difference is not drift.
+    """
+    return _RENDERING_NOISE.sub("", visible_text(text)).casefold().replace("您", "你")
+
+
+# Lines this short are replies and interjections ("Certainly not.", "Come on,
+# then") whose rendering depends on the question or the scene: listed, never
+# queued. Four-word refrains ("Off with his head!") still count.
+_SHORT_LINE_WORDS = 3
+_SHORT_LINE_CJK = 6
+
+
+def is_short_line(source: str) -> bool:
+    words = re.findall(r"[A-Za-z]+(?:['’][A-Za-z]+)?", source)
+    if words:
+        return len(words) <= _SHORT_LINE_WORDS
+    return len(_CJK.findall(source)) < _SHORT_LINE_CJK
 
 
 def _quotes(text: str) -> list[str]:
@@ -224,7 +242,7 @@ def repeated_line_issues(
             similarity = SequenceMatcher(None, member.key, reference_key).ratio()
             severity = (
                 AuditSeverity.MEDIUM
-                if similarity >= settings.close_variant_similarity
+                if similarity >= settings.close_variant_similarity and not is_short_line(source)
                 else AuditSeverity.LOW
             )
             issues.append(AuditIssue(
@@ -341,7 +359,12 @@ def expression_issues(
                 issues.append(AuditIssue(
                     segment_id=segment_id,
                     category=AuditCategory.CONSISTENCY,
-                    severity=AuditSeverity.MEDIUM,
+                    # Listed, not queued: the style sheet prevents drift in the prompt,
+                    # and repeated_line_issues enforces agreement between the actual
+                    # renderings. Exact wording varies legitimately with the scene
+                    # (decision 7.6); on The Wind in the Willows a medium severity
+                    # queued 24 such segments for review, none of them real drift.
+                    severity=AuditSeverity.LOW,
                     message=(
                         f'The style sheet renders "{item.source}" as "{item.rendering}", '
                         "but this translation does not use it."
