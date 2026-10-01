@@ -205,6 +205,52 @@ class AuditCoreTests:
         assert AuditCategory.DUPLICATION in categories
         assert AuditCategory.OMISSION in categories or AuditCategory.ADDITION in categories
 
+    def _glossary_findings(self, sources, targets, entries):
+        audit = audit_translated_document(
+            source_document(sources, glossary=entries),
+            translated_document(targets),
+            AuditConfig(semantic_enabled=False),
+        )
+        return [(i.segment_id, i.severity, i.suggested_fix) for i in audit.issues if i.category is AuditCategory.GLOSSARY]
+
+    def test_a_missed_name_is_repaired_and_other_entries_are_listed(self):
+        """The Return of Sherlock Holmes: Dr. Armstrong as 阿姆斯特朗博士 was only listed, never fixed."""
+        entries = [
+            GlossaryEntry(english="Dr. Armstrong", chinese="阿姆斯特朗医生", category=GlossaryCategory.PERSON),
+            GlossaryEntry(english="Mad Tea-Party", chinese="疯狂茶会", category=GlossaryCategory.CONCEPT),
+        ]
+        findings = self._glossary_findings(
+            ["I saw Dr. Armstrong arrive.", "It was a Mad Tea-Party after all."],
+            ["我看到阿姆斯特朗博士来了。", "这毕竟是一场疯茶会。"],
+            entries,
+        )
+        assert findings[0][:2] == ("D0001-S000001", AuditSeverity.MEDIUM)
+        assert "阿姆斯特朗医生" in findings[0][2]
+        assert findings[1] == ("D0001-S000002", AuditSeverity.LOW, "")
+
+    def test_a_name_that_is_also_an_ordinary_word_stays_low(self):
+        """Alice's playing card "Two": the chapter also says "two days"."""
+        entries = [GlossaryEntry(english="Two", chinese="二号", category=GlossaryCategory.PERSON)]
+        findings = self._glossary_findings(
+            ["Two began to explain.", "It was two days late."],
+            ["两个人开始解释。", "晚了两天。"],
+            entries,
+        )
+        assert [(s, sev) for s, sev, _ in findings] == [("D0001-S000001", AuditSeverity.LOW)]
+
+    def test_lowercase_and_shortened_names_stay_low(self):
+        entries = [
+            GlossaryEntry(english="the island", chinese="小岛", category=GlossaryCategory.PLACE),
+            GlossaryEntry(english="Sherlock Holmes", chinese="夏洛克·福尔摩斯", category=GlossaryCategory.PERSON),
+        ]
+        findings = self._glossary_findings(
+            ["We sailed past the island.", "Mr. Sherlock Holmes rose."],
+            ["我们驶过那座岛屿。", "福尔摩斯先生站了起来。"],
+            entries,
+        )
+        assert {sev for _, sev, _ in findings} == {AuditSeverity.LOW}
+        assert len(findings) == 2
+
     def test_glossary_audit_uses_direction_and_exact_latin_boundaries(self):
         glossary = [
             GlossaryEntry(

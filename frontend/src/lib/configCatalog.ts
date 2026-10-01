@@ -61,6 +61,11 @@ export const COMMON_GROUPS: CommonGroup[] = [
       { special: "glossary-review" },
       { path: "glossary.extraction_enabled", label: "Extract terms from the book", help: "Turn off only when every glossary below is already reviewed." },
       { path: "glossary.approval_auto_approve_min_confidence", label: "Auto-approve confidence", help: "With LLM review, evidence-backed terms at or above this confidence skip the model." },
+      {
+        path: "glossary.drop_generic_terms",
+        label: "Drop ordinary words",
+        help: "With LLM or automatic approval, leave single ordinary words (“anchor”, “cheese”) out of the glossary so the translator words them by context. Human review decides on its own. Turn off if the book's invented words are lowercase.",
+      },
       { path: "glossary.extraction_max_entries", label: "Max extracted terms" },
       { path: "glossary.seed_glossaries", label: "Seed glossaries", help: "Glossary files merged in before extraction (lowest precedence)." },
       { path: "glossary.series_glossaries", label: "Series glossaries", help: "Shared, reviewed terms for a book series." },

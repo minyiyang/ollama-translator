@@ -745,7 +745,42 @@ phase 1 defaults. Results: `runs/bench/return-results.md`.
   bursts by time of day (20 of 21 calls slow in one hour, 1 of 66 in
   another): the 31B model at 16K needs about 21 GiB of the 24 GiB card, and
   other applications' GPU memory pushed it into Windows shared memory
-  (system RAM). The semantic audit now uses one exact 10K context
-  (`audit.semantic_min_num_ctx: 10240`) for every call whose prompt plus the
-  largest answer fits, instead of the shared 16K minimum; larger prompts
-  still grow as before. Not yet measured on a real run.
+  (system RAM). A 10K semantic-audit context was tried and reverted
+  (2026-10-01): it cut the 31B model from 21.0 to 18.9 GiB (measured), but
+  other applications then held 4.7 GB of GPU memory, the card was full again
+  (24,045 of 24,564 MiB), and calls still ran at 1–4 tokens/s. The audit keeps
+  16K; the reliable remedy is freeing GPU memory before long runs
+  (docs/OPERATIONS.md, "GPU memory").
+
+### 8.7 Glossary quality and enforcement (2026-10-01)
+
+The whole-book tests showed that the glossary, not the book-level stages,
+prevents most drift, and that its gaps were quality and enforcement rather
+than coverage. Measured on the finished runs (read-only), three changes:
+
+1. **A missed name is repaired.** A glossary miss was always a low finding,
+   and repair handles medium and up, so the audit saw "Dr. Armstrong" as
+   阿姆斯特朗博士 instead of 阿姆斯特朗医生 four times and nothing fixed it.
+   A miss on a person, place, or organization is now medium when the name is
+   unambiguous: capitalized, and either several words or a word the chapter
+   never uses in lowercase (Alice's playing card "Two" stays low: the chapter
+   says "two days"). A multi-part transliterated name shortened to one part
+   ("Sherlock Holmes" as 福尔摩斯) stays low. Replayed: *Return* 15 medium
+   (Lady Hilda as 希尔德 instead of 希尔达 ×7, Dr. Armstrong ×5), *Wind* 3
+   (one "the Rat" translated as 水獭, an otter), *Alice* and *Sign* 0,
+   *Crusoe* mostly untranslated or omitted names (and 9 in the Gutenberg
+   licence).
+2. **Ordinary words leave the glossary under LLM or automatic approval.** The
+   generic-word screen flagged 144 of *Wind*'s 364 entries ("anchor",
+   "cheese"), yet all were approved; ordinary-word entries caused 52 of its 54
+   glossary misses and were pushed into every chunk as fixed renderings. They
+   are now dropped unless a configured glossary file supplies them, listed in
+   `glossary.dropped-generic.json`; human review still decides on its own
+   (`glossary.drop_generic_terms`, default on).
+3. **Titles with a name are extracted.** The extraction prompt asks for
+   recurring titles and forms of address. A/B on three *Return* stories (six
+   chunks, same model): the new wording added "Lady Hilda" (希尔达夫人, the
+   name that drifted), "Inspector Lestrade", "Inspector Stanley Hopkins", and
+   "Mrs. Hudson", for about 9% more output tokens. It did not add honorifics
+   that stand in for a name ("His Grace"); that remains a known gap. It also
+   proposed more ordinary words, 29 of 33 of which change 2 removes.

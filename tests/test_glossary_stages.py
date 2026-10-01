@@ -412,6 +412,52 @@ class GlossaryStageTests:
             finally:
                 connection.close()
 
+    def _resolved_with_generic_word(self, base: Path, config: AppConfig):
+        workspace = self.make_workspace(base)
+        candidates = GlossaryResult(entries=[
+            entry("Aster", "阿斯特", ["D0000-S000001"]),
+            entry("anchor", "锚", ["D0000-S000001"], GlossaryCategory.ITEM),
+        ])
+        run_glossary_extraction_stage(workspace, config, FakeGlossaryClient([candidates]))
+        run_glossary_resolution_stage(
+            workspace,
+            config,
+            FakeGlossaryClient([resolution_result(
+                ("T00001", "测试", GlossaryCategory.ITEM), ("T00002", "测试", GlossaryCategory.ITEM)
+            )]),
+        )
+        return workspace
+
+    def test_automatic_approval_drops_ordinary_words(self) -> None:
+        """The Wind in the Willows: 144 words like "anchor" were approved and enforced."""
+        with tempfile.TemporaryDirectory() as directory:
+            config = AppConfig.model_validate({
+                "glossary": {"extraction_chunk_tokens": 100},
+                "workflow": {"require_glossary_review": False},
+            })
+            workspace = self._resolved_with_generic_word(Path(directory), config)
+            approved = run_glossary_approval_stage(workspace, config)
+            assert [e.english for e in approved.entries] == ["Aster"]
+            dropped = list((workspace.root / "glossary").glob("approved-*/glossary.dropped-generic.json"))
+            assert [e.english for e in GlossaryResult.model_validate_json(dropped[0].read_text(encoding="utf-8")).entries] == ["anchor"]
+
+    def test_ordinary_words_are_kept_when_switched_off_or_reviewed_by_a_person(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            config = AppConfig.model_validate({
+                "glossary": {"extraction_chunk_tokens": 100, "drop_generic_terms": False},
+                "workflow": {"require_glossary_review": False},
+            })
+            workspace = self._resolved_with_generic_word(Path(directory), config)
+            assert sorted(e.english for e in run_glossary_approval_stage(workspace, config).entries) == ["Aster", "anchor"]
+        with tempfile.TemporaryDirectory() as directory:
+            base = Path(directory)
+            config = AppConfig.model_validate({"glossary": {"extraction_chunk_tokens": 100}})
+            workspace = self._resolved_with_generic_word(base, config)
+            reviewed = base / "reviewed.txt"
+            reviewed.write_text("--人名--\nAster:阿斯特:人工\n--物品--\nanchor:锚:人工保留\n", encoding="utf-8")
+            approved = run_glossary_approval_stage(workspace, config, reviewed_file=reviewed)
+            assert sorted(e.english for e in approved.entries) == ["Aster", "anchor"]
+
     def test_human_approval_pauses_then_accepts_reviewed_legacy_file(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
             base = Path(directory)

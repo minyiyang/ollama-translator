@@ -45,6 +45,7 @@ from ..glossary import (
     screen_glossary_candidates,
     screen_glossary_documents,
     sort_glossary_entries,
+    is_suspicious_generic_candidate,
     source_priority_by_term,
     validate_candidate_evidence,
     validate_resolution_scope,
@@ -719,6 +720,12 @@ def run_glossary_approval_stage(
                     else ""
                 ),
                 "stage_version": APPROVAL_STAGE_VERSION,
+                # Only a mode that drops generic terms, and only when switched off, adds a field.
+                **(
+                    {"keep_generic_terms": "true"}
+                    if review_mode != "human" and not config.glossary.drop_generic_terms
+                    else {}
+                ),
                 **style_fields,
             }
         )
@@ -766,6 +773,18 @@ def run_glossary_approval_stage(
             priority_by_term=source_priority_by_term(configured_sources),
         )
         approved = GlossaryResult(entries=sort_glossary_entries(harmonized_entries))
+        dropped_generic: list[GlossaryEntry] = []
+        if review_mode != "human" and config.glossary.drop_generic_terms:
+            # Ordinary words the generic screen flags are left to the translator's
+            # judgment; entries from configured glossary files are kept.
+            configured = source_priority_by_term(configured_sources)
+            kept = []
+            for entry in approved.entries:
+                if is_suspicious_generic_candidate(entry) and normalize_term(entry.english) not in configured:
+                    dropped_generic.append(entry)
+                else:
+                    kept.append(entry)
+            approved = GlossaryResult(entries=kept)
         quality = _with_harmonization_warnings(
             analyze_glossary_quality(
                 approved,
@@ -782,6 +801,10 @@ def run_glossary_approval_stage(
         _record_file(connection, workspace, json_path, WorkflowStage.APPROVE_GLOSSARY, "approved_glossary_json")
         _record_file(connection, workspace, text_path, WorkflowStage.APPROVE_GLOSSARY, "approved_glossary_legacy")
         _record_file(connection, workspace, quality_path, WorkflowStage.APPROVE_GLOSSARY, "glossary_quality_report")
+        if dropped_generic:
+            dropped_path = stage_root / "glossary.dropped-generic.json"
+            atomic_write_text(dropped_path, GlossaryResult(entries=dropped_generic).model_dump_json(indent=2))
+            _record_file(connection, workspace, dropped_path, WorkflowStage.APPROVE_GLOSSARY, "glossary_dropped_generic")
         harmonization_path = stage_root / "glossary.harmonization.report.json"
         atomic_write_text(harmonization_path, harmonization.model_dump_json(indent=2))
         _record_file(connection, workspace, harmonization_path, WorkflowStage.APPROVE_GLOSSARY, "glossary_harmonization_report")

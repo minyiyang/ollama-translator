@@ -210,18 +210,8 @@ def run_translation_audit_stage(
                     connection, unit_id, WorkflowStage.AUDIT_TRANSLATION.value
                 )
                 result = _load_current_semantic_result(existing, path, unit_input_hash)
-                small_context = min(config.audit.semantic_min_num_ctx, semantic_context_hard_maximum)
                 if not config.ollama.adaptive_num_ctx:
                     bucket = semantic_context_hard_maximum
-                elif (
-                    estimate_request_tokens(prompt, SemanticAuditResult.model_json_schema())
-                    + config.audit.semantic_max_output_tokens
-                    + 1_024
-                    <= small_context
-                ):
-                    # One stable, small context for every call that fits it: a
-                    # smaller model footprint, and no reloads between sizes.
-                    bucket = small_context
                 elif (
                     estimate_request_tokens(
                         prompt,
@@ -235,7 +225,7 @@ def run_translation_audit_stage(
                     bucket = request_context_bucket(
                         prompt,
                         minimum=min(
-                            config.audit.semantic_min_num_ctx,
+                            config.ollama.min_num_ctx,
                             semantic_context_hard_maximum,
                         ),
                         maximum=semantic_context_hard_maximum,
@@ -847,11 +837,6 @@ def _run_semantic_batch(
                 request_prompt,
                 SemanticAuditResult,
                 model=config.audit.model,
-                # The minimum keeps a small bucket exact instead of rising to
-                # ollama.min_num_ctx (docs/BOOK_CONSISTENCY.md, 8.6).
-                context_minimum=min(
-                    context_bucket or config.audit.max_num_ctx, config.audit.semantic_min_num_ctx
-                ),
                 context_maximum=(context_bucket or config.audit.max_num_ctx),
                 think=config.audit.thinking,
                 progress_label=(

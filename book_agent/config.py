@@ -111,6 +111,11 @@ class TranslationConfig(StrictModel):
 
 class GlossaryConfig(StrictModel):
     extraction_enabled: bool = True
+    # With LLM or automatic approval, drop single ordinary lowercase words in generic
+    # categories ("anchor", "cheese"): on The Wind in the Willows 144 such entries were
+    # approved and caused 52 of 54 glossary misses. Human review keeps the decision.
+    # Turn off for books whose coined vocabulary is lowercase.
+    drop_generic_terms: bool = True
     extraction_model: str = Field(default="qwen3.8:27b", min_length=1)
     extraction_thinking: bool = False
     extraction_min_num_ctx: int = Field(default=16_384, gt=0)
@@ -195,11 +200,6 @@ class AuditConfig(StrictModel):
     semantic_max_candidates_per_batch: int = Field(default=50, gt=0)
     semantic_max_output_tokens: int = Field(default=3_072, ge=512, le=8_192)
     semantic_max_num_ctx: int | None = Field(default=None, gt=0)
-    # Smallest context for a semantic-audit call (larger prompts still grow in 8K
-    # steps). Audit prompts are 1-3K tokens; at 16K the 31B audit model needed
-    # about 21 GiB of a 24 GiB card, and other applications' GPU memory pushed it
-    # into shared memory, slowing calls tenfold (docs/BOOK_CONSISTENCY.md, 8.6).
-    semantic_min_num_ctx: int = Field(default=10_240, gt=0)
     semantic_sample_every: int = Field(default=0, ge=0)
     max_semantic_candidates_per_document: int = Field(default=50, gt=0)
     min_length_ratio: float = Field(default=0.20, gt=0.0)
