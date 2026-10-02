@@ -29,6 +29,7 @@ from .pipeline_state import WorkflowStage
 from .ollama_client import GenerationProgressEvent, OllamaClient, PauseRequested
 from .styles import TranslationStyle
 from .languages import LanguagePair, language_support
+from .schemas import DEFAULT_GLOSSARY_PAIR
 from .series import (
     add_books,
     bind_book,
@@ -413,7 +414,7 @@ def _add_series_parser(subparsers) -> None:
         "--direction",
         required=True,
         type=_language_pair,
-        help="en-zh or zh-en (a series shares a glossary, which other pairs do not have yet)",
+        help="en-zh, zh-en, or any pair as source>target (en>ja, fr>en)",
     )
     add = action("add", "add jobs as the next volumes, in order")
     add.add_argument("jobs", nargs="+", help="job ids in --runs")
@@ -424,7 +425,7 @@ def _add_series_parser(subparsers) -> None:
     decide.add_argument("terms", nargs="+", help="term ids, e.g. T00012")
     decide.add_argument("--decision", required=True, choices=("keep", "drop", "pending"))
     decide.add_argument("--reason", required=True)
-    decide.add_argument("--chinese", help="new target translation (one term only)")
+    decide.add_argument("--target", "--chinese", dest="target", help="new target translation (one term only)")
     decide.add_argument("--category", help="new category, e.g. person or place (one term only)")
     decide.add_argument("--unlock", action="store_true", help="allow changing a term published in an earlier version")
     action("publish", "freeze the workbench into the next immutable version")
@@ -504,7 +505,7 @@ def _run_series_command(args, generation_progress=None) -> dict[str, object]:
     if command == "decide":
         workbench = decide_terms(
             runs, args.series_id, args.terms, args.decision,
-            reason=args.reason, chinese=args.chinese, category=args.category, unlock=args.unlock,
+            reason=args.reason, target=args.target, category=args.category, unlock=args.unlock,
         )
         return {"series_id": workbench.series_id, "decided": args.terms, "decision": args.decision}
     if command == "publish":
@@ -595,6 +596,7 @@ def build_series_glossary_from_workspaces(
     if source_stage not in {"approved", "resolved"}:
         raise ValueError("source_stage must be 'approved' or 'resolved'")
     sources: list[GlossarySource] = []
+    glossary_pairs = []
     screening_reports = {}
     source_quality_reports = {}
     input_source_entry_count = 0
@@ -606,6 +608,7 @@ def build_series_glossary_from_workspaces(
             else load_glossary_draft(workspace)
         )
         input_source_entry_count += len(loaded.entries)
+        glossary_pairs.append(loaded.pair)
         screened, screening = screen_glossary_candidates(
             loaded,
             remove_ordinary_terms=source_stage == "resolved",
@@ -621,11 +624,15 @@ def build_series_glossary_from_workspaces(
                 entries=tuple(screened.entries),
             )
         )
+    pairs = {pair.value for pair in glossary_pairs}
+    if len(pairs) > 1:
+        raise ValueError("the books' glossaries are in different language pairs: " + ", ".join(sorted(pairs)))
     build = build_series_glossary(
         sources,
         minimum_sources=minimum_books,
         consensus_ratio=consensus_ratio,
         defer_generic_terms=source_stage == "resolved",
+        pair=next(iter(glossary_pairs), DEFAULT_GLOSSARY_PAIR),
     )
     build = build.model_copy(
         update={

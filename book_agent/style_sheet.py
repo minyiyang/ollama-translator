@@ -18,12 +18,33 @@ from typing import Iterable, Literal, Sequence
 
 from pydantic import BaseModel, ConfigDict, Field, create_model
 
-from .languages import TranslationDirection, profile
+from .languages import DEFAULT_DIRECTION, TranslationDirection, profile
 
 _INLINE_MARKER = re.compile(r"</?I\d{3}>")
 
-Pronoun = Literal["他", "她", "它", "he", "she", "it", ""]
-Address = Literal["你", "您", ""]
+_PRONOUN_HELP = "Third-person pronoun in the translation."
+_ADDRESS_HELP = "How other characters address them in the translation."
+
+
+def pronoun_choices(direction: TranslationDirection) -> tuple[str, ...]:
+    """Pronouns the model may give a character. The tuned pairs offer both
+    languages' lists, as they always have; any other target offers its own."""
+    rules = profile(direction.target_language)
+    if rules.tier == "tuned":
+        return profile("zh").pronouns + profile("en").pronouns
+    return rules.pronouns
+
+
+def address_choices(direction: TranslationDirection) -> tuple[str, ...]:
+    """Forms of address the model may give a character (none for most targets)."""
+    rules = profile(direction.target_language)
+    if rules.tier == "tuned":
+        return profile("zh").address_forms
+    return rules.address_forms
+
+
+def _choice(values: tuple[str, ...]):
+    return Literal.__getitem__((*values, ""))  # type: ignore[misc]
 
 
 class StyleCharacter(BaseModel):
@@ -31,8 +52,8 @@ class StyleCharacter(BaseModel):
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     name: str = Field(min_length=1, max_length=80, description="The character's name as written in the source.")
-    pronoun: Pronoun = Field(default="", description="Third-person pronoun in the translation.")
-    addressed_as: Address = Field(default="", description="How other characters address them in the translation.")
+    pronoun: str = Field(default="", max_length=16, description=_PRONOUN_HELP)
+    addressed_as: str = Field(default="", max_length=16, description=_ADDRESS_HELP)
     voice: str = Field(default="", max_length=160, description="How they speak, in a few words.")
     evidence: list[str] = Field(default_factory=list)
     alternatives: list[str] = Field(
@@ -116,12 +137,18 @@ def extraction_instructions(direction: TranslationDirection, *, max_characters: 
 
 
 def build_style_candidate_schema(
-    allowed_evidence_ids: Sequence[str], *, max_characters: int, max_expressions: int
+    allowed_evidence_ids: Sequence[str],
+    *,
+    max_characters: int,
+    max_expressions: int,
+    direction: TranslationDirection = DEFAULT_DIRECTION,
 ) -> type[BaseModel]:
     evidence = list[Literal.__getitem__(tuple(dict.fromkeys(allowed_evidence_ids)))]  # type: ignore[misc]
     character = create_model(
         "StyleCharacterCandidate",
         __base__=StyleCharacter,
+        pronoun=(_choice(pronoun_choices(direction)), Field(default="", description=_PRONOUN_HELP)),
+        addressed_as=(_choice(address_choices(direction)), Field(default="", description=_ADDRESS_HELP)),
         evidence=(evidence, Field(min_length=1, max_length=3)),
     )
     expression = create_model(
@@ -262,8 +289,8 @@ class StyleCharacterDecision(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     entry_id: str
     action: Literal["approve", "revise", "reject"]
-    pronoun: Pronoun
-    addressed_as: Address
+    pronoun: str = Field(max_length=16)
+    addressed_as: str = Field(max_length=16)
     reason: str = Field(min_length=3, max_length=200)
 
 
@@ -286,20 +313,26 @@ def style_entry_ids(sheet: StyleSheet) -> list[str]:
     ]
 
 
-def _decisions_field(base: type[BaseModel], ids: Sequence[str], name: str):
+def _decisions_field(base: type[BaseModel], ids: Sequence[str], name: str, **fields):
     entry_id = Literal.__getitem__(tuple(ids)) if ids else str  # type: ignore[misc]
-    decision = create_model(name, __base__=base, entry_id=(entry_id, ...))
+    decision = create_model(name, __base__=base, entry_id=(entry_id, ...), **fields)
     return (list[decision], Field(min_length=len(ids), max_length=len(ids)))
 
 
-def build_style_review_schema(sheet: StyleSheet) -> type[BaseModel]:
+def build_style_review_schema(
+    sheet: StyleSheet, direction: TranslationDirection = DEFAULT_DIRECTION
+) -> type[BaseModel]:
     """Exactly one decision per entry, characters and expressions in separate lists."""
     ids = style_entry_ids(sheet)
     return create_model(
         "StyleReviewResult",
         __config__=ConfigDict(extra="forbid"),
         characters=_decisions_field(
-            StyleCharacterDecision, [i for i in ids if i.startswith("C")], "StyleCharacterDecisionFor"
+            StyleCharacterDecision,
+            [i for i in ids if i.startswith("C")],
+            "StyleCharacterDecisionFor",
+            pronoun=(_choice(pronoun_choices(direction)), ...),
+            addressed_as=(_choice(address_choices(direction)), ...),
         ),
         expressions=_decisions_field(
             StyleExpressionDecision, [i for i in ids if i.startswith("X")], "StyleExpressionDecisionFor"

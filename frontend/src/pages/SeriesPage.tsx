@@ -5,6 +5,7 @@ import { Shell } from "../components/Shell";
 import { useToast } from "../components/Toast";
 import { Card, Chip } from "../components/ui";
 import { directionLabel, relativeTime } from "../lib/format";
+import { FALLBACK_PAIR, langAttr, pairCodes, type GlossaryPair } from "../lib/languages";
 import { seriesIdFromName } from "../lib/series";
 import { NewJobDialog, type Setup } from "./JobsPage";
 import { WorkbenchTab, type SeriesProcess } from "./SeriesWorkbench";
@@ -24,7 +25,7 @@ type Detail = {
   addable: Addable[];
   process: SeriesProcess;
 };
-type Entry = { english: string; chinese: string; category: string };
+type Entry = { source: string; target: string; category: string };
 
 const seriesApi = <T,>(id: string, path: string, body?: unknown) =>
   api<T>(`/api/series/${encodeURIComponent(id)}/${path}`, body);
@@ -261,12 +262,14 @@ function VersionsTab({ detail }: { detail: Detail }) {
   const toast = useToast();
   const [open, setOpen] = useState<string | null>(null);
   const [entries, setEntries] = useState<Entry[]>([]);
+  const [pair, setPair] = useState<GlossaryPair>(FALLBACK_PAIR);
   const pins = (version: string) => detail.books.filter((b) => b.version === version).map((b) => b.job_id);
   const toggle = async (version: string) => {
     if (open === version) { setOpen(null); return; }
     try {
-      const res = await seriesApi<{ glossary: { entries: Entry[] } }>(detail.series_id, `version?v=${encodeURIComponent(version)}`);
+      const res = await seriesApi<{ glossary: { entries: Entry[] }; glossary_pair?: GlossaryPair }>(detail.series_id, `version?v=${encodeURIComponent(version)}`);
       setEntries(res.glossary.entries);
+      setPair(res.glossary_pair ?? FALLBACK_PAIR);
       setOpen(version);
     } catch (e) {
       toast("bad", (e as Error).message, 0);
@@ -295,10 +298,10 @@ function VersionsTab({ detail }: { detail: Detail }) {
         <>
           <h2 style={{ marginTop: 16 }}>{open} terms ({entries.length})</h2>
           <table className="grid">
-            <thead><tr><th>Source</th><th>Translation</th><th>Category</th></tr></thead>
+            <thead><tr><th>{pair.source}</th><th>{pair.target}</th><th>Category</th></tr></thead>
             <tbody>
               {entries.map((e) => (
-                <tr key={e.english}><td>{e.english}</td><td lang="zh-CN">{e.chinese}</td><td className="meta">{e.category}</td></tr>
+                <tr key={e.source}><td lang={langAttr(pairCodes(pair.pair)[0])}>{e.source}</td><td lang={langAttr(pairCodes(pair.pair)[1])}>{e.target}</td><td className="meta">{e.category}</td></tr>
               ))}
             </tbody>
           </table>

@@ -112,7 +112,7 @@ def two_book_series(runs: Path):
 
 
 def terms_by_english(workbench):
-    return {term.english: term for term in workbench.terms}
+    return {term.source: term for term in workbench.terms}
 
 
 class SeriesManifestTests:
@@ -157,7 +157,7 @@ class WorkbenchTests:
         )
         decide_terms(runs, "qel", [terms["Ostrel"].term_id], "keep", reason="Main place; promote.")
         rebuilt = terms_by_english(build_workbench(runs, "qel"))
-        assert (rebuilt["Vraxwright"].decision, rebuilt["Vraxwright"].chinese) == ("keep", "弗拉克斯赖特")
+        assert (rebuilt["Vraxwright"].decision, rebuilt["Vraxwright"].target) == ("keep", "弗拉克斯赖特")
         assert (rebuilt["Ostrel"].decision, rebuilt["Ostrel"].decided_by) == ("keep", "user")
 
     def test_publish_freezes_kept_terms_and_writes_book_overlays(self, runs):
@@ -166,7 +166,7 @@ class WorkbenchTests:
         version = publish_workbench(runs, "qel")
         assert version.version == "v001" and version.term_count == 1
         published = load_glossary_file(version_glossary_path(runs, "qel", "v001"))
-        assert [(e.english, e.chinese) for e in published.entries] == [("Qelmar", "凯尔玛")]
+        assert [(e.source, e.target) for e in published.entries] == [("Qelmar", "凯尔玛")]
         report = json.loads(version_glossary_path(runs, "qel", "v001").with_name("v001.report.json").read_text(encoding="utf-8"))
         assert report["pending_excluded"] == ["Vraxwright"]
         overlay = series_root(runs, "qel") / "overlays" / "v001" / "qel-02.glossary.review.json"
@@ -226,7 +226,7 @@ class VersionAndBindingTests:
         approve_draft(workspace)  # the book keeps its own 弗拉克赖特
         glossary, hashes = _load_effective_glossary(workspace, CONFIG)
         assert "series_binding" in hashes
-        by_term = {e.english: e.chinese for e in glossary.entries}
+        by_term = {e.source: e.target for e in glossary.entries}
         assert by_term["Vraxwright"] == "弗拉克赖特" and by_term["Qelmar"] == "凯尔玛"
 
     def test_a_tampered_version_file_is_refused(self, runs):
@@ -324,12 +324,12 @@ class SuggestionTests:
         assert result == {"asked": 1, "suggested": 1, "calls": 1}
         assert "Vraxwright" in client.prompts[0] and "Qelmar" not in client.prompts[0]
         workbench = terms_by_english(load_workbench_or_fail(runs))
-        assert workbench["Vraxwright"].suggestion.chinese == "弗拉克斯赖特"
+        assert workbench["Vraxwright"].suggestion.target == "弗拉克斯赖特"
         assert workbench["Vraxwright"].decision == "pending"  # nothing applied yet
 
         accept_suggestions(runs, "qel", [terms["Vraxwright"].term_id], True)
         accepted = terms_by_english(load_workbench_or_fail(runs))["Vraxwright"]
-        assert (accepted.decision, accepted.chinese, accepted.decided_by) == ("keep", "弗拉克斯赖特", "llm-accepted")
+        assert (accepted.decision, accepted.target, accepted.decided_by) == ("keep", "弗拉克斯赖特", "llm-accepted")
         assert accepted.suggestion is None and accepted.reason.startswith("LLM")
 
     def test_an_invented_variant_fails_validation(self, runs):
@@ -496,4 +496,4 @@ class PromotedTermReachesBooksTests:
         bind_book(runs, "qel", "qel-02")
         approve_draft(workspace)
         glossary, _ = _load_effective_glossary(workspace, CONFIG)
-        assert {e.english: e.chinese for e in glossary.entries}["Hudson"] == "哈德逊"
+        assert {e.source: e.target for e in glossary.entries}["Hudson"] == "哈德逊"

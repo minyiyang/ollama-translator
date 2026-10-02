@@ -40,8 +40,6 @@ class LanguageProfile:
     # Regex for the inflection a term may carry in running prose (English
     # plurals), appended when the term ends in a letter.
     plural_suffix: str
-    # The stored glossary field that holds terms in this language.
-    glossary_field: str
     # Characters that end a sentence.
     sentence_end: str = ""
     # Phrases that read as machine-written prose (audit "ai_style").
@@ -62,6 +60,9 @@ class LanguageProfile:
     address_forms: tuple[str, ...] = field(default_factory=tuple)
     # Frequent function words that say nothing about a passage's content.
     stop_words: frozenset[str] = field(default_factory=frozenset)
+    # What separates the parts of a transliterated name ("·" in Chinese), so a
+    # full name can be checked against the rendering of each part.
+    name_separator: str = ""
     # Whether the number-word parsers read this language (content_policy, quantities).
     number_words: bool = False
     # "tuned", "profiled", or "generic" (docs/GENERIC_LANGUAGES.md, 2.4).
@@ -97,7 +98,6 @@ PROFILES: dict[str, LanguageProfile] = {
         cased=True,
         word_chars="A-Za-z0-9_",
         plural_suffix="(?:e?s)?",
-        glossary_field="english",
         sentence_end=".!?",
         stock_phrases=(
             "it is worth noting that",
@@ -130,7 +130,6 @@ PROFILES: dict[str, LanguageProfile] = {
         cased=False,
         word_chars="",
         plural_suffix="",
-        glossary_field="chinese",
         sentence_end="。！？",
         stock_phrases=(
             "值得注意的是",
@@ -150,6 +149,7 @@ PROFILES: dict[str, LanguageProfile] = {
         convention_checks=True,
         pronouns=("他", "她", "它"),
         address_forms=("你", "您"),
+        name_separator="·",
         number_words=True,
         tier="tuned",
     ),
@@ -271,7 +271,6 @@ def _generic_profile(code: str) -> LanguageProfile:
         cased=bool(set(scripts) & _CASED_SCRIPTS),
         word_chars=f"{chars}0-9_" if spaced and chars else "",
         plural_suffix="",
-        glossary_field="",
     )
 
 
@@ -442,8 +441,6 @@ LanguagePair.ZH_TO_EN = LanguagePair("zh-en")
 # The pair a new job translates unless configured otherwise.
 DEFAULT_DIRECTION = LanguagePair("en-zh")
 
-# The languages a stored glossary entry holds, one field each (until phase 3).
-GLOSSARY_LANGUAGES = ("en", "zh")
 
 # Letters of any profiled script.
 ANY_SCRIPT = re.compile("[" + "".join(item.script_chars for item in PROFILES.values()) + "]")
@@ -475,12 +472,28 @@ def leftover_scripts(direction: LanguagePair) -> tuple[str, ...]:
     return tuple(item for item in profile(direction.source_language).scripts if item not in target)
 
 
-def glossary_supported(direction: LanguagePair) -> bool:
-    """Whether stored glossary entries hold both languages (en and zh until phase 3)."""
-    return all(
-        profile(language).glossary_field
-        for language in (direction.source_language, direction.target_language)
-    )
+def glossary_pair(direction: LanguagePair) -> LanguagePair:
+    """The pair a job's glossary is written in: its source and target sides.
+
+    The en/zh glossary pipeline keys every entry by its English term and
+    resolves a Chinese rendering, whichever way the book is translated, so a
+    zh-en job uses an en-zh glossary. Any other job's glossary has its own pair.
+    """
+    return LanguagePair.EN_TO_ZH if direction.legacy else direction
+
+
+def glossary_language_names(pair: LanguagePair) -> dict[str, str]:
+    """A glossary pair for an interface: its code and each side's language name."""
+    return {
+        "pair": pair.value,
+        "source": pair.source_language.display_name,
+        "target": pair.target_language.display_name,
+    }
+
+
+def glossary_names(pair: LanguagePair) -> tuple[str, str]:
+    """What the model and pre-phase-3 files call an entry's two sides."""
+    return ("english", "chinese") if pair.legacy else ("source", "target")
 
 
 def language_support(direction: LanguagePair) -> dict[str, Any]:
@@ -492,8 +505,6 @@ def language_support(direction: LanguagePair) -> dict[str, Any]:
     def skip(check: str, reason: str) -> None:
         skipped.append({"check": check, "reason": reason})
 
-    if not glossary_supported(direction):
-        skip("glossary and style sheet", "not available for this pair yet; the job runs without them")
     if not scripts_disjoint(direction):
         skip(
             "untranslated text",
@@ -506,6 +517,8 @@ def language_support(direction: LanguagePair) -> dict[str, Any]:
         skip("number words", "numbers written as words go to the semantic audit's numeric ruling")
     if not target.convention_checks:
         skip("punctuation conventions and character report", f"no house conventions for {target.display_name}")
+    if not target.pronouns:
+        skip("style-sheet pronouns", "characters in the style sheet keep their voice only")
     if not target.stock_phrases:
         skip("formulaic phrases", f"no phrase list for {target.display_name}")
     if not (source.marker_examples and target.marker_examples):
@@ -531,21 +544,16 @@ def build_direction_instruction(direction: LanguagePair) -> str:
 
 
 def glossary_sides(entry, direction: LanguagePair) -> tuple[str, str]:
-    """(source term, target term) of a glossary entry for this direction."""
-    if not glossary_supported(direction):
-        raise ValueError(f"glossary entries are not available for {direction.value} yet")
-    return (
-        getattr(entry, profile(direction.source_language).glossary_field),
-        getattr(entry, profile(direction.target_language).glossary_field),
-    )
-
-
-# Stored glossary aliases are variants of this field's term (today, English).
-ALIAS_FIELD = "english"
+    """(source term, target term) of a job's glossary entry: swapped when the
+    glossary runs the other way (an en-zh glossary in a zh-en job)."""
+    if glossary_pair(direction) == direction:
+        return entry.source, entry.target
+    return entry.target, entry.source
 
 
 def source_aliases(entry, direction: LanguagePair) -> list[str]:
-    """An entry's aliases when they are variants of the source term, else none."""
-    if profile(direction.source_language).glossary_field != ALIAS_FIELD:
-        return []
-    return list(entry.aliases)
+    """An entry's aliases when they are variants of the job's source term, else none.
+
+    Aliases belong to the glossary's source side, so a swapped glossary has none.
+    """
+    return list(entry.aliases) if glossary_pair(direction) == direction else []

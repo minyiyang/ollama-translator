@@ -4,11 +4,19 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, model_serializer
+from pydantic import BaseModel, ConfigDict, Field, model_serializer, model_validator
 
-from .languages import Language, TranslationDirection, glossary_sides, profile, source_aliases
-from .schemas import GlossaryEntry, normalize_term
+from .languages import (
+    Language,
+    LanguagePair,
+    TranslationDirection,
+    glossary_sides,
+    profile,
+    source_aliases,
+)
+from .schemas import DEFAULT_GLOSSARY_PAIR, GlossaryEntry, glossary_pair_scope, normalize_term
 from .style_sheet import StyleSheet
 
 
@@ -20,7 +28,7 @@ class GlossaryReplacementConflict(ValueError):
 class ReplacementRule:
     source: str
     target: str
-    canonical_english: str
+    canonical_term: str
     source_language: Language
 
     @property
@@ -40,8 +48,16 @@ class ReplacementOccurrence(BaseModel):
     model_config = ConfigDict(extra="forbid")
     source: str
     target: str
-    canonical_english: str
+    # The glossary entry's source term (the English term in an en-zh glossary).
+    canonical_term: str
     count: int = Field(gt=0)
+
+    @model_validator(mode="before")
+    @classmethod
+    def read_pre_phase3_name(cls, data: Any) -> Any:
+        if isinstance(data, dict) and "canonical_english" in data:
+            data = {("canonical_term" if key == "canonical_english" else key): value for key, value in data.items()}
+        return data
 
 
 class PreprocessedSegment(BaseModel):
@@ -59,11 +75,22 @@ class PreprocessedDocument(BaseModel):
     archive_path: str
     source_sha256: str
     segments: list[PreprocessedSegment]
+    # The pair of the glossary the relevant entries come from (an en-zh glossary
+    # in an en-zh or zh-en job); documents written before phase 3 lack it.
+    glossary_pair: LanguagePair = DEFAULT_GLOSSARY_PAIR
     relevant_glossary: list[GlossaryEntry] = Field(default_factory=list)
     # Style-sheet entries relevant to this document (docs/BOOK_CONSISTENCY.md, phase 2).
     relevant_style: StyleSheet | None = None
     # "Story so far" for this document (docs/BOOK_CONSISTENCY.md, phase 3).
     story_context: str | None = None
+
+    @model_validator(mode="wrap")
+    @classmethod
+    def _validate_entries_for_pair(cls, data: Any, handler: Any) -> Any:
+        if not isinstance(data, dict):
+            return handler(data)
+        with glossary_pair_scope(LanguagePair(data.get("glossary_pair") or DEFAULT_GLOSSARY_PAIR)):
+            return handler(data)
 
     @model_serializer(mode="wrap")
     def _omit_absent_style(self, handler):
@@ -117,7 +144,7 @@ def build_replacement_index(
             key = profile(language).normalize_term(source)
             display_source.setdefault(key, source)
             candidates.setdefault(key, []).append(
-                ReplacementRule(source, target, entry.english, language)
+                ReplacementRule(source, target, entry.source, language)
             )
 
     conflicts: dict[str, tuple[str, ...]] = {}
@@ -131,7 +158,7 @@ def build_replacement_index(
             possible,
             key=lambda rule: (
                 -len(rule.source),
-                normalize_term(rule.canonical_english),
+                normalize_term(rule.canonical_term),
                 rule.source,
             ),
         )[0]
@@ -158,7 +185,7 @@ def apply_replacement_index(
             pattern = _rule_pattern(rule)
 
             def replace(match: re.Match[str]) -> str:
-                key = (rule.source, rule.target, rule.canonical_english)
+                key = (rule.source, rule.target, rule.canonical_term)
                 counts[key] = counts.get(key, 0) + 1
                 return rule.target
 
@@ -168,7 +195,7 @@ def apply_replacement_index(
         ReplacementOccurrence(
             source=source,
             target=target,
-            canonical_english=canonical,
+            canonical_term=canonical,
             count=count,
         )
         for (source, target, canonical), count in sorted(
@@ -226,7 +253,7 @@ def select_relevant_glossary_entries(
     selected = [entries[index] for index in selected_indices]
     return sorted(
         selected,
-        key=lambda entry: (normalize_term(entry.english), normalize_term(entry.chinese)),
+        key=lambda entry: (normalize_term(entry.source), normalize_term(entry.target)),
     )
 
 

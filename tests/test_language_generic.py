@@ -20,7 +20,7 @@ from book_agent.languages import (
     Language,
     LanguagePair,
     TranslationDirection,
-    glossary_supported,
+    glossary_pair,
     language_support,
     leftover_scripts,
     profile,
@@ -28,6 +28,7 @@ from book_agent.languages import (
 )
 from book_agent.ollama_client import StructuredOutputError
 from book_agent.pipeline_state import WorkflowStage
+from book_agent.stages.glossary import load_approved_glossary
 from book_agent.quantities import QuantityAuditResult
 from book_agent.style_sheet import extraction_instructions
 from book_agent.translation import _build_marker_examples
@@ -78,7 +79,7 @@ def test_any_code_gets_a_profile(code, stored, name, tier, scripts, spaced):
 
 def test_a_generic_profile_has_only_what_its_code_gives():
     rules = profile("ja")
-    assert not (rules.glossary_field or rules.stock_phrases or rules.marker_examples or rules.pronouns)
+    assert not (rules.stock_phrases or rules.marker_examples or rules.pronouns or rules.name_separator)
     assert not (rules.address_forms or rules.quotes or rules.convention_checks or rules.number_words)
     assert rules.script_pattern.search("アスター") and not rules.script_pattern.search("Aster")
     # An unknown script still recognizes letters, so a passage counts as prose.
@@ -145,7 +146,6 @@ def test_another_pair_is_stored_as_two_codes_and_round_trips():
         {"translation": {"source_language": "en"}},
         {"translation": {"direction": "en-zh", "source_language": "en", "target_language": "ja"}},
         {"translation": {"direction": "en>ja"}, "reprose": {"enabled": True}},
-        {"translation": {"direction": "en>ja"}, "glossary": {"seed_glossaries": ["seed.json"]}},
     ],
 )
 def test_config_refuses_what_a_generic_pair_cannot_do(values):
@@ -168,16 +168,19 @@ def test_a_same_script_pair_lists_every_check_it_cannot_run():
     support = language_support(LanguagePair("en>de"))
     assert support["target"] == {"code": "de", "name": "German", "tier": "generic"}
     assert {item["check"] for item in support["skipped"]} == {
-        "glossary and style sheet",
         "untranslated text",
         "left-over source words",
         "number words",
         "punctuation conventions and character report",
+        "style-sheet pronouns",
         "formulaic phrases",
         "marker examples",
         "prose rewrite",
     }
-    assert not glossary_supported(LanguagePair("en>de"))
+    # Its glossary runs from English into German, keyed by the source term; an en/zh
+    # book's glossary is en-zh whichever way the book is translated.
+    assert glossary_pair(LanguagePair("en>de")) == LanguagePair("en>de")
+    assert glossary_pair(TranslationDirection.ZH_TO_EN) is TranslationDirection.EN_TO_ZH
 
 
 def _language_issues(pair: str, source: str, target: str) -> list[str]:
@@ -252,12 +255,28 @@ def _runners(translated: str) -> dict:
     return runners, translator
 
 
-@pytest.mark.parametrize(("pair", "translated"), [("en>ja", "訳文です。"), ("en>de", "Übersetzung des Absatzes.")])
-def test_a_generic_pair_translates_end_to_end(pair, translated):
-    config = AppConfig.model_validate({"translation": {"direction": pair}, "audit": {"semantic_enabled": True}})
+@pytest.mark.parametrize(
+    ("pair", "translated", "term"),
+    [
+        # Every passage of the fake translation uses the approved rendering, so the
+        # glossary audit, which now runs for these pairs, finds nothing to repair.
+        ("en>ja", "アスターの訳文です。", {"source": "Aster", "target": "アスター", "category": "人名"}),
+        ("en>de", "Die Königin übersetzt den Absatz.", {"source": "Queen", "target": "Königin", "category": "人名"}),
+    ],
+)
+def test_a_generic_pair_translates_end_to_end(pair, translated, term):
     target = LanguagePair(pair).target_language.value
     with tempfile.TemporaryDirectory() as directory:
         base = Path(directory)
+        # A seed glossary in the job's own pair: source/target sides, its pair recorded.
+        seed = base / "seed.json"
+        seed.write_text(json.dumps({"pair": pair, "entries": [term]}, ensure_ascii=False), encoding="utf-8")
+        config = AppConfig.model_validate({
+            "translation": {"direction": pair},
+            "audit": {"semantic_enabled": True},
+            "glossary": {"extraction_enabled": False, "seed_glossaries": [str(seed)]},
+            "workflow": {"require_glossary_review": False},
+        })
         workspace = create_job_workspace(make_epub(base / "book.epub", chapter=EN_CHAPTER), base / "runs", config)
         runners, translator = _runners(translated)
         result = None
@@ -272,10 +291,15 @@ def test_a_generic_pair_translates_end_to_end(pair, translated):
         assert result is not None and result.result == "complete", result
         status = workflow_status(workspace)
         assert {stage["name"]: stage["status"] for stage in status["stages"]}[WorkflowStage.VALIDATE_EPUB.value] == "completed"
-        assert "glossary and style sheet" in {item["check"] for item in status["languages"]["skipped"]}
+        assert status["languages"]["target"]["code"] == target
+
+        approved = load_approved_glossary(workspace)
+        assert approved.pair == LanguagePair(pair)
+        assert [(entry.source, entry.target) for entry in approved.entries] == [(term["source"], term["target"])]
 
         prompts = "\n".join(translator.prompts)
         assert f"into {profile(target).display_name}" in prompts
+        assert f"{term['source']} => {term['target']}" in prompts
         assert "Chinese" not in prompts and "Marker examples" not in prompts
 
         output = next((workspace.root / "output").rglob("*.epub"))

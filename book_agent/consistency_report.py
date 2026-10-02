@@ -21,7 +21,15 @@ from typing import Any, Sequence
 
 from .config import AppConfig
 from .glossary import find_unglossed_proper_nouns
-from .languages import ANY_SCRIPT, GLOSSARY_LANGUAGES, SENTENCE_END, UNSPACED_SCRIPT, LanguagePair, profile
+from .languages import (
+    ANY_SCRIPT,
+    SENTENCE_END,
+    UNSPACED_SCRIPT,
+    LanguagePair,
+    glossary_pair,
+    glossary_sides,
+    profile,
+)
 from .pipeline_state import WorkflowStage
 from .schemas import GlossaryCategory, GlossaryEntry
 from .state import StageStatus, connect_state, get_stage_status
@@ -266,20 +274,21 @@ class _Term:
     target_terms: tuple[str, ...]
 
 
-def _other_glossary_language(language: str) -> str:
-    return next(code for code in GLOSSARY_LANGUAGES if code != language)
-
-
-def _terms(entries: Sequence[GlossaryEntry], source_language: str, target_language: str) -> list[_Term]:
-    def side(entry: GlossaryEntry, language: str) -> tuple[str, ...]:
-        rules = profile(language)
-        aliases = (alias for alias in entry.aliases if rules.script_pattern.search(alias))
-        return (getattr(entry, rules.glossary_field), *aliases)
-
-    return [
-        _Term(index, side(entry, source_language), side(entry, target_language))
-        for index, entry in enumerate(entries)
-    ]
+def _terms(entries: Sequence[GlossaryEntry], direction: LanguagePair) -> list[_Term]:
+    """The job's source and target names of each entry. Aliases are variants of
+    the glossary's source term, which is the job's target in a swapped glossary
+    (the English side of an en-zh glossary in a zh-en job)."""
+    swapped = glossary_pair(direction) != direction
+    aliases_side = profile(direction.target_language if swapped else direction.source_language)
+    terms = []
+    for index, entry in enumerate(entries):
+        source, target = glossary_sides(entry, direction)
+        aliases = tuple(alias for alias in entry.aliases if aliases_side.script_pattern.search(alias))
+        if swapped:
+            terms.append(_Term(index, (source,), (target, *aliases)))
+        else:
+            terms.append(_Term(index, (source, *aliases), (target,)))
+    return terms
 
 
 _SENTENCE_START = re.compile(r"(?:^|[.!?;:]\s+|[“\"‘'(—]\s*)$")
@@ -334,12 +343,12 @@ def glossary_compliance(
     entries: Sequence[GlossaryEntry],
     *,
     source_language: str = "en",
-    target_language: str | None = None,
+    target_language: str = "zh",
     examples: int = 5,
 ) -> dict[str, Any]:
     """Per glossary entry, source occurrences whose translation lacks the approved rendering."""
-    target_language = target_language or _other_glossary_language(source_language)
-    terms = _terms(entries, source_language, target_language)
+    direction = LanguagePair.of(source_language, target_language)
+    terms = _terms(entries, direction)
     patterns = {source: _term_pattern(source) for term in terms for source in term.source_terms}
     ambiguous = _ambiguous_capitals(segments, terms) if profile(source_language).cased else set()
     occurrences: Counter[int] = Counter()
@@ -362,16 +371,16 @@ def glossary_compliance(
                 })
     rows = []
     for index, missed in misses.items():
-        entry = entries[index]
+        source_term, target_term = glossary_sides(entries[index], direction)
         rows.append({
-            "english": entry.english,
-            "chinese": entry.chinese,
-            "category": entry.category.name.lower(),
+            "source": source_term,
+            "target": target_term,
+            "category": entries[index].category.name.lower(),
             "occurrences": occurrences[index],
             "misses": len(missed),
             "examples": missed[:examples],
         })
-    rows.sort(key=lambda row: (-row["misses"], row["english"]))
+    rows.sort(key=lambda row: (-row["misses"], row["source"]))
     return {
         "entries_checked": len(entries),
         "entries_seen": len(occurrences),
@@ -389,19 +398,23 @@ class _Character:
 
 
 def _characters(entries: Sequence[GlossaryEntry]) -> list[_Character]:
-    """Person entries, merged when they share a Chinese rendering (Queen / The Queen)."""
+    """Person entries, merged when they share a Chinese rendering (Queen / The Queen).
+
+    Runs for Chinese targets, whose glossary always runs into Chinese (en-zh, or
+    another source into zh), so an entry's target is the Chinese name.
+    """
     by_target: dict[str, list[GlossaryEntry]] = defaultdict(list)
     for entry in entries:
         if entry.category is GlossaryCategory.PERSON:
-            by_target[entry.chinese].append(entry)
+            by_target[entry.target].append(entry)
     characters = []
-    for chinese, group in by_target.items():
-        english = sorted({entry.english for entry in group}, key=len)
+    for target, group in by_target.items():
+        names = sorted({entry.source for entry in group}, key=len)
         aliases = {alias for entry in group for alias in entry.aliases}
         characters.append(_Character(
-            name=" / ".join(english),
-            source_names=tuple(english) + tuple(a for a in aliases if _LATIN.search(a)),
-            target_names=(chinese, *sorted(a for a in aliases if _CJK.search(a))),
+            name=" / ".join(names),
+            source_names=tuple(names) + tuple(a for a in aliases if not _CJK.search(a)),
+            target_names=(target, *sorted(a for a in aliases if _CJK.search(a))),
         ))
     return characters
 
@@ -682,7 +695,7 @@ def format_report(report: dict[str, Any], *, limit: int = 20) -> str:
         for row in glossary["entries"][:limit]:
             example = row["examples"][0] if row["examples"] else None
             shown = f"`{example['segment_id']}` {_clip(example['text'], 50)}" if example else ""
-            add(f"| {row['english']} | {row['chinese']} | {row['misses']} / {row['occurrences']} | {shown} |")
+            add(f"| {row['source']} | {row['target']} | {row['misses']} / {row['occurrences']} | {shown} |")
         if len(glossary["entries"]) > limit:
             add(f"\n…and {len(glossary['entries']) - limit} more entries.")
     add("")

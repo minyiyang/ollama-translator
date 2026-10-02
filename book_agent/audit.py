@@ -640,7 +640,7 @@ def build_semantic_audit_prompt(
         )
         if scoped_glossary:
             glossary_lines = [
-                f"- {entry.english} => {entry.chinese}"
+                f"- {entry.source} => {entry.target}"
                 for entry in scoped_glossary
             ]
             glossary = (
@@ -1160,7 +1160,7 @@ def _find_exact_source_latin_residue(source: str, target: str, glossary=()) -> s
     }
     approved_latin_targets: set[str] = set()
     for entry in glossary:
-        target_term = getattr(entry, "chinese", "")
+        target_term = getattr(entry, "target", "")
         approved_latin_targets.update(
             word.casefold()
             for word in re.findall(

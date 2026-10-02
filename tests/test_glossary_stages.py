@@ -198,7 +198,7 @@ class GlossaryStageTests:
             draft = run_glossary_resolution_stage(workspace, config, None)
 
             assert candidates.entries == []
-            assert [(item.english, item.chinese) for item in draft.entries] == [("Aster", "阿斯特")]
+            assert [(item.source, item.target) for item in draft.entries] == [("Aster", "阿斯特")]
             connection = connect_state(workspace.state_file)
             try:
                 assert get_job_metadata(connection, "glossary_extraction_mode") == "disabled"
@@ -255,7 +255,7 @@ class GlossaryStageTests:
                 }
             )
             result = run_glossary_extraction_stage(workspace, config, client)
-            assert result.entries[0].english == "Aster"
+            assert result.entries[0].source == "Aster"
             assert len(client.prompts) == 2
             assert "chunk=1/1" in client.progress_labels[0]
             assert "attempt=2/2" in client.progress_labels[1]
@@ -296,7 +296,7 @@ class GlossaryStageTests:
                 {"glossary": {"extraction_chunk_tokens": 100}}
             )
             result = run_glossary_extraction_stage(workspace, config, client)
-            assert [item.english for item in result.entries] == ["Mira"]
+            assert [item.source for item in result.entries] == ["Mira"]
             assert len(client.prompts) == 1
             connection = connect_state(workspace.state_file)
             try:
@@ -332,7 +332,7 @@ class GlossaryStageTests:
                 }
             )
             result = run_glossary_extraction_stage(workspace, changed, second_client)
-            assert result.entries[0].chinese == "\u827e\u4e3d\u4e1d"
+            assert result.entries[0].target == "\u827e\u4e3d\u4e1d"
             assert second_client.models == ["gemma4:custom"]
 
     def test_extraction_failure_marks_chunk_and_stage_failed(self) -> None:
@@ -396,7 +396,7 @@ class GlossaryStageTests:
                 ]
             )
             draft = run_glossary_resolution_stage(workspace, config, resolution_client)
-            assert [(item.english, item.chinese) for item in draft.entries] == [("Aster", "阿斯提"), ("Heron", "石鹭")]
+            assert [(item.source, item.target) for item in draft.entries] == [("Aster", "阿斯提"), ("Heron", "石鹭")]
             assert '"english":"Aster"' not in resolution_client.prompts[0]
             assert resolution_client.models == ["qwen3.8:latest"]
             assert resolution_client.context_multipliers == [2.0]
@@ -438,9 +438,9 @@ class GlossaryStageTests:
             })
             workspace = self._resolved_with_generic_word(Path(directory), config)
             approved = run_glossary_approval_stage(workspace, config)
-            assert [e.english for e in approved.entries] == ["Aster"]
+            assert [e.source for e in approved.entries] == ["Aster"]
             dropped = list((workspace.root / "glossary").glob("approved-*/glossary.dropped-generic.json"))
-            assert [e.english for e in GlossaryResult.model_validate_json(dropped[0].read_text(encoding="utf-8")).entries] == ["anchor"]
+            assert [e.source for e in GlossaryResult.model_validate_json(dropped[0].read_text(encoding="utf-8")).entries] == ["anchor"]
 
     def test_ordinary_words_are_kept_when_switched_off_or_reviewed_by_a_person(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -449,7 +449,7 @@ class GlossaryStageTests:
                 "workflow": {"require_glossary_review": False},
             })
             workspace = self._resolved_with_generic_word(Path(directory), config)
-            assert sorted(e.english for e in run_glossary_approval_stage(workspace, config).entries) == ["Aster", "anchor"]
+            assert sorted(e.source for e in run_glossary_approval_stage(workspace, config).entries) == ["Aster", "anchor"]
         with tempfile.TemporaryDirectory() as directory:
             base = Path(directory)
             config = AppConfig.model_validate({"glossary": {"extraction_chunk_tokens": 100}})
@@ -457,7 +457,7 @@ class GlossaryStageTests:
             reviewed = base / "reviewed.txt"
             reviewed.write_text("--人名--\nAster:阿斯特:人工\n--物品--\nanchor:锚:人工保留\n", encoding="utf-8")
             approved = run_glossary_approval_stage(workspace, config, reviewed_file=reviewed)
-            assert sorted(e.english for e in approved.entries) == ["Aster", "anchor"]
+            assert sorted(e.source for e in approved.entries) == ["Aster", "anchor"]
 
     def test_llm_review_of_a_reviewed_file_keeps_the_ordinary_words_a_person_chose(self) -> None:
         """"LLM review my edits": an added or changed entry is a decision, not a leftover."""
@@ -474,7 +474,7 @@ class GlossaryStageTests:
             finally:
                 connection.close()
             draft = GlossaryResult.model_validate_json(draft_path.read_text(encoding="utf-8"))
-            assert "anchor" in [e.english for e in draft.entries]
+            assert "anchor" in [e.source for e in draft.entries]
             reviewed = base / "reviewed.json"
             reviewed.write_text(
                 GlossaryResult(entries=[
@@ -499,9 +499,9 @@ class GlossaryStageTests:
                 workspace, config, reviewed_file=reviewed, llm_review=True, client=reviewer
             )
             assert reviewer.prompts and "muggle" in reviewer.prompts[0]
-            assert sorted(e.english for e in approved.entries) == ["Aster", "muggle"]
+            assert sorted(e.source for e in approved.entries) == ["Aster", "muggle"]
             dropped = list((workspace.root / "glossary").glob("approved-*/glossary.dropped-generic.json"))
-            assert [e.english for e in GlossaryResult.model_validate_json(dropped[0].read_text(encoding="utf-8")).entries] == ["anchor"]
+            assert [e.source for e in GlossaryResult.model_validate_json(dropped[0].read_text(encoding="utf-8")).entries] == ["anchor"]
 
     def test_human_approval_pauses_then_accepts_reviewed_legacy_file(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -577,8 +577,8 @@ class GlossaryStageTests:
             approved = run_glossary_approval_stage(
                 workspace, config, client=reviewer
             )
-            assert approved.entries[0].english == "Qelwright"
-            assert approved.entries[0].chinese == "奎尔莱特"
+            assert approved.entries[0].source == "Qelwright"
+            assert approved.entries[0].target == "奎尔莱特"
             assert reviewer.models == ["qwen3.8:latest"]
             assert reviewer.thinking == [False]
             assert reviewer.context_minimums == [16_384]
@@ -605,7 +605,7 @@ class GlossaryStageTests:
                     report_path.read_text(encoding="utf-8")
                 )
                 assert report.revised_count == 1
-                assert report.records[0].english == "Qelwright"
+                assert report.records[0].source == "Qelwright"
             finally:
                 connection.close()
 
@@ -668,7 +668,7 @@ class GlossaryStageTests:
                 client=reviewer,
             )
 
-            assert approved.entries[0].chinese == "奇尔纺锤"
+            assert approved.entries[0].target == "奇尔纺锤"
             assert approved.entries[0].evidence[0] == "D0001-S000002"
             assert "奇尔纺轴" in reviewer.prompts[0]
             assert "奎尔轴" not in reviewer.prompts[0]
@@ -742,7 +742,7 @@ class GlossaryStageTests:
                 workspace, config, client=reviewer
             )
 
-            assert [item.english for item in approved.entries] == ["Qelm"]
+            assert [item.source for item in approved.entries] == ["Qelm"]
             assert len(reviewer.prompts) == 2
             assert all(value <= 65_536 for value in reviewer.context_maximums)
             assert reviewer.context_minimums == reviewer.context_maximums
@@ -787,7 +787,7 @@ class GlossaryStageTests:
                 workspace, config, client=reviewer
             )
 
-            assert approved.entries[0].english == "Qelm Spindle"
+            assert approved.entries[0].source == "Qelm Spindle"
             assert len(reviewer.prompts) == 0
             plans = [
                 event for event in reviewer.progress_events if event.kind == "stage_plan"
@@ -885,7 +885,7 @@ class GlossaryStageTests:
                 ]
             )
             resolved = run_glossary_resolution_stage(workspace, config, client)
-            assert resolved.entries[0].english == "Qelwright"
+            assert resolved.entries[0].source == "Qelwright"
             assert len(client.prompts) == 2
             assert "previous response failed validation" in client.prompts[1]
 
@@ -945,9 +945,9 @@ class GlossaryStageTests:
 
             resolved = run_glossary_resolution_stage(workspace, config, client)
 
-            by_english = {item.english: item for item in resolved.entries}
-            assert by_english["Qelwright"].chinese == "奎尔赖特"
-            assert by_english["Vraxwright"].chinese == "弗拉克斯赖特"
+            by_english = {item.source: item for item in resolved.entries}
+            assert by_english["Qelwright"].target == "奎尔赖特"
+            assert by_english["Vraxwright"].target == "弗拉克斯赖特"
             assert "resolver output invalid" in by_english["Vraxwright"].note
             assert len(client.prompts) == 1
 
@@ -989,7 +989,7 @@ class GlossaryStageTests:
 
             resolved = run_glossary_resolution_stage(workspace, config, client)
 
-            assert [(item.english, item.chinese) for item in resolved.entries] == [("Qelm", "奇尔"), ("Vrax", "弗拉克斯")]
+            assert [(item.source, item.target) for item in resolved.entries] == [("Qelm", "奇尔"), ("Vrax", "弗拉克斯")]
             assert len(client.prompts) == 2
             assert "remaining conflicting glossary entries" in client.prompts[1]
             assert "mode=local" in client.progress_labels[0]
@@ -1022,8 +1022,8 @@ class GlossaryStageTests:
             approved = run_glossary_approval_stage(workspace, config)
 
             expected = [("Qelm", "奇尔"), ("The Qelm", "奇尔")]
-            assert sorted((i.english, i.chinese) for i in draft.entries) == expected
-            assert sorted((i.english, i.chinese) for i in approved.entries) == expected
+            assert sorted((i.source, i.target) for i in draft.entries) == expected
+            assert sorted((i.source, i.target) for i in approved.entries) == expected
             connection = connect_state(workspace.state_file)
             try:
                 report_path = get_job_metadata(
@@ -1035,4 +1035,4 @@ class GlossaryStageTests:
                 (workspace.root / report_path).read_text(encoding="utf-8")
             )
             assert report.change_count == 1
-            assert report.changes[0].english == "The Qelm"
+            assert report.changes[0].source == "The Qelm"

@@ -350,7 +350,7 @@ class TranslateStageTests:
             {"translation": {"direction": TranslationDirection.EN_TO_ZH.value}}
         )
         selected = _chunk_relevant_glossary(document, chunk, config)
-        assert [item.english for item in selected] == ["qel drive"]
+        assert [item.source for item in selected] == ["qel drive"]
 
     def prepare_workspace(self, base, *, config=None, chapter=CHAPTER):
         config = config or AppConfig()

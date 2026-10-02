@@ -18,7 +18,7 @@ from .audit import (
     audit_translated_document,
 )
 from .config import AppConfig
-from .languages import PROFILES
+from .languages import PROFILES, glossary_pair
 from .content_policy import (
     is_intentionally_preserved,
     repair_preserves_glossary,
@@ -557,6 +557,7 @@ def _unresolved_deterministic_repair_triggers(
                 processed_text=source_text,
             )
         ],
+        glossary_pair=glossary_pair(config.translation.direction),
         relevant_glossary=relevant_glossary,
     )
     translated = TranslatedDocument(

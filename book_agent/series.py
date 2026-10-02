@@ -13,20 +13,21 @@ import re
 from collections import defaultdict
 from datetime import datetime
 from pathlib import Path
-from typing import Literal
+from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from .atomic_io import atomic_write_text
 from .glossary import (
     GlossarySource,
     GlossarySourceKind,
     load_glossary_file,
+    orient_glossary,
     screen_glossary_candidates,
     sort_glossary_entries,
 )
 from .hashing import sha256_file
-from .languages import TranslationDirection, glossary_supported
+from .languages import TranslationDirection, glossary_language_names, glossary_pair
 from .pipeline_state import WorkflowStage
 from .schemas import GlossaryCategory, GlossaryEntry, GlossaryResult, normalize_term
 from .series_binding import load_series_binding, write_series_binding
@@ -79,19 +80,35 @@ class SeriesManifest(BaseModel):
         return self.versions[-1] if self.versions else None
 
 
+def _read_pre_phase3_names(data: Any) -> Any:
+    """Workbench files written before phase 3 name the sides english/chinese."""
+    if isinstance(data, dict) and ("english" in data or "chinese" in data):
+        renamed = {"english": "source", "chinese": "target"}
+        data = {renamed.get(key, key): value for key, value in data.items()}
+    return data
+
+
 class TermSuggestion(BaseModel):
     model_config = ConfigDict(extra="forbid")
     kind: Literal["resolve", "drop_generic", "promote"]
-    chinese: str | None = None
+    # The suggested rendering, for a "resolve" suggestion.
+    target: str | None = None
     rationale: str
     model: str
+
+    @model_validator(mode="before")
+    @classmethod
+    def read_old_names(cls, data: Any) -> Any:
+        return _read_pre_phase3_names(data)
 
 
 class WorkbenchTerm(BaseModel):
     model_config = ConfigDict(extra="forbid")
     term_id: str
-    english: str
-    chinese: str
+    # The term in the series glossary's source language (English for an en/zh
+    # series), and its rendering.
+    source: str
+    target: str
     category: GlossaryCategory
     aliases: list[str] = Field(default_factory=list)
     note: str = ""
@@ -108,9 +125,14 @@ class WorkbenchTerm(BaseModel):
     # including books whose glossary missed it: evidence for promoting it.
     mentions: dict[str, int] = Field(default_factory=dict)
 
+    @model_validator(mode="before")
+    @classmethod
+    def read_old_names(cls, data: Any) -> Any:
+        return _read_pre_phase3_names(data)
+
     def variants(self) -> list[str]:
         """Every distinct target rendering, carried value first."""
-        seen = [self.chinese] if self.origin == "carried" else []
+        seen = [self.target] if self.origin == "carried" else []
         for values in self.books.values():
             seen.extend(values)
         return list(dict.fromkeys(seen))
@@ -204,17 +226,19 @@ def _book_direction(workspace: JobWorkspace) -> TranslationDirection:
     return load_workspace_config(workspace).translation.direction
 
 
+def series_glossary_pair(runs: Path, series_id: str) -> TranslationDirection:
+    """The pair the series glossary is written in (en-zh for an en/zh series)."""
+    return glossary_pair(load_manifest(runs, series_id).direction)
+
+
 def create_series(runs: Path, series_id: str, name: str, direction: str) -> SeriesManifest:
     root = series_root(runs, series_id)
     if (root / "series.json").exists():
         raise ValueError(f"a series named {series_id} already exists")
-    pair = TranslationDirection(direction)
-    if not glossary_supported(pair):
-        raise ValueError(f"a series shares a glossary, which is not available for {pair.value} yet")
     manifest = SeriesManifest(
         series_id=series_id,
         name=name.strip() or series_id,
-        direction=pair,
+        direction=TranslationDirection(direction),
     )
     root.mkdir(parents=True, exist_ok=True)
     _save_manifest(runs, manifest)
@@ -394,34 +418,35 @@ def build_workbench(
         minimum_sources=minimum_books,
         consensus_ratio=consensus_ratio,
         defer_generic_terms="resolved" in boundaries.values(),
+        pair=glossary_pair(manifest.direction),
     )
 
     per_term: dict[str, dict[str, list[GlossaryEntry]]] = defaultdict(lambda: defaultdict(list))
     for source in sources:
         for entry in source.entries:
-            per_term[normalize_term(entry.english)][source.name].append(entry)
+            per_term[normalize_term(entry.source)][source.name].append(entry)
 
     def books_of(key: str) -> dict[str, list[str]]:
         return {
-            job: list(dict.fromkeys(entry.chinese for entry in entries))
+            job: list(dict.fromkeys(entry.target for entry in entries))
             for job, entries in sorted(per_term.get(key, {}).items())
         }
 
     def representative(key: str) -> GlossaryEntry:
         entries = [entry for group in per_term[key].values() for entry in group]
-        preferred = _preferred_text(entry.english for entry in entries)
-        return next(entry for entry in entries if entry.english == preferred)
+        preferred = _preferred_text(entry.source for entry in entries)
+        return next(entry for entry in entries if entry.source == preferred)
 
     rows: dict[str, WorkbenchTerm] = {}
     latest = manifest.latest
     if latest is not None:
         carried = load_glossary_file(version_glossary_path(runs, series_id, latest.version))
         for entry in carried.entries:
-            key = normalize_term(entry.english)
+            key = normalize_term(entry.source)
             rows[key] = WorkbenchTerm(
                 term_id="",
-                english=entry.english,
-                chinese=entry.chinese,
+                source=entry.source,
+                target=entry.target,
                 category=entry.category,
                 aliases=list(entry.aliases),
                 note=entry.note,
@@ -434,25 +459,25 @@ def build_workbench(
             )
 
     for entry in build.glossary.entries:
-        key = normalize_term(entry.english)
+        key = normalize_term(entry.source)
         if key in rows:
             carried_row = rows[key]
-            if normalize_term(carried_row.chinese) != normalize_term(entry.chinese):
+            if normalize_term(carried_row.target) != normalize_term(entry.target):
                 rows[key] = carried_row.model_copy(
                     update={
                         "origin": "conflict",
                         "decision": "pending",
                         "reason": (
-                            f"books agree on {entry.chinese}, but {carried_row.locked_from} "
-                            f"has {carried_row.chinese}"
+                            f"books agree on {entry.target}, but {carried_row.locked_from} "
+                            f"has {carried_row.target}"
                         ),
                     }
                 )
             continue
         rows[key] = WorkbenchTerm(
             term_id="",
-            english=entry.english,
-            chinese=entry.chinese,
+            source=entry.source,
+            target=entry.target,
             category=entry.category,
             aliases=list(entry.aliases),
             note=entry.note,
@@ -464,14 +489,14 @@ def build_workbench(
         )
 
     for conflict in build.report.conflicts:
-        key = normalize_term(conflict.english)
+        key = normalize_term(conflict.source)
         if key in rows:
             continue  # a carried term stays locked; its row lists the book variants
         entry = representative(key)
         rows[key] = WorkbenchTerm(
             term_id="",
-            english=conflict.english,
-            chinese=conflict.variants[0].chinese,
+            source=conflict.source,
+            target=conflict.variants[0].target,
             category=entry.category,
             aliases=list(entry.aliases),
             note=entry.note,
@@ -488,8 +513,8 @@ def build_workbench(
         entry = representative(key)
         rows[key] = WorkbenchTerm(
             term_id="",
-            english=entry.english,
-            chinese=entry.chinese,
+            source=entry.source,
+            target=entry.target,
             category=entry.category,
             aliases=list(entry.aliases),
             note=entry.note,
@@ -506,7 +531,7 @@ def build_workbench(
 
     previous = load_workbench(runs, series_id)
     if previous is not None:
-        prior = {normalize_term(term.english): term for term in previous.terms}
+        prior = {normalize_term(term.source): term for term in previous.terms}
         for key, row in rows.items():
             old = prior.get(key)
             if (
@@ -518,7 +543,7 @@ def build_workbench(
                 rows[key] = row.model_copy(
                     update={
                         field: getattr(old, field)
-                        for field in ("chinese", "category", "aliases", "note", "decision", "decided_by", "reason", "origin")
+                        for field in ("target", "category", "aliases", "note", "decision", "decided_by", "reason", "origin")
                     }
                 )
             elif old is not None and old.decided_by == "rule" and (old.suggestion or old.dismissed):
@@ -534,7 +559,7 @@ def build_workbench(
                 "mentions": {
                     job: count
                     for job, text in texts.items()
-                    if (count := count_mentions(text, row.english))
+                    if (count := count_mentions(text, row.source))
                 }
             }
         )
@@ -561,21 +586,21 @@ def decide_terms(
     decision: Decision,
     *,
     reason: str,
-    chinese: str | None = None,
+    target: str | None = None,
     category: GlossaryCategory | str | None = None,
     unlock: bool = False,
     decided_by: DecidedBy = "user",
 ) -> Workbench:
     """Record a manual (or accepted LLM) decision on workbench terms.
 
-    ``chinese`` and ``category`` change the term itself, so they apply to one term.
+    ``target`` and ``category`` change the term itself, so they apply to one term.
     """
     workbench = load_workbench(runs, series_id)
     if workbench is None:
         raise ValueError("build the series workbench first")
     if len(reason.strip()) < 3:
         raise ValueError("a decision needs a reason (at least 3 characters)")
-    if (chinese is not None or category is not None) and len(term_ids) != 1:
+    if (target is not None or category is not None) and len(term_ids) != 1:
         raise ValueError("a new translation or category applies to one term at a time")
     if category is not None and not isinstance(category, GlossaryCategory):
         # The stored value (e.g. 地名) or its English name (place).
@@ -594,12 +619,12 @@ def decide_terms(
         term = by_id[term_id]
         changes_published = term.locked_from and (
             decision == "drop"
-            or (chinese is not None and chinese != term.chinese)
+            or (target is not None and target != term.target)
             or (category is not None and category is not term.category)
         )
         if changes_published and not unlock:
             raise ValueError(
-                f"{term.english} was published in {term.locked_from}; unlock it to change it"
+                f"{term.source} was published in {term.locked_from}; unlock it to change it"
             )
         update: dict[str, object] = {
             "decision": decision,
@@ -607,9 +632,12 @@ def decide_terms(
             "reason": reason.strip(),
             "suggestion": None,
         }
-        if chinese is not None:
-            GlossaryEntry(english=term.english, chinese=chinese, category=term.category)
-            update["chinese"] = chinese
+        if target is not None:
+            GlossaryEntry.for_pair(
+                {"source": term.source, "target": target, "category": term.category},
+                series_glossary_pair(runs, series_id),
+            )
+            update["target"] = target
         if category is not None:
             update["category"] = category
         by_id[term_id] = term.model_copy(update=update)
@@ -676,35 +704,40 @@ def publish_workbench(runs: Path, series_id: str) -> SeriesVersion:
     if workbench.based_on != (manifest.latest.version if manifest.latest else None):
         raise ValueError("the workbench predates the latest version; rebuild it")
     kept = [term for term in workbench.terms if term.decision == "keep"]
+    pair = glossary_pair(manifest.direction)
     entries = [
-        GlossaryEntry(
-            english=term.english,
-            chinese=term.chinese,
-            note=term.note,
-            category=term.category,
-            aliases=term.aliases,
-            evidence=[f"series:{job}" for job in sorted(term.books)],
+        GlossaryEntry.for_pair(
+            {
+                "source": term.source,
+                "target": term.target,
+                "note": term.note,
+                "category": term.category,
+                "aliases": term.aliases,
+                "evidence": [f"series:{job}" for job in sorted(term.books)],
+            },
+            pair,
         )
         for term in kept
     ]
-    keys = [normalize_term(entry.english) for entry in entries]
+    keys = [normalize_term(entry.source) for entry in entries]
     duplicates = sorted({key for key in keys if keys.count(key) > 1})
     if duplicates:
-        raise ValueError("duplicate English terms: " + ", ".join(duplicates))
+        raise ValueError("duplicate source terms: " + ", ".join(duplicates))
     glossary = GlossaryResult(
-        entries=sort_glossary_entries(_remove_cross_term_alias_conflicts(entries))
+        pair=pair,
+        entries=sort_glossary_entries(_remove_cross_term_alias_conflicts(entries)),
     )
     report = {
         "series_id": series_id,
         "source_jobs": workbench.source_jobs,
         "boundaries": workbench.boundaries,
         "term_count": len(glossary.entries),
-        "pending_excluded": [term.english for term in workbench.terms if term.decision == "pending"],
+        "pending_excluded": [term.source for term in workbench.terms if term.decision == "pending"],
         "dropped_count": sum(term.decision == "drop" for term in workbench.terms),
         "decisions": [
             {
-                "english": term.english,
-                "chinese": term.chinese,
+                "source": term.source,
+                "target": term.target,
                 "origin": term.origin,
                 "decision": term.decision,
                 "decided_by": term.decided_by,
@@ -742,7 +775,7 @@ def write_book_overlays(runs: Path, series_id: str, version: str) -> dict[str, P
 def import_version(runs: Path, series_id: str, glossary_file: Path) -> SeriesVersion:
     """Publish an existing series glossary file (e.g. from the CLI workflow)."""
     manifest = load_manifest(runs, series_id)
-    glossary = load_glossary_file(glossary_file)
+    glossary = orient_glossary(load_glossary_file(glossary_file), glossary_pair(manifest.direction))
     report = {"series_id": series_id, "imported_from": str(Path(glossary_file).resolve())}
     return _write_version(runs, manifest, glossary, report, [])
 
@@ -972,7 +1005,7 @@ def term_evidence(runs: Path, series_id: str, term_id: str) -> dict[str, object]
     manifest = load_manifest(runs, series_id)
     sources, _, _ = _book_sources(runs, manifest)
     entries_by_book = {
-        source.name: [entry for entry in source.entries if normalize_term(entry.english) == normalize_term(term.english)]
+        source.name: [entry for entry in source.entries if normalize_term(entry.source) == normalize_term(term.source)]
         for source in sources
     }
     books = []
@@ -994,18 +1027,18 @@ def term_evidence(runs: Path, series_id: str, term_id: str) -> dict[str, object]
                 **row,
                 "glossary": [
                     {
-                        "chinese": entry.chinese,
+                        "target": entry.target,
                         "category": entry.category.value,
                         "note": entry.note,
                         "evidence": [segments[ref][:400] for ref in entry.evidence[:2] if ref in segments],
                     }
                     for entry in entries_by_book.get(job_id, [])
                 ],
-                "mentions": count_mentions(text, term.english),
-                "snippets": mention_snippets(text, term.english),
+                "mentions": count_mentions(text, term.source),
+                "snippets": mention_snippets(text, term.source),
             }
         )
-    return {"term_id": term.term_id, "english": term.english, "books": books}
+    return {"term_id": term.term_id, "source": term.source, "books": books}
 
 
 def workbench_view(runs: Path, series_id: str) -> dict[str, object] | None:
@@ -1014,21 +1047,23 @@ def workbench_view(runs: Path, series_id: str) -> dict[str, object] | None:
     if workbench is None:
         return None
     manifest = load_manifest(runs, series_id)
-    kept = {normalize_term(term.english): term for term in workbench.terms if term.decision == "keep"}
+    kept = {normalize_term(term.source): term for term in workbench.terms if term.decision == "keep"}
     previous: dict[str, GlossaryEntry] = {}
     if manifest.latest is not None:
         published = load_glossary_file(version_glossary_path(runs, series_id, manifest.latest.version))
-        previous = {normalize_term(entry.english): entry for entry in published.entries}
-    added = sorted(term.english for key, term in kept.items() if key not in previous)
+        previous = {normalize_term(entry.source): entry for entry in published.entries}
+    added = sorted(term.source for key, term in kept.items() if key not in previous)
     changed = sorted(
-        term.english
+        term.source
         for key, term in kept.items()
-        if key in previous and normalize_term(previous[key].chinese) != normalize_term(term.chinese)
+        if key in previous and normalize_term(previous[key].target) != normalize_term(term.target)
     )
-    removed = sorted(entry.english for key, entry in previous.items() if key not in kept)
+    removed = sorted(entry.source for key, entry in previous.items() if key not in kept)
     return {
         **json.loads(workbench.model_dump_json()),
         "next_version": _next_version(manifest),
+        # The series glossary's pair: its source and target sides, for labels.
+        "glossary_pair": glossary_language_names(glossary_pair(manifest.direction)),
         "latest": manifest.latest.version if manifest.latest else None,
         "books": [book.job_id for book in manifest.books],
         "book_info": series_books(runs, series_id),

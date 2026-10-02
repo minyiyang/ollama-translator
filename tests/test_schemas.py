@@ -68,7 +68,7 @@ class GlossarySchemaTests:
             evidence=["D0001-S000001"],
         )
         result = extraction_schema.model_validate({"entries": [payload]})
-        assert result.entries[0].chinese == "Riverstone"
+        assert result.entries[0].target == "Riverstone"
         with pytest.raises(ValidationError, match="CJK"):
             GlossaryEntry.model_validate(result.entries[0].model_dump())
 

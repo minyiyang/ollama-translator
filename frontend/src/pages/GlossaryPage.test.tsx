@@ -6,7 +6,7 @@ import { mockApi } from "../test/mockApi";
 
 // The glossary gate with a book style sheet (docs/BOOK_CONSISTENCY.md, phase 2).
 
-const entry = { english: "Alice", chinese: "爱丽丝", note: "常见译名", category: "人名", aliases: [], evidence: [], confidence: 1 };
+const entry = { source: "Alice", target: "爱丽丝", note: "常见译名", category: "人名", aliases: [], evidence: [], confidence: 1 };
 
 const draft = {
   characters: [{ name: "Mouse", pronoun: "它", addressed_as: "您", voice: "formal", evidence: [], alternatives: [] }],
@@ -22,6 +22,7 @@ const glossary = (review: "human" | "glossary") => ({
   review_mode: "",
   entries: [entry],
   draft_entries: [entry],
+  glossary_pair: { pair: "en-zh", source: "English", target: "Simplified Chinese" },
   approval_records: [],
   approval_summary: {},
   quality: {},

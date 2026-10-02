@@ -14,13 +14,15 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from .epub import ChapterDocument
-from .languages import UNSPACED_SCRIPT
+from .languages import UNSPACED_SCRIPT, LanguagePair, glossary_names, profile
 from .schemas import (
     CATEGORY_ORDER,
+    DEFAULT_GLOSSARY_PAIR,
     GlossaryCategory,
     GlossaryEntry,
     GlossaryResult,
     deduplicate_entries,
+    entry_for_model,
     normalize_term,
 )
 
@@ -75,7 +77,7 @@ class GlossaryRejectedCandidate(BaseModel):
     """One candidate removed by a high-confidence deterministic rule."""
 
     model_config = ConfigDict(extra="forbid")
-    english: str
+    source: str
     reason: str
     evidence: list[str] = Field(default_factory=list)
 
@@ -112,9 +114,9 @@ class GlossaryHarmonizationChange(BaseModel):
 
     model_config = ConfigDict(extra="forbid")
     kind: Literal["variant", "component"]
-    english: str
-    previous_chinese: str
-    chinese: str
+    source: str
+    previous_target: str
+    target: str
     related_terms: list[str] = Field(default_factory=list)
 
 
@@ -349,18 +351,18 @@ def screen_glossary_candidates(
         if reason:
             rejected.append(
                 GlossaryRejectedCandidate(
-                    english=entry.english,
+                    source=entry.source,
                     reason=reason,
                     evidence=list(entry.evidence),
                 )
             )
             continue
         if is_suspicious_generic_candidate(entry):
-            suspicious.append(entry.english)
+            suspicious.append(entry.source)
         retained.append(entry)
 
     reason_counts = Counter(item.reason for item in rejected)
-    screened = GlossaryResult(entries=sort_glossary_entries(retained))
+    screened = GlossaryResult(pair=result.pair, entries=sort_glossary_entries(retained))
     report = GlossaryScreeningReport(
         input_count=len(result.entries),
         retained_count=len(screened.entries),
@@ -381,7 +383,7 @@ def analyze_glossary_quality(
         raise ValueError("glossary quality scope must be 'volume' or 'series'")
     suspicious = sorted(
         {
-            entry.english
+            entry.source
             for entry in result.entries
             if is_suspicious_generic_candidate(entry)
         },
@@ -430,7 +432,7 @@ def restore_glossary_evidence(
         raise ValueError("max_evidence_per_entry must be positive")
     evidence_by_term: dict[str, list[str]] = {}
     for candidate in candidates:
-        bucket = evidence_by_term.setdefault(normalize_term(candidate.english), [])
+        bucket = evidence_by_term.setdefault(normalize_term(candidate.source), [])
         for reference in candidate.evidence:
             if reference not in bucket:
                 bucket.append(reference)
@@ -438,31 +440,31 @@ def restore_glossary_evidence(
         entry.model_copy(
             update={
                 "evidence": evidence_by_term.get(
-                    normalize_term(entry.english), list(entry.evidence)
+                    normalize_term(entry.source), list(entry.evidence)
                 )[:max_evidence_per_entry]
             }
         )
         for entry in result.entries
     ]
-    return GlossaryResult(entries=sort_glossary_entries(restored))
+    return GlossaryResult(pair=result.pair, entries=sort_glossary_entries(restored))
 
 
 def _is_unmistakable_ordinary_candidate(entry: GlossaryEntry) -> bool:
-    english = entry.english.strip()
+    term = entry.source.strip()
     return (
         entry.category in _GENERIC_CATEGORIES
-        and english == english.lower()
-        and normalize_term(english) in _UNMISTAKABLE_ORDINARY_TERMS
+        and term == term.lower()
+        and normalize_term(term) in _UNMISTAKABLE_ORDINARY_TERMS
     )
 
 
 def is_suspicious_generic_candidate(entry: GlossaryEntry) -> bool:
     """Return whether a term needs relevance review before series promotion."""
-    english = entry.english.strip()
+    term = entry.source.strip()
     return (
         entry.category in _GENERIC_CATEGORIES
-        and english == english.lower()
-        and bool(re.fullmatch(r"[a-z][a-z'-]{1,23}", english))
+        and term == term.lower()
+        and bool(re.fullmatch(r"[a-z][a-z'-]{1,23}", term))
     )
 
 
@@ -584,11 +586,11 @@ def validate_candidate_evidence(
     allowed = {piece.reference_id for piece in chunk.pieces}
     for entry in result.entries:
         if not entry.evidence:
-            raise GlossaryFormatError(f"candidate has no evidence: {entry.english}")
+            raise GlossaryFormatError(f"candidate has no evidence: {entry.source}")
         unknown = sorted(set(entry.evidence) - allowed)
         if unknown:
             raise GlossaryFormatError(
-                f"candidate {entry.english} has unknown evidence: {', '.join(unknown)}"
+                f"candidate {entry.source} has unknown evidence: {', '.join(unknown)}"
             )
 
 
@@ -633,7 +635,7 @@ def canonicalize_candidate_evidence(
             if canonical not in evidence:
                 evidence.append(canonical)
         normalized_entries.append(entry.model_copy(update={"evidence": evidence}))
-    return GlossaryResult(entries=normalized_entries)
+    return GlossaryResult(pair=result.pair, entries=normalized_entries)
 
 
 def validate_resolution_scope(
@@ -641,11 +643,11 @@ def validate_resolution_scope(
     candidates: list[GlossaryEntry],
 ) -> None:
     """Reject resolver entries whose English term was not present in candidates."""
-    allowed = {normalize_term(entry.english) for entry in candidates}
+    allowed = {normalize_term(entry.source) for entry in candidates}
     invented = sorted(
-        entry.english
+        entry.source
         for entry in result.entries
-        if normalize_term(entry.english) not in allowed
+        if normalize_term(entry.source) not in allowed
     )
     if invented:
         raise GlossaryFormatError(
@@ -655,23 +657,25 @@ def validate_resolution_scope(
 
 def build_glossary_resolution_cases(
     entries: list[GlossaryEntry],
+    pair: LanguagePair = DEFAULT_GLOSSARY_PAIR,
 ) -> list[dict[str, object]]:
     """Group candidates under stable IDs while retaining exact source spellings."""
+    source_name, _ = glossary_names(pair)
     groups: dict[str, list[GlossaryEntry]] = {}
     for entry in sort_glossary_entries(entries):
-        groups.setdefault(normalize_term(entry.english), []).append(entry)
+        groups.setdefault(normalize_term(entry.source), []).append(entry)
     cases: list[dict[str, object]] = []
     for index, term in enumerate(sorted(groups), start=1):
         group = groups[term]
         variants: list[dict[str, object]] = []
         for entry in group:
-            payload = entry.model_dump(mode="json")
-            payload.pop("english")
+            payload = entry_for_model(entry, pair)
+            payload.pop(source_name)
             variants.append(payload)
         cases.append(
             {
                 "term_id": f"T{index:05d}",
-                "english": group[0].english,
+                source_name: group[0].source,
                 "candidates": variants,
             }
         )
@@ -680,15 +684,26 @@ def build_glossary_resolution_cases(
 
 def build_glossary_approval_cases(
     entries: list[GlossaryEntry],
+    pair: LanguagePair = DEFAULT_GLOSSARY_PAIR,
 ) -> list[dict[str, object]]:
     """Assign stable IDs to exact resolved entries for delta-only approval."""
     return [
         {
             "term_id": f"A{index:05d}",
-            "entry": entry.model_dump(mode="json"),
+            "entry": entry_for_model(entry, pair),
         }
         for index, entry in enumerate(sort_glossary_entries(entries), start=1)
     ]
+
+
+def case_entry(case: dict[str, object]) -> GlossaryEntry:
+    """The entry of an approval case, read without validation (its sides by either name)."""
+    data = dict(case["entry"])  # type: ignore[arg-type]
+    for old, new in (("english", "source"), ("chinese", "target")):
+        if old in data:
+            data[new] = data.pop(old)
+    data["category"] = GlossaryCategory(data["category"])
+    return GlossaryEntry.model_construct(**data)
 
 
 def screen_glossary_approval_cases(
@@ -699,12 +714,12 @@ def screen_glossary_approval_cases(
     """Route only uncertain or structurally ambiguous entries to LLM review."""
     if not 0.0 <= min_confidence <= 1.0:
         raise ValueError("min_confidence must be between zero and one")
-    entries = [GlossaryEntry.model_validate(case["entry"]) for case in cases]
+    entries = [case_entry(case) for case in cases]
     targets_by_source: dict[str, set[str]] = {}
     sources_by_target: dict[str, set[str]] = {}
     for entry in entries:
-        source = normalize_term(entry.english)
-        target = normalize_term(entry.chinese)
+        source = normalize_term(entry.source)
+        target = normalize_term(entry.target)
         targets_by_source.setdefault(source, set()).add(target)
         sources_by_target.setdefault(target, set()).add(source)
 
@@ -713,8 +728,8 @@ def screen_glossary_approval_cases(
     reasons_by_id: dict[str, list[str]] = {}
     for case, entry in zip(cases, entries, strict=True):
         reasons: list[str] = []
-        source = normalize_term(entry.english)
-        target = normalize_term(entry.chinese)
+        source = normalize_term(entry.source)
+        target = normalize_term(entry.target)
         if not entry.evidence:
             reasons.append("missing_evidence")
         if entry.confidence < min_confidence:
@@ -742,8 +757,8 @@ def build_glossary_approval_batches(
         raise ValueError("max_tokens must be positive")
     groups: dict[str, list[dict[str, object]]] = {}
     for case in cases:
-        entry = GlossaryEntry.model_validate(case["entry"])
-        groups.setdefault(normalize_term(entry.english), []).append(case)
+        entry = case_entry(case)
+        groups.setdefault(normalize_term(entry.source), []).append(case)
     batches: list[list[dict[str, object]]] = []
     current: list[dict[str, object]] = []
     current_tokens = 0
@@ -773,7 +788,7 @@ def build_glossary_resolution_batches(
         raise ValueError("max_tokens must be positive")
     groups: dict[str, list[GlossaryEntry]] = {}
     for entry in sort_glossary_entries(entries):
-        groups.setdefault(normalize_term(entry.english), []).append(entry)
+        groups.setdefault(normalize_term(entry.source), []).append(entry)
     batches: list[list[GlossaryEntry]] = []
     current: list[GlossaryEntry] = []
     current_tokens = 0
@@ -795,7 +810,7 @@ def merge_candidate_entries(entries: list[GlossaryEntry]) -> list[GlossaryEntry]
     """Merge exact bilingual candidates while preserving real translation alternatives."""
     merged: dict[tuple[str, str], GlossaryEntry] = {}
     for entry in entries:
-        key = (normalize_term(entry.english), normalize_term(entry.chinese))
+        key = (normalize_term(entry.source), normalize_term(entry.target))
         existing = merged.get(key)
         if existing is None:
             merged[key] = entry.model_copy(deep=True)
@@ -817,8 +832,8 @@ def sort_glossary_entries(entries: list[GlossaryEntry]) -> list[GlossaryEntry]:
         deduplicate_entries(entries),
         key=lambda entry: (
             category_rank[entry.category],
-            normalize_term(entry.english),
-            normalize_term(entry.chinese),
+            normalize_term(entry.source),
+            normalize_term(entry.target),
         ),
     )
 
@@ -846,8 +861,8 @@ def parse_legacy_glossary(text: str) -> GlossaryResult:
         try:
             entries.append(
                 GlossaryEntry(
-                    english=parts[0].strip(),
-                    chinese=parts[1].strip(),
+                    source=parts[0].strip(),
+                    target=parts[1].strip(),
                     note=parts[2].strip(),
                     category=current_category,
                 )
@@ -866,8 +881,33 @@ def load_glossary_file(path: str | Path) -> GlossaryResult:
             result = GlossaryResult.model_validate_json(text)
         except ValueError as error:
             raise GlossaryFormatError(f"invalid glossary JSON: {glossary_path}") from error
-        return GlossaryResult(entries=sort_glossary_entries(result.entries))
+        return GlossaryResult(pair=result.pair, entries=sort_glossary_entries(result.entries))
     return parse_legacy_glossary(text)
+
+
+def orient_glossary(result: GlossaryResult, pair: LanguagePair) -> GlossaryResult:
+    """The glossary written in `pair`: as is, or swapped when it runs the other way.
+
+    A swap makes each target the source term, so aliases (variants of the old
+    source term) are dropped. A glossary of an unrelated pair is refused.
+    """
+    if result.pair == pair:
+        return result
+    if (result.pair.source_language, result.pair.target_language) == (
+        pair.target_language,
+        pair.source_language,
+    ):
+        swapped = [
+            GlossaryEntry.for_pair(
+                {**entry.model_dump(), "source": entry.target, "target": entry.source, "aliases": []},
+                pair,
+            )
+            for entry in result.entries
+        ]
+        return GlossaryResult(pair=pair, entries=sort_glossary_entries(swapped))
+    raise GlossaryFormatError(
+        f"this glossary is {result.pair.value}; the job's glossary is {pair.value}"
+    )
 
 
 def merge_prioritized_sources(sources: list[GlossarySource]) -> list[GlossaryEntry]:
@@ -877,7 +917,7 @@ def merge_prioritized_sources(sources: list[GlossarySource]) -> list[GlossaryEnt
     for source in sorted(sources, key=lambda item: (item.kind.priority, item.name)):
         by_term: dict[str, list[GlossaryEntry]] = {}
         for entry in source.entries:
-            by_term.setdefault(normalize_term(entry.english), []).append(entry)
+            by_term.setdefault(normalize_term(entry.source), []).append(entry)
         for term, entries in by_term.items():
             priority = source.kind.priority
             if priority > selected_priority.get(term, -1):
@@ -901,7 +941,6 @@ def merge_prioritized_sources(sources: list[GlossarySource]) -> list[GlossaryEnt
 # and the audit a finding whichever it picks.
 
 _LEADING_ARTICLE_RE = re.compile(r"^(?:the|a|an)\s+", re.IGNORECASE)
-_NAME_PART_SEPARATOR = "\u00b7"
 # ``Ar``/``Ares`` must not pair; real plural pairs have a longer base.
 _MIN_PLURAL_BASE_LENGTH = 3
 _MARKUP_RE = re.compile(r"<[^>]+>")
@@ -920,13 +959,13 @@ _NON_NAME_CAPITALS = frozenset(
 )
 
 
-def glossary_variant_base(english: str) -> str:
+def glossary_variant_base(term: str) -> str:
     """Return the spelling a term shares with its article and plural variants.
 
     Case-bearing terms keep their case because the annotation matcher treats
     them case-sensitively: ``House`` the manor AI and ``houses`` must not merge.
     """
-    collapsed = " ".join(english.split())
+    collapsed = " ".join(term.split())
     stripped = _LEADING_ARTICLE_RE.sub("", collapsed) or collapsed
     return stripped if any(character.isupper() for character in stripped) else stripped.casefold()
 
@@ -951,9 +990,9 @@ def _rendering_key(entry: GlossaryEntry) -> str:
     ``ZQT -> ZQT`` and ``ZQTs -> ZQTs`` differ as strings but not as
     decisions, so they must not be reported or rewritten as a conflict.
     """
-    if normalize_term(entry.chinese) == normalize_term(entry.english):
+    if normalize_term(entry.target) == normalize_term(entry.source):
         return _VERBATIM_RENDERING
-    return normalize_term(entry.chinese)
+    return normalize_term(entry.target)
 
 
 def _renderings_nest(renderings: set[str]) -> bool:
@@ -966,7 +1005,7 @@ def _renderings_nest(renderings: set[str]) -> bool:
     )
 
 
-def _with_rendering(entry: GlossaryEntry, chinese: str) -> GlossaryEntry | None:
+def _with_rendering(entry: GlossaryEntry, target: str, pair: LanguagePair) -> GlossaryEntry | None:
     """Return ``entry`` with a new rendering, or None when that entry cannot hold it.
 
     ``model_copy`` skips validation, and a rendering valid for one spelling is not
@@ -974,7 +1013,7 @@ def _with_rendering(entry: GlossaryEntry, chinese: str) -> GlossaryEntry | None:
     is only a legal rendering of its own identical English term.
     """
     try:
-        return GlossaryEntry.model_validate({**entry.model_dump(), "chinese": chinese})
+        return GlossaryEntry.for_pair({**entry.model_dump(), "target": target}, pair)
     except ValueError:
         return None
 
@@ -984,7 +1023,7 @@ def source_priority_by_term(sources: list[GlossarySource]) -> dict[str, int]:
     priorities: dict[str, int] = {}
     for source in sources:
         for entry in source.entries:
-            term = normalize_term(entry.english)
+            term = normalize_term(entry.source)
             priorities[term] = max(priorities.get(term, source.kind.priority), source.kind.priority)
     return priorities
 
@@ -992,6 +1031,7 @@ def source_priority_by_term(sources: list[GlossarySource]) -> dict[str, int]:
 def harmonize_glossary(
     entries: list[GlossaryEntry],
     *,
+    pair: LanguagePair = DEFAULT_GLOSSARY_PAIR,
     priority_by_term: dict[str, int] | None = None,
     documents: list[ChapterDocument] | None = None,
     min_unglossed_occurrences: int = 10,
@@ -1012,13 +1052,13 @@ def harmonize_glossary(
     lowest = min(kind.priority for kind in GlossarySourceKind)
 
     def priority(entry: GlossaryEntry) -> int:
-        return priorities.get(normalize_term(entry.english), lowest)
+        return priorities.get(normalize_term(entry.source), lowest)
 
     current = [entry.model_copy(deep=True) for entry in sort_glossary_entries(entries)]
     changes: list[GlossaryHarmonizationChange] = []
     warnings: list[str] = []
 
-    bases = [glossary_variant_base(entry.english) for entry in current]
+    bases = [glossary_variant_base(entry.source) for entry in current]
     parent = list(range(len(current)))
 
     def root(index: int) -> int:
@@ -1038,7 +1078,7 @@ def harmonize_glossary(
     for members in groups.values():
         renderings_by_term: dict[str, set[str]] = defaultdict(set)
         for index in members:
-            renderings_by_term[normalize_term(current[index].english)].add(
+            renderings_by_term[normalize_term(current[index].source)].add(
                 _rendering_key(current[index])
             )
         if len(renderings_by_term) < 2:
@@ -1046,7 +1086,7 @@ def harmonize_glossary(
         renderings = {value for values in renderings_by_term.values() for value in values}
         if len(renderings) < 2:
             continue
-        names = sorted({current[index].english for index in members}, key=normalize_term)
+        names = sorted({current[index].source for index in members}, key=normalize_term)
         if any(len(values) > 1 for values in renderings_by_term.values()):
             warnings.append(
                 f"variant group {', '.join(names)} carries deliberate alternatives; "
@@ -1055,7 +1095,7 @@ def harmonize_glossary(
             continue
         categories = {current[index].category for index in members}
         if len(categories) > 1:
-            shown = ", ".join(f"{current[index].english} ({current[index].category.value})" for index in members)
+            shown = ", ".join(f"{current[index].source} ({current[index].category.value})" for index in members)
             warnings.append(
                 f"variants in different categories are left separate: {shown}"
             )
@@ -1065,7 +1105,7 @@ def harmonize_glossary(
             character.isupper() for index in members for character in bases[index]
         ):
             if not _renderings_nest(renderings):
-                shown = sorted({current[index].chinese for index in members})
+                shown = sorted({current[index].target for index in members})
                 warnings.append(
                     f"plural variants {', '.join(names)} have unrelated renderings "
                     f"({', '.join(shown)}); left for review"
@@ -1080,39 +1120,40 @@ def harmonize_glossary(
                 -max(priority(current[index]) for index in by_rendering[rendering]),
                 -sum(len(current[index].evidence) for index in by_rendering[rendering]),
                 -max(current[index].confidence for index in by_rendering[rendering]),
-                min(len(" ".join(current[index].english.split())) for index in by_rendering[rendering]),
+                min(len(" ".join(current[index].source.split())) for index in by_rendering[rendering]),
                 rendering,
             ),
         )
-        canonical = current[by_rendering[chosen][0]].chinese
+        canonical = current[by_rendering[chosen][0]].target
         for index in members:
             entry = current[index]
             if _rendering_key(entry) == chosen:
                 continue
-            related = [name for name in names if name != entry.english]
-            rewritten = _with_rendering(entry, canonical)
+            related = [name for name in names if name != entry.source]
+            rewritten = _with_rendering(entry, canonical, pair)
             if rewritten is None:
                 warnings.append(
-                    f"{entry.english} ({entry.chinese}) cannot take the rendering {canonical} "
+                    f"{entry.source} ({entry.target}) cannot take the rendering {canonical} "
                     f"of its variant(s) {', '.join(related)}; left for review"
                 )
                 continue
             changes.append(
                 GlossaryHarmonizationChange(
                     kind="variant",
-                    english=entry.english,
-                    previous_chinese=entry.chinese,
-                    chinese=rewritten.chinese,
+                    source=entry.source,
+                    previous_target=entry.target,
+                    target=rewritten.target,
                     related_terms=related,
                 )
             )
             current[index] = rewritten
 
-    by_english: dict[str, list[int]] = defaultdict(list)
+    separator = profile(pair.target_language).name_separator
+    by_source: dict[str, list[int]] = defaultdict(list)
     for index, entry in enumerate(current):
-        by_english[" ".join(entry.english.split())].append(index)
-    for index in range(len(current)):
-        words = glossary_variant_base(current[index].english).split()
+        by_source[" ".join(entry.source.split())].append(index)
+    for index in range(len(current) if separator else 0):
+        words = glossary_variant_base(current[index].source).split()
         # Titles, organisations and works are usually translated by meaning,
         # so only person names are expected to embed a component's rendering.
         if len(words) < 2 or current[index].category is not GlossaryCategory.PERSON:
@@ -1121,14 +1162,14 @@ def harmonize_glossary(
             full = current[index]
             if not any(character.isupper() for character in word):
                 continue
-            components = [current[item] for item in by_english.get(word, []) if item != index]
-            if len({component.chinese for component in components}) != 1:
+            components = [current[item] for item in by_source.get(word, []) if item != index]
+            if len({component.target for component in components}) != 1:
                 continue
             component = components[0]
-            rendering = component.chinese
-            if rendering in full.chinese:
+            rendering = component.target
+            if rendering in full.target:
                 continue
-            parts = full.chinese.split(_NAME_PART_SEPARATOR)
+            parts = full.target.split(separator)
             alignable = (
                 full.category is GlossaryCategory.PERSON
                 and component.category is GlossaryCategory.PERSON
@@ -1148,22 +1189,22 @@ def harmonize_glossary(
             rewritten = None
             if alignable and priority(component) >= priority(full):
                 parts[overlaps.index(best)] = rendering
-                rewritten = _with_rendering(full, _NAME_PART_SEPARATOR.join(parts))
+                rewritten = _with_rendering(full, separator.join(parts), pair)
             if rewritten is not None:
                 changes.append(
                     GlossaryHarmonizationChange(
                         kind="component",
-                        english=full.english,
-                        previous_chinese=full.chinese,
-                        chinese=rewritten.chinese,
-                        related_terms=[component.english],
+                        source=full.source,
+                        previous_target=full.target,
+                        target=rewritten.target,
+                        related_terms=[component.source],
                     )
                 )
                 current[index] = rewritten
             else:
                 warnings.append(
-                    f"{full.english} ({full.chinese}) does not contain the rendering of "
-                    f"its component {component.english} ({rendering})"
+                    f"{full.source} ({full.target}) does not contain the rendering of "
+                    f"its component {component.source} ({rendering})"
                 )
 
     harmonized = sort_glossary_entries(current)
@@ -1195,7 +1236,7 @@ def find_unglossed_proper_nouns(
     cased_words: set[str] = set()
     lowercase_words: set[str] = set()
     for entry in entries:
-        for term in (entry.english, *entry.aliases):
+        for term in (entry.source, *entry.aliases):
             words = re.findall(r"[A-Za-z]+", term)
             if any(character.isupper() for character in term):
                 cased_words.update(words)

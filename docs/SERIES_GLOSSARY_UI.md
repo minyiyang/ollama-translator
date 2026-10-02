@@ -237,7 +237,7 @@ process, so logs, checkpoints, Pause, and Stop behave the same. New commands:
 | `book-agent series create <id> --direction en-zh [--name …]` | Create a series *(phase 1)* |
 | `book-agent series add <id> <job>…` | Add member books as the next volumes *(phase 1)* |
 | `book-agent series build <id>` | Build or update the workbench, deterministically *(phase 1)* |
-| `book-agent series decide <id> <term>… --decision keep\|drop\|pending --reason … [--chinese …] [--unlock]` | Manual decisions *(phase 1)* |
+| `book-agent series decide <id> <term>… --decision keep\|drop\|pending --reason … [--target …] [--unlock]` | Manual decisions *(phase 1)* |
 | `book-agent series publish <id>` | Freeze the workbench into the next version and write book overlays *(phase 1)* |
 | `book-agent series bind <id> <job> [--version vNNN] [--upgrade]` | Pin a book; `--upgrade` confirms rebinding a preprocessed book *(phase 1)* |
 | `book-agent series import <id> <file>` | Publish an existing CLI series file as the next version *(phase 1)* |

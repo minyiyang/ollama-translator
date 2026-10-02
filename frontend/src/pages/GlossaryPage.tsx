@@ -8,9 +8,10 @@ import { Shell } from "../components/Shell";
 import { SideItem, SideLayout } from "../components/SideLayout";
 import { useToast } from "../components/Toast";
 import { Chip, Highlight } from "../components/ui";
+import { FALLBACK_PAIR, langAttr, pairCodes, type GlossaryPair } from "../lib/languages";
 
-type Entry = { english: string; chinese: string; note: string; category: string; aliases: string[]; evidence: string[]; confidence: number };
-type Record_ = { english: string; result: string; mode: string; reasons: string[]; chinese: string };
+type Entry = { source: string; target: string; note: string; category: string; aliases: string[]; evidence: string[]; confidence: number };
+type Record_ = { source: string; result: string; mode: string; reasons: string[]; target: string };
 type Payload = {
   ready: boolean;
   approve_status: string;
@@ -18,6 +19,8 @@ type Payload = {
   review_mode: string;
   entries: Entry[];
   draft_entries: Entry[];
+  /** The glossary's pair (an en/zh book's glossary is en-zh either way). */
+  glossary_pair?: GlossaryPair | null;
   approval_records: Record_[];
   approval_summary: Record<string, number | string>;
   quality: { warnings?: string[]; suspicious_generic_terms?: string[] };
@@ -34,7 +37,7 @@ type Payload = {
  *  drop: not a glossary term (e.g. a generic word); the translator handles it in context. */
 type Decision = "keep" | "defer" | "drop";
 type Row = { original: Entry; entry: Entry; decision: Decision; flags: string[]; record?: Record_; draft?: Entry };
-type Saved = { english: string; entry: Entry; decision?: Decision; keep?: boolean };
+type Saved = { source: string; entry: Entry; decision?: Decision; keep?: boolean };
 
 const DECISIONS: [Decision, string, string][] = [
   ["keep", "✓ Keep", "Enforce this translation everywhere the term appears."],
@@ -45,45 +48,56 @@ const DECISIONS: [Decision, string, string][] = [
 const storeKey = (jobId: string) => `glossary-review:${jobId}`;
 
 function readStore(jobId: string): Saved[] | null {
-  try { return JSON.parse(localStorage.getItem(storeKey(jobId)) ?? "null")?.edits ?? null; } catch { return null; }
+  try {
+    const edits = JSON.parse(localStorage.getItem(storeKey(jobId)) ?? "null")?.edits ?? null;
+    // Edits saved before the glossary sides were named source/target said english/chinese.
+    return edits?.map((saved: any) => {
+      const { english, chinese, ...rest } = saved.entry ?? {};
+      return {
+        ...saved,
+        source: saved.source ?? saved.english,
+        entry: english === undefined ? saved.entry : { ...rest, source: english, target: chinese },
+      };
+    }) ?? null;
+  } catch { return null; }
 }
 function writeStore(jobId: string, rows: Row[] | null) {
   try {
-    if (rows) localStorage.setItem(storeKey(jobId), JSON.stringify({ edits: rows.map((r) => ({ english: r.original.english, entry: r.entry, decision: r.decision })) }));
+    if (rows) localStorage.setItem(storeKey(jobId), JSON.stringify({ edits: rows.map((r) => ({ source: r.original.source, entry: r.entry, decision: r.decision })) }));
     else localStorage.removeItem(storeKey(jobId));
   } catch { /* storage unavailable: edits live only in this tab */ }
 }
 
 function buildRows(data: Payload, saved: ReturnType<typeof readStore>): Row[] {
-  const savedBy = new Map((saved ?? []).map((e) => [e.english, e]));
-  const records = new Map(data.approval_records.map((r) => [r.english, r]));
-  const drafts = new Map(data.draft_entries.map((e) => [e.english, e]));
+  const savedBy = new Map((saved ?? []).map((e) => [e.source, e]));
+  const records = new Map(data.approval_records.map((r) => [r.source, r]));
+  const drafts = new Map(data.draft_entries.map((e) => [e.source, e]));
   const shared = new Map<string, number>();
-  data.entries.forEach((e) => shared.set(e.chinese, (shared.get(e.chinese) ?? 0) + 1));
+  data.entries.forEach((e) => shared.set(e.target, (shared.get(e.target) ?? 0) + 1));
   const generic = new Set(data.quality.suspicious_generic_terms ?? []);
   return data.entries.map((original) => {
     const flags = [
-      generic.has(original.english) && "generic word",
+      generic.has(original.source) && "generic word",
       original.confidence < 0.9 && `confidence ${original.confidence}`,
-      (shared.get(original.chinese) ?? 0) > 1 && "shared Chinese",
+      (shared.get(original.target) ?? 0) > 1 && "shared translation",
       !original.evidence?.length && "no evidence",
       original.category === data.other_category && "uncategorized",
     ].filter(Boolean) as string[];
-    const s = savedBy.get(original.english);
+    const s = savedBy.get(original.source);
     return {
       original,
       entry: s ? { ...s.entry } : { ...original, aliases: [...(original.aliases ?? [])] },
       // Edits saved before Defer existed stored a keep flag.
       decision: s?.decision ?? (s?.keep === false ? "drop" : "keep"),
       flags,
-      record: records.get(original.english),
-      draft: drafts.get(original.english),
+      record: records.get(original.source),
+      draft: drafts.get(original.source),
     };
   });
 }
 
 const changed = (r: Row) =>
-  r.entry.chinese !== r.original.chinese || r.entry.category !== r.original.category || r.entry.note !== r.original.note ||
+  r.entry.target !== r.original.target || r.entry.category !== r.original.category || r.entry.note !== r.original.note ||
   (r.entry.aliases ?? []).join("|") !== (r.original.aliases ?? []).join("|");
 
 export function GlossaryPage() {
@@ -152,7 +166,7 @@ export function GlossaryPage() {
   const matchesQuery = useCallback((row: Row) => {
     const q = query.trim().toLowerCase();
     const e = row.entry;
-    return !q || [e.english, e.chinese, e.note, ...(e.aliases ?? [])].some((v) => String(v ?? "").toLowerCase().includes(q));
+    return !q || [e.source, e.target, e.note, ...(e.aliases ?? [])].some((v) => String(v ?? "").toLowerCase().includes(q));
   }, [query]);
   const matchesView = (row: Row, name: string) => {
     switch (name) {
@@ -161,7 +175,7 @@ export function GlossaryPage() {
       case "deferred": return row.decision === "defer";
       case "dropped": return row.decision === "drop";
       case "llm": return row.record?.mode === "llm";
-      case "changed": return !!row.draft && row.draft.chinese !== row.original.chinese;
+      case "changed": return !!row.draft && row.draft.target !== row.original.target;
       default: return true;
     }
   };
@@ -257,13 +271,15 @@ export function GlossaryPage() {
     ? [["all", "All terms"], ["flagged", "Needs attention"], ["edited", "Edited"], ["deferred", "Deferred"], ["dropped", "Dropped"]]
     : [["all", "All terms"], ["llm", "Reviewed by LLM"], ["changed", "Changed by LLM"], ["flagged", "Flagged in draft"]];
   const span = editable ? 8 : 6;
+  const pair = data?.glossary_pair ?? FALLBACK_PAIR;
+  const [sourceLang, targetLang] = pairCodes(pair.pair).map(langAttr);
 
   const evidenceRow = (row: Row) => (
     <tr className="evidence">
       <td colSpan={span}>
         {row.original.evidence?.length
           ? row.original.evidence.map((id) => (
-              <div key={id}><span className="sid">{id}</span><Highlight text={data?.evidence[id] ?? "(source text unavailable)"} quote={row.original.english} /></div>
+              <div key={id}><span className="sid">{id}</span><Highlight text={data?.evidence[id] ?? "(source text unavailable)"} quote={row.original.source} /></div>
             ))
           : <span className="meta">No evidence recorded.</span>}
       </td>
@@ -280,10 +296,10 @@ export function GlossaryPage() {
                       );
                       if (editable) {
                         return (
-                          <Fragment key={row.original.english}>
+                          <Fragment key={row.original.source}>
                             <tr className={`decision-${row.decision} ${changed(row) ? "changed" : ""} ${matchingIndexes.has(index) ? "" : "stale"}`}>
                               <td className="keep">
-                                <div className="decision-pick" role="radiogroup" aria-label={`Decision for ${row.entry.english}`}>
+                                <div className="decision-pick" role="radiogroup" aria-label={`Decision for ${row.entry.source}`}>
                                   {DECISIONS.map(([value, label, tip]) => (
                                     <button key={value} type="button" role="radio" aria-checked={row.decision === value} title={tip}
                                       className={`small ${value} ${row.decision === value ? "on" : ""}`}
@@ -293,8 +309,8 @@ export function GlossaryPage() {
                                   ))}
                                 </div>
                               </td>
-                              <td className="en">{row.entry.english}</td>
-                              <td className="zh"><input type="text" lang="zh-CN" value={row.entry.chinese} onChange={(e) => edit(index, "chinese", e.target.value)} /></td>
+                              <td className="en" lang={sourceLang}>{row.entry.source}</td>
+                              <td className="zh"><input type="text" lang={targetLang} value={row.entry.target} onChange={(e) => edit(index, "target", e.target.value)} /></td>
                               <td className="cat">
                                 <select value={row.entry.category} onChange={(e) => edit(index, "category", e.target.value)}>
                                   {data.categories.map((c) => <option key={c} value={c}>{catLabel(c)}</option>)}
@@ -313,12 +329,12 @@ export function GlossaryPage() {
                         );
                       }
                       const record = row.record;
-                      const llmChanged = !!row.draft && row.draft.chinese !== row.original.chinese;
+                      const llmChanged = !!row.draft && row.draft.target !== row.original.target;
                       return (
-                        <Fragment key={row.original.english}>
+                        <Fragment key={row.original.source}>
                           <tr>
-                            <td className="en">{row.original.english}</td>
-                            <td lang="zh-CN">{llmChanged && <span className="was">{row.draft!.chinese}</span>}{row.original.chinese}</td>
+                            <td className="en" lang={sourceLang}>{row.original.source}</td>
+                            <td lang={targetLang}>{llmChanged && <span className="was">{row.draft!.target}</span>}{row.original.target}</td>
                             <td>{catLabel(row.original.category)}</td>
                             <td className="meta">{row.original.note}</td>
                             <td>
@@ -414,7 +430,7 @@ export function GlossaryPage() {
                   <button className="small" onClick={dropGeneric} title={DECISIONS[2][2]}>
                     ✗ Drop {genericIndexes.length} generic word{genericIndexes.length === 1 ? "" : "s"}
                   </button>
-                  <span className="meta">{genericIndexes.map((i) => rows[i].original.english).join(", ")}</span>
+                  <span className="meta">{genericIndexes.map((i) => rows[i].original.source).join(", ")}</span>
                 </div>
               )}
           </section>
@@ -439,7 +455,7 @@ export function GlossaryPage() {
 
           <section className="card">
             <div className="filters">
-              <input type="text" placeholder="Search English, Chinese, note, or alias" value={query} onChange={(e) => setQuery(e.target.value)} />
+              <input type="text" placeholder={`Search ${pair.source}, ${pair.target}, note, or alias`} value={query} onChange={(e) => setQuery(e.target.value)} />
               <span className="meta">{visible.length} of {rows.length} terms</span>
               {staleCount > 0 && (
                 <span className="meta">
@@ -457,9 +473,9 @@ export function GlossaryPage() {
               <table className="grid term-table">
                 <thead>
                   {editable ? (
-                    <tr><th>Decision</th><th>English</th><th>Chinese</th><th>Category</th><th>Note</th><th>Aliases</th><th>Flags</th><th>Evidence</th></tr>
+                    <tr><th>Decision</th><th>{pair.source}</th><th>{pair.target}</th><th>Category</th><th>Note</th><th>Aliases</th><th>Flags</th><th>Evidence</th></tr>
                   ) : (
-                    <tr><th>English</th><th>Chinese</th><th>Category</th><th>Note</th><th>Approval</th><th>Evidence</th></tr>
+                    <tr><th>{pair.source}</th><th>{pair.target}</th><th>Category</th><th>Note</th><th>Approval</th><th>Evidence</th></tr>
                   )}
                 </thead>
                 {groups.map((group) => {

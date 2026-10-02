@@ -153,7 +153,7 @@ class GlossaryViewTests:
             path = write_reviewed_glossary(workspace, reviewed)
             result = run_glossary_approval_stage(workspace, config, reviewed_file=path)
 
-            assert [e.chinese for e in result.entries] == ["奎尔莱特"]
+            assert [e.target for e in result.entries] == ["奎尔莱特"]
             after = glossary_payload(workspace)
             assert after["approve_status"] == "completed" and not after["editable"]
 
@@ -1384,7 +1384,7 @@ class SeriesSuggestionApiTests(ServerTests):
                 assert json.loads(call("/api/series/qel/detail")[1])["process"] is None
 
                 # Simulate a finished run that suggested a variant for the conflict.
-                terms = {term.english: term for term in workbench.terms}
+                terms = {term.source: term for term in workbench.terms}
                 vrax = terms["Vraxwright"].model_copy(update={
                     "suggestion": TermSuggestion(kind="resolve", chinese="弗拉克斯赖特", rationale="Book 1 form.", model="m"),
                 })

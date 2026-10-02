@@ -340,7 +340,7 @@ def format_relevant_glossary(
     """Format only relevant canonical glossary entries for a translation prompt."""
     lines = []
     for entry in sorted(
-        entries, key=lambda item: (normalize_term(item.english), normalize_term(item.chinese))
+        entries, key=lambda item: (normalize_term(item.source), normalize_term(item.target))
     ):
         source, target = glossary_sides(entry, direction)
         aliases = source_aliases(entry, direction)

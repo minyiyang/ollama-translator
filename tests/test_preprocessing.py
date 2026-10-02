@@ -115,8 +115,8 @@ class RelevanceAndDocumentTests:
         zh = select_relevant_glossary_entries(
             "石鹭到了。", entries, TranslationDirection.ZH_TO_EN
         )
-        assert [item.english for item in en] == ["Aster"]
-        assert [item.english for item in zh] == ["Heron"]
+        assert [item.source for item in en] == ["Aster"]
+        assert [item.source for item in zh] == ["Heron"]
 
     def test_relevance_selection_accepts_typographic_apostrophe_and_hyphen_variants(self) -> None:
         entries = [
@@ -128,7 +128,7 @@ class RelevanceAndDocumentTests:
             entries,
             TranslationDirection.EN_TO_ZH,
         )
-        assert [item.english for item in selected] == ["Qel-madness", "The Warden's Kin"]
+        assert [item.source for item in selected] == ["Qel-madness", "The Warden's Kin"]
 
     def test_relevance_selection_respects_case_bearing_terms_obfuscated(self) -> None:
         entries = [
@@ -141,7 +141,7 @@ class RelevanceAndDocumentTests:
             entries,
             TranslationDirection.EN_TO_ZH,
         )
-        assert [item.english for item in selected] == ["qel drive"]
+        assert [item.source for item in selected] == ["qel drive"]
 
     def test_relevance_prefers_longest_incompatible_nested_terms_obfuscated(self) -> None:
         entries = [
@@ -153,7 +153,7 @@ class RelevanceAndDocumentTests:
         selected = select_relevant_glossary_entries(
             "Qel Core met Nul Core.", entries, TranslationDirection.EN_TO_ZH
         )
-        assert [item.english for item in selected] == ["Nul Core", "Qel Core"]
+        assert [item.source for item in selected] == ["Nul Core", "Qel Core"]
 
     def test_relevance_suppresses_generic_suffix_inside_compound(self) -> None:
         entries = [
@@ -163,7 +163,7 @@ class RelevanceAndDocumentTests:
         selected = select_relevant_glossary_entries(
             "The Spider-clade arrived.", entries, TranslationDirection.EN_TO_ZH
         )
-        assert [item.english for item in selected] == ["Spider-clade"]
+        assert [item.source for item in selected] == ["Spider-clade"]
 
     def test_relevance_keeps_independent_shorter_occurrence_obfuscated(self) -> None:
         entries = [
@@ -173,7 +173,7 @@ class RelevanceAndDocumentTests:
         selected = select_relevant_glossary_entries(
             "Qel Core met Qel.", entries, TranslationDirection.EN_TO_ZH
         )
-        assert [item.english for item in selected] == ["Qel", "Qel Core"]
+        assert [item.source for item in selected] == ["Qel", "Qel Core"]
 
     def test_preprocess_segment_and_render_preserve_id(self) -> None:
         index = build_replacement_index(
@@ -205,7 +205,7 @@ class RelevanceAndDocumentTests:
         kept = sort_glossary_entries(
             [entry("Binder", "装订工"), entry("binder", "装订工")]
         )
-        assert [item.english for item in kept] == ["binder"]
+        assert [item.source for item in kept] == ["binder"]
         # the surviving entry still reaches the capitalised prose form
         assert select_relevant_glossary_entries(
             "The Binder lost it.", kept, TranslationDirection.EN_TO_ZH

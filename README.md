@@ -490,7 +490,7 @@ book-agent series create qel --name "The Qel Cycle" --direction en-zh
 book-agent series add qel qel-series-01-en-zh qel-series-02-en-zh
 book-agent series build qel      # workbench: consensus, conflicts, single-book terms
 book-agent series status qel
-book-agent series decide qel T00012 --decision keep --chinese 凯尔玛 --reason "Book 1 form is canonical."
+book-agent series decide qel T00012 --decision keep --target 凯尔玛 --reason "Book 1 form is canonical."
 book-agent series publish qel    # v001 + per-book overlays under runs/.series/qel/overlays/v001/
 book-agent series bind qel qel-series-01-en-zh
 book-agent approve .\runs\qel-series-01-en-zh --resume `

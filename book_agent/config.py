@@ -11,7 +11,6 @@ from .languages import (
     Language,
     LanguagePair,
     TranslationDirection,
-    glossary_supported,
     profile,
 )
 from .styles import TranslationStyle
@@ -431,15 +430,6 @@ class AppConfig(StrictModel):
             raise ValueError(
                 f"reprose is written for Chinese and English targets, not {target.display_name}; "
                 "set reprose.enabled to false"
-            )
-        if not glossary_supported(self.translation.direction) and (
-            self.glossary.seed_glossaries
-            or self.glossary.series_glossaries
-            or self.glossary.book_glossaries
-        ):
-            raise ValueError(
-                f"glossary files are not available for {self.translation.direction.value} yet; "
-                "remove seed, series, and book glossaries from the config"
             )
         if not self.glossary.extraction_enabled and not (
             self.glossary.seed_glossaries
