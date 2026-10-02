@@ -2,11 +2,30 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
-from pydantic import ValidationError
+from pydantic import Field, ValidationError, create_model
 
 from ..atomic_io import atomic_write_text
+from ..stage_artifacts import list_active_stage_artifacts
+from ..style_sheet import (
+    StyleCharacter,
+    StyleExpression,
+    StyleReviewDecision,
+    StyleSheet,
+    apply_style_review,
+    build_style_candidate_schema,
+    build_style_review_prompt,
+    build_style_review_schema,
+    candidate_from_model,
+    extraction_instructions,
+    keep_recurring_expressions,
+    load_style_sheet,
+    merge_style_candidates,
+    review_decisions,
+    style_review_line,
+)
 from ..config import AppConfig
 from ..glossary import (
     GlossaryChunk,
@@ -21,6 +40,7 @@ from ..glossary import (
     GlossaryHarmonizationReport,
     GlossaryQualityReport,
     canonicalize_candidate_evidence,
+    estimate_tokens,
     harmonize_glossary,
     load_glossary_file,
     merge_candidate_entries,
@@ -30,6 +50,7 @@ from ..glossary import (
     screen_glossary_candidates,
     screen_glossary_documents,
     sort_glossary_entries,
+    is_suspicious_generic_candidate,
     source_priority_by_term,
     validate_candidate_evidence,
     validate_resolution_scope,
@@ -229,6 +250,7 @@ def run_glossary_extraction_stage(
                 ),
                 "chunk_tokens": str(config.glossary.extraction_chunk_tokens),
                 "stage_version": EXTRACTION_STAGE_VERSION,
+                **_style_hash_fields(config),
             }
         )
         if stage_is_current(
@@ -282,7 +304,7 @@ def run_glossary_extraction_stage(
                 max_evidence_per_entry=(
                     config.glossary.extraction_max_evidence_per_entry
                 ),
-            )
+            ) + _style_extraction_instructions(config)
             unit_input_hash = hash_named_values(
                 {
                     "chunk": sha256_text(chunk.model_dump_json()),
@@ -306,6 +328,10 @@ def run_glossary_extraction_stage(
                 and existing["input_hash"] == unit_input_hash
                 and candidate_path.is_file()
                 and sha256_file(candidate_path) == existing["output_hash"]
+                and (
+                    not config.consistency.style_sheet.enabled
+                    or _style_candidate_path(candidate_path).is_file()
+                )
             ):
                 result = GlossaryResult.model_validate_json(
                     candidate_path.read_text(encoding="utf-8")
@@ -319,12 +345,9 @@ def run_glossary_extraction_stage(
                     WorkflowStage.EXTRACT_GLOSSARY,
                     "glossary_candidates",
                 )
+                _record_style_candidates(connection, workspace, candidate_path, config)
                 continue
-            extraction_schema = build_glossary_extraction_schema(
-                config.glossary.extraction_max_entries,
-                config.glossary.extraction_max_evidence_per_entry,
-                [piece.reference_id for piece in chunk.pieces],
-            )
+            extraction_schema = _chunk_extraction_schema(config, chunk)
             bucket = (
                 config.glossary.extraction_max_num_ctx
                 if not config.ollama.adaptive_num_ctx
@@ -380,6 +403,7 @@ def run_glossary_extraction_stage(
                 WorkflowStage.EXTRACT_GLOSSARY,
                 "glossary_candidates",
             )
+            _record_style_candidates(connection, workspace, task["candidate_path"], config)
             results_by_chunk[task["chunk"].chunk_id] = result
 
         collected = [
@@ -549,6 +573,17 @@ def run_glossary_resolution_stage(
         _record_file(connection, workspace, text_path, WorkflowStage.RESOLVE_GLOSSARY, "glossary_draft_legacy")
         _record_file(connection, workspace, quality_path, WorkflowStage.RESOLVE_GLOSSARY, "glossary_draft_quality_report")
         _record_file(connection, workspace, harmonization_path, WorkflowStage.RESOLVE_GLOSSARY, "glossary_draft_harmonization_report")
+        if config.consistency.style_sheet.enabled:
+            style_draft = keep_recurring_expressions(
+                merge_style_candidates(
+                    _load_style_candidates(connection, workspace), config.translation.direction
+                ),
+                (segment.text for document in eligible_documents for segment in document.segments),
+            )
+            style_path = stage_root / "style.draft.json"
+            atomic_write_text(style_path, style_draft.model_dump_json(indent=2))
+            _record_file(connection, workspace, style_path, WorkflowStage.RESOLVE_GLOSSARY, "style_draft")
+            set_job_metadata(connection, "style_draft", style_path.relative_to(workspace.root).as_posix())
         output_hash = build_stage_output_hash(connection, WorkflowStage.RESOLVE_GLOSSARY)
         set_job_metadata(connection, "glossary_draft", json_path.relative_to(workspace.root).as_posix())
         set_job_metadata(connection, "glossary_draft_legacy", text_path.relative_to(workspace.root).as_posix())
@@ -584,8 +619,13 @@ def run_glossary_approval_stage(
     reviewed_file: str | Path | None = None,
     llm_review: bool = False,
     client: OllamaClient | None = None,
+    reviewed_style_file: str | Path | None = None,
 ) -> GlossaryResult:
-    """Validate human/LLM review or auto-approve and publish final glossary files."""
+    """Validate human/LLM review or auto-approve and publish final glossary files.
+
+    With the style sheet on, its draft is approved at the same gate and in the
+    same mode: a reviewed file, one LLM review call, or the draft as is.
+    """
     connection = connect_state(workspace.state_file)
     try:
         initialize_state(connection)
@@ -605,6 +645,32 @@ def run_glossary_approval_stage(
             raise GlossaryApprovalRequired("a reviewed glossary file is required")
         review_model = ""
         approval_report: GlossaryApprovalReport | None = None
+        style_draft = (
+            load_style_sheet(workspace, "style_draft")
+            if config.consistency.style_sheet.enabled
+            else None
+        )
+        style_fields: dict[str, str] = {}
+        if style_draft is not None:
+            style_review = config.consistency.style_sheet.review
+            if style_review == "human" and reviewed_style_file is None and not style_draft.is_empty():
+                # Which pronoun or form of address fits is a judgment call, so the
+                # gate waits for a person even when the glossary is LLM-reviewed.
+                set_stage_status(
+                    connection,
+                    WorkflowStage.APPROVE_GLOSSARY.value,
+                    StageStatus.PAUSED,
+                    message="style sheet review required",
+                )
+                raise GlossaryApprovalRequired(
+                    "the style sheet needs a human review: review it on the Glossary tab, "
+                    "or run approve --style FILE"
+                )
+            style_fields = {
+                "style_draft": sha256_text(style_draft.model_dump_json()),
+                "style_reviewed": sha256_file(reviewed_style_file) if reviewed_style_file else "",
+                "style_review": style_review,
+            }
         draft = _load_recorded_result(workspace, connection, "glossary_draft")
         candidate = draft
         review_source = "resolved"
@@ -659,6 +725,13 @@ def run_glossary_approval_stage(
                     else ""
                 ),
                 "stage_version": APPROVAL_STAGE_VERSION,
+                # Only a mode that drops generic terms, and only when switched off, adds a field.
+                **(
+                    {"keep_generic_terms": "true"}
+                    if review_mode != "human" and not config.glossary.drop_generic_terms
+                    else {}
+                ),
+                **style_fields,
             }
         )
         if stage_is_current(
@@ -705,6 +778,31 @@ def run_glossary_approval_stage(
             priority_by_term=source_priority_by_term(configured_sources),
         )
         approved = GlossaryResult(entries=sort_glossary_entries(harmonized_entries))
+        dropped_generic: list[GlossaryEntry] = []
+        if review_mode != "human" and config.glossary.drop_generic_terms:
+            # Ordinary words the generic screen flags are left to the translator's
+            # judgment; entries from configured glossary files are kept, and so are
+            # those a reviewed file adds to the draft or changes in it: a person
+            # chose them, even when the file then goes to the LLM for review.
+            configured = source_priority_by_term(configured_sources)
+            drafted = {(normalize_term(entry.english), entry.chinese) for entry in draft.entries}
+            chosen = (
+                {
+                    normalize_term(entry.english)
+                    for entry in candidate.entries
+                    if (normalize_term(entry.english), entry.chinese) not in drafted
+                }
+                if reviewed_file is not None
+                else set()
+            )
+            kept = []
+            for entry in approved.entries:
+                term = normalize_term(entry.english)
+                if is_suspicious_generic_candidate(entry) and term not in configured and term not in chosen:
+                    dropped_generic.append(entry)
+                else:
+                    kept.append(entry)
+            approved = GlossaryResult(entries=kept)
         quality = _with_harmonization_warnings(
             analyze_glossary_quality(
                 approved,
@@ -721,6 +819,10 @@ def run_glossary_approval_stage(
         _record_file(connection, workspace, json_path, WorkflowStage.APPROVE_GLOSSARY, "approved_glossary_json")
         _record_file(connection, workspace, text_path, WorkflowStage.APPROVE_GLOSSARY, "approved_glossary_legacy")
         _record_file(connection, workspace, quality_path, WorkflowStage.APPROVE_GLOSSARY, "glossary_quality_report")
+        if dropped_generic:
+            dropped_path = stage_root / "glossary.dropped-generic.json"
+            atomic_write_text(dropped_path, GlossaryResult(entries=dropped_generic).model_dump_json(indent=2))
+            _record_file(connection, workspace, dropped_path, WorkflowStage.APPROVE_GLOSSARY, "glossary_dropped_generic")
         harmonization_path = stage_root / "glossary.harmonization.report.json"
         atomic_write_text(harmonization_path, harmonization.model_dump_json(indent=2))
         _record_file(connection, workspace, harmonization_path, WorkflowStage.APPROVE_GLOSSARY, "glossary_harmonization_report")
@@ -746,6 +848,25 @@ def run_glossary_approval_stage(
                 "glossary_approval_report",
                 approval_report_path.relative_to(workspace.root).as_posix(),
             )
+        if style_draft is not None:
+            if reviewed_style_file is not None:
+                style = StyleSheet.model_validate_json(
+                    Path(reviewed_style_file).read_text(encoding="utf-8")
+                )
+            elif use_llm_review and not style_draft.is_empty():
+                style = _review_style_sheet(style_draft, config, client, workspace, stage_root)
+            else:
+                style = style_draft
+            style = style.model_copy(
+                update={
+                    "characters": [i.model_copy(update={"alternatives": []}) for i in style.characters],
+                    "expressions": [i.model_copy(update={"alternatives": []}) for i in style.expressions],
+                }
+            )
+            style_path = stage_root / "style.approved.json"
+            atomic_write_text(style_path, style.model_dump_json(indent=2))
+            _record_file(connection, workspace, style_path, WorkflowStage.APPROVE_GLOSSARY, "style_approved")
+            set_job_metadata(connection, "style_approved", style_path.relative_to(workspace.root).as_posix())
         output_hash = build_stage_output_hash(connection, WorkflowStage.APPROVE_GLOSSARY)
         set_job_metadata(connection, "glossary_approved", json_path.relative_to(workspace.root).as_posix())
         set_job_metadata(connection, "glossary_approved_legacy", text_path.relative_to(workspace.root).as_posix())
@@ -808,11 +929,7 @@ def _extract_one_chunk(
     total_chunks: int,
     context_bucket: int,
 ) -> GlossaryResult:
-    extraction_schema = build_glossary_extraction_schema(
-        config.glossary.extraction_max_entries,
-        config.glossary.extraction_max_evidence_per_entry,
-        [piece.reference_id for piece in chunk.pieces],
-    )
+    extraction_schema = _chunk_extraction_schema(config, chunk)
     previous = get_work_unit(
         connection, chunk.chunk_id, WorkflowStage.EXTRACT_GLOSSARY.value
     )
@@ -865,6 +982,11 @@ def _extract_one_chunk(
             normalized = canonicalize_candidate_evidence(extracted, chunk)
             validate_candidate_evidence(normalized, chunk)
             result = GlossaryResult(entries=sort_glossary_entries(normalized.entries))
+            if config.consistency.style_sheet.enabled:
+                atomic_write_text(
+                    _style_candidate_path(candidate_path),
+                    candidate_from_model(getattr(generated.value, "style", None)).model_dump_json(indent=2),
+                )
             atomic_write_text(candidate_path, result.model_dump_json(indent=2))
             output_hash = sha256_file(candidate_path)
             set_work_unit_status(
@@ -1737,6 +1859,196 @@ def _build_glossary_approval_report(
         llm_count=sum(record.mode == "llm" for record in records),
         records=records,
     )
+
+
+def _style_hash_fields(config: AppConfig) -> dict[str, str]:
+    """Only a style sheet that is switched on changes the glossary checkpoints."""
+    style = config.consistency.style_sheet
+    return {"style_sheet": style.model_dump_json()} if style.enabled else {}
+
+
+def _style_extraction_instructions(config: AppConfig) -> str:
+    style = config.consistency.style_sheet
+    if not style.enabled:
+        return ""
+    return extraction_instructions(
+        config.translation.direction,
+        max_characters=style.max_characters_per_chunk,
+        max_expressions=style.max_expressions_per_chunk,
+    )
+
+
+def _chunk_extraction_schema(config: AppConfig, chunk: GlossaryChunk):
+    """The glossary extraction schema, plus an optional ``style`` object when the style sheet is on."""
+    evidence_ids = [piece.reference_id for piece in chunk.pieces]
+    schema = build_glossary_extraction_schema(
+        config.glossary.extraction_max_entries,
+        config.glossary.extraction_max_evidence_per_entry,
+        evidence_ids,
+    )
+    style = config.consistency.style_sheet
+    if not style.enabled:
+        return schema
+    style_schema = build_style_candidate_schema(
+        evidence_ids,
+        max_characters=style.max_characters_per_chunk,
+        max_expressions=style.max_expressions_per_chunk,
+    )
+    return create_model(
+        f"{schema.__name__}WithStyle",
+        __base__=schema,
+        style=(style_schema, Field(default_factory=style_schema)),
+    )
+
+
+# Allowance for the decision a reviewer returns for one entry.
+_STYLE_DECISION_TOKENS = 80
+
+
+def _style_review_batches(
+    draft: StyleSheet, evidence: dict[str, str], max_tokens: int
+) -> list[StyleSheet]:
+    """The draft in reading order, split so one review call fits the approval budget."""
+    batches: list[StyleSheet] = []
+    characters: list[StyleCharacter] = []
+    expressions: list[StyleExpression] = []
+    used = 0
+
+    def flush() -> None:
+        nonlocal characters, expressions, used
+        if characters or expressions:
+            batches.append(
+                StyleSheet(
+                    characters=characters, expressions=expressions, conventions=draft.conventions
+                )
+            )
+        characters, expressions, used = [], [], 0
+
+    for item in [*draft.characters, *draft.expressions]:
+        cost = estimate_tokens(style_review_line("C0000", item, evidence)) + _STYLE_DECISION_TOKENS
+        if used and used + cost > max_tokens:
+            flush()
+        (characters if isinstance(item, StyleCharacter) else expressions).append(item)
+        used += cost
+    flush()
+    return batches
+
+
+def _review_style_sheet(
+    draft: StyleSheet,
+    config: AppConfig,
+    client: OllamaClient | None,
+    workspace: JobWorkspace,
+    stage_root: Path,
+) -> StyleSheet:
+    """Structured LLM calls that approve, revise, or reject every style entry.
+
+    One call for most books; a long sheet is reviewed in batches of
+    ``glossary.approval_chunk_tokens``, like the glossary.
+    """
+    if client is None:
+        raise ValueError("an Ollama client is required for LLM style-sheet review")
+    manifest = load_decompile_manifest(workspace, connection=None)
+    evidence = {
+        segment.segment_id: segment.text
+        for document in manifest.documents
+        for segment in document.segments
+    }
+    evidence.update({
+        reference: evidence[reference.split("-P")[0]]
+        for item in [*draft.characters, *draft.expressions]
+        for reference in item.evidence
+        if reference not in evidence and reference.split("-P")[0] in evidence
+    })
+    batches = _style_review_batches(draft, evidence, config.glossary.approval_chunk_tokens)
+    characters: list[StyleCharacter] = []
+    expressions: list[StyleExpression] = []
+    records: list[dict[str, object]] = []
+    reviewed = {"C": 0, "X": 0}  # entries in earlier batches, to number decisions draft-wide
+    for index, batch in enumerate(batches, start=1):
+        decisions = _review_style_batch(batch, evidence, config, client, index, len(batches))
+        approved = apply_style_review(batch, decisions)
+        characters += approved.characters
+        expressions += approved.expressions
+        for decision in decisions:
+            kind = decision.entry_id[0]
+            number = int(decision.entry_id[1:]) + reviewed[kind]
+            records.append({**decision.model_dump(), "entry_id": f"{kind}{number:04d}"})
+        reviewed["C"] += len(batch.characters)
+        reviewed["X"] += len(batch.expressions)
+    review_path = stage_root / "style.review.json"
+    atomic_write_text(review_path, json.dumps(records, ensure_ascii=False, indent=2))
+    return StyleSheet(
+        characters=characters, expressions=expressions, conventions=draft.conventions
+    )
+
+
+def _review_style_batch(
+    batch: StyleSheet,
+    evidence: dict[str, str],
+    config: AppConfig,
+    client: OllamaClient,
+    index: int,
+    total: int,
+) -> list[StyleReviewDecision]:
+    prompt = build_style_review_prompt(batch, config.translation.direction, evidence)
+    schema = build_style_review_schema(batch)
+    last_error: Exception | None = None
+    for attempt in range(1, config.workflow.max_retries + 2):
+        attempt_prompt = prompt
+        if last_error is not None:
+            attempt_prompt += f"\n\nThe previous response failed validation: {last_error}"
+        try:
+            generated = client.generate_structured(
+                attempt_prompt,
+                schema,
+                model=config.ollama.model,
+                think=False,
+                progress_label=(
+                    f"batch={index}/{total} id=style-review mode=review "
+                    f"attempt={attempt}/{config.workflow.max_retries + 1}"
+                ),
+                **llm_role_kwargs(client, "glossary.approve"),
+                context_minimum=config.glossary.approval_min_num_ctx,
+                context_maximum=config.glossary.approval_max_num_ctx,
+                context_multiplier=config.glossary.approval_context_multiplier,
+                max_attempts=1,
+            )
+            return review_decisions(generated.value)
+        except Exception as error:  # structured-output or validation failure: retry with feedback
+            last_error = error
+    raise RuntimeError(f"style-sheet review failed: {last_error}")
+
+
+def _load_style_candidates(connection, workspace: JobWorkspace) -> list[StyleSheet]:
+    """Every chunk's style candidates from the published extraction generation."""
+    artifacts = list_active_stage_artifacts(
+        connection,
+        WorkflowStage.EXTRACT_GLOSSARY.value,
+        report_metadata_key="glossary_candidates",
+    )
+    return [
+        StyleSheet.model_validate_json(
+            workspace.directory(str(artifact["path"])).read_text(encoding="utf-8")
+        )
+        for artifact in artifacts
+        if artifact["kind"] == "style_candidates"
+    ]
+
+
+def _style_candidate_path(candidate_path: Path) -> Path:
+    return candidate_path.with_name(f"{candidate_path.stem}.style.json")
+
+
+def _record_style_candidates(connection, workspace, candidate_path: Path, config: AppConfig) -> None:
+    if config.consistency.style_sheet.enabled:
+        _record_file(
+            connection,
+            workspace,
+            _style_candidate_path(candidate_path),
+            WorkflowStage.EXTRACT_GLOSSARY,
+            "style_candidates",
+        )
 
 
 def _record_file(connection, workspace, path, stage, kind) -> None:

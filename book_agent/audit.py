@@ -25,6 +25,7 @@ from .content_policy import (
 )
 from .glossary import estimate_tokens, is_suspicious_generic_candidate
 from .languages import Language, TranslationDirection
+from .schemas import GlossaryCategory
 from .numeric_adjudication import (
     NUMBER_RULE_SOURCE,
     NumericRuling,
@@ -53,6 +54,12 @@ class AuditCategory(str, Enum):
     NATURALNESS = "naturalness"
     AI_STYLE = "ai_style"
     PUNCTUATION = "punctuation"
+    # Book-level drift found by audit_consistency (book_agent/consistency.py), never by a model.
+    CONSISTENCY = "consistency"
+
+
+# Categories only the pipeline assigns; hidden from the semantic auditor's response schema.
+PIPELINE_ONLY_CATEGORIES = frozenset({AuditCategory.CONSISTENCY.value})
 
 
 class AuditSeverity(str, Enum):
@@ -133,6 +140,21 @@ class AuditIssue(BaseModel):
 class SemanticAuditResult(BaseModel):
     model_config = ConfigDict(extra="forbid")
     issues: list[AuditIssue] = Field(default_factory=list)
+
+    @classmethod
+    def model_json_schema(cls, *args, **kwargs):  # type: ignore[override]
+        """The schema sent to the semantic auditor, without pipeline-only categories.
+
+        Keeps the auditor's structured output exactly as it was before those
+        categories existed, so it cannot start labelling findings `consistency`.
+        """
+        schema = super().model_json_schema(*args, **kwargs)
+        category = schema.get("$defs", {}).get("AuditCategory")
+        if category and "enum" in category:
+            category["enum"] = [
+                value for value in category["enum"] if value not in PIPELINE_ONLY_CATEGORIES
+            ]
+        return schema
 
 
 class DocumentAudit(BaseModel):
@@ -215,6 +237,7 @@ def audit_translated_document(
     source_by_id = {item.segment_id: item for item in source.segments}
     translated_by_id = {item.segment_id: item for item in translated.segments}
     comparable_ids = [item for item in source_ids if item in translated_by_id]
+    lowercase_words = lowercase_source_words(source)
     normalized_targets: dict[str, list[str]] = {}
     semantic_eligible_ids: set[str] = set()
     quantity_candidate_ids: list[str] = []
@@ -302,7 +325,9 @@ def audit_translated_document(
             _audit_length(segment_id, source_text, target_text, config, issues)
         if should_run_semantic_audit(kind):
             semantic_eligible_ids.add(segment_id)
-        _audit_glossary(segment_id, source_text, target_text, source, translated.direction, issues)
+        _audit_glossary(
+            segment_id, source_text, target_text, source, translated.direction, issues, lowercase_words
+        )
         _audit_internal_duplication(segment_id, source_text, target_text, issues)
         _audit_ai_style(segment_id, target_text, translated.direction, issues)
         normalized = _normalize_prose(target_text)
@@ -1247,8 +1272,42 @@ def _format_number_facts(facts) -> str:
     )
 
 
-def _audit_glossary(segment_id, source_text, target_text, document, direction, issues) -> None:
+_NAME_CATEGORIES = frozenset(
+    {GlossaryCategory.PERSON, GlossaryCategory.PLACE, GlossaryCategory.ORGANIZATION}
+)
+
+
+def lowercase_source_words(document) -> frozenset[str]:
+    """Words a document's source also uses in lowercase ("two days", "a rat")."""
+    return frozenset(
+        word
+        for segment in document.segments
+        for word in re.findall(r"\b[a-z][a-z'’-]*\b", _INLINE_MARKER.sub("", segment.original_text))
+    )
+
+
+def _is_unambiguous_name(source_term: str, direction, lowercase_words: frozenset[str]) -> bool:
+    """A name whose occurrence in the source cannot be an ordinary word.
+
+    "Dr. Armstrong" or "Holmes" always means the character; "Two" (Alice's
+    playing card), "Rat", or "Mouse" can be an ordinary word when the chapter
+    also uses it in lowercase, so a miss on them stays a low finding.
+    """
+    if direction is not TranslationDirection.EN_TO_ZH:
+        return len(source_term.strip()) >= 2
+    if not any(character.isupper() for character in source_term):
+        return False  # "the island": a lowercase entry is not a name, whatever its category
+    words = re.findall(r"[A-Za-z][A-Za-z'’-]*", source_term)
+    if len(words) != 1:
+        return bool(words)
+    return words[0].casefold() not in lowercase_words
+
+
+def _audit_glossary(
+    segment_id, source_text, target_text, document, direction, issues, lowercase_words=frozenset()
+) -> None:
     grouped: dict[str, tuple[str, set[str]]] = {}
+    names: set[str] = set()
     applicable = select_relevant_glossary_entries(
         source_text,
         document.relevant_glossary,
@@ -1274,16 +1333,37 @@ def _audit_glossary(segment_id, source_text, target_text, document, direction, i
         if key not in grouped:
             grouped[key] = (source_term, set())
         grouped[key][1].add(target_term)
+        if entry.category in _NAME_CATEGORIES and _is_unambiguous_name(
+            source_term, direction, lowercase_words
+        ):
+            names.add(key)
 
-    for source_term, target_terms in grouped.values():
+    for key, (source_term, target_terms) in grouped.items():
         if not any(glossary_target_matches(target_text, target_term) for target_term in target_terms):
             required = " | ".join(sorted(target_terms))
+            # A missed name is repaired: readers notice a character or place
+            # renamed mid-book, and a name is rarely ambiguous. Other entries
+            # stay low, since their wording legitimately follows the context.
+            # A multi-part transliterated name shortened to one part
+            # ("Sherlock Holmes" as 福尔摩斯) is ordinary style: listed only.
+            shortened = any(
+                part and part in target_text
+                for target_term in target_terms
+                if "·" in target_term
+                for part in target_term.split("·")
+            )
+            name = key in names and not shortened
             issues.append(
-                _issue(
-                    segment_id,
-                    AuditCategory.GLOSSARY,
-                    AuditSeverity.LOW,
-                    f"approved glossary term was not preserved: {required}",
+                AuditIssue(
+                    segment_id=segment_id,
+                    category=AuditCategory.GLOSSARY,
+                    severity=AuditSeverity.MEDIUM if name else AuditSeverity.LOW,
+                    message=f"approved glossary term was not preserved: {required}",
+                    suggested_fix=(
+                        f"Render {source_term} as {required}, the approved glossary name."
+                        if name
+                        else ""
+                    ),
                 )
             )
 

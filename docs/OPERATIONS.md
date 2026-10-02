@@ -12,8 +12,10 @@ their implementation history and rationale.
 ```text
 decompile
   -> extract_glossary -> resolve_glossary -> approve_glossary
+  -> build_story_context (optional)
   -> preprocess -> translate
-  -> audit_translation -> repair_translation -> reprose_translation
+  -> audit_translation -> audit_consistency -> repair_translation
+  -> reprose_translation
   -> review_repaired -> repair_review -> validate_repaired
   -> compile -> validate_epub
 ```
@@ -172,6 +174,30 @@ a blanket workaround: they are read-only continuity evidence. If an Ollama
 generation becomes pathologically slow after a failed/truncated structured
 call, stop the job, restart the local model service to release the runner, and
 resume only after verifying the relevant context ceiling is viable.
+
+### GPU memory
+
+Free GPU memory before a long run. The semantic audit's `gemma4:31b` needs
+about 21 GiB at its 16K context, which leaves about 3 GB of a 24 GB card for
+everything else. Browsers and Electron/WebView apps (with hardware
+acceleration), overlays such as the NVIDIA App's, and some Windows shell
+processes can hold 3–5 GB between them. When the total passes the card's
+memory, Windows pages GPU memory into system RAM: generation drops from about
+30 to 1–4 tokens/s, system RAM fills up, and on *The Return of Sherlock
+Holmes* the audit took 5.4 hours instead of about 2.5
+(docs/BOOK_CONSISTENCY.md, 8.6).
+
+- Before starting, close GPU-heavy applications and check the card is close
+  to empty: `nvidia-smi --query-gpu=memory.used,memory.total --format=csv`
+  should show well under 3 GB in use with no model loaded.
+- Ollama already evicts the translation model before loading the audit model,
+  so the pipeline needs no help there. `ollama ps` shows what is loaded and
+  whether it sits fully on the GPU.
+- A stopped run can be resumed from its checkpoints (`book-agent resume`);
+  unload an idle model first if memory is still tight
+  (`curl http://localhost:11434/api/generate -d '{"model":"gemma4:31b","keep_alive":0}'`).
+- A smaller context does not solve this: 10K saved 2.1 GiB but other
+  applications were holding 4.7 GB, so the card was still full.
 
 ## EPUB compilation options
 

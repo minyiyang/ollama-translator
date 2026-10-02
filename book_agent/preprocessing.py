@@ -5,10 +5,11 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_serializer
 
 from .languages import Language, TranslationDirection
 from .schemas import GlossaryEntry, normalize_term
+from .style_sheet import StyleSheet
 
 
 class GlossaryReplacementConflict(ValueError):
@@ -59,6 +60,21 @@ class PreprocessedDocument(BaseModel):
     source_sha256: str
     segments: list[PreprocessedSegment]
     relevant_glossary: list[GlossaryEntry] = Field(default_factory=list)
+    # Style-sheet entries relevant to this document (docs/BOOK_CONSISTENCY.md, phase 2).
+    relevant_style: StyleSheet | None = None
+    # "Story so far" for this document (docs/BOOK_CONSISTENCY.md, phase 3).
+    story_context: str | None = None
+
+    @model_serializer(mode="wrap")
+    def _omit_absent_style(self, handler):
+        # Without a style sheet the file stays byte-identical to before the
+        # field existed, so preprocessing reruns do not retranslate the book.
+        data = handler(self)
+        if isinstance(data, dict):
+            for key in ("relevant_style", "story_context"):
+                if data.get(key) is None:
+                    data.pop(key, None)
+        return data
 
 
 class PreprocessingReport(BaseModel):

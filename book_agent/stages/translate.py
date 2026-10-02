@@ -79,6 +79,7 @@ from ..stage_progress import (
     report_stage_plan,
     request_context_bucket,
 )
+from ..style_sheet import format_relevant_style, select_relevant_style
 from ..workspace import JobWorkspace
 from .preprocess import load_preprocessed_documents
 
@@ -195,6 +196,7 @@ def run_translation_stage(
                         "stage": input_hash,
                         "chunk": chunk.model_dump_json(),
                         "glossary": glossary_text,
+                        **_style_hash(document, chunk, config),
                     }
                 )
                 chunk_path = chunk_root / f"{chunk.chunk_id}.json"
@@ -379,6 +381,43 @@ def _chunk_relevant_glossary(
     )
 
 
+def chunk_style_text(
+    document: PreprocessedDocument, chunk: TranslationChunk, config: AppConfig
+) -> str:
+    """The style-sheet block for one chunk, or "" (docs/BOOK_CONSISTENCY.md, phase 2)."""
+    if document.relevant_style is None or not config.consistency.style_sheet.enabled:
+        return ""
+    source = "\n".join(piece.source_text for piece in chunk.pieces)
+    return format_relevant_style(
+        select_relevant_style(
+            document.relevant_style,
+            source,
+            max_entries=config.consistency.style_sheet.max_entries_per_chunk,
+        )
+    )
+
+
+def _story_text(document: PreprocessedDocument, config: AppConfig) -> str:
+    """The document's "story so far" (docs/BOOK_CONSISTENCY.md, phase 3), or ""."""
+    if not config.consistency.story_context.enabled:
+        return ""
+    return document.story_context or ""
+
+
+def _style_hash(
+    document: PreprocessedDocument, chunk: TranslationChunk, config: AppConfig
+) -> dict[str, str]:
+    """A chunk's style and story blocks join its unit hash only when there are any."""
+    fields = {}
+    text = chunk_style_text(document, chunk, config)
+    if text:
+        fields["style"] = text
+    story = _story_text(document, config)
+    if story:
+        fields["story"] = story
+    return fields
+
+
 def _build_chunk_prompt(
     document: PreprocessedDocument,
     chunk: TranslationChunk,
@@ -386,7 +425,13 @@ def _build_chunk_prompt(
     config: AppConfig,
 ) -> str:
     """Build a target-only prompt with optional immutable boundary context."""
-    prompt = build_translation_prompt(chunk, relevant_glossary, config)
+    prompt = build_translation_prompt(
+        chunk,
+        relevant_glossary,
+        config,
+        chunk_style_text(document, chunk, config),
+        _story_text(document, config),
+    )
     if config.translation.boundary_context != "adjacent-read-only":
         return prompt
     index_by_id = {
@@ -1412,6 +1457,7 @@ def plan_chunk_tasks(
                     "stage": input_hash,
                     "chunk": chunk.model_dump_json(),
                     "glossary": glossary_text,
+                    **_style_hash(document, chunk, config),
                 }
             )
             chunk_path = chunk_root / f"{chunk.chunk_id}.json"

@@ -111,6 +111,11 @@ class TranslationConfig(StrictModel):
 
 class GlossaryConfig(StrictModel):
     extraction_enabled: bool = True
+    # With LLM or automatic approval, drop single ordinary lowercase words in generic
+    # categories ("anchor", "cheese"): on The Wind in the Willows 144 such entries were
+    # approved and caused 52 of 54 glossary misses. Human review keeps the decision.
+    # Turn off for books whose coined vocabulary is lowercase.
+    drop_generic_terms: bool = True
     extraction_model: str = Field(default="qwen3.8:27b", min_length=1)
     extraction_thinking: bool = False
     extraction_min_num_ctx: int = Field(default=16_384, gt=0)
@@ -284,6 +289,57 @@ class ProseRewriteConfig(StrictModel):
         return self
 
 
+class StyleSheetConfig(StrictModel):
+    """The book style sheet (docs/BOOK_CONSISTENCY.md, phase 2); extracted with the glossary."""
+
+    enabled: bool = False
+    # human: the glossary gate waits for a person to review the style sheet (Glossary
+    # tab, or `approve --style FILE`), even when the glossary itself is LLM-reviewed.
+    # glossary: follow the glossary's review setting (LLM, human, or none).
+    review: Literal["human", "glossary"] = "human"
+    max_characters_per_chunk: int = Field(default=20, ge=1, le=60)
+    max_expressions_per_chunk: int = Field(default=20, ge=1, le=60)
+    # Style-sheet lines added to one translation or repair prompt.
+    max_entries_per_chunk: int = Field(default=12, ge=1, le=60)
+
+
+class StoryContextConfig(StrictModel):
+    """Chapter summaries as translation context (docs/BOOK_CONSISTENCY.md, phase 3)."""
+
+    enabled: bool = False
+    # Summaries of this many earlier chapters join each chunk's "story so far".
+    chapters_before: int = Field(default=2, ge=0, le=6)
+    max_summary_words: int = Field(default=120, ge=30, le=300)
+    # Longer chapters are summarized from their beginning.
+    max_source_characters: int = Field(default=40_000, ge=2_000)
+    model: str | None = None  # default: ollama.model
+
+
+class ConsistencyConfig(StrictModel):
+    """Book-level consistency checks (docs/BOOK_CONSISTENCY.md); deterministic, no model calls."""
+
+    enabled: bool = True
+    min_repeat_characters: int = Field(default=12, ge=4)
+    quoted_speech: bool = True
+    conventions: bool = True
+    # A variant at least this similar to the reference is drift (medium: repaired);
+    # a less similar one is likely intentional wording (low: listed only).
+    close_variant_similarity: float = Field(default=0.6, ge=0.0, le=1.0)
+    style_sheet: StyleSheetConfig = Field(default_factory=StyleSheetConfig)
+    story_context: StoryContextConfig = Field(default_factory=StoryContextConfig)
+
+    def settings(self, target_language: str):
+        from .consistency import ConsistencySettings
+
+        return ConsistencySettings(
+            min_repeat_characters=self.min_repeat_characters,
+            quoted_speech=self.quoted_speech,
+            conventions=self.conventions,
+            close_variant_similarity=self.close_variant_similarity,
+            target_language=target_language,
+        )
+
+
 class WorkflowConfig(StrictModel):
     production_profile: str = ""
     production_profile_version: int = Field(default=0, ge=0)
@@ -311,6 +367,7 @@ class AppConfig(StrictModel):
     epub: EpubConfig = EpubConfig()
     audit: AuditConfig = AuditConfig()
     reprose: ProseRewriteConfig = ProseRewriteConfig()
+    consistency: ConsistencyConfig = ConsistencyConfig()
     workflow: WorkflowConfig = WorkflowConfig()
     paths: PathsConfig = PathsConfig()
 

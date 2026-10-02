@@ -22,6 +22,7 @@ from __future__ import annotations
 import getpass
 import sys
 import threading
+from collections import OrderedDict
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
@@ -40,9 +41,18 @@ from .audit import (
     reapply_quantity_adjudications,
 )
 from .config import AppConfig
+from .consistency import (
+    book_consistency_issues,
+    book_segments,
+    convention_issues,
+    expression_issues,
+)
+from .pipeline_state import WorkflowStage
+from .state import StageStatus, connect_state, get_stage_status
+from .style_sheet import StyleSheet, enabled_style_sheet
 from .hashing import hash_named_values, sha256_text
 from .numeric_adjudication import rule_numeric_findings
-from .repair import RepairedDocument, RepairedValidationReport
+from .repair import RepairDisposition, RepairedDocument, RepairedValidationReport
 from .stages.audit import load_document_audits
 from .stages.preprocess import load_preprocessed_documents
 from .stages.validate_repaired import load_validated_repaired_documents
@@ -262,6 +272,32 @@ def active_edit_texts(workspace: JobWorkspace) -> dict[str, str]:
     }
 
 
+def latest_human_texts(workspace: JobWorkspace) -> dict[str, str]:
+    """segment_id -> the latest human text, for segments whose source is unchanged.
+
+    Unlike ``active_edit_texts`` this does not need the validated draft, so a
+    stage that runs before ``validate_repaired`` (including during a rerun) can
+    treat a human decision as the reference (docs/BOOK_CONSISTENCY.md, 7.4).
+    """
+    grouped = events_by_segment(workspace)
+    if not grouped:
+        return {}
+    source_by_id = {
+        segment.segment_id: segment.original_text
+        for document in load_preprocessed_documents(workspace)
+        for segment in document.segments
+    }
+    texts: dict[str, str] = {}
+    for segment_id, events in grouped.items():
+        last = events[-1]
+        source = source_by_id.get(segment_id)
+        if last.action in (EditAction.REVERT, EditAction.TAKE_PIPELINE) or source is None:
+            continue
+        if sha256_text(source) == last.base_source_sha256:
+            texts[segment_id] = last.text
+    return texts
+
+
 def conflicted_segment_ids(workspace: JobWorkspace) -> set[str]:
     """Segment ids currently blocked on a conflict: the pipeline text changed under an edit."""
     return {
@@ -314,12 +350,153 @@ def unresolved_review_gate(
         segment_id for segment_id, status in statuses.items()
         if status.state is SegmentEditState.CONFLICT
     )
-    unresolved_ids = sorted(set(report.review_segment_ids) - resolved_ids)
-    defect_count = len(set(report.defect_segment_ids) & set(unresolved_ids))
+    # Drift the edits introduced, e.g. an edit in one chapter that now disagrees
+    # with an unedited occurrence in another (docs/BOOK_CONSISTENCY.md, 8.2).
+    consistency_ids = _edit_introduced_consistency_ids(workspace, statuses)
+    unresolved_ids = sorted((set(report.review_segment_ids) | consistency_ids) - resolved_ids)
+    defect_count = len(
+        (set(report.defect_segment_ids) | consistency_ids) & set(unresolved_ids)
+    )
     approval_count = len(set(report.approval_segment_ids) & set(unresolved_ids))
     if unresolved_ids and defect_count == 0 and approval_count == 0:
         defect_count = len(unresolved_ids)
     return UnresolvedReviewGate(unresolved_ids, conflict_ids, defect_count, approval_count)
+
+
+def compiled_consistency_issues(
+    workspace: JobWorkspace,
+    statuses: Mapping[str, SegmentEditStatus] | None = None,
+) -> list[AuditIssue]:
+    """Medium-or-worse consistency findings on the text as compiled.
+
+    That text is the validated draft with active edits applied; a human edit is
+    the reference (decision 7.4), so the findings fall on unedited occurrences
+    that disagree with it, or on human edits that disagree with each other.
+    Empty when the checks are disabled or the validated draft is unavailable.
+    """
+    check = _consistency_check(workspace)
+    if check is None:
+        return []
+    if statuses is None:
+        statuses = edited_segment_statuses(workspace)
+    return _draft_consistency_issues(workspace, check, _active_texts(statuses))
+
+
+def _edit_introduced_consistency_ids(
+    workspace: JobWorkspace, statuses: Mapping[str, SegmentEditStatus]
+) -> set[str]:
+    """Segments with consistency drift in the text as compiled but not in the validated draft.
+
+    Drift in the draft itself is ``validate_repaired``'s to queue: its re-check
+    put it in the validation report. Counting it again here would add book-wide
+    findings to a job validated before the checks existed, on its next compile.
+    """
+    human_texts = _active_texts(statuses)
+    if not human_texts:
+        return set()  # the text as compiled is the validated draft
+    check = _consistency_check(workspace)
+    if check is None:
+        return set()
+    compiled = {
+        issue.segment_id for issue in _draft_consistency_issues(workspace, check, human_texts)
+    }
+    if not compiled:
+        return set()
+    return compiled - {
+        issue.segment_id for issue in _draft_consistency_issues(workspace, check, {})
+    }
+
+
+def _active_texts(statuses: Mapping[str, SegmentEditStatus]) -> dict[str, str]:
+    return {
+        segment_id: status.text
+        for segment_id, status in statuses.items()
+        if status.state in (SegmentEditState.EDITED, SegmentEditState.CONFLICT)
+    }
+
+
+@dataclass(frozen=True)
+class _ConsistencyCheck:
+    """What a consistency check of the validated draft depends on, besides the edits."""
+
+    config: AppConfig
+    style: StyleSheet | None
+    key: tuple[str, ...]  # workspace, validated draft, config, style sheet
+
+
+def _consistency_check(workspace: JobWorkspace) -> _ConsistencyCheck | None:
+    """The check to run, or None when disabled or the validated draft is unavailable."""
+    try:
+        config_text = workspace.config_file.read_text(encoding="utf-8")
+        config = AppConfig.model_validate_json(config_text)
+        if not config.consistency.enabled:
+            return None
+        connection = connect_state(workspace.state_file)
+        try:
+            validated = get_stage_status(connection, WorkflowStage.VALIDATE_REPAIRED.value)
+        finally:
+            connection.close()
+        if validated is None or validated["status"] != StageStatus.COMPLETED.value:
+            return None
+        style = enabled_style_sheet(workspace, config)
+    except (FileNotFoundError, RuntimeError, ValueError):
+        return None
+    return _ConsistencyCheck(
+        config,
+        style,
+        (
+            str(workspace.root),
+            str(validated["output_hash"]),
+            sha256_text(config_text),
+            sha256_text(style.model_dump_json()) if style is not None else "",
+        ),
+    )
+
+
+# The Text tab, the review gate, and compile each ask for the same whole-book
+# check several times per request; it is recomputed only when the validated
+# draft, the config, the style sheet, or the active edits change.
+_CONSISTENCY_CACHE_SIZE = 8
+_consistency_cache: OrderedDict[tuple[str, ...], tuple[AuditIssue, ...]] = OrderedDict()
+_consistency_cache_guard = threading.Lock()
+
+
+def _draft_consistency_issues(
+    workspace: JobWorkspace, check: _ConsistencyCheck, human_texts: Mapping[str, str]
+) -> list[AuditIssue]:
+    key = (*check.key, hash_active_edits(dict(human_texts)))
+    with _consistency_cache_guard:
+        cached = _consistency_cache.get(key)
+        if cached is not None:
+            _consistency_cache.move_to_end(key)
+            return list(cached)
+    try:
+        documents = load_validated_repaired_documents(workspace)
+    except (FileNotFoundError, RuntimeError, ValueError):
+        return []
+    segments = book_segments(
+        [item.document for item in documents],
+        human_texts=human_texts,
+        repaired_ids={
+            repair.segment_id
+            for item in documents
+            for repair in item.repairs
+            if repair.disposition is RepairDisposition.REPAIRED
+        },
+    )
+    config = check.config
+    settings = config.consistency.settings(config.translation.direction.target_language.value)
+    issues = [
+        issue
+        for issue in book_consistency_issues(segments, settings, check.style)
+        if issue.severity.rank >= AuditSeverity.MEDIUM.rank
+    ]
+    with _consistency_cache_guard:
+        _consistency_cache[key] = tuple(issues)
+        _consistency_cache.move_to_end(key)
+        while len(_consistency_cache) > _CONSISTENCY_CACHE_SIZE:
+            _consistency_cache.popitem(last=False)
+    return issues
 
 
 def overlay_active_edits(
@@ -459,6 +636,54 @@ def _chapter_issues(
     ]
 
 
+def _proposal_consistency_issues(
+    workspace: JobWorkspace, context: _CheckContext, proposed: Mapping[str, str]
+) -> list[AuditIssue]:
+    """Book-level consistency findings on proposed human texts (overridable).
+
+    A proposal is a human edit, and a human edit is the reference for the
+    other occurrences (decision 7.4), so it is flagged only where it disagrees
+    with another human edit, or breaks the book's punctuation conventions.
+    Unedited occurrences it now differs from are queued at compile instead.
+    """
+    if not proposed or not context.config.consistency.enabled:
+        return []
+    human_texts = {
+        segment_id: text
+        for segment_id, text in active_edit_texts(workspace).items()
+        if segment_id not in proposed
+    }
+    human_texts.update(proposed)
+    segments = book_segments(
+        [item.document for item in context.drafts.values()],
+        human_texts=human_texts,
+        repaired_ids={
+            repair.segment_id
+            for item in context.drafts.values()
+            for repair in item.repairs
+            if repair.disposition is RepairDisposition.REPAIRED
+        },
+    )
+    settings = context.config.consistency.settings(
+        context.config.translation.direction.target_language.value
+    )
+    issues = book_consistency_issues(segments, settings)
+    # A proposed edit is human text, so book_consistency_issues skips it for
+    # the conventions and the style sheet; check it here, overridable like the rest.
+    if settings.conventions:
+        issues += convention_issues(segments, settings)
+    style = enabled_style_sheet(workspace, context.config)
+    if style is not None:
+        issues += expression_issues(
+            ((s.segment_id, s.source, s.target) for s in segments if s.segment_id in proposed), style
+        )
+    return [
+        issue
+        for issue in issues
+        if issue.segment_id in proposed and issue.severity.rank >= AuditSeverity.MEDIUM.rank
+    ]
+
+
 def _finding(issue: AuditIssue) -> dict[str, str]:
     return {
         "category": issue.category.value,
@@ -486,7 +711,10 @@ def preview_manual_resolution(
     replacements = {} if accepting else {segment_id: translated_text}
     return [
         _finding(issue)
-        for issue in _chapter_issues(context, document_id, replacements, {segment_id})
+        for issue in [
+            *_chapter_issues(context, document_id, replacements, {segment_id}),
+            *_proposal_consistency_issues(workspace, context, replacements),
+        ]
         if not (accepting and issue.category not in NON_OVERRIDABLE_CATEGORIES)
     ]
 
@@ -516,6 +744,9 @@ def check_edits(
         for issue in _chapter_issues(context, document_id, replacements, set(replacements)):
             bucket = "hard" if issue.category in NON_OVERRIDABLE_CATEGORIES else "overridable"
             result[issue.segment_id][bucket].append(_finding(issue))
+    # The whole batch counts as human text at once, so an import is checked as one set.
+    for issue in _proposal_consistency_issues(workspace, context, proposed):
+        result[issue.segment_id]["overridable"].append(_finding(issue))
     return result
 
 

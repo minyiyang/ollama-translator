@@ -48,6 +48,7 @@ from .series_glossary import (
 )
 from .stages.glossary import load_approved_glossary, load_glossary_draft
 from .stages.preprocess import load_preprocessing_report
+from .consistency_report import consistency_report, format_report as format_consistency_report
 from .text_edits import conflicted_segment_ids, load_events
 from .xliff_export import export_xliff
 from .workflow import (
@@ -216,6 +217,13 @@ def build_parser() -> argparse.ArgumentParser:
         ),
     )
     approve_parser.add_argument(
+        "--style",
+        help=(
+            "reviewed style-sheet JSON to approve with the glossary "
+            "(consistency.style_sheet.enabled; default: the draft, or the LLM review)"
+        ),
+    )
+    approve_parser.add_argument(
         "--final", action="store_true", help="approve the current repaired draft"
     )
     approve_parser.add_argument("--resume", action="store_true", help="continue immediately after approval")
@@ -272,6 +280,26 @@ def build_parser() -> argparse.ArgumentParser:
         help="write the export to this file instead of stdout",
     )
     edits_parser.add_argument("--json", action="store_true", help="list edits as machine-readable JSON")
+
+    consistency_parser = subparsers.add_parser(
+        "consistency-report",
+        help="measure book-level consistency of the current translation (read-only, no model calls)",
+    )
+    consistency_parser.add_argument("workspace", help="job workspace path")
+    consistency_parser.add_argument("--json", action="store_true", help="print the full report as JSON")
+    consistency_parser.add_argument("--output", help="write the report to this file instead of stdout")
+    consistency_parser.add_argument(
+        "--min-chars",
+        type=int,
+        default=12,
+        help="shortest source line counted as a repeat (default: 12; ignores 'Yes.', 'Oh!')",
+    )
+    consistency_parser.add_argument(
+        "--limit",
+        type=int,
+        default=20,
+        help="rows shown per table in the Markdown report (default: 20; --json has everything)",
+    )
 
     ui_parser = subparsers.add_parser(
         "ui",
@@ -1352,12 +1380,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "approve":
             workspace = open_job_workspace(args.workspace)
             _start_session_log(progress_context, workspace, "approve")
-            if args.glossary or args.llm_glossary:
+            if args.glossary or args.llm_glossary or args.style:
                 progress_context.stage = WorkflowStage.APPROVE_GLOSSARY.value
                 approve_glossary(
                     workspace,
                     args.glossary,
                     llm_review=args.llm_glossary,
+                    reviewed_style_file=args.style,
                     generation_progress=make_generation_progress_printer(
                         plain=args.plain, context=progress_context
                     ),
@@ -1581,6 +1610,16 @@ def main(argv: Sequence[str] | None = None) -> int:
                     )
                 if conflicts:
                     print("Conflicts: " + ", ".join(conflicts))
+            return ExitCode.COMPLETE
+        if args.command == "consistency-report":
+            workspace = open_job_workspace(args.workspace)
+            report = consistency_report(workspace, min_chars=args.min_chars)
+            text = format_json(report) if args.json else format_consistency_report(report, limit=args.limit)
+            if args.output:
+                atomic_write_text(Path(args.output), text + "\n")
+                print(f"Wrote {args.output}")
+            else:
+                print(text)
             return ExitCode.COMPLETE
     except PauseRequested as pause:
         # Only reachable outside run_workflow, e.g. during `approve --llm-glossary`.

@@ -8,8 +8,10 @@ from pathlib import Path
 from typing import Any
 
 from ..atomic_io import atomic_write_text
+from ..config import AppConfig
 from ..pipeline_state import WorkflowStage
 from ..schemas import GlossaryCategory, GlossaryResult
+from ..style_sheet import StyleSheet
 from ..stages.decompile import load_decompile_manifest
 from ..state import connect_state, get_job_metadata, get_stage_status
 from ..workspace import JobWorkspace
@@ -51,6 +53,8 @@ def glossary_payload(workspace: JobWorkspace) -> dict[str, Any]:
         report = _metadata_json(workspace, connection, "glossary_approval_report")
         quality = _metadata_json(workspace, connection, "glossary_draft_quality_report")
         review_mode = get_job_metadata(connection, "glossary_review_mode") or ""
+        style_draft = _metadata_json(workspace, connection, "style_draft")
+        style_approved = _metadata_json(workspace, connection, "style_approved")
     finally:
         connection.close()
     approve_status = str(approve["status"]) if approve else "pending"
@@ -73,7 +77,34 @@ def glossary_payload(workspace: JobWorkspace) -> dict[str, Any]:
         # Stored values stay as the schema defines them; the UI shows English names.
         "category_labels": {category.value: category.name.title() for category in GlossaryCategory},
         "other_category": GlossaryCategory.OTHER.value,
+        # The book style sheet (docs/BOOK_CONSISTENCY.md, phase 2), when one was extracted.
+        "style_sheet": {
+            "draft": style_draft,
+            "approved": style_approved if approve_status == "completed" else None,
+            # "human": the gate waits for a person, so approving always sends the sheet.
+            "review": _style_review(workspace),
+            "pronouns": ["他", "她", "它", "he", "she", "it"],
+            "addresses": ["你", "您"],
+        },
     }
+
+
+def _style_review(workspace: JobWorkspace) -> str:
+    try:
+        config = AppConfig.model_validate_json(workspace.config_file.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return "human"
+    return config.consistency.style_sheet.review
+
+
+def write_reviewed_style_sheet(workspace: JobWorkspace, style: dict[str, Any]) -> Path:
+    """Validate a reviewer's style-sheet edits and store them in the job."""
+    sheet = StyleSheet.model_validate(style)
+    stamp = datetime.now().astimezone().strftime("%Y%m%dT%H%M%S")
+    path = workspace.directory(f"{REVIEW_DIR}/style.reviewed-{stamp}.json")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    atomic_write_text(path, sheet.model_dump_json(indent=2))
+    return path
 
 
 def write_reviewed_glossary(workspace: JobWorkspace, entries: list[dict[str, Any]]) -> Path:

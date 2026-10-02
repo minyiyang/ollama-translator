@@ -61,6 +61,11 @@ export const COMMON_GROUPS: CommonGroup[] = [
       { special: "glossary-review" },
       { path: "glossary.extraction_enabled", label: "Extract terms from the book", help: "Turn off only when every glossary below is already reviewed." },
       { path: "glossary.approval_auto_approve_min_confidence", label: "Auto-approve confidence", help: "With LLM review, evidence-backed terms at or above this confidence skip the model." },
+      {
+        path: "glossary.drop_generic_terms",
+        label: "Drop ordinary words",
+        help: "With LLM or automatic approval, leave single ordinary words (“anchor”, “cheese”) out of the glossary so the translator words them by context. Human review decides on its own. Turn off if the book's invented words are lowercase.",
+      },
       { path: "glossary.extraction_max_entries", label: "Max extracted terms" },
       { path: "glossary.seed_glossaries", label: "Seed glossaries", help: "Glossary files merged in before extraction (lowest precedence)." },
       { path: "glossary.series_glossaries", label: "Series glossaries", help: "Shared, reviewed terms for a book series." },
@@ -75,6 +80,37 @@ export const COMMON_GROUPS: CommonGroup[] = [
       { path: "audit.quantity.enabled", label: "Quantity audit", help: "Extra checks that numbers, units, and durations survived translation." },
       { path: "reprose.enabled", label: "Prose rewrite", help: "Propose more natural wording, verified against the source before it is kept." },
       { path: "reprose.candidate_mode", label: "Rewrite candidates", help: "risk-filtered rewrites only passages that read like translationese." },
+    ],
+  },
+  {
+    title: "Book consistency",
+    help: "Book-wide checks with no model calls. Drift goes to repair; what repair cannot fix joins the review queue.",
+    options: [
+      { path: "consistency.enabled", label: "Consistency checks", help: "Find repeated lines, and repeated lines of dialogue, translated differently in different places." },
+      { path: "consistency.quoted_speech", label: "Repeated dialogue", help: "Also compare quoted lines inside longer paragraphs, such as a character's catchphrase." },
+      { path: "consistency.conventions", label: "Punctuation conventions", help: "Flag a single — where the book uses ——, and straight \" in Chinese text." },
+      { path: "consistency.min_repeat_characters", label: "Shortest repeat", help: "Lines shorter than this are ignored, so “Yes.” or “Oh!” may vary." },
+      {
+        path: "consistency.style_sheet.enabled",
+        label: "Book style sheet",
+        help: "Also extract, with the glossary, lines the book repeats (rendered the same way throughout) and notes on each character. Character notes are context only: the source wording and the scene decide pronouns and 你/您.",
+      },
+      {
+        path: "consistency.story_context.enabled",
+        label: "Story context",
+        help: "Summarize each chapter first (about 6 s per chapter) and give each translation chunk the story so far: the previous chapters and its own. Context only; the source still decides.",
+      },
+      { path: "consistency.story_context.chapters_before", label: "Earlier chapters in context", help: "How many previous chapter summaries each chunk sees." },
+      {
+        path: "consistency.style_sheet.review",
+        label: "Style sheet review",
+        help: "human: the glossary gate waits for you to review the style sheet on the Glossary tab, even when the glossary itself is LLM-reviewed. glossary: follow the glossary's review setting.",
+      },
+      {
+        path: "consistency.close_variant_similarity",
+        label: "Drift threshold",
+        help: "How similar two renderings must be to count as drift (repaired). Less similar wording is treated as intentional and only listed.",
+      },
     ],
   },
   {

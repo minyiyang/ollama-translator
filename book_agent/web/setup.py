@@ -169,6 +169,7 @@ _SECTION_TITLES = {
     "epub": "EPUB output",
     "audit": "Audit and repair",
     "reprose": "Prose rewrite",
+    "consistency": "Book consistency",
     "workflow": "Workflow gates",
     "paths": "Paths",
 }

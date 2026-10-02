@@ -187,6 +187,21 @@ describe("Text tab", () => {
       expect(screen.getByText("No segments match.")).toBeInTheDocument();
     });
 
+    it("filters to book-level consistency drift", async () => {
+      const chapter = chapterOne();
+      (chapter.segments[0] as Record<string, unknown>).findings = [
+        { category: "consistency", severity: "medium", message: 'Repeated line "Hello world." is rendered differently in D0001-S000009.' },
+      ];
+      textApi({ "GET /api/jobs/demo/text/chapter": chapter });
+      const user = renderTextTab();
+      await screen.findByText("Hello world.");
+
+      await user.click(screen.getByRole("radio", { name: "Consistency" }));
+      expect(screen.getByText("1 of 3 segments")).toBeInTheDocument();
+      expect(within(rowOf("Hello world.")).getByText(/rendered differently in D0001-S000009/)).toBeInTheDocument();
+      expect(screen.queryByText("Nested paragraph.")).not.toBeInTheDocument();
+    });
+
     it("is read-only before the validated draft exists", async () => {
       textApi({
         "GET /api/jobs/demo/text": outline({ editable: false }),

@@ -1,4 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { StyleSheetSection, type StyleSheet } from "../components/StyleSheetSection";
 import { Link } from "react-router-dom";
 import { jobApi } from "../api";
 import { useConfirm } from "../components/Dialog";
@@ -27,6 +28,7 @@ type Payload = {
   process: { label: string; running: boolean; outcome?: string; exit_code?: number | null; output_tail?: string } | null;
   approval_running: boolean;
   series_overlay?: { series_id: string; name: string; version: string } | null;
+  style_sheet?: { draft: StyleSheet | null; approved: StyleSheet | null; review: "human" | "glossary"; pronouns: string[]; addresses: string[] };
 };
 /** keep: enforce this translation. defer: decide later (kept as drafted if approved).
  *  drop: not a glossary term (e.g. a generic word); the translator handles it in context. */
@@ -100,6 +102,8 @@ export function GlossaryPage() {
   const [submitting, setSubmitting] = useState(false);
   const [loadedAt, setLoadedAt] = useState(0);
   const [approvalMode, setApprovalMode] = useState("");
+  /** The reviewer's style-sheet edits; null while untouched (the draft or LLM review applies). */
+  const [styleEdit, setStyleEdit] = useState<StyleSheet | null>(null);
 
   const [reload, setReload] = useState(0);
   const wasRunning = useRef(false);
@@ -192,7 +196,7 @@ export function GlossaryPage() {
   const toggleGroup = (name: string) =>
     setCollapsed((old) => { const next = new Set(old); if (!next.delete(name)) next.add(name); return next; });
 
-  const submit = async (body: { entries?: Entry[]; llm?: boolean }, title: string, detail: string, label: string, note = "") => {
+  const submit = async (body: { entries?: Entry[]; llm?: boolean; style?: StyleSheet }, title: string, detail: string, label: string, note = "") => {
     if (!(await confirm(title, <p>{detail}{note}</p>, label))) return;
     setSubmitting(true);
     try {
@@ -207,6 +211,14 @@ export function GlossaryPage() {
     } finally {
       setSubmitting(false);
     }
+  };
+  /** The style sheet sent with an approval: always when a person must review it
+   *  (approving is that review), otherwise only when edited. */
+  const styleToSend = (): { style?: StyleSheet } => {
+    const style = data?.style_sheet;
+    const sheet = styleEdit ?? style?.draft;
+    if (!sheet || !style) return {};
+    return style.review === "human" || styleEdit ? { style: sheet } : {};
   };
   const reviewed = () =>
     rows.filter((r) => r.decision !== "drop").map((r) => ({ ...r.entry, aliases: (r.entry.aliases ?? []).map((a) => a.trim()).filter(Boolean) }));
@@ -387,11 +399,11 @@ export function GlossaryPage() {
               {editable && (
                 <div className="row" style={{ margin: 0 }}>
                   <button disabled={submitting} title="Send the untouched draft to the LLM reviewer"
-                    onClick={() => submit({ llm: true }, "LLM review the original draft?", "Your edits on this page are discarded; the LLM reviews the untouched draft.", "LLM review the draft")}>LLM review the draft</button>
+                    onClick={() => submit({ llm: true, ...styleToSend() }, "LLM review the original draft?", "Your edits on this page are discarded; the LLM reviews the untouched draft.", "LLM review the draft")}>LLM review the draft</button>
                   <button disabled={submitting} title="The LLM reviews your edited list and may still revise or reject entries"
-                    onClick={() => submit({ entries: reviewed(), llm: true }, "Send your edits to the LLM reviewer?", "The LLM reviews your edited list and may still revise or reject entries; the pipeline then continues.", "Send for LLM review", deferNote)}>LLM review my edits</button>
+                    onClick={() => submit({ entries: reviewed(), llm: true, ...styleToSend() }, "Send your edits to the LLM reviewer?", "The LLM reviews your edited list and may still revise or reject entries; the pipeline then continues.", "Send for LLM review", deferNote)}>LLM review my edits</button>
                   <button className="primary" disabled={submitting}
-                    onClick={() => submit({ entries: reviewed() }, "Approve your reviewed glossary?", "The pipeline continues with this glossary.", "Approve & continue", deferNote)}>Approve my review &amp; continue</button>
+                    onClick={() => submit({ entries: reviewed(), ...styleToSend() }, "Approve your reviewed glossary?", "The pipeline continues with this glossary.", "Approve & continue", deferNote)}>Approve my review &amp; continue</button>
                 </div>
               )}
             </div>
@@ -406,6 +418,24 @@ export function GlossaryPage() {
                 </div>
               )}
           </section>
+
+          {(() => {
+            const style = data.style_sheet;
+            const sheet = editable ? styleEdit ?? style?.draft : style?.approved ?? style?.draft;
+            if (!style || !sheet) return null;
+            return (
+              <StyleSheetSection
+                sheet={sheet}
+                editable={editable}
+                edited={styleEdit !== null}
+                needsReview={editable && style.review === "human"}
+                pronouns={style.pronouns}
+                addresses={style.addresses}
+                onChange={setStyleEdit}
+                onReset={() => setStyleEdit(null)}
+              />
+            );
+          })()}
 
           <section className="card">
             <div className="filters">

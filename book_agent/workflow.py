@@ -39,6 +39,8 @@ from .state import (
 from .text_edits import current_draft_revision, unresolved_review_gate
 from .workspace import JobWorkspace
 from .stages.audit import run_translation_audit_stage
+from .stages.audit_consistency import run_consistency_audit_stage
+from .stages.story_context import run_story_context_stage
 from .stages.compile import (
     FinalDraftApprovalRequired,
     run_document_compile_stage,
@@ -127,6 +129,9 @@ def default_stage_runners() -> dict[WorkflowStage, StageRunner]:
             llm_review=config.workflow.llm_glossary_review,
             client=client,
         ),
+        WorkflowStage.BUILD_STORY_CONTEXT: lambda workspace, config, client: run_story_context_stage(
+            workspace, config, client
+        ),
         WorkflowStage.PREPROCESS: lambda workspace, config, client: run_preprocessing_stage(
             workspace, config
         ),
@@ -138,6 +143,9 @@ def default_stage_runners() -> dict[WorkflowStage, StageRunner]:
         ),
         WorkflowStage.AUDIT_TRANSLATION: lambda workspace, config, client: run_translation_audit_stage(
             workspace, config, client
+        ),
+        WorkflowStage.AUDIT_CONSISTENCY: lambda workspace, config, client: run_consistency_audit_stage(
+            workspace, config
         ),
         WorkflowStage.REPAIR_TRANSLATION: lambda workspace, config, client: run_translation_repair_stage(
             workspace, config, client
@@ -398,6 +406,19 @@ def _stage_result_message(stage: WorkflowStage, result: object) -> str:
             f"review_segments={review_count}"
         )
 
+    if stage is WorkflowStage.BUILD_STORY_CONTEXT:
+        if not bool(getattr(result, "enabled", False)):
+            return "result=skipped; story_context=disabled"
+        summarized = int(getattr(result, "summarized_count", 0) or 0)
+        reused = int(getattr(result, "reused_count", 0) or 0)
+        return f"result=passed; chapters={summarized + reused}; reused={reused}"
+
+    if stage is WorkflowStage.AUDIT_CONSISTENCY:
+        issue_count = int(getattr(result, "issue_count", 0) or 0)
+        repair_count = int(getattr(result, "repair_count", 0) or 0)
+        state = "passed" if not issue_count else "drift-found"
+        return f"result={state}; findings={issue_count}; to_repair={repair_count}"
+
     if stage is WorkflowStage.REPROSE_TRANSLATION:
         candidates = int(getattr(result, "candidate_segment_count", 0) or 0)
         proposed = int(getattr(result, "proposed_rewrite_count", 0) or 0)
@@ -458,11 +479,14 @@ def approve_glossary(
     *,
     llm_review: bool = False,
     generation_progress: Callable[[GenerationProgressEvent], None] | None = None,
+    reviewed_style_file: str | Path | None = None,
 ) -> None:
-    """Approve a human- or LLM-reviewed glossary and leave stages ready to resume."""
+    """Approve a human- or LLM-reviewed glossary (and style sheet) and leave stages ready to resume."""
     resolved = config or load_workspace_config(workspace)
     client = None
-    if llm_review:
+    # The stage also reviews with the LLM when the config asks for it, e.g. when
+    # only a reviewed style sheet is submitted, so it needs a client then too.
+    if llm_review or resolved.workflow.llm_glossary_review:
         client = OllamaClient(
             resolved.ollama,
             progress=generation_progress,
@@ -478,6 +502,7 @@ def approve_glossary(
         reviewed_file=reviewed_file,
         llm_review=llm_review,
         client=client,
+        reviewed_style_file=reviewed_style_file,
     )
 
 
@@ -657,6 +682,8 @@ def _stage_uses_ollama(stage: WorkflowStage, config: AppConfig) -> bool:
         return config.reprose.enabled
     if stage is WorkflowStage.APPROVE_GLOSSARY:
         return config.workflow.llm_glossary_review
+    if stage is WorkflowStage.BUILD_STORY_CONTEXT:
+        return config.consistency.story_context.enabled
     return stage is WorkflowStage.AUDIT_TRANSLATION and (
         config.audit.semantic_enabled or config.audit.quantity.enabled
     )

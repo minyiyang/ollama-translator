@@ -31,6 +31,13 @@ describe("Text page filters", () => {
     expect(matchesTextView(base, "all")).toBe(true);
   });
 
+  it("shows only segments with a book-level consistency finding under Consistency", () => {
+    const drift = { ...base, findings: [{ category: "glossary" }, { category: "consistency" }] };
+    expect(matchesTextView(drift, "consistency")).toBe(true);
+    expect(matchesTextView({ ...base, findings: [{ category: "glossary" }] }, "consistency")).toBe(false);
+    expect(matchesTextView(base, "consistency")).toBe(false);
+  });
+
   it("searches source and effective translation case-insensitively", () => {
     expect(matchesTextQuery(base, "chapter")).toBe(true);
     expect(matchesTextQuery(base, "第一")).toBe(true);

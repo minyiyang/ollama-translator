@@ -222,6 +222,24 @@ class ServerTests:
                 args = launch.call_args.args[1]
                 assert args[0] == "approve" and "--llm-glossary" in args and "--resume" in args
                 assert Path(args[args.index("--glossary") + 1]).is_file()
+                assert "--style" not in args
+
+                # Reviewed style-sheet edits are validated, saved, and passed along.
+                style = {"characters": [{"name": "Mouse", "pronoun": "他", "addressed_as": "您"}], "expressions": []}
+                with patch.object(UiApp, "launch", return_value={"running": True}) as launch:
+                    status, _ = call("/api/jobs/fixture/glossary/approve", {"entries": entries, "style": style}, token)
+                assert status == 200
+                args = launch.call_args.args[1]
+                saved = json.loads(Path(args[args.index("--style") + 1]).read_text(encoding="utf-8"))
+                assert saved["characters"][0]["pronoun"] == "他"
+                status, body = call(
+                    "/api/jobs/fixture/glossary/approve",
+                    {"entries": entries, "style": {"characters": [{"name": "Mouse", "pronoun": "they"}]}},
+                    token,
+                )
+                assert status == 422
+                style_sheet = json.loads(call("/api/jobs/fixture/glossary")[1])["style_sheet"]
+                assert style_sheet["draft"] is None and style_sheet["review"] == "human"
 
                 status, body = call("/api/jobs/fixture/glossary/approve", {}, token)
                 assert status == 422 and "submit reviewed entries" in json.loads(body)["error"]

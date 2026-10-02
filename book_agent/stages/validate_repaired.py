@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import asdict
 import re
+from pathlib import Path
 
 from ..numeric_adjudication import rule_numeric_findings
 from ..atomic_io import atomic_write_text
@@ -14,9 +15,12 @@ from ..audit import (
     AuditSeverity,
     audit_translated_document,
     is_preference_only_audit_issue,
+    merge_audit_issues,
     reapply_quantity_adjudications,
 )
 from ..config import AppConfig
+from ..consistency import book_consistency_issues, book_segments
+from ..style_sheet import StyleSheet, enabled_style_sheet
 from ..hashing import hash_named_values, sha256_file
 from ..ollama_client import OllamaClient, StructuredOutputError
 from ..stage_progress import (
@@ -94,6 +98,7 @@ from .preprocess import load_preprocessed_documents
 from .audit import load_document_audits
 
 
+
 VALIDATE_REPAIRED_STAGE_VERSION = "26"
 
 
@@ -133,6 +138,7 @@ def run_repaired_validation_stage(
                 "repair_review": str(repair_stage["output_hash"]),
                 "audit": config.audit.checkpoint_json(),
                 "model": config.audit.verifier_model or config.audit.model,
+                "consistency": config.consistency.model_dump_json(),
                 "stage_version": VALIDATE_REPAIRED_STAGE_VERSION,
             }
         )
@@ -405,6 +411,9 @@ def run_repaired_validation_stage(
         all_review_ids: set[str] = set()
         all_defect_ids: set[str] = set()
         all_approval_ids: set[str] = set()
+        # Each document's final draft and validation path, for the book-level re-check.
+        final_documents: dict[str, RepairedDocument] = {}
+        validation_paths: dict[str, Path] = {}
         segment_result_index = 0
         segment_result_total = sum(
             len(target_ids)
@@ -575,6 +584,8 @@ def run_repaired_validation_stage(
             _record_file(connection, workspace, final_json_path, "validated_repaired_document_json")
             _record_file(connection, workspace, final_text_path, "validated_repaired_document_text")
             validations.append(validation)
+            final_documents[source.manifest_id] = current
+            validation_paths[source.manifest_id] = path
             all_review_ids.update(review_ids)
             all_defect_ids.update(defect_ids)
             all_approval_ids.update(approval_ids)
@@ -614,6 +625,44 @@ def run_repaired_validation_stage(
                         else "validate_repaired.deterministic"
                     ),
                 )
+
+        # Book-level re-check (docs/BOOK_CONSISTENCY.md, 8.2): drift that repair did
+        # not fix, or that prose rewrite or a rejected repair reintroduced, joins
+        # the defect queue. Merged into the final audit only, not the preflight,
+        # which would revert targeted repairs.
+        for document_id, issues in _consistency_defects(
+            final_documents, config, enabled_style_sheet(workspace, config)
+        ).items():
+            index = next(i for i, item in enumerate(validations) if item.document_id == document_id)
+            validation = validations[index]
+            new_ids = {issue.segment_id for issue in issues}
+            defects = set(validation.defect_segment_ids) | new_ids
+            approvals = set(validation.approval_segment_ids) - defects
+            reviews = defects | approvals
+            validation = validation.model_copy(
+                update={
+                    "deterministic_audit": validation.deterministic_audit.model_copy(
+                        update={
+                            "issues": merge_audit_issues(
+                                validation.deterministic_audit.issues, issues
+                            ),
+                            "passed": False,
+                        }
+                    ),
+                    "passed": not reviews,
+                    "review_segment_ids": sorted(reviews),
+                    "defect_segment_ids": sorted(defects),
+                    "approval_segment_ids": sorted(approvals),
+                }
+            )
+            validations[index] = validation
+            atomic_write_text(validation_paths[document_id], validation.model_dump_json(indent=2))
+            _record_file(
+                connection, workspace, validation_paths[document_id], "repaired_document_validation"
+            )
+            all_defect_ids.update(new_ids)
+            all_approval_ids.difference_update(new_ids)
+            all_review_ids.update(new_ids)
 
         report = RepairedValidationReport(
             document_count=len(validations),
@@ -800,6 +849,37 @@ def _retain_accepted_originals(
             ],
         }
     )
+
+
+def _consistency_defects(
+    documents: dict[str, RepairedDocument],
+    config: AppConfig,
+    style: StyleSheet | None = None,
+) -> dict[str, list[AuditIssue]]:
+    """Medium-or-worse book-level consistency findings on the final drafts, by document.
+
+    Human edits are not considered here: they are applied at compile, which
+    runs its own check, and this stage's checkpoint must not depend on them.
+    A verified repair breaks a tie between renderings (decision 7.4).
+    """
+    if not config.consistency.enabled or not documents:
+        return {}
+    repaired_ids = {
+        repair.segment_id
+        for document in documents.values()
+        for repair in document.repairs
+        if repair.disposition is RepairDisposition.REPAIRED
+    }
+    segments = book_segments(
+        [document.document for document in documents.values()], repaired_ids=repaired_ids
+    )
+    settings = config.consistency.settings(config.translation.direction.target_language.value)
+    owner = {segment.segment_id: segment.document_id for segment in segments}
+    found: dict[str, list[AuditIssue]] = {}
+    for issue in book_consistency_issues(segments, settings, style):
+        if issue.severity.rank >= AuditSeverity.MEDIUM.rank:
+            found.setdefault(owner[issue.segment_id], []).append(issue)
+    return found
 
 
 def _accept_unreproduced_deterministic_reviews(
