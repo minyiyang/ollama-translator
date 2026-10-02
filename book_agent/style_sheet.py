@@ -135,12 +135,19 @@ def extraction_instructions(direction: TranslationDirection, *, max_characters: 
         if rules.pronouns
         else ""
     )
-    address = (
-        " and, when the passages show it, whether other characters address them as "
-        f"{rules.address_forms[0]} or the polite {rules.address_forms[1]}"
-        if rules.address_forms
-        else ""
-    )
+    forms = rules.address_forms
+    if len(forms) == 2:  # an informal and a polite form (你/您, tu/vous)
+        address = (
+            " and, when the passages show it, whether other characters address them as "
+            f"{forms[0]} or the polite {forms[1]}"
+        )
+    elif forms:  # honorifics (さん, 様, 君, ちゃん)
+        address = (
+            " and, when the passages show it, the form of address other characters use for "
+            f"them ({', '.join(forms[:-1])}, or {forms[-1]})"
+        )
+    else:
+        address = ""
     return (
         "\n\nAlso fill the separate `style` object, a book style sheet for consistent "
         f"translation into {direction.target_language.display_name}. In `characters`, list "

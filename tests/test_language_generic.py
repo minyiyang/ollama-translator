@@ -60,7 +60,8 @@ EN_CHAPTER = b"""<?xml version='1.0'?>
     [
         ("en", "en", "English", "tuned", ("Latin",), True),
         ("zh-Hans", "zh", "Simplified Chinese", "tuned", ("Han",), False),
-        ("ja", "ja", "Japanese", "generic", ("Han", "Hiragana", "Katakana"), False),
+        ("ja", "ja", "Japanese", "profiled", ("Han", "Hiragana", "Katakana"), False),
+        ("ko", "ko", "Korean", "generic", ("Hangul",), True),
         ("de", "de", "German", "generic", ("Latin",), True),
         ("pt-br", "pt-BR", "Portuguese (BR)", "generic", ("Latin",), True),
         ("zh-TW", "zh-TW", "Chinese (Traditional, TW)", "generic", ("Han",), False),
@@ -78,10 +79,10 @@ def test_any_code_gets_a_profile(code, stored, name, tier, scripts, spaced):
 
 
 def test_a_generic_profile_has_only_what_its_code_gives():
-    rules = profile("ja")
+    rules = profile("ko")
     assert not (rules.stock_phrases or rules.marker_examples or rules.pronouns or rules.name_separator)
-    assert not (rules.address_forms or rules.quotes or rules.convention_checks or rules.number_words)
-    assert rules.script_pattern.search("アスター") and not rules.script_pattern.search("Aster")
+    assert not (rules.address_forms or rules.quotes or rules.conventions or rules.number_words)
+    assert rules.script_pattern.search("아스터") and not rules.script_pattern.search("Aster")
     # An unknown script still recognizes letters, so a passage counts as prose.
     assert profile("xx").script_pattern.search("ǂʼ word")
 
@@ -158,9 +159,10 @@ def test_config_refuses_what_a_generic_pair_cannot_do(values):
 
 def test_todays_pairs_skip_nothing_they_ran_before():
     assert language_support(TranslationDirection.EN_TO_ZH)["skipped"] == []
-    # zh-en never had the Chinese punctuation and character report; it is now named.
+    # zh-en never had the Chinese punctuation check and character report; they are now named.
     assert [item["check"] for item in language_support(TranslationDirection.ZH_TO_EN)["skipped"]] == [
-        "punctuation conventions and character report"
+        "punctuation conventions",
+        "character report",
     ]
 
 
@@ -171,7 +173,8 @@ def test_a_same_script_pair_lists_every_check_it_cannot_run():
         "untranslated text",
         "left-over source words",
         "number words",
-        "punctuation conventions and character report",
+        "punctuation conventions",
+        "character report",
         "style-sheet pronouns",
         "formulaic phrases",
         "marker examples",
@@ -212,10 +215,10 @@ def test_the_untranslated_check_follows_the_scripts():
 
 
 def test_prompts_leave_out_what_the_profile_lacks():
-    assert _build_marker_examples(LanguagePair("en>ja"), "few-shot") == ""
+    assert _build_marker_examples(LanguagePair("en>ko"), "few-shot") == ""
     assert "Marker examples" in _build_marker_examples(TranslationDirection.EN_TO_ZH, "few-shot")
-    instructions = extraction_instructions(LanguagePair("en>ja"), max_characters=5, max_expressions=5)
-    assert "pronoun" not in instructions and "Japanese" in instructions
+    instructions = extraction_instructions(LanguagePair("en>ko"), max_characters=5, max_expressions=5)
+    assert "pronoun" not in instructions and "Korean" in instructions
 
 
 # -- end to end ---------------------------------------------------------------------------
@@ -262,6 +265,7 @@ def _runners(translated: str) -> dict:
         # glossary audit, which now runs for these pairs, finds nothing to repair.
         ("en>ja", "アスターの訳文です。", {"source": "Aster", "target": "アスター", "category": "人名"}),
         ("en>de", "Die Königin übersetzt den Absatz.", {"source": "Queen", "target": "Königin", "category": "人名"}),
+        ("en>fr", "La Reine traduit le passage.", {"source": "Queen", "target": "Reine", "category": "人名"}),
     ],
 )
 def test_a_generic_pair_translates_end_to_end(pair, translated, term):
@@ -300,7 +304,9 @@ def test_a_generic_pair_translates_end_to_end(pair, translated, term):
         prompts = "\n".join(translator.prompts)
         assert f"into {profile(target).display_name}" in prompts
         assert f"{term['source']} => {term['target']}" in prompts
-        assert "Chinese" not in prompts and "Marker examples" not in prompts
+        assert "Chinese" not in prompts
+        # Japanese is a profiled language with its own marker examples; German has none.
+        assert ("Marker examples" in prompts) == (profile(target).tier != "generic")
 
         output = next((workspace.root / "output").rglob("*.epub"))
         with ZipFile(output) as archive:

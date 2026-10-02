@@ -1,6 +1,6 @@
 # Translating between any two languages: plan
 
-Status: **phases 1 to 4 implemented (section 6); decisions in section 5 made 2026-10-02.**
+Status: **phases 1 to 4 implemented, phase 5 implemented pending its benchmark runs (section 6); decisions in section 5 made 2026-10-02.**
 
 How the pipeline stops assuming English on one side and Simplified Chinese on
 the other, so that a book can be translated between any two languages the
@@ -429,5 +429,56 @@ What changed:
   the frontend (91 tests). On the backend, the catalog, the notice, and
   `/api/languages` are covered over HTTP (1,104 tests).
 
-Next: phase 5, the French and Japanese profiles (conventions, address forms,
-number words, prompt examples, one benchmark book each).
+**Phase 5 status (2026-10-02): profiles done; benchmark runs pending.**
+
+- **Profiles.** `fr` and `ja` are at the profiled tier (`PROFILES` in
+  `languages.py`).
+  - French: « » with no-break spaces, nested “ ”, il/elle, tu/vous, stock
+    phrases, marker examples, an `s`/`x` plural in term matching. Elided
+    articles (`d'Aster`) still match the term.
+  - Japanese: 「」 and 『』, ……, 彼/彼女, the honorifics さん/様/君/ちゃん as
+    forms of address, `・` between the parts of a katakana name. Its scripts
+    are Han + kana, so a `ja`/`zh` pair tells the sides apart by kana.
+- **The tuned set is frozen.** `TUNED_PROFILES` (en, zh) builds every pattern
+  that spans "all languages": any script, word runs, lexical tokens,
+  sentence ends, the token estimate, and the pair list. A new profile
+  therefore never changes en-zh or zh-en (golden test unchanged).
+- **Conventions are data.** A profile lists `ConventionRule`s (the house
+  form, the slip, the message), and the book-level check enforces them by
+  majority. Chinese keeps its two rules with the same messages. French adds
+  quote style and the no-break space before `; : ! ?`; Japanese adds quote
+  style and the ellipsis. The check keeps no-break spaces when it normalizes
+  text. The consistency report's character and convention sections stay
+  Chinese (`consistency_report`), reported as the separate skips
+  "punctuation conventions" and "character report".
+- **Number words.** `number_words` names a parser. English and Chinese still
+  read every text. French (`number_words.py`: cardinals, the "et" rule,
+  quatre-vingts, percentages) and Japanese (億 read as 亿) run only on text
+  known to be in that language. The audit and repair number checks pass the
+  pair, so an English "five cent" is never 100. Lone `un`/`une`/`neuf`
+  (article, "new") are not counts.
+- **Style sheet.** Two address forms keep the "X or the polite Y" sentence;
+  more (Japanese honorifics) are listed.
+- **Tested.** `tests/test_language_profiles.py`:
+  - profile completeness and the French number round trips;
+  - French numbers only in French text, and Japanese 億;
+  - the French and Japanese conventions;
+  - style-sheet wording, elision, and the same-script untranslated check.
+  `en>fr` joins the end-to-end runs. Backend 1,134, frontend 91.
+- **Benchmarks** (`runs/bench/run-language-benchmarks.ps1`, results in
+  `runs/bench/language-results.md`):
+
+  | Run | Book | Pair |
+  |---|---|---|
+  | bench-lang-ja-zh | 羅生門 (story only) | `ja>zh` |
+  | bench-lang-en-fr | Alice chapters 1–4 | `en>fr` |
+  | bench-lang-en-ja | Alice chapters 1–4 | `en>ja` |
+  | bench-lang-fr-en | La chasse au météore chapters I–III | `fr>en` |
+
+  羅生門 arrives as one 6,095-character segment, a test of the splitting.
+- **Known limits.**
+  - The token estimate counts kana as UTF-8 bytes, not one token each,
+    because the tuned set is frozen. It underestimates Japanese by about a
+    quarter; the budget's reserve covers it.
+  - The optional quantity audit (`quantities.py`) reads English and Chinese
+    only.

@@ -53,7 +53,7 @@ export const isGeneric = (support: LanguageSupport | null | undefined) =>
  *  Options view, with a line saying why). Keys are the server's check names. */
 export const SKIP_HIDES: Record<string, string[]> = {
   "prose rewrite": ["reprose.enabled", "reprose.candidate_mode", "reprose.model", "reprose.verifier_model"],
-  "punctuation conventions and character report": ["consistency.conventions"],
+  "punctuation conventions": ["consistency.conventions"],
 };
 
 export function hiddenOptions(support: LanguageSupport | null | undefined): Map<string, SkippedCheck> {

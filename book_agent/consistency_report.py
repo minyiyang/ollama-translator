@@ -577,9 +577,9 @@ def build_report(
         ),
         "unglossed_names": unglossed or {},
         "characters": (
-            character_usage(segments, entries, examples=examples) if rules.convention_checks else None
+            character_usage(segments, entries, examples=examples) if rules.consistency_report else None
         ),
-        "conventions": conventions(segments, examples=examples) if rules.convention_checks else None,
+        "conventions": conventions(segments, examples=examples) if rules.consistency_report else None,
     }
 
 

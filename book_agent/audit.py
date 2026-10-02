@@ -25,7 +25,7 @@ from .content_policy import (
 )
 from .glossary import estimate_tokens, is_suspicious_generic_candidate
 from .languages import (
-    PROFILES,
+    TUNED_PROFILES,
     SCRIPTS,
     SENTENCE_END,
     TranslationDirection,
@@ -196,7 +196,7 @@ class TranslationAuditReport(BaseModel):
 _CJK = profile("zh").script_pattern
 _LATIN = re.compile(r"[A-Za-z]")
 # Letters of every profiled script, kept when comparing source and target prose.
-_PROSE_CHARS = "".join(item.script_basic_chars for item in PROFILES.values())
+_PROSE_CHARS = "".join(item.script_basic_chars for item in TUNED_PROFILES.values())
 _NUMBER_OR_UNIT = re.compile(
     r"\d|\b(?:mile|miles|inch|inches|foot|feet|yard|yards|pound|pounds|"
     r"ounce|ounces|degree|degrees|percent|percentage)\b",
@@ -302,7 +302,7 @@ def audit_translated_document(
             # the legacy token multiset here would reintroduce representation-only
             # false positives after semantic adjudication.
         else:
-            _audit_number_integrity(segment_id, source_text, target_text, issues)
+            _audit_number_integrity(segment_id, source_text, target_text, issues, translated.direction)
         if kind is SegmentKind.STRUCTURAL:
             continue
         if should_run_language_check(kind):
@@ -788,6 +788,7 @@ def validate_semantic_audit_scope(
     translation_text_by_id: dict[str, str] | None = None,
     *,
     quantity_enabled: bool = False,
+    direction: TranslationDirection | None = None,
 ) -> SemanticAuditResult:
     """Reject unsafe scope errors, ground evidence, and normalize owned metadata."""
     normalized: list[AuditIssue] = []
@@ -833,7 +834,7 @@ def validate_semantic_audit_scope(
                 and (
                     compare_quantity_texts(source_text, translation_text).status == "match"
                     if quantity_enabled
-                    else numeric_content_matches(source_text, translation_text)
+                    else numeric_content_matches(source_text, translation_text, direction)
                 )
             ):
                 continue
@@ -1242,12 +1243,12 @@ def _audit_length(segment_id, source, target, config, issues) -> None:
         issues.append(_issue(segment_id, AuditCategory.ADDITION, AuditSeverity.MEDIUM, f"translation/source token ratio is unusually high: {ratio:.2f}"))
 
 
-def _audit_number_integrity(segment_id, source, target, issues) -> None:
+def _audit_number_integrity(segment_id, source, target, issues, direction=None) -> None:
     """Keep digit-bearing facts deterministic even for non-prose segments."""
-    source_numbers = number_tokens(source)
-    target_numbers = number_tokens(target)
+    source_numbers = number_tokens(source, direction.source_language if direction else None)
+    target_numbers = number_tokens(target, direction.target_language if direction else None)
     target_has_cjk = bool(_CJK.search(visible_segment_text(target)))
-    if not numeric_content_matches(source, target) and (target_numbers or not target_has_cjk):
+    if not numeric_content_matches(source, target, direction) and (target_numbers or not target_has_cjk):
         # Only a trigger: the audit stage asks the quantity model for a ruling.
         issues.append(
             _issue(

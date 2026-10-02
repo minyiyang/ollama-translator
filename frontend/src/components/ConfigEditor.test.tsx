@@ -39,7 +39,7 @@ function editorApi(direction: string) {
           skipped: generic
             ? [
                 { check: "prose rewrite", reason: "its prompt and rules are written for Chinese; reprose stays off" },
-                { check: "punctuation conventions and character report", reason: "no house conventions for Japanese" },
+                { check: "punctuation conventions", reason: "no house conventions for Korean" },
               ]
             : [],
           notice: generic ? "Quality depends on the local model." : "",

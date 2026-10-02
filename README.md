@@ -205,8 +205,11 @@ depend on the current shell directory.
 ### Language pairs
 
 English to Simplified Chinese (`en-zh`) and back (`zh-en`) are tuned: every
-check, the glossary, the style sheet, and prose rewrite run for them. Any other
-pair is accepted at the generic tier, written either way:
+check, the glossary, the style sheet, and prose rewrite run for them. French
+(`fr`) and Japanese (`ja`) are profiled: their punctuation conventions, forms
+of address, number words, and prompt examples are written in, to and from any
+language. Any other language is accepted at the generic tier. A pair is written
+either way:
 
 ```yaml
 translation:

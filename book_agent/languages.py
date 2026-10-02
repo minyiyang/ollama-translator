@@ -21,6 +21,17 @@ from typing import Any, ClassVar, Iterator
 # behave as before.
 
 @dataclass(frozen=True)
+class ConventionRule:
+    """A house convention the book-level check enforces by majority: segments
+    using `slip` are flagged when at least as many segments use `house`."""
+
+    house: str  # regex of the convention the book follows
+    slip: str  # regex of the departure
+    message: str  # with {count}: the segments that follow the convention
+    fix: str
+
+
+@dataclass(frozen=True)
 class LanguageProfile:
     code: str
     display_name: str
@@ -52,8 +63,10 @@ class LanguageProfile:
     nested_quotes: str = ""
     ellipsis: str = ""
     dash: str = ""
-    # Whether the book-level punctuation and character reports are tuned for it.
-    convention_checks: bool = False
+    # House conventions the book-level punctuation check enforces (consistency.py).
+    conventions: tuple[ConventionRule, ...] = field(default_factory=tuple)
+    # Whether consistency_report's character and convention sections are written for it.
+    consistency_report: bool = False
     # Third-person singular pronouns (he, she, it) and forms of address
     # (informal, polite) a translation chooses between for a character.
     pronouns: tuple[str, ...] = field(default_factory=tuple)
@@ -63,8 +76,10 @@ class LanguageProfile:
     # What separates the parts of a transliterated name ("·" in Chinese), so a
     # full name can be checked against the rendering of each part.
     name_separator: str = ""
-    # Whether the number-word parsers read this language (content_policy, quantities).
-    number_words: bool = False
+    # The number-word parser that reads this language: "english" and "chinese"
+    # run on every text; "french" and "japanese" on text known to be in them
+    # (number_words.py). Empty when no parser reads it.
+    number_words: str = ""
     # "tuned", "profiled", or "generic" (docs/GENERIC_LANGUAGES.md, 2.4).
     tier: str = "generic"
 
@@ -116,7 +131,7 @@ PROFILES: dict[str, LanguageProfile] = {
         dash="—",
         pronouns=("he", "she", "it"),
         stop_words=frozenset({"the", "and", "that", "with", "this", "from", "was", "were"}),
-        number_words=True,
+        number_words="english",
         tier="tuned",
     ),
     "zh": LanguageProfile(
@@ -146,11 +161,25 @@ PROFILES: dict[str, LanguageProfile] = {
         nested_quotes="‘ ’",
         ellipsis="……",
         dash="——",
-        convention_checks=True,
+        conventions=(
+            ConventionRule(
+                house="——",
+                slip="(?<!—)—(?!—)",
+                message="A single dash — is used here, but the book uses the paired Chinese dash —— ({count} segments).",
+                fix="Replace the single dash — with ——.",
+            ),
+            ConventionRule(
+                house="[“”]",
+                slip='"',
+                message='A straight quotation mark " is used here, but the book uses “ ” ({count} segments).',
+                fix='Replace the straight quotation marks " with “ and ”.',
+            ),
+        ),
+        consistency_report=True,
         pronouns=("他", "她", "它"),
         address_forms=("你", "您"),
         name_separator="·",
-        number_words=True,
+        number_words="chinese",
         tier="tuned",
     ),
 }
@@ -274,6 +303,122 @@ def _generic_profile(code: str) -> LanguageProfile:
     )
 
 
+# -- profiled languages (docs/GENERIC_LANGUAGES.md, phase 5) ----------------------------------
+
+# The languages the code knew before profiles existed. Patterns built over "every
+# language" (any script, word runs, lexical tokens, the pair list) keep using
+# only these, so a new profile never changes what en-zh and zh-en do.
+TUNED_PROFILES: dict[str, LanguageProfile] = dict(PROFILES)
+
+_NBSP = "\u00a0\u202f"
+_KANA_HAN = SCRIPTS["Han"] + SCRIPTS["Hiragana"] + SCRIPTS["Katakana"]
+
+PROFILES["fr"] = LanguageProfile(
+    code="fr",
+    display_name="French",
+    short_name="French",
+    scripts=("Latin",),
+    script_chars=SCRIPTS["Latin"],
+    script_basic_chars=SCRIPTS["Latin"],
+    spaced_words=True,
+    cased=True,
+    # Elided articles (l', d') end a word, so "d'Aster" still matches "Aster".
+    word_chars=SCRIPTS["Latin"] + "0-9_",
+    plural_suffix="(?:s|x)?",
+    sentence_end=".!?",
+    stock_phrases=(
+        "il est important de noter que",
+        "il convient de noter que",
+        "en conclusion",
+        "force est de constater",
+        "le temps semblait suspendu",
+        "comme si le temps s'était arrêté",
+    ),
+    marker_examples=(
+        "Elle était <I000>très</I000> fatiguée.",
+        "<I000></I000>Chapitre <I001></I001> un",
+    ),
+    quotes="« »",
+    nested_quotes="“ ”",
+    ellipsis="…",
+    dash="—",
+    conventions=(
+        ConventionRule(
+            house="[«»]",
+            slip='"',
+            message='A straight quotation mark " is used here, but the book uses « » ({count} segments).',
+            fix='Replace the straight quotation marks " with « and », a no-break space inside each.',
+        ),
+        ConventionRule(
+            house="[«»]",
+            slip="[“”]",
+            message="English quotation marks “ ” are used here, but the book uses « » ({count} segments).",
+            fix="Replace “ and ” with « and ».",
+        ),
+        ConventionRule(
+            house=f"[{_NBSP}][;:!?]",
+            slip=rf"(?<![{_NBSP}\d;:!?])[;:!?](?![\d/])",
+            message="No no-break space before ; : ! or ? here, but the book uses one ({count} segments).",
+            fix="Put a no-break space (U+00A0 or U+202F) before ; : ! and ?.",
+        ),
+    ),
+    pronouns=("il", "elle"),
+    address_forms=("tu", "vous"),
+    stop_words=frozenset({"les", "des", "une", "que", "qui", "dans", "pour", "avec", "est", "sont", "était", "elle", "mais"}),
+    number_words="french",
+    tier="profiled",
+)
+
+PROFILES["ja"] = LanguageProfile(
+    code="ja",
+    display_name="Japanese",
+    short_name="Japanese",
+    scripts=("Han", "Hiragana", "Katakana"),
+    script_chars=_KANA_HAN,
+    script_basic_chars=_KANA_HAN,
+    spaced_words=False,
+    cased=False,
+    word_chars="",
+    plural_suffix="",
+    sentence_end="。！？",
+    stock_phrases=(
+        "言うまでもなく",
+        "重要なのは",
+        "結論として",
+        "まるで時間が止まったかのように",
+        "と言えるでしょう",
+    ),
+    marker_examples=(
+        "彼女は<I000>とても</I000>疲れていた。",
+        "<I000></I000>第一章<I001></I001>",
+    ),
+    quotes="「 」",
+    nested_quotes="『 』",
+    ellipsis="……",
+    dash="――",
+    conventions=(
+        ConventionRule(
+            house="[「」]",
+            slip='["“”]',
+            message='Quotation marks " or “ ” are used here, but the book uses 「 」 ({count} segments).',
+            fix="Replace them with 「 and 」.",
+        ),
+        ConventionRule(
+            house="……",
+            slip=r"(?<!…)…(?!…)|\.\.\.",
+            message="A single ellipsis … is used here, but the book uses …… ({count} segments).",
+            fix="Replace … or ... with …….",
+        ),
+    ),
+    pronouns=("彼", "彼女"),
+    # Honorific suffixes rather than one polite pronoun.
+    address_forms=("さん", "様", "君", "ちゃん"),
+    # Katakana names separate their parts with a middle dot (ジョン・スミス).
+    name_separator="・",
+    number_words="japanese",
+    tier="profiled",
+)
+
 _GENERIC: dict[str, LanguageProfile] = {}
 
 
@@ -360,7 +505,7 @@ class _PairType(type):
     def __iter__(cls) -> Iterator[LanguagePair]:
         """Every pair of profiled languages, in profile order."""
         return iter(
-            cls(f"{source}>{target}") for source in PROFILES for target in PROFILES if source != target
+            cls(f"{source}>{target}") for source in TUNED_PROFILES for target in TUNED_PROFILES if source != target
         )
 
 
@@ -443,13 +588,13 @@ DEFAULT_DIRECTION = LanguagePair("en-zh")
 
 
 # Letters of any profiled script.
-ANY_SCRIPT = re.compile("[" + "".join(item.script_chars for item in PROFILES.values()) + "]")
+ANY_SCRIPT = re.compile("[" + "".join(item.script_chars for item in TUNED_PROFILES.values()) + "]")
 # Letters of scripts written without spaces: about one model token each.
 UNSPACED_SCRIPT = re.compile(
-    "[" + "".join(item.script_chars for item in PROFILES.values() if not item.spaced_words) + "]"
+    "[" + "".join(item.script_chars for item in TUNED_PROFILES.values() if not item.spaced_words) + "]"
 )
 # Characters that end a sentence in any profiled language.
-SENTENCE_END = "".join(item.sentence_end for item in PROFILES.values())
+SENTENCE_END = "".join(item.sentence_end for item in TUNED_PROFILES.values())
 
 
 def profile(language: Language | str) -> LanguageProfile:
@@ -515,8 +660,10 @@ def language_support(direction: LanguagePair) -> dict[str, Any]:
         skip("left-over source words", "no script tells the source from the target")
     if not (source.number_words and target.number_words):
         skip("number words", "numbers written as words go to the semantic audit's numeric ruling")
-    if not target.convention_checks:
-        skip("punctuation conventions and character report", f"no house conventions for {target.display_name}")
+    if not target.conventions:
+        skip("punctuation conventions", f"no house conventions for {target.display_name}")
+    if not target.consistency_report:
+        skip("character report", f"the consistency report's character section is written for Chinese")
     if not target.pronouns:
         skip("style-sheet pronouns", "characters in the style sheet keep their voice only")
     if not target.stock_phrases:

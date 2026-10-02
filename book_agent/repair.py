@@ -18,7 +18,7 @@ from .audit import (
     audit_translated_document,
 )
 from .config import AppConfig
-from .languages import PROFILES, glossary_pair
+from .languages import TUNED_PROFILES, glossary_pair
 from .content_policy import (
     is_intentionally_preserved,
     repair_preserves_glossary,
@@ -463,7 +463,7 @@ def validate_repair_output(
             )
         )
     elif validation.passed and not config.audit.quantity.enabled and not repair_preserves_numbers(
-        source_text, original_translation, repaired
+        source_text, original_translation, repaired, config.translation.direction
     ):
         issues.append(
             TranslationIssue(
@@ -900,10 +900,10 @@ def retrieve_related_source_context(
 # Content words: three letters or more in a spaced script, two characters in an unspaced one.
 _LEXICAL_TOKEN = re.compile(
     "|".join(
-        f"[{item.script_basic_chars}]{{{3 if item.spaced_words else 2},}}" for item in PROFILES.values()
+        f"[{item.script_basic_chars}]{{{3 if item.spaced_words else 2},}}" for item in TUNED_PROFILES.values()
     )
 )
-_STOP_WORDS = frozenset().union(*(item.stop_words for item in PROFILES.values()))
+_STOP_WORDS = frozenset().union(*(item.stop_words for item in TUNED_PROFILES.values()))
 
 
 def _lexical_tokens(text: str) -> list[str]:

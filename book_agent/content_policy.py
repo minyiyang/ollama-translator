@@ -8,7 +8,8 @@ from collections import Counter
 from enum import Enum
 from typing import Iterable
 
-from .languages import PROFILES, SENTENCE_END, TranslationDirection, glossary_sides, profile
+from .languages import SENTENCE_END, TUNED_PROFILES, TranslationDirection, glossary_sides, profile
+from .number_words import french_objective_patterns, french_word_values, japanese_as_chinese_numerals
 from .schemas import GlossaryEntry, is_preservable_technical_identifier
 
 
@@ -23,7 +24,7 @@ class SegmentKind(str, Enum):
 _CJK = profile("zh").script_pattern
 _LATIN = re.compile(r"[A-Za-z]")
 # A run of letters in any profiled script (a "word" for heading detection).
-_SCRIPT_RUN = re.compile("|".join(f"[{item.script_basic_chars}]+" for item in PROFILES.values()))
+_SCRIPT_RUN = re.compile("|".join(f"[{item.script_basic_chars}]+" for item in TUNED_PROFILES.values()))
 # Chinese numerals up to ten, for clock times and countdowns.
 _CHINESE_DIGITS = "零〇一二两三四五六七八九十"
 _INLINE_MARKER = re.compile(r"</?I\d{3}>")
@@ -505,11 +506,23 @@ def should_run_semantic_audit(kind: SegmentKind) -> bool:
     return kind is SegmentKind.PROSE
 
 
-def number_tokens(text: str) -> Counter[str]:
-    """Return conservative, cross-language objective number facts."""
+def _number_parser(language: str | None) -> str:
+    """The extra number-word parser for text in `language` ("" when none applies)."""
+    return profile(language).number_words if language else ""
+
+
+def number_tokens(text: str, language: str | None = None) -> Counter[str]:
+    """Return conservative, cross-language objective number facts.
+
+    English and Chinese number words are read in any text. With `language`, the
+    parser of that language's profile also runs (French; Japanese 億).
+    """
+    parser = _number_parser(language)
     # Marker boundaries must not concatenate prose into synthetic identifiers such
     # as ``LLC<I000></I000>175`` -> ``LLC175``.
     visible = unicodedata.normalize("NFKC", _INLINE_MARKER.sub(" ", text)).strip()
+    if parser == "japanese":
+        visible = japanese_as_chinese_numerals(visible)
     countdown = _countdown_number_tokens(visible)
     if countdown:
         return countdown
@@ -546,6 +559,9 @@ def number_tokens(text: str) -> Counter[str]:
                 facts.append(_canonical_numeric_fact(value))
             masked[match.start():match.end()] = " " * (match.end() - match.start())
 
+    if parser == "french":
+        for pattern, convert in french_objective_patterns():
+            add_matches(pattern, convert)
     add_matches(
         _SPACED_WORD_IDENTIFIER,
         lambda match: _SMALL_ENGLISH_NUMBERS[match.group("number").casefold()],
@@ -782,10 +798,14 @@ def _canonical_identifier_fact(value: str) -> str:
     return re.search(r"\d+", value).group(0)
 
 
-def numeric_content_matches(source_text: str, target_text: str) -> bool:
+def numeric_content_matches(
+    source_text: str, target_text: str, direction: TranslationDirection | None = None
+) -> bool:
     """Require every source fact without hard-failing implied target additions."""
-    source = number_tokens(source_text)
-    target = number_tokens(target_text)
+    source_language = direction.source_language if direction else None
+    target_language = direction.target_language if direction else None
+    source = number_tokens(source_text, source_language)
+    target = number_tokens(target_text, target_language)
     # Literary English commonly expresses a total ratio ("half again" = 1.5x),
     # while idiomatic Chinese expresses the same relation as a relative increase
     # ("增加百分之五十" or "大出一半" = +0.5). Keep the objective relation
@@ -820,11 +840,11 @@ def numeric_content_matches(source_text: str, target_text: str) -> bool:
     # classifiers explicit. Semantic audit handles suspicious additions; this hard
     # gate is deliberately limited to source facts that disappeared or changed.
     if source:
-        return not (source - (target + _number_word_tokens(target_text)))
-    source_words = _number_word_tokens(source_text)
+        return not (source - (target + _number_word_tokens(target_text, target_language)))
+    source_words = _number_word_tokens(source_text, source_language)
     if not source_words:
         return True
-    target_facts = target + _number_word_tokens(target_text)
+    target_facts = target + _number_word_tokens(target_text, target_language)
     # A lexical count with no mechanically recognizable target counterpart is too
     # ambiguous to block cross-language prose. It remains eligible for semantic audit.
     if not target_facts:
@@ -838,37 +858,44 @@ def numeric_content_matches(source_text: str, target_text: str) -> bool:
 
 
 def repair_preserves_numbers(
-    source_text: str, accepted_text: str, candidate_text: str
+    source_text: str,
+    accepted_text: str,
+    candidate_text: str,
+    direction: TranslationDirection | None = None,
 ) -> bool:
     """Prevent a repair from changing number facts already aligned with the source."""
-    source = _credible_number_facts(source_text)
-    accepted_objective = number_tokens(accepted_text)
-    candidate_objective = number_tokens(candidate_text)
-    if numeric_content_matches(source_text, accepted_text):
+    target_language = direction.target_language if direction else None
+    source = _credible_number_facts(source_text, direction.source_language if direction else None)
+    accepted_objective = number_tokens(accepted_text, target_language)
+    candidate_objective = number_tokens(candidate_text, target_language)
+    if numeric_content_matches(source_text, accepted_text, direction):
         # Ordinary target-language classifiers are lower-confidence lexical hints,
         # not immutable quantities. Treat only objective facts as additions here;
         # otherwise a localized prose repair can be rejected merely for changing
         # an indefinite article into a natural Chinese classifier.
-        return numeric_content_matches(source_text, candidate_text) and not (
+        return numeric_content_matches(source_text, candidate_text, direction) and not (
             candidate_objective - (accepted_objective + source)
         )
     # A pre-existing mismatch must not prevent an unrelated localized repair. It may
     # improve to the source facts, but it may never introduce a third set of facts.
     return candidate_objective == accepted_objective or (
-        numeric_content_matches(source_text, candidate_text)
+        numeric_content_matches(source_text, candidate_text, direction)
         and not (candidate_objective - source)
     )
 
 
-def _credible_number_facts(text: str) -> Counter[str]:
+def _credible_number_facts(text: str, language: str | None = None) -> Counter[str]:
     """Use the same confidence ordering as ``numeric_content_matches``."""
-    objective = number_tokens(text)
-    return objective if objective else _number_word_tokens(text)
+    objective = number_tokens(text, language)
+    return objective if objective else _number_word_tokens(text, language)
 
 
-def _number_word_tokens(text: str) -> Counter[str]:
+def _number_word_tokens(text: str, language: str | None = None) -> Counter[str]:
     """Return lower-confidence lexical counts used only when both sides expose them."""
+    parser = _number_parser(language)
     visible = unicodedata.normalize("NFKC", _INLINE_MARKER.sub(" ", text)).strip()
+    if parser == "japanese":
+        visible = japanese_as_chinese_numerals(visible)
     masked = list(visible)
     for match in _ENGLISH_ARTICLE_ORDINAL_NOUN.finditer(visible):
         masked[match.start():match.end()] = " " * (match.end() - match.start())
@@ -897,6 +924,8 @@ def _number_word_tokens(text: str) -> Counter[str]:
         _canonical_numeric_fact(_parse_chinese_number(match.group("number")))
         for match in _CHINESE_NUMBER.finditer(visible)
     )
+    if parser == "french":
+        facts.extend(_canonical_numeric_fact(value) for value in french_word_values(visible))
     return Counter(facts)
 
 

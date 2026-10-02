@@ -37,10 +37,6 @@ _QUOTE = re.compile(r"“([^”]*)”|「([^」]*)」")
 # Punctuation and spacing ignored when comparing two renderings of one line.
 _RENDERING_NOISE = re.compile(r"[\s，。！？、；：,.!?;:…—\-“”‘’「」『』\"'（）()]")
 _QUOTE_EDGES = " \t,.!?;:—-…"
-_SINGLE_DASH = re.compile(r"(?<!—)—(?!—)")
-_PAIRED_DASH = re.compile(r"——")
-_STRAIGHT_QUOTE = re.compile(r'"')
-_CURLY_QUOTE = re.compile(r"[“”]")
 
 
 @dataclass(frozen=True)
@@ -270,45 +266,31 @@ def repeated_line_issues(
 def convention_issues(
     segments: Sequence[BookSegment], settings: ConsistencySettings
 ) -> list[AuditIssue]:
-    """Punctuation that departs from the book's own majority convention (Chinese targets)."""
+    """Punctuation that departs from the book's own majority convention (the target profile's rules)."""
     rules = profile(settings.target_language)
-    if not rules.convention_checks:
+    if not rules.conventions:
         return []
-    chinese = [
-        (segment, visible_text(segment.target))
+    # Spacing is part of a convention (a no-break space before French ; : ! ?),
+    # so only ordinary whitespace is collapsed here.
+    written = [
+        (segment, re.sub(r"[ \t\r\n]+", " ", _INLINE_MARKER.sub("", segment.target)).strip())
         for segment in segments
         if rules.script_pattern.search(segment.target)
     ]
-    paired = sum(1 for _, text in chinese if _PAIRED_DASH.search(text))
-    single = [(segment, text) for segment, text in chinese if _SINGLE_DASH.search(text)]
-    curly = sum(1 for _, text in chinese if _CURLY_QUOTE.search(text))
-    straight = [(segment, text) for segment, text in chinese if _STRAIGHT_QUOTE.search(text)]
     issues: list[AuditIssue] = []
-    if single and paired >= len(single):
-        for segment, text in single:
+    for rule in rules.conventions:
+        house, slip = re.compile(rule.house), re.compile(rule.slip)
+        following = sum(1 for _, text in written if house.search(text))
+        departures = [(segment, text) for segment, text in written if slip.search(text)]
+        if not departures or following < len(departures):
+            continue
+        for segment, text in departures:
             issues.append(AuditIssue(
                 segment_id=segment.segment_id,
                 category=AuditCategory.CONSISTENCY,
                 severity=AuditSeverity.MEDIUM,
-                message=(
-                    f"A single dash — is used here, but the book uses the paired Chinese dash —— "
-                    f"({paired} segments)."
-                ),
-                suggested_fix="Replace the single dash — with ——.",
-                source=CONSISTENCY_SOURCE,
-                translation_quote=_clip(text, 120),
-            ))
-    if straight and curly >= len(straight):
-        for segment, text in straight:
-            issues.append(AuditIssue(
-                segment_id=segment.segment_id,
-                category=AuditCategory.CONSISTENCY,
-                severity=AuditSeverity.MEDIUM,
-                message=(
-                    f'A straight quotation mark " is used here, but the book uses “ ” '
-                    f"({curly} segments)."
-                ),
-                suggested_fix='Replace the straight quotation marks " with “ and ”.',
+                message=rule.message.format(count=following),
+                suggested_fix=rule.fix,
                 source=CONSISTENCY_SOURCE,
                 translation_quote=_clip(text, 120),
             ))
