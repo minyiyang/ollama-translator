@@ -164,3 +164,13 @@ def test_the_workflow_creates_a_model_client_only_when_story_context_is_on():
 
     assert not _stage_uses_ollama(WorkflowStage.BUILD_STORY_CONTEXT, AppConfig())
     assert _stage_uses_ollama(WorkflowStage.BUILD_STORY_CONTEXT, _config())
+
+
+def test_a_summary_at_the_longest_configured_length_is_accepted():
+    """max_summary_words goes up to 300; the model follows the prompt, so the schema must too."""
+    from book_agent.config import StoryContextConfig
+
+    longest = StoryContextConfig.model_fields["max_summary_words"].metadata
+    limit = next(item.le for item in longest if getattr(item, "le", None) is not None)
+    events = " ".join(["wandering"] * limit)  # longer than average English words
+    assert ChapterSummary(events=events).events == events

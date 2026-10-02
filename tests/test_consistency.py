@@ -713,3 +713,59 @@ class EditCheckConventionTests:
             )
             paired = check_edits(workspace, {first: "王后——对花园里的每个人大喊。"})[first]
             assert not any("single dash" in f["message"] for f in paired["overridable"])
+
+
+class ConsistencyCacheTests:
+    def test_the_whole_book_check_runs_once_until_the_edits_change(self):
+        """The Text tab and the gate ask several times per request (docs/BOOK_CONSISTENCY.md, 8.2)."""
+        from book_agent import consistency
+        from book_agent.stages.validate_repaired import (
+            load_repaired_validation_report,
+            load_validated_repaired_documents,
+        )
+        from book_agent.text_edits import compiled_consistency_issues, unresolved_review_gate
+        from book_agent.web.text_view import text_chapter, text_outline
+
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = _prepared(directory, _config())
+            first, second = _repeated_ids(workspace)
+            report = load_repaired_validation_report(workspace)
+            document_id = next(
+                d.document.manifest_id for d in load_validated_repaired_documents(workspace)
+                if any(s.segment_id == second for s in d.document.segments)
+            )
+            with patch(
+                "book_agent.text_edits.book_consistency_issues",
+                wraps=consistency.book_consistency_issues,
+            ) as detector:
+                _edit(workspace, _segment(workspace, "Alice walked"), "爱丽丝安静地走着（改）。")
+                detector.reset_mock()  # the edit check has its own pass
+                assert unresolved_review_gate(workspace, report).unresolved_review_ids == []
+                assert detector.call_count == 1  # the text as compiled: no drift, nothing to compare
+                compiled_consistency_issues(workspace)
+                unresolved_review_gate(workspace, report)
+                text_outline(workspace)
+                assert detector.call_count == 1
+
+                # A new edit changes the text as compiled, so it is checked again,
+                # and compared with the draft itself.
+                _edit(workspace, _segment(workspace, "Queen shouted"), "新译文。")
+                detector.reset_mock()
+                assert unresolved_review_gate(workspace, report).unresolved_review_ids == [second]
+                assert detector.call_count == 2
+                rows = text_chapter(workspace, document_id)["segments"]
+                assert [row["segment_id"] for row in rows if row["in_review_queue"]] == [second]
+                text_outline(workspace)
+                assert detector.call_count == 2
+
+    def test_a_cached_result_cannot_be_changed_by_its_reader(self):
+        from book_agent.text_edits import compiled_consistency_issues
+
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = _prepared(directory, _config())
+            first, second = _repeated_ids(workspace)
+            _edit(workspace, _segment(workspace, "Queen shouted"), "新译文。")
+            issues = compiled_consistency_issues(workspace)
+            assert [i.segment_id for i in issues] == [second]
+            issues.clear()
+            assert [i.segment_id for i in compiled_consistency_issues(workspace)] == [second]

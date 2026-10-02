@@ -21,7 +21,8 @@ class ChapterSummary(BaseModel):
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     characters: list[str] = Field(default_factory=list, max_length=12)
-    events: str = Field(default="", max_length=1200)
+    # Room for consistency.story_context.max_summary_words at its maximum (300 words).
+    events: str = Field(default="", max_length=3000)
     open_threads: list[str] = Field(default_factory=list, max_length=5)
 
 

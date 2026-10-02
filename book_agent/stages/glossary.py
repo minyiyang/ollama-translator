@@ -10,6 +10,9 @@ from pydantic import Field, ValidationError, create_model
 from ..atomic_io import atomic_write_text
 from ..stage_artifacts import list_active_stage_artifacts
 from ..style_sheet import (
+    StyleCharacter,
+    StyleExpression,
+    StyleReviewDecision,
     StyleSheet,
     apply_style_review,
     build_style_candidate_schema,
@@ -21,6 +24,7 @@ from ..style_sheet import (
     load_style_sheet,
     merge_style_candidates,
     review_decisions,
+    style_review_line,
 )
 from ..config import AppConfig
 from ..glossary import (
@@ -36,6 +40,7 @@ from ..glossary import (
     GlossaryHarmonizationReport,
     GlossaryQualityReport,
     canonicalize_candidate_evidence,
+    estimate_tokens,
     harmonize_glossary,
     load_glossary_file,
     merge_candidate_entries,
@@ -776,11 +781,24 @@ def run_glossary_approval_stage(
         dropped_generic: list[GlossaryEntry] = []
         if review_mode != "human" and config.glossary.drop_generic_terms:
             # Ordinary words the generic screen flags are left to the translator's
-            # judgment; entries from configured glossary files are kept.
+            # judgment; entries from configured glossary files are kept, and so are
+            # those a reviewed file adds to the draft or changes in it: a person
+            # chose them, even when the file then goes to the LLM for review.
             configured = source_priority_by_term(configured_sources)
+            drafted = {(normalize_term(entry.english), entry.chinese) for entry in draft.entries}
+            chosen = (
+                {
+                    normalize_term(entry.english)
+                    for entry in candidate.entries
+                    if (normalize_term(entry.english), entry.chinese) not in drafted
+                }
+                if reviewed_file is not None
+                else set()
+            )
             kept = []
             for entry in approved.entries:
-                if is_suspicious_generic_candidate(entry) and normalize_term(entry.english) not in configured:
+                term = normalize_term(entry.english)
+                if is_suspicious_generic_candidate(entry) and term not in configured and term not in chosen:
                     dropped_generic.append(entry)
                 else:
                     kept.append(entry)
@@ -1883,6 +1901,39 @@ def _chunk_extraction_schema(config: AppConfig, chunk: GlossaryChunk):
     )
 
 
+# Allowance for the decision a reviewer returns for one entry.
+_STYLE_DECISION_TOKENS = 80
+
+
+def _style_review_batches(
+    draft: StyleSheet, evidence: dict[str, str], max_tokens: int
+) -> list[StyleSheet]:
+    """The draft in reading order, split so one review call fits the approval budget."""
+    batches: list[StyleSheet] = []
+    characters: list[StyleCharacter] = []
+    expressions: list[StyleExpression] = []
+    used = 0
+
+    def flush() -> None:
+        nonlocal characters, expressions, used
+        if characters or expressions:
+            batches.append(
+                StyleSheet(
+                    characters=characters, expressions=expressions, conventions=draft.conventions
+                )
+            )
+        characters, expressions, used = [], [], 0
+
+    for item in [*draft.characters, *draft.expressions]:
+        cost = estimate_tokens(style_review_line("C0000", item, evidence)) + _STYLE_DECISION_TOKENS
+        if used and used + cost > max_tokens:
+            flush()
+        (characters if isinstance(item, StyleCharacter) else expressions).append(item)
+        used += cost
+    flush()
+    return batches
+
+
 def _review_style_sheet(
     draft: StyleSheet,
     config: AppConfig,
@@ -1890,7 +1941,11 @@ def _review_style_sheet(
     workspace: JobWorkspace,
     stage_root: Path,
 ) -> StyleSheet:
-    """One structured LLM call that approves, revises, or rejects every style entry."""
+    """Structured LLM calls that approve, revise, or reject every style entry.
+
+    One call for most books; a long sheet is reviewed in batches of
+    ``glossary.approval_chunk_tokens``, like the glossary.
+    """
     if client is None:
         raise ValueError("an Ollama client is required for LLM style-sheet review")
     manifest = load_decompile_manifest(workspace, connection=None)
@@ -1905,8 +1960,39 @@ def _review_style_sheet(
         for reference in item.evidence
         if reference not in evidence and reference.split("-P")[0] in evidence
     })
-    prompt = build_style_review_prompt(draft, config.translation.direction, evidence)
-    schema = build_style_review_schema(draft)
+    batches = _style_review_batches(draft, evidence, config.glossary.approval_chunk_tokens)
+    characters: list[StyleCharacter] = []
+    expressions: list[StyleExpression] = []
+    records: list[dict[str, object]] = []
+    reviewed = {"C": 0, "X": 0}  # entries in earlier batches, to number decisions draft-wide
+    for index, batch in enumerate(batches, start=1):
+        decisions = _review_style_batch(batch, evidence, config, client, index, len(batches))
+        approved = apply_style_review(batch, decisions)
+        characters += approved.characters
+        expressions += approved.expressions
+        for decision in decisions:
+            kind = decision.entry_id[0]
+            number = int(decision.entry_id[1:]) + reviewed[kind]
+            records.append({**decision.model_dump(), "entry_id": f"{kind}{number:04d}"})
+        reviewed["C"] += len(batch.characters)
+        reviewed["X"] += len(batch.expressions)
+    review_path = stage_root / "style.review.json"
+    atomic_write_text(review_path, json.dumps(records, ensure_ascii=False, indent=2))
+    return StyleSheet(
+        characters=characters, expressions=expressions, conventions=draft.conventions
+    )
+
+
+def _review_style_batch(
+    batch: StyleSheet,
+    evidence: dict[str, str],
+    config: AppConfig,
+    client: OllamaClient,
+    index: int,
+    total: int,
+) -> list[StyleReviewDecision]:
+    prompt = build_style_review_prompt(batch, config.translation.direction, evidence)
+    schema = build_style_review_schema(batch)
     last_error: Exception | None = None
     for attempt in range(1, config.workflow.max_retries + 2):
         attempt_prompt = prompt
@@ -1918,25 +2004,20 @@ def _review_style_sheet(
                 schema,
                 model=config.ollama.model,
                 think=False,
-                progress_label=f"id=style-review mode=review attempt={attempt}/{config.workflow.max_retries + 1}",
+                progress_label=(
+                    f"batch={index}/{total} id=style-review mode=review "
+                    f"attempt={attempt}/{config.workflow.max_retries + 1}"
+                ),
                 **llm_role_kwargs(client, "glossary.approve"),
                 context_minimum=config.glossary.approval_min_num_ctx,
                 context_maximum=config.glossary.approval_max_num_ctx,
                 context_multiplier=config.glossary.approval_context_multiplier,
                 max_attempts=1,
             )
-            decisions = review_decisions(generated.value)
-            break
+            return review_decisions(generated.value)
         except Exception as error:  # structured-output or validation failure: retry with feedback
             last_error = error
-    else:
-        raise RuntimeError(f"style-sheet review failed: {last_error}")
-    review_path = stage_root / "style.review.json"
-    atomic_write_text(
-        review_path,
-        json.dumps([item.model_dump() for item in decisions], ensure_ascii=False, indent=2),
-    )
-    return apply_style_review(draft, decisions)
+    raise RuntimeError(f"style-sheet review failed: {last_error}")
 
 
 def _load_style_candidates(connection, workspace: JobWorkspace) -> list[StyleSheet]:

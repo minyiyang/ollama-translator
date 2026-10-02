@@ -201,6 +201,23 @@ def merge_style_candidates(
     )
 
 
+def _is_spelled_word_character(character: str) -> bool:
+    """A letter or digit of a script that separates words with spaces (not CJK)."""
+    return character.isalnum() and ord(character) < 0x2E80
+
+
+def expression_pattern(source: str) -> re.Pattern[str]:
+    """Matches an expression in NFKC-casefolded text, as whole words.
+
+    An end that is a letter or digit must not continue into another word, so
+    "the rat" does not match "the rattle".
+    """
+    key = _key(source)
+    before = r"(?<![^\W_])" if _is_spelled_word_character(key[:1]) else ""
+    after = r"(?![^\W_])" if _is_spelled_word_character(key[-1:]) else ""
+    return re.compile(before + re.escape(key) + after)
+
+
 MIN_EXPRESSION_CHARACTERS = 6
 
 
@@ -218,7 +235,7 @@ def keep_recurring_expressions(sheet: StyleSheet, texts: Iterable[str]) -> Style
         item
         for item in sheet.expressions
         if len(item.source) >= MIN_EXPRESSION_CHARACTERS
-        and book.count(" ".join(unicodedata.normalize("NFKC", item.source).casefold().split())) >= 2
+        and len(expression_pattern(item.source).findall(book)) >= 2
     ]
     return sheet.model_copy(update={"expressions": kept})
 
@@ -289,25 +306,31 @@ def review_decisions(result: BaseModel) -> list[StyleReviewDecision]:
     ]
 
 
+def style_review_line(
+    entry_id: str, item: StyleCharacter | StyleExpression, evidence: dict[str, str]
+) -> str:
+    """One entry as the review prompt shows it."""
+    quotes = " | ".join(evidence.get(ref, "")[:160] for ref in item.evidence if ref in evidence)
+    if isinstance(item, StyleCharacter):
+        return (
+            f"{entry_id} character {item.name!r}: pronoun={item.pronoun or '-'} "
+            f"addressed_as={item.addressed_as or '-'} voice={item.voice!r} "
+            f"alternatives={item.alternatives} evidence: {quotes}"
+        )
+    return (
+        f"{entry_id} expression {item.source!r} => {item.rendering!r} "
+        f"alternatives={item.alternatives} evidence: {quotes}"
+    )
+
+
 def build_style_review_prompt(
     sheet: StyleSheet, direction: TranslationDirection, evidence: dict[str, str]
 ) -> str:
     target = direction.target_language.display_name
-    lines = []
-    ids = style_entry_ids(sheet)
-    for entry_id, item in zip(ids, [*sheet.characters, *sheet.expressions]):
-        quotes = " | ".join(evidence.get(ref, "")[:160] for ref in item.evidence if ref in evidence)
-        if isinstance(item, StyleCharacter):
-            lines.append(
-                f"{entry_id} character {item.name!r}: pronoun={item.pronoun or '-'} "
-                f"addressed_as={item.addressed_as or '-'} voice={item.voice!r} "
-                f"alternatives={item.alternatives} evidence: {quotes}"
-            )
-        else:
-            lines.append(
-                f"{entry_id} expression {item.source!r} => {item.rendering!r} "
-                f"alternatives={item.alternatives} evidence: {quotes}"
-            )
+    lines = [
+        style_review_line(entry_id, item, evidence)
+        for entry_id, item in zip(style_entry_ids(sheet), [*sheet.characters, *sheet.expressions])
+    ]
     return (
         f"Review this draft book style sheet for a translation into {target}. For every "
         "entry return exactly one decision, always with the entry's final values: pronoun and "
@@ -385,7 +408,7 @@ def select_relevant_style(sheet: StyleSheet, source_text: str, *, max_entries: i
     characters = [item for item in sheet.characters if _name_pattern(item.name).search(text)]
     expressions = [
         item for item in sheet.expressions
-        if " ".join(unicodedata.normalize("NFKC", item.source).casefold().split()) in folded
+        if expression_pattern(item.source).search(folded)
     ]
     budget = max(0, max_entries)
     expressions = expressions[:budget]

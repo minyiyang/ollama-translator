@@ -511,6 +511,9 @@ the findings would otherwise be dropped silently):
    Only findings the edits introduced are added: drift already in the
    validated draft is in the validation report (point 3), and a job validated
    before these checks existed is not blocked by it on its next compile.
+   The check is cached in the process by validated draft, config, style
+   sheet, and active edits, since the Text tab and the gate ask for it
+   several times per request.
 5. **Edit check:** `check_edits` adds a book-level pass. A proposed text is
    compared with the other occurrences of its repeated segment or quoted
    span, with the other active edits applied, and a mismatch is an
@@ -557,8 +560,9 @@ than a separate list; conventions are the target language's defaults rather
 than extracted (they cannot be read from the source); and translation picks
 each chunk's entries from `PreprocessedDocument.relevant_style`, filled by
 preprocessing. Code: `book_agent/style_sheet.py`; the extraction, resolution
-(`style.draft.json`) and approval (`style.approved.json`, one LLM review call
-in LLM mode, `approve --style FILE` for a reviewed file) steps in
+(`style.draft.json`) and approval (`style.approved.json`; in LLM mode one
+review call, or one per `glossary.approval_chunk_tokens` batch for a long
+sheet; `approve --style FILE` for a reviewed file) steps in
 `book_agent/stages/glossary.py`; the Glossary tab's **Style sheet** section;
 expression checks in `audit_consistency`, the `validate_repaired` re-check,
 compile, and the edit check; tests in `tests/test_style_sheet.py`. Measured on
@@ -785,7 +789,9 @@ than coverage. Measured on the finished runs (read-only), three changes:
    glossary misses and were pushed into every chunk as fixed renderings. They
    are now dropped unless a configured glossary file supplies them, listed in
    `glossary.dropped-generic.json`; human review still decides on its own
-   (`glossary.drop_generic_terms`, default on).
+   (`glossary.drop_generic_terms`, default on). When a reviewed file is sent
+   for LLM review, the entries it adds to the draft or changes in it are
+   kept; ordinary words it leaves as drafted are still dropped.
 3. **Titles with a name are extracted.** The extraction prompt asks for
    recurring titles and forms of address. A/B on three *Return* stories (six
    chunks, same model): the new wording added "Lady Hilda" (希尔达夫人, the

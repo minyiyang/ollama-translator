@@ -22,6 +22,7 @@ from __future__ import annotations
 import getpass
 import sys
 import threading
+from collections import OrderedDict
 from collections.abc import Callable, Mapping, Sequence
 from dataclasses import dataclass
 from datetime import datetime
@@ -46,7 +47,9 @@ from .consistency import (
     convention_issues,
     expression_issues,
 )
-from .style_sheet import enabled_style_sheet
+from .pipeline_state import WorkflowStage
+from .state import StageStatus, connect_state, get_stage_status
+from .style_sheet import StyleSheet, enabled_style_sheet
 from .hashing import hash_named_values, sha256_text
 from .numeric_adjudication import rule_numeric_findings
 from .repair import RepairDisposition, RepairedDocument, RepairedValidationReport
@@ -371,12 +374,12 @@ def compiled_consistency_issues(
     that disagree with it, or on human edits that disagree with each other.
     Empty when the checks are disabled or the validated draft is unavailable.
     """
-    draft = _consistency_draft(workspace)
-    if draft is None:
+    check = _consistency_check(workspace)
+    if check is None:
         return []
     if statuses is None:
         statuses = edited_segment_statuses(workspace)
-    return _draft_consistency_issues(workspace, *draft, _active_texts(statuses))
+    return _draft_consistency_issues(workspace, check, _active_texts(statuses))
 
 
 def _edit_introduced_consistency_ids(
@@ -391,16 +394,16 @@ def _edit_introduced_consistency_ids(
     human_texts = _active_texts(statuses)
     if not human_texts:
         return set()  # the text as compiled is the validated draft
-    draft = _consistency_draft(workspace)
-    if draft is None:
+    check = _consistency_check(workspace)
+    if check is None:
         return set()
     compiled = {
-        issue.segment_id for issue in _draft_consistency_issues(workspace, *draft, human_texts)
+        issue.segment_id for issue in _draft_consistency_issues(workspace, check, human_texts)
     }
     if not compiled:
         return set()
     return compiled - {
-        issue.segment_id for issue in _draft_consistency_issues(workspace, *draft, {})
+        issue.segment_id for issue in _draft_consistency_issues(workspace, check, {})
     }
 
 
@@ -412,25 +415,65 @@ def _active_texts(statuses: Mapping[str, SegmentEditStatus]) -> dict[str, str]:
     }
 
 
-def _consistency_draft(
-    workspace: JobWorkspace,
-) -> tuple[AppConfig, list[RepairedDocument]] | None:
-    """The config and validated draft to check, or None when disabled or unavailable."""
+@dataclass(frozen=True)
+class _ConsistencyCheck:
+    """What a consistency check of the validated draft depends on, besides the edits."""
+
+    config: AppConfig
+    style: StyleSheet | None
+    key: tuple[str, ...]  # workspace, validated draft, config, style sheet
+
+
+def _consistency_check(workspace: JobWorkspace) -> _ConsistencyCheck | None:
+    """The check to run, or None when disabled or the validated draft is unavailable."""
     try:
-        config = AppConfig.model_validate_json(workspace.config_file.read_text(encoding="utf-8"))
+        config_text = workspace.config_file.read_text(encoding="utf-8")
+        config = AppConfig.model_validate_json(config_text)
         if not config.consistency.enabled:
             return None
-        return config, load_validated_repaired_documents(workspace)
+        connection = connect_state(workspace.state_file)
+        try:
+            validated = get_stage_status(connection, WorkflowStage.VALIDATE_REPAIRED.value)
+        finally:
+            connection.close()
+        if validated is None or validated["status"] != StageStatus.COMPLETED.value:
+            return None
+        style = enabled_style_sheet(workspace, config)
     except (FileNotFoundError, RuntimeError, ValueError):
         return None
+    return _ConsistencyCheck(
+        config,
+        style,
+        (
+            str(workspace.root),
+            str(validated["output_hash"]),
+            sha256_text(config_text),
+            sha256_text(style.model_dump_json()) if style is not None else "",
+        ),
+    )
+
+
+# The Text tab, the review gate, and compile each ask for the same whole-book
+# check several times per request; it is recomputed only when the validated
+# draft, the config, the style sheet, or the active edits change.
+_CONSISTENCY_CACHE_SIZE = 8
+_consistency_cache: OrderedDict[tuple[str, ...], tuple[AuditIssue, ...]] = OrderedDict()
+_consistency_cache_guard = threading.Lock()
 
 
 def _draft_consistency_issues(
-    workspace: JobWorkspace,
-    config: AppConfig,
-    documents: list[RepairedDocument],
-    human_texts: Mapping[str, str],
+    workspace: JobWorkspace, check: _ConsistencyCheck, human_texts: Mapping[str, str]
 ) -> list[AuditIssue]:
+    key = (*check.key, hash_active_edits(dict(human_texts)))
+    with _consistency_cache_guard:
+        cached = _consistency_cache.get(key)
+        if cached is not None:
+            _consistency_cache.move_to_end(key)
+            return list(cached)
+    try:
+        documents = load_validated_repaired_documents(workspace)
+    except (FileNotFoundError, RuntimeError, ValueError):
+        return []
     segments = book_segments(
         [item.document for item in documents],
         human_texts=human_texts,
@@ -441,12 +484,19 @@ def _draft_consistency_issues(
             if repair.disposition is RepairDisposition.REPAIRED
         },
     )
+    config = check.config
     settings = config.consistency.settings(config.translation.direction.target_language.value)
-    return [
+    issues = [
         issue
-        for issue in book_consistency_issues(segments, settings, enabled_style_sheet(workspace, config))
+        for issue in book_consistency_issues(segments, settings, check.style)
         if issue.severity.rank >= AuditSeverity.MEDIUM.rank
     ]
+    with _consistency_cache_guard:
+        _consistency_cache[key] = tuple(issues)
+        _consistency_cache.move_to_end(key)
+        while len(_consistency_cache) > _CONSISTENCY_CACHE_SIZE:
+            _consistency_cache.popitem(last=False)
+    return issues
 
 
 def overlay_active_edits(

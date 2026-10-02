@@ -125,6 +125,21 @@ class UseTests:
         assert [e.source for e in selected.expressions] == ["Off with her head!"]
         assert select_relevant_style(sheet, text, max_entries=1).characters == []
 
+    def test_an_expression_matches_whole_words_only(self):
+        from book_agent.style_sheet import keep_recurring_expressions
+
+        sheet = _sheet(expressions=[StyleExpression(source="the rat", rendering="河鼠")])
+        assert select_relevant_style(sheet, "The Rat sculled on.", max_entries=5).expressions
+        assert not select_relevant_style(sheet, "The rattle of the cart.", max_entries=5).expressions
+        assert [i.segment_id for i in expression_issues([
+            ("S1", "He heard the rattle and rather liked it.", "他听见响声。"),
+            ("S2", "Then the Rat, smiling, rowed on.", "然后他笑着划船。"),
+        ], sheet)] == ["S2"]
+        # "the rattle" and "the rather" are not occurrences, so it does not recur.
+        once = ["The Rat sculled on.", "The rattle of the cart.", "On the rather long road."]
+        assert keep_recurring_expressions(sheet, once).expressions == []
+        assert keep_recurring_expressions(sheet, [*once, "“The Rat!” he cried."]).expressions
+
     def test_the_prompt_block_is_empty_without_entries(self):
         assert format_relevant_style(StyleSheet()) == ""
         block = format_relevant_style(_sheet(characters=[StyleCharacter(name="Mouse", pronoun="它", addressed_as="您")]))
@@ -262,6 +277,63 @@ class GlossaryGateTests:
             assert len(client.prompts) == 1 and "C0001 character 'Mouse'" in client.prompts[0]
             assert "The Mouse looked at Alice" in client.prompts[0]  # evidence is quoted
             assert load_style_sheet(workspace).characters[0].pronoun == "他"
+
+    def test_a_long_sheet_is_reviewed_in_batches(self):
+        """One call for 200 entries overflows the approval context and its exact-count schema."""
+        from book_agent.stages.glossary import _review_style_sheet, _style_review_batches
+
+        with tempfile.TemporaryDirectory() as directory:
+            config = _config(llm_glossary_review=True)
+            workspace, ids = _extracted(directory, config)
+            draft = StyleSheet(
+                characters=[
+                    StyleCharacter(name=f"Animal {n}", pronoun="它", evidence=[ids["Mouse"]])
+                    for n in range(1, 4)
+                ],
+                expressions=[
+                    StyleExpression(source=f"Off with head {n}!", rendering=f"砍掉第{n}个头！", evidence=[ids["Off"]])
+                    for n in range(1, 4)
+                ],
+            )
+            small = config.model_copy(
+                update={"glossary": config.glossary.model_copy(update={"approval_chunk_tokens": 250})}
+            )
+            batches = _style_review_batches(draft, {}, 250)
+            assert len(batches) > 1
+            assert [c.name for b in batches for c in b.characters] == [c.name for c in draft.characters]
+            assert [e.source for b in batches for e in b.expressions] == [e.source for e in draft.expressions]
+            assert _style_review_batches(draft, {}, 8_000) == [draft]
+
+            def decide(batch, reject):
+                return {
+                    "characters": [
+                        {"entry_id": f"C{i:04d}", "action": "approve", "pronoun": "它", "addressed_as": "", "reason": "fits"}
+                        for i, _ in enumerate(batch.characters, start=1)
+                    ],
+                    "expressions": [
+                        {
+                            "entry_id": f"X{i:04d}",
+                            "action": "reject" if e.source == reject else "approve",
+                            "rendering": e.rendering,
+                            "reason": "as drafted",
+                        }
+                        for i, e in enumerate(batch.expressions, start=1)
+                    ],
+                }
+
+            client = SchemaFakeClient([decide(batch, "Off with head 3!") for batch in batches])
+            stage_root = Path(directory) / "review"
+            stage_root.mkdir()
+            reviewed = _review_style_sheet(draft, small, client, workspace, stage_root)
+            assert len(client.prompts) == len(batches)
+            assert [c.name for c in reviewed.characters] == ["Animal 1", "Animal 2", "Animal 3"]
+            assert [e.source for e in reviewed.expressions] == ["Off with head 1!", "Off with head 2!"]
+            # The saved decisions are numbered across the whole draft, not per batch.
+            saved = json.loads((stage_root / "style.review.json").read_text(encoding="utf-8"))
+            assert [d["entry_id"] for d in saved if d["entry_id"].startswith("C")] == ["C0001", "C0002", "C0003"]
+            assert [(d["entry_id"], d["action"]) for d in saved if d["entry_id"].startswith("X")] == [
+                ("X0001", "approve"), ("X0002", "approve"), ("X0003", "reject"),
+            ]
 
     def test_a_human_reviewed_file_is_approved(self):
         from book_agent.stages.glossary import run_glossary_approval_stage

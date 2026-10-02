@@ -26,7 +26,7 @@ from difflib import SequenceMatcher
 from typing import Collection, Iterable, Mapping, Sequence
 
 from .audit import AuditCategory, AuditIssue, AuditSeverity
-from .style_sheet import StyleSheet
+from .style_sheet import StyleSheet, expression_pattern
 from .translation import TranslatedDocument
 
 CONSISTENCY_SOURCE = "consistency"
@@ -353,16 +353,13 @@ def expression_issues(
     but whose translation lacks its rendering."""
     if not sheet.expressions:
         return []
-    keyed = [
-        (" ".join(unicodedata.normalize("NFKC", item.source).casefold().split()), item)
-        for item in sheet.expressions
-    ]
+    patterns = [(expression_pattern(item.source), item) for item in sheet.expressions]
     issues = []
     for segment_id, source, target in segments:
         folded = unicodedata.normalize("NFKC", visible_text(source)).casefold()
         visible_target = visible_text(target)
-        for key, item in keyed:
-            if key in folded and item.rendering not in visible_target:
+        for pattern, item in patterns:
+            if pattern.search(folded) and item.rendering not in visible_target:
                 issues.append(AuditIssue(
                     segment_id=segment_id,
                     category=AuditCategory.CONSISTENCY,
