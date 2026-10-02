@@ -61,10 +61,10 @@ Raw responses are retained and the actual model is recorded with each attempt.
 7. **Local-first.** Translation works without network services other than the
    local Ollama API. Web verification is an explicit optional capability.
 
-The initial language directions are strictly `en-zh` and `zh-en`. Language
-direction is stored in job configuration and is never inferred independently
-for each chunk. Additional languages are out of scope until both initial
-directions pass the same end-to-end validation standards.
+The tuned language directions are `en-zh` and `zh-en`. Language direction is
+stored in job configuration and is never inferred independently for each
+chunk. Other pairs run at a generic tier, with the checks their languages
+cannot support skipped and listed (docs/GENERIC_LANGUAGES.md).
 
 ## 3. Why no agent framework initially
 

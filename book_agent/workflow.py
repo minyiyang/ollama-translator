@@ -12,6 +12,7 @@ from typing import Any
 
 from .config import AppConfig
 from .hashing import sha256_file
+from .languages import language_support
 from .ollama_client import (
     GenerationCancelled,
     GenerationProgressEvent,
@@ -610,6 +611,10 @@ def workflow_status(workspace: JobWorkspace) -> dict[str, Any]:
                 get_job_metadata(connection, "semantic_verification_policy") or ""
             ),
         }
+        try:
+            languages = language_support(load_workspace_config(workspace).translation.direction)
+        except (OSError, ValueError):
+            languages = None
         return {
             "workspace": str(workspace.root),
             "job_id": get_job_metadata(connection, "job_id") or workspace.root.name,
@@ -617,6 +622,8 @@ def workflow_status(workspace: JobWorkspace) -> dict[str, Any]:
             "stages": stages,
             "work_units": {"total": len(units), "by_status": counts},
             "configuration": config_status,
+            # The pair's tiers and the checks its language profiles cannot run.
+            "languages": languages,
         }
     finally:
         connection.close()

@@ -119,7 +119,7 @@ def validate_setup(
         problems.append(f"source file not found: {source_path}")
     elif source_path.suffix.casefold() not in {".epub", ".rtf"}:
         problems.append("source must be an EPUB or RTF file")
-    readable = f"{slugify_job_name(source_path.stem)}-{config.translation.direction.value}" if source else ""
+    readable = f"{slugify_job_name(source_path.stem)}-{config.translation.direction.slug}" if source else ""
     job = job_id or (readable if readable and not (runs / readable).exists() else build_job_id(source_path) if source else "")
     try:
         validate_job_id(job)

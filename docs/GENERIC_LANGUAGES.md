@@ -1,6 +1,6 @@
 # Translating between any two languages: plan
 
-Status: **plan, not implemented; decisions in section 5 made 2026-10-02.**
+Status: **phases 1 and 2 implemented (section 6); decisions in section 5 made 2026-10-02.**
 
 How the pipeline stops assuming English on one side and Simplified Chinese on
 the other, so that a book can be translated between any two languages the
@@ -34,8 +34,10 @@ round trip do not care about language. What does:
 
 Already neutral: prompts that name the languages from
 `direction.*.display_name`; XLIFF `srcLang`/`trgLang`; `lang`, `xml:lang`, and
-`dc:language` in compiled output; the built-in style profiles (made
-language-neutral in docs/PLAN.md).
+`dc:language` in EPUB compiled from RTF; the built-in style profiles (made
+language-neutral in docs/PLAN.md). EPUB compiled from an EPUB keeps the
+source's `dc:language` and `xml:lang` for every pair, `en-zh` included: a gap
+found in phase 2 and not yet fixed.
 
 ## 2. Design
 
@@ -301,3 +303,43 @@ hidden:
   targets: its prompt and candidate rules are Chinese. Only `reprose.enabled`
   switches it, not the direction, so phase 2 should give it a "needs" and
   skip it for other targets.
+
+**Phase 2 status (2026-10-02): done, pending review.**
+
+- **Generic profile.** Any well-formed BCP 47 code is a language. A code
+  without a written profile gets one from tables in `languages.py`: an
+  English name, its scripts (`ja` is Han + Hiragana + Katakana; a script
+  subtag such as `sr-Latn` or `zh-Hant` overrides), and whether it spaces
+  words. A regional variant of a tuned language (`en-GB`) uses that
+  language's profile; `zh-TW`/`zh-HK` are Traditional and generic. An
+  unknown script matches any letter, so the passage still counts as prose.
+- **Pairs.** `en>ja`, or `translation.source_language`/`target_language`.
+  These two fields appear in the saved config only for other pairs, so
+  `en-zh`/`zh-en` configs and hashes are unchanged (golden test).
+  `LanguagePair.slug` (`en-ja`) names files and jobs, since `>` is not
+  allowed in Windows file names.
+- **Checks degrade.** Scripts decide what can be checked:
+  - "No target text" runs only when the two scripts are disjoint.
+  - Left-over source text looks only for scripts the target never uses:
+    kana in a `ja>zh` translation counts, kanji in `zh>ja` does not.
+  - In a pair sharing a script, "identical to source" needs 20 or more
+    letters ("Paris." is fine).
+  - With no marker examples, the prompt keeps the marker rules in words.
+  - Without pronouns, the style-sheet extraction leaves that sentence out.
+  - English or Chinese number words with no counterpart go to the existing
+    numeric ruling, which marks the segment uncertain when no ruling comes
+    back.
+- **Not available yet.**
+  - Glossary and style sheet (phase 3). The extraction stage takes its
+    "disabled" path, the approval gate has nothing to review, and config
+    refuses glossary files.
+  - A series for another pair.
+  - Prose rewrite for a non-tuned target. Config refuses `reprose.enabled`.
+- **Reported.** `language_support()` gives the tiers and the skipped
+  checks with reasons. It appears in `run --dry-run` and in
+  `workflow_status` (`status --json`) and the web job header's `job_info` under `languages`.
+- **Tested.** `tests/test_language_generic.py` covers codes, profiles,
+  pairs, config round trip and refusals, skip lists, and the script-aware
+  untranslated checks. It also runs `en>ja` and `en>de` end to end through
+  the real workflow with fake model clients, both gates included. The full
+  backend suite passes.

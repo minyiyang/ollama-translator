@@ -24,7 +24,16 @@ from .content_policy import (
     numeric_content_matches,
 )
 from .glossary import estimate_tokens, is_suspicious_generic_candidate
-from .languages import PROFILES, SENTENCE_END, TranslationDirection, glossary_sides, profile
+from .languages import (
+    PROFILES,
+    SCRIPTS,
+    SENTENCE_END,
+    TranslationDirection,
+    glossary_sides,
+    leftover_scripts,
+    profile,
+    scripts_disjoint,
+)
 from .schemas import GlossaryCategory
 from .numeric_adjudication import (
     NUMBER_RULE_SOURCE,
@@ -993,14 +1002,28 @@ def deduplicate_audit_issues(issues: list[AuditIssue]) -> list[AuditIssue]:
     )
 
 
+# In a pair sharing a script, a short identical line is usually a name or a
+# title kept on purpose ("Paris."); only a longer one counts as untranslated.
+_SHARED_SCRIPT_IDENTICAL_MIN = 20
+
+
 def _audit_language(
     segment_id, source, target, direction, config, issues, glossary=()
 ) -> None:
     source_rules = profile(direction.source_language)
     target_rules = profile(direction.target_language)
-    if source_rules.script_pattern.search(source) and not target_rules.script_pattern.search(target):
+    # When the two languages share a script (en/de, zh/ja), the script cannot
+    # show that a passage was left untranslated: only an identical long passage
+    # is flagged here, and the semantic audit covers the rest.
+    disjoint = scripts_disjoint(direction)
+    leftover = leftover_scripts(direction)
+    if (
+        disjoint
+        and source_rules.script_pattern.search(source)
+        and not target_rules.script_pattern.search(target)
+    ):
         issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.HIGH, f"translation contains no {target_rules.short_name} text"))
-    if source_rules.spaced_words:
+    if "Latin" in leftover:
         phrase_target = _strip_exact_preserved_inline_spans(source, target)
         phrase_target = _strip_intentional_foreign_quotations(source, phrase_target)
         phrase_target = re.sub(
@@ -1039,11 +1062,19 @@ def _audit_language(
                     f"possible untranslated {source_rules.short_name} word: {stray_word}",
                 )
             )
-    else:
-        run = re.search(f"[{source_rules.script_basic_chars}]{{4,}}", target)
+    elif leftover:
+        chars = (
+            source_rules.script_basic_chars
+            if leftover == source_rules.scripts
+            else "".join(SCRIPTS[item] for item in leftover)
+        )
+        run = re.search(f"[{chars}]{{4,}}", target)
         if run:
             issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.MEDIUM, f"possible untranslated {source_rules.short_name} text: {run.group(0)}"))
-    if _normalize_prose(source) == _normalize_prose(target):
+    normalized = _normalize_prose(source)
+    if normalized == _normalize_prose(target) and (
+        disjoint or len(normalized) >= _SHARED_SCRIPT_IDENTICAL_MIN
+    ):
         issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.HIGH, "translation is identical to source"))
 
 

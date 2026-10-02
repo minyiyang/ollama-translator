@@ -28,7 +28,7 @@ from .manual_review import (
 from .pipeline_state import WorkflowStage
 from .ollama_client import GenerationProgressEvent, OllamaClient, PauseRequested
 from .styles import TranslationStyle
-from .languages import TranslationDirection
+from .languages import LanguagePair, language_support
 from .series import (
     add_books,
     bind_book,
@@ -126,6 +126,13 @@ _STAGE_ROLE_SUBSECTIONS: dict[str, tuple[str, ...]] = {
         "audit.quantity.escalation",
     ),
 }
+
+
+def _language_pair(value: str) -> LanguagePair:
+    try:
+        return LanguagePair(value)
+    except ValueError as error:
+        raise argparse.ArgumentTypeError(str(error)) from error
 
 
 def _stage_role_subsections(
@@ -402,7 +409,12 @@ def _add_series_parser(subparsers) -> None:
 
     create = action("create", "create an empty series")
     create.add_argument("--name", default="", help="display name (default: the id)")
-    create.add_argument("--direction", required=True, choices=[d.value for d in TranslationDirection])
+    create.add_argument(
+        "--direction",
+        required=True,
+        type=_language_pair,
+        help="en-zh or zh-en (a series shares a glossary, which other pairs do not have yet)",
+    )
     add = action("add", "add jobs as the next volumes, in order")
     add.add_argument("jobs", nargs="+", help="job ids in --runs")
     build = action("build", "build the next version's candidate (workbench); no LLM")
@@ -751,6 +763,7 @@ def build_dry_run_summary(source: str | Path, config: AppConfig, runs: str | Pat
         "source_format": source_format,
         "runs": str(Path(runs).resolve()),
         "direction": config.translation.direction.value,
+        "languages": language_support(config.translation.direction),
         "translation_model": config.ollama.model,
         "glossary_extraction_enabled": config.glossary.extraction_enabled,
         "glossary_extraction_model": (

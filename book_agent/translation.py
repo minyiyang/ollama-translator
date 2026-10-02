@@ -443,6 +443,9 @@ def _build_marker_examples(
             profile(direction.target_language).marker_examples,
         )
     )
+    if not examples:
+        # A language without written examples: the contract states the marker rules.
+        return ""
     selected = examples[:1] if mode == "one-shot" else examples
     rendered = "\n".join(
         f"Example {index} source: {source}\n"

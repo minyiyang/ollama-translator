@@ -26,9 +26,10 @@ class LanguageProfile:
     display_name: str
     # The plain name used in audit findings ("possible untranslated Chinese text").
     short_name: str
-    script: str
+    # Unicode scripts the language is written in (keys of SCRIPTS); empty when unknown.
+    scripts: tuple[str, ...]
     # Character-class bodies for the language's script: the full range, and the
-    # narrower range some checks historically used.
+    # narrower range some checks historically used. Empty when the script is unknown.
     script_chars: str
     script_basic_chars: str
     spaced_words: bool
@@ -61,10 +62,19 @@ class LanguageProfile:
     address_forms: tuple[str, ...] = field(default_factory=tuple)
     # Frequent function words that say nothing about a passage's content.
     stop_words: frozenset[str] = field(default_factory=frozenset)
+    # Whether the number-word parsers read this language (content_policy, quantities).
+    number_words: bool = False
+    # "tuned", "profiled", or "generic" (docs/GENERIC_LANGUAGES.md, 2.4).
+    tier: str = "generic"
+
+    @property
+    def script(self) -> str:
+        return self.scripts[0] if self.scripts else ""
 
     @cached_property
     def script_pattern(self) -> re.Pattern[str]:
-        return re.compile(f"[{self.script_chars}]")
+        """A letter of this language's script; any letter when the script is unknown."""
+        return re.compile(f"[{self.script_chars}]" if self.script_chars else r"[^\W\d_]")
 
     def normalize_term(self, term: str) -> str:
         """A glossary term in the form used for matching and de-duplication."""
@@ -80,7 +90,7 @@ PROFILES: dict[str, LanguageProfile] = {
         code="en",
         display_name="English",
         short_name="English",
-        script="Latin",
+        scripts=("Latin",),
         script_chars="A-Za-z",
         script_basic_chars="A-Za-z",
         spaced_words=True,
@@ -106,12 +116,14 @@ PROFILES: dict[str, LanguageProfile] = {
         dash="—",
         pronouns=("he", "she", "it"),
         stop_words=frozenset({"the", "and", "that", "with", "this", "from", "was", "were"}),
+        number_words=True,
+        tier="tuned",
     ),
     "zh": LanguageProfile(
         code="zh-Hans",
         display_name="Simplified Chinese",
         short_name="Chinese",
-        script="Han",
+        scripts=("Han",),
         script_chars=_HAN,
         script_basic_chars=_HAN_BASIC,
         spaced_words=False,
@@ -138,11 +150,149 @@ PROFILES: dict[str, LanguageProfile] = {
         convention_checks=True,
         pronouns=("他", "她", "它"),
         address_forms=("你", "您"),
+        number_words=True,
+        tier="tuned",
     ),
 }
 
 # Other spellings of a stored code.
-_CODE_ALIASES = {"zh-Hans": "zh"}
+_CODE_ALIASES = {"zh-Hans": "zh", "zh-CN": "zh", "zh-SG": "zh"}
+
+
+# -- generic profiles ------------------------------------------------------------------
+#
+# A language without a profile gets one built from its code: a display name,
+# its script, and whether it spaces its words. Every other field is empty, so
+# the checks that need them are skipped (see language_support) rather than run
+# with another language's rules.
+
+# Character-class bodies of the scripts a generic profile can name.
+SCRIPTS: dict[str, str] = {
+    "Latin": "A-Za-z\u00c0-\u00d6\u00d8-\u00f6\u00f8-\u024f\u1e00-\u1eff",
+    "Greek": "\u0370-\u03ff\u1f00-\u1fff",
+    "Cyrillic": "\u0400-\u052f",
+    "Armenian": "\u0531-\u058f",
+    "Hebrew": "\u05d0-\u05ff",
+    "Arabic": "\u0620-\u064a\u0660-\u06ff\u0750-\u077f",
+    "Devanagari": "\u0900-\u097f",
+    "Bengali": "\u0980-\u09ff",
+    "Thai": "\u0e00-\u0e7f",
+    "Georgian": "\u10a0-\u10ff",
+    "Hangul": "\u1100-\u11ff\u3130-\u318f\uac00-\ud7af",
+    "Hiragana": "\u3040-\u309f",
+    "Katakana": "\u30a0-\u30ff",
+    "Han": _HAN,
+}
+# Scripts with upper and lower case.
+_CASED_SCRIPTS = {"Latin", "Greek", "Cyrillic", "Armenian"}
+# ISO 15924 script subtags this table understands.
+_SCRIPT_SUBTAGS = {
+    "Latn": ("Latin",), "Grek": ("Greek",), "Cyrl": ("Cyrillic",), "Armn": ("Armenian",),
+    "Hebr": ("Hebrew",), "Arab": ("Arabic",), "Deva": ("Devanagari",), "Beng": ("Bengali",),
+    "Thai": ("Thai",), "Geor": ("Georgian",), "Kore": ("Hangul", "Han"), "Hang": ("Hangul",),
+    "Jpan": ("Han", "Hiragana", "Katakana"), "Hans": ("Han",), "Hant": ("Han",), "Hani": ("Han",),
+}
+# Languages written without spaces between words.
+_UNSPACED = {"ja", "zh", "th", "lo", "km", "my"}
+
+# English name and default script of common languages.
+_LANGUAGES: dict[str, tuple[str, tuple[str, ...]]] = {
+    "af": ("Afrikaans", ("Latin",)), "ar": ("Arabic", ("Arabic",)), "be": ("Belarusian", ("Cyrillic",)),
+    "bg": ("Bulgarian", ("Cyrillic",)), "bn": ("Bengali", ("Bengali",)), "ca": ("Catalan", ("Latin",)),
+    "cs": ("Czech", ("Latin",)), "cy": ("Welsh", ("Latin",)), "da": ("Danish", ("Latin",)),
+    "de": ("German", ("Latin",)), "el": ("Greek", ("Greek",)), "en": ("English", ("Latin",)),
+    "eo": ("Esperanto", ("Latin",)), "es": ("Spanish", ("Latin",)), "et": ("Estonian", ("Latin",)),
+    "eu": ("Basque", ("Latin",)), "fa": ("Persian", ("Arabic",)), "fi": ("Finnish", ("Latin",)),
+    "fr": ("French", ("Latin",)), "ga": ("Irish", ("Latin",)), "gl": ("Galician", ("Latin",)),
+    "he": ("Hebrew", ("Hebrew",)), "hi": ("Hindi", ("Devanagari",)), "hr": ("Croatian", ("Latin",)),
+    "hu": ("Hungarian", ("Latin",)), "hy": ("Armenian", ("Armenian",)), "id": ("Indonesian", ("Latin",)),
+    "is": ("Icelandic", ("Latin",)), "it": ("Italian", ("Latin",)),
+    "ja": ("Japanese", ("Han", "Hiragana", "Katakana")), "ka": ("Georgian", ("Georgian",)),
+    "kk": ("Kazakh", ("Cyrillic",)), "ko": ("Korean", ("Hangul",)), "la": ("Latin", ("Latin",)),
+    "lt": ("Lithuanian", ("Latin",)), "lv": ("Latvian", ("Latin",)), "mk": ("Macedonian", ("Cyrillic",)),
+    "mn": ("Mongolian", ("Cyrillic",)), "mr": ("Marathi", ("Devanagari",)), "ms": ("Malay", ("Latin",)),
+    "nb": ("Norwegian Bokmål", ("Latin",)), "ne": ("Nepali", ("Devanagari",)), "nl": ("Dutch", ("Latin",)),
+    "nn": ("Norwegian Nynorsk", ("Latin",)), "no": ("Norwegian", ("Latin",)), "pl": ("Polish", ("Latin",)),
+    "pt": ("Portuguese", ("Latin",)), "ro": ("Romanian", ("Latin",)), "ru": ("Russian", ("Cyrillic",)),
+    "sk": ("Slovak", ("Latin",)), "sl": ("Slovenian", ("Latin",)), "sq": ("Albanian", ("Latin",)),
+    "sr": ("Serbian", ("Cyrillic",)), "sv": ("Swedish", ("Latin",)), "sw": ("Swahili", ("Latin",)),
+    "th": ("Thai", ("Thai",)), "tl": ("Tagalog", ("Latin",)), "tr": ("Turkish", ("Latin",)),
+    "uk": ("Ukrainian", ("Cyrillic",)), "ur": ("Urdu", ("Arabic",)), "vi": ("Vietnamese", ("Latin",)),
+    "zh": ("Chinese", ("Han",)),
+}
+_SCRIPT_NAMES = {"Hans": "Simplified", "Hant": "Traditional", "Latn": "Latin", "Cyrl": "Cyrillic"}
+# Regions whose Chinese is Traditional, so `zh-TW` is not the Simplified profile.
+_TRADITIONAL_REGIONS = {"TW", "HK", "MO"}
+
+_CODE = re.compile(r"^[A-Za-z]{2,3}(?:-[A-Za-z0-9]{2,8})*$")
+
+
+def _canonical_code(code: str) -> str:
+    """BCP 47 casing: `zh-hant-tw` -> `zh-Hant-TW`."""
+    parts = code.replace("_", "-").split("-")
+    out = [parts[0].lower()]
+    for part in parts[1:]:
+        if len(part) == 4 and part.isalpha():
+            out.append(part.title())
+        elif len(part) == 2 and part.isalpha():
+            out.append(part.upper())
+        else:
+            out.append(part.lower())
+    return "-".join(out)
+
+
+def _subtags(code: str) -> tuple[str, str, str]:
+    """(language, script subtag, region) of a canonical code."""
+    parts = code.split("-")
+    script = next((part for part in parts[1:] if len(part) == 4 and part.isalpha()), "")
+    region = next((part for part in parts[1:] if len(part) == 2 or (len(part) == 3 and part.isdigit())), "")
+    return parts[0], script, region
+
+
+def _generic_profile(code: str) -> LanguageProfile:
+    language, script_tag, region = _subtags(code)
+    name, scripts = _LANGUAGES.get(language, (code, ()))
+    if language == "zh" and region in _TRADITIONAL_REGIONS and not script_tag:
+        script_tag = "Hant"
+    if script_tag in _SCRIPT_SUBTAGS:
+        scripts = _SCRIPT_SUBTAGS[script_tag]
+    qualifiers = [item for item in (_SCRIPT_NAMES.get(script_tag, script_tag), region) if item]
+    display = f"{name} ({', '.join(qualifiers)})" if qualifiers and name != code else name
+    chars = "".join(SCRIPTS[item] for item in scripts)
+    spaced = language not in _UNSPACED
+    return LanguageProfile(
+        code=code,
+        display_name=display,
+        short_name=display,
+        scripts=scripts,
+        script_chars=chars,
+        script_basic_chars=chars,
+        spaced_words=spaced,
+        cased=bool(set(scripts) & _CASED_SCRIPTS),
+        word_chars=f"{chars}0-9_" if spaced and chars else "",
+        plural_suffix="",
+        glossary_field="",
+    )
+
+
+_GENERIC: dict[str, LanguageProfile] = {}
+
+
+def _profile_for_code(code: str) -> LanguageProfile:
+    """The tuned profile for a stored code, the base language's for a regional
+    variant of it (`en-GB`), or a generic one."""
+    if code in PROFILES:
+        return PROFILES[code]
+    language, script_tag, region = _subtags(code)
+    if (
+        not script_tag
+        and language in PROFILES
+        and not (language == "zh" and region in _TRADITIONAL_REGIONS)
+    ):
+        return PROFILES[language]
+    if code not in _GENERIC:
+        _GENERIC[code] = _generic_profile(code)
+    return _GENERIC[code]
 
 
 # -- languages and pairs ---------------------------------------------------------------
@@ -160,7 +310,11 @@ def _pydantic_string_schema(cls: type) -> Any:
 
 
 class Language(str):
-    """A language code ("en", "zh"). Compares, hashes, and serializes as the code."""
+    """A BCP 47 language code ("en", "zh", "ja", "pt-BR").
+
+    Compares, hashes, and serializes as the code. `zh` is Simplified Chinese,
+    and its other spellings (`zh-Hans`, `zh-CN`) become `zh`.
+    """
 
     ENGLISH: ClassVar[Language]
     CHINESE: ClassVar[Language]
@@ -169,9 +323,10 @@ class Language(str):
     def __new__(cls, code: str) -> Language:
         if isinstance(code, Language):
             return code
+        if not isinstance(code, str) or not _CODE.fullmatch(code.strip()):
+            raise ValueError(f"{code!r} is not a language code such as en, fr, ja, or pt-BR")
+        code = _canonical_code(code.strip())
         code = _CODE_ALIASES.get(code, code)
-        if code not in PROFILES:
-            raise ValueError(f"{code!r} is not a supported language")
         if code not in cls._interned:
             cls._interned[code] = super().__new__(cls, code)
         return cls._interned[code]
@@ -189,7 +344,9 @@ class Language(str):
     @property
     def display_name(self) -> str:
         """Return a stable English display name for prompts and reports."""
-        return profile(self).display_name
+        if str(self) in PROFILES or profile(self).tier == "generic":
+            return profile(self).display_name
+        return _generic_profile(str(self)).display_name  # a regional variant: "English (GB)"
 
     @classmethod
     def __get_pydantic_core_schema__(cls, source: Any, handler: Any) -> Any:
@@ -220,6 +377,8 @@ class LanguagePair(str, metaclass=_PairType):
     def __new__(cls, value: str) -> LanguagePair:
         if isinstance(value, LanguagePair):
             return value
+        if not isinstance(value, str):
+            raise ValueError(f"{value!r} is not a language pair; write it as source>target, e.g. en>ja")
         if value in cls._interned:
             return cls._interned[value]
         if value in _LEGACY_PAIRS:
@@ -243,6 +402,10 @@ class LanguagePair(str, metaclass=_PairType):
         cls._interned[value] = cls._interned[text]
         return cls._interned[text]
 
+    @classmethod
+    def of(cls, source: Language | str, target: Language | str) -> LanguagePair:
+        return cls(f"{Language(source)}>{Language(target)}")
+
     def __getnewargs__(self) -> tuple[str]:
         return (str(self),)
 
@@ -252,6 +415,16 @@ class LanguagePair(str, metaclass=_PairType):
     @property
     def value(self) -> str:
         return str(self)
+
+    @property
+    def legacy(self) -> bool:
+        """One of the two pairs that predate profiles (`en-zh`, `zh-en`)."""
+        return str(self) in _LEGACY_PAIRS
+
+    @property
+    def slug(self) -> str:
+        """The pair in a file or job name, where `>` is not allowed: `en-zh`, `en-ja`."""
+        return str(self).replace(">", "-")
 
     @classmethod
     def __get_pydantic_core_schema__(cls, source: Any, handler: Any) -> Any:
@@ -283,8 +456,68 @@ SENTENCE_END = "".join(item.sentence_end for item in PROFILES.values())
 
 
 def profile(language: Language | str) -> LanguageProfile:
-    """The profile for a language or language code."""
-    return PROFILES[Language(language)]
+    """The profile for a language or language code (a generic one when none is written)."""
+    return _profile_for_code(Language(language))
+
+
+def scripts_disjoint(direction: LanguagePair) -> bool:
+    """Whether the script alone tells source text from target text (en/zh: yes; en/de, zh/ja: no)."""
+    source = profile(direction.source_language).scripts
+    target = profile(direction.target_language).scripts
+    return bool(source) and bool(target) and not set(source) & set(target)
+
+
+def leftover_scripts(direction: LanguagePair) -> tuple[str, ...]:
+    """Source scripts a target never uses: their letters in a translation are left-over source text."""
+    target = profile(direction.target_language).scripts
+    if not target:
+        return ()
+    return tuple(item for item in profile(direction.source_language).scripts if item not in target)
+
+
+def glossary_supported(direction: LanguagePair) -> bool:
+    """Whether stored glossary entries hold both languages (en and zh until phase 3)."""
+    return all(
+        profile(language).glossary_field
+        for language in (direction.source_language, direction.target_language)
+    )
+
+
+def language_support(direction: LanguagePair) -> dict[str, Any]:
+    """The pair's tiers and the checks its profiles cannot run (docs/GENERIC_LANGUAGES.md, 2.3)."""
+    source = profile(direction.source_language)
+    target = profile(direction.target_language)
+    skipped: list[dict[str, str]] = []
+
+    def skip(check: str, reason: str) -> None:
+        skipped.append({"check": check, "reason": reason})
+
+    if not glossary_supported(direction):
+        skip("glossary and style sheet", "not available for this pair yet; the job runs without them")
+    if not scripts_disjoint(direction):
+        skip(
+            "untranslated text",
+            "source and target share a script: only a translation identical to a long source is "
+            "flagged, and the semantic audit covers the rest",
+        )
+    if not leftover_scripts(direction):
+        skip("left-over source words", "no script tells the source from the target")
+    if not (source.number_words and target.number_words):
+        skip("number words", "numbers written as words go to the semantic audit's numeric ruling")
+    if not target.convention_checks:
+        skip("punctuation conventions and character report", f"no house conventions for {target.display_name}")
+    if not target.stock_phrases:
+        skip("formulaic phrases", f"no phrase list for {target.display_name}")
+    if not (source.marker_examples and target.marker_examples):
+        skip("marker examples", "the translation prompt states the marker rules in words only")
+    if target.tier != "tuned":
+        skip("prose rewrite", "its prompt and rules are written for Chinese; reprose stays off")
+    return {
+        "pair": direction.value,
+        "source": {"code": direction.source_language.value, "name": source.display_name, "tier": source.tier},
+        "target": {"code": direction.target_language.value, "name": target.display_name, "tier": target.tier},
+        "skipped": skipped,
+    }
 
 
 def build_direction_instruction(direction: LanguagePair) -> str:
@@ -299,6 +532,8 @@ def build_direction_instruction(direction: LanguagePair) -> str:
 
 def glossary_sides(entry, direction: LanguagePair) -> tuple[str, str]:
     """(source term, target term) of a glossary entry for this direction."""
+    if not glossary_supported(direction):
+        raise ValueError(f"glossary entries are not available for {direction.value} yet")
     return (
         getattr(entry, profile(direction.source_language).glossary_field),
         getattr(entry, profile(direction.target_language).glossary_field),

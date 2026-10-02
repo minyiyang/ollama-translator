@@ -26,7 +26,7 @@ from .glossary import (
     sort_glossary_entries,
 )
 from .hashing import sha256_file
-from .languages import TranslationDirection
+from .languages import TranslationDirection, glossary_supported
 from .pipeline_state import WorkflowStage
 from .schemas import GlossaryCategory, GlossaryEntry, GlossaryResult, normalize_term
 from .series_binding import load_series_binding, write_series_binding
@@ -208,10 +208,13 @@ def create_series(runs: Path, series_id: str, name: str, direction: str) -> Seri
     root = series_root(runs, series_id)
     if (root / "series.json").exists():
         raise ValueError(f"a series named {series_id} already exists")
+    pair = TranslationDirection(direction)
+    if not glossary_supported(pair):
+        raise ValueError(f"a series shares a glossary, which is not available for {pair.value} yet")
     manifest = SeriesManifest(
         series_id=series_id,
         name=name.strip() or series_id,
-        direction=TranslationDirection(direction),
+        direction=pair,
     )
     root.mkdir(parents=True, exist_ok=True)
     _save_manifest(runs, manifest)

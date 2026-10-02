@@ -4,9 +4,16 @@ from pathlib import Path
 from typing import Literal
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_serializer, model_validator
 
-from .languages import DEFAULT_DIRECTION, TranslationDirection
+from .languages import (
+    DEFAULT_DIRECTION,
+    Language,
+    LanguagePair,
+    TranslationDirection,
+    glossary_supported,
+    profile,
+)
 from .styles import TranslationStyle
 from .token_budget import TokenBudget, validate_budget
 
@@ -81,6 +88,12 @@ class BudgetConfig(StrictModel):
 
 class TranslationConfig(StrictModel):
     direction: TranslationDirection = DEFAULT_DIRECTION
+    # The pair as two codes (docs/GENERIC_LANGUAGES.md, 6). Either these or
+    # `direction` may be given; both always agree after validation. They are
+    # left out of the saved JSON for en-zh and zh-en, so those configs (and
+    # every stage hash built from them) stay exactly as before.
+    source_language: Language | None = None
+    target_language: Language | None = None
     style: TranslationStyle = TranslationStyle.LITERARY
     custom_style_file: Path | None = None
     preserve_paragraphs: bool = True
@@ -97,6 +110,32 @@ class TranslationConfig(StrictModel):
     max_prompt_tokens: int = Field(default=20_000, gt=0)
     context_multiplier: float = Field(default=3.0, ge=1.0, le=8.0)
     boundary_context: Literal["none", "adjacent-read-only"] = "none"
+
+    @model_validator(mode="after")
+    def validate_languages(self) -> "TranslationConfig":
+        if self.source_language is not None or self.target_language is not None:
+            if self.source_language is None or self.target_language is None:
+                raise ValueError("source_language and target_language must be given together")
+            pair = LanguagePair.of(self.source_language, self.target_language)
+            if "direction" in self.model_fields_set and self.direction != pair:
+                raise ValueError(
+                    f"direction {self.direction.value} disagrees with "
+                    f"source_language/target_language ({pair.value})"
+                )
+            object.__setattr__(self, "direction", pair)
+        legacy = self.direction.legacy
+        object.__setattr__(self, "source_language", None if legacy else self.direction.source_language)
+        object.__setattr__(self, "target_language", None if legacy else self.direction.target_language)
+        return self
+
+    @model_serializer(mode="wrap")
+    def _omit_restated_languages(self, handler):
+        data = handler(self)
+        if isinstance(data, dict):
+            for key in ("source_language", "target_language"):
+                if data.get(key) is None:
+                    data.pop(key, None)
+        return data
 
     @model_validator(mode="after")
     def validate_custom_style(self) -> "TranslationConfig":
@@ -386,6 +425,21 @@ class AppConfig(StrictModel):
             raise ValueError(
                 "workflow.production_profile_version must be positive when a "
                 "production_profile is named"
+            )
+        target = profile(self.translation.direction.target_language)
+        if self.reprose.enabled and target.tier != "tuned":
+            raise ValueError(
+                f"reprose is written for Chinese and English targets, not {target.display_name}; "
+                "set reprose.enabled to false"
+            )
+        if not glossary_supported(self.translation.direction) and (
+            self.glossary.seed_glossaries
+            or self.glossary.series_glossaries
+            or self.glossary.book_glossaries
+        ):
+            raise ValueError(
+                f"glossary files are not available for {self.translation.direction.value} yet; "
+                "remove seed, series, and book glossaries from the config"
             )
         if not self.glossary.extraction_enabled and not (
             self.glossary.seed_glossaries

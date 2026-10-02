@@ -62,6 +62,7 @@ from ..glossary_prompts import (
     build_resolution_prompt,
 )
 from ..hashing import hash_named_values, sha256_file, sha256_text
+from ..languages import glossary_supported
 from ..ollama_client import OllamaClient, StructuredGenerationResult
 from ..pipeline_state import (
     WorkflowStage,
@@ -145,7 +146,10 @@ def run_glossary_extraction_stage(
     try:
         initialize_state(connection)
         decompile = _require_completed(connection, WorkflowStage.DECOMPILE)
-        if not config.glossary.extraction_enabled:
+        # Glossary entries hold English and Chinese until phase 3
+        # (docs/GENERIC_LANGUAGES.md): another pair runs without a glossary.
+        supported = glossary_supported(config.translation.direction)
+        if not config.glossary.extraction_enabled or not supported:
             input_hash = build_stage_input_hash(
                 {
                     "decompile": str(decompile["output_hash"]),
@@ -179,7 +183,11 @@ def run_glossary_extraction_stage(
                 StageStatus.RUNNING,
                 attempts=stage_attempt,
                 input_hash=input_hash,
-                message="configured glossary reuse; extraction disabled",
+                message=(
+                    "configured glossary reuse; extraction disabled"
+                    if supported
+                    else f"no glossary: not available for {config.translation.direction.value} yet"
+                ),
             )
             connection.execute(
                 "DELETE FROM work_units WHERE stage = ?",
@@ -630,9 +638,12 @@ def run_glossary_approval_stage(
     try:
         initialize_state(connection)
         resolution = _require_completed(connection, WorkflowStage.RESOLVE_GLOSSARY)
-        use_llm_review = llm_review or config.workflow.llm_glossary_review
+        # A pair without glossary support has an empty glossary: nothing to review.
+        supported = glossary_supported(config.translation.direction)
+        use_llm_review = supported and (llm_review or config.workflow.llm_glossary_review)
         if (
-            config.workflow.require_glossary_review
+            supported
+            and config.workflow.require_glossary_review
             and reviewed_file is None
             and not use_llm_review
         ):

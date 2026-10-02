@@ -21,7 +21,7 @@ from typing import Any, Sequence
 
 from .config import AppConfig
 from .glossary import find_unglossed_proper_nouns
-from .languages import ANY_SCRIPT, GLOSSARY_LANGUAGES, SENTENCE_END, UNSPACED_SCRIPT, profile
+from .languages import ANY_SCRIPT, GLOSSARY_LANGUAGES, SENTENCE_END, UNSPACED_SCRIPT, LanguagePair, profile
 from .pipeline_state import WorkflowStage
 from .schemas import GlossaryCategory, GlossaryEntry
 from .state import StageStatus, connect_state, get_stage_status
@@ -545,7 +545,7 @@ def build_report(
 ) -> dict[str, Any]:
     rules = profile(target_language)
     return {
-        "direction": f"{source_language}-{target_language}",
+        "direction": LanguagePair.of(source_language, target_language).value,
         "segment_count": len(segments),
         "document_count": len({segment.document_id for segment in segments}),
         "edited_segment_count": sum(1 for segment in segments if segment.edited),
@@ -695,7 +695,7 @@ def format_report(report: dict[str, Any], *, limit: int = 20) -> str:
         add("")
         add("Their renderings, pronouns and forms of address are not checked below.")
     else:
-        measured = profile(report["direction"].split("-")[0]).cased
+        measured = profile(LanguagePair(report["direction"]).source_language).cased
         add("None found." if measured else "Not measured for this direction.")
     add("")
 

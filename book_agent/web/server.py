@@ -230,6 +230,7 @@ class UiApp:
                 "source_path": str(workspace.source_file),
                 "config": Path(status["configuration"]["source_path"] or "").name,
                 "direction": job_direction(workspace),
+                "languages": status["languages"],
                 "downloadable": overall == "complete",
                 "series": series_api.series_of_job(self.runs, job_id),
                 "stages": status["stages"],
@@ -517,7 +518,7 @@ class UiApp:
         validated = stages.get(WorkflowStage.VALIDATE_REPAIRED.value, {})
         if validated.get("status") != StageStatus.COMPLETED.value:
             raise ValueError("XLIFF export needs the validated draft; wait for Validate draft to complete")
-        direction = load_workspace_config(workspace).translation.direction.value
+        direction = load_workspace_config(workspace).translation.direction.slug
         name = f"{workspace.source_file.stem}.{direction}.xlf"
         return export_xliff(workspace).encode("utf-8"), name
 

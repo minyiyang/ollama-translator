@@ -202,6 +202,23 @@ to the configuration file. The resulting absolute paths and complete
 configuration are captured in the job workspace so a later `resume` does not
 depend on the current shell directory.
 
+### Language pairs
+
+English to Simplified Chinese (`en-zh`) and back (`zh-en`) are tuned: every
+check, the glossary, the style sheet, and prose rewrite run for them. Any other
+pair is accepted at the generic tier, written either way:
+
+```yaml
+translation:
+  direction: en>ja          # or: source_language: en / target_language: ja
+```
+
+Codes are BCP 47 (`fr`, `ja`, `pt-BR`, `zh-Hant`). A generic pair runs without
+a glossary or style sheet for now, and checks its languages cannot support are
+skipped rather than run with English or Chinese rules. `run --dry-run` and
+`status --json` list them under `languages.skipped`. Translation quality for
+other pairs depends on the model (docs/GENERIC_LANGUAGES.md).
+
 ## Start a job
 
 Inspect a prospective run without writing files or contacting Ollama:

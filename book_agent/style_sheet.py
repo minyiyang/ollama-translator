@@ -87,7 +87,15 @@ def default_conventions(direction: TranslationDirection) -> StyleConventions:
 def extraction_instructions(direction: TranslationDirection, *, max_characters: int, max_expressions: int) -> str:
     """The paragraph appended to the glossary extraction prompt when the style sheet is on."""
     rules = profile(direction.target_language)
-    pronouns = f"{rules.pronouns[0]}, {rules.pronouns[1]}, or {rules.pronouns[2]}"
+    # A target without pronouns or address forms in its profile leaves those
+    # sentences out; the characters keep their voice only.
+    pronoun = (
+        f", the pronoun the translation should use for them ({', '.join(rules.pronouns[:-1])}, or "
+        f"{rules.pronouns[-1]}; use it for an animal only when the story treats it as an object "
+        "rather than a person)"
+        if rules.pronouns
+        else ""
+    )
     address = (
         " and, when the passages show it, whether other characters address them as "
         f"{rules.address_forms[0]} or the polite {rules.address_forms[1]}"
@@ -98,10 +106,8 @@ def extraction_instructions(direction: TranslationDirection, *, max_characters: 
         "\n\nAlso fill the separate `style` object, a book style sheet for consistent "
         f"translation into {direction.target_language.display_name}. In `characters`, list "
         f"at most {max_characters} characters who speak or act in these passages, including "
-        "animals and personified creatures, with the name exactly as written in the passage, "
-        f"the pronoun the translation should use for them ({pronouns}; use it for an animal "
-        f"only when the story treats it as an object rather than a person){address}, and "
-        "a few words on how they speak. In `expressions`, list at most "
+        "animals and personified creatures, with the name exactly as written in the passage"
+        f"{pronoun}{address}, and a few words on how they speak. In `expressions`, list at most "
         f"{max_expressions} lines or phrases the passages repeat, such as a catchphrase, "
         "refrain, or recurring formula of address, each copied verbatim from the passage "
         f"with one fixed {direction.target_language.display_name} rendering. Cite evidence "
@@ -451,8 +457,9 @@ def format_relevant_style(sheet: StyleSheet) -> str:
         )
         lines += [f"  - {item.source!r} => {item.rendering!r}" for item in sheet.expressions]
     conventions = sheet.conventions
-    lines.append(
-        f"- conventions: quotation marks {conventions.quotation_marks}, nested "
-        f"{conventions.nested_quotation_marks}, ellipsis {conventions.ellipsis}, dash {conventions.dash}"
-    )
+    if conventions.quotation_marks:  # empty for a language without house conventions
+        lines.append(
+            f"- conventions: quotation marks {conventions.quotation_marks}, nested "
+            f"{conventions.nested_quotation_marks}, ellipsis {conventions.ellipsis}, dash {conventions.dash}"
+        )
     return "\n".join(lines)
