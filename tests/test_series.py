@@ -153,7 +153,7 @@ class WorkbenchTests:
             decide_terms(runs, "qel", [terms["Vraxwright"].term_id], "keep", reason="")
         decide_terms(
             runs, "qel", [terms["Vraxwright"].term_id], "keep",
-            reason="Book 1 spelling is canonical.", chinese="弗拉克斯赖特",
+            reason="Book 1 spelling is canonical.", target="弗拉克斯赖特",
         )
         decide_terms(runs, "qel", [terms["Ostrel"].term_id], "keep", reason="Main place; promote.")
         rebuilt = terms_by_english(build_workbench(runs, "qel"))
@@ -219,7 +219,7 @@ class VersionAndBindingTests:
     def test_bound_glossary_reaches_preprocessing_and_book_entries_win(self, runs):
         two_book_series(runs)
         terms = terms_by_english(build_workbench(runs, "qel"))
-        decide_terms(runs, "qel", [terms["Vraxwright"].term_id], "keep", reason="Canonical.", chinese="弗拉克斯赖特")
+        decide_terms(runs, "qel", [terms["Vraxwright"].term_id], "keep", reason="Canonical.", target="弗拉克斯赖特")
         publish_workbench(runs, "qel")
         workspace = open_job_workspace(runs / "qel-02")
         bind_book(runs, "qel", "qel-02")
@@ -454,7 +454,7 @@ class EvidenceTests:
         evidence = term_evidence(runs, "qel", hudson.term_id)
         first, second = evidence["books"]
         assert (first["job_id"], first["volume"]) == ("qel-01", 1)
-        assert [entry["chinese"] for entry in first["glossary"]] == ["哈德逊"]
+        assert [entry["target"] for entry in first["glossary"]] == ["哈德逊"]
         assert second["glossary"] == [] and second["mentions"] == 1
         assert any("Mrs. Hudson" in snippet for snippet in second["snippets"])
         with pytest.raises(ValueError, match="unknown term ID"):
@@ -489,7 +489,7 @@ class PromotedTermReachesBooksTests:
         # The second book's own glossary is unchanged: the overlay only harmonizes
         # entries it already has.
         overlay = overlay_for_job(runs, "qel-02")
-        assert "Hudson" not in {entry["english"] for entry in overlay["entries"]}
+        assert "Hudson" not in {entry["source"] for entry in overlay["entries"]}
 
         # But preprocessing merges the pinned series version in, so the book uses it.
         workspace = open_job_workspace(runs / "qel-02")

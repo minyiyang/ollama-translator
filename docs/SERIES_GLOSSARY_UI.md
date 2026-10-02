@@ -110,13 +110,16 @@ runs/.series/qel/
   conflicts, and each term's decision with who made it (`rule`, `user`, or
   `llm-accepted`), when, and why.
 
-**`workbench.json`**: one row per candidate term.
+**`workbench.json`**: one row per candidate term. `source` and `target` are the
+sides of the series glossary's pair (en-zh for an en/zh series); workbenches
+written before docs/GENERIC_LANGUAGES.md phase 3 said `english`/`chinese` and
+still load.
 
 ```json
 {
   "term_id": "T00012",
-  "english": "Qelmar",
-  "chinese": "凯尔玛",
+  "source": "Qelmar",
+  "target": "凯尔玛",
   "category": "person",
   "aliases": [],
   "origin": "consensus",

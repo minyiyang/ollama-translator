@@ -47,6 +47,24 @@ def _choice(values: tuple[str, ...]):
     return Literal.__getitem__((*values, ""))  # type: ignore[misc]
 
 
+def check_style_choices(sheet: "StyleSheet", direction: TranslationDirection) -> None:
+    """Refuse a pronoun or form of address the target language does not offer
+    (a reviewer's edit; the model is held to the same lists by its schema)."""
+    pronouns = {*pronoun_choices(direction), ""}
+    addresses = {*address_choices(direction), ""}
+    for character in sheet.characters:
+        if character.pronoun not in pronouns:
+            raise ValueError(
+                f"{character.name}: pronoun {character.pronoun!r} is not one of "
+                f"{', '.join(sorted(pronouns - {''})) or 'none for this language'}"
+            )
+        if character.addressed_as not in addresses:
+            raise ValueError(
+                f"{character.name}: form of address {character.addressed_as!r} is not one of "
+                f"{', '.join(sorted(addresses - {''})) or 'none for this language'}"
+            )
+
+
 class StyleCharacter(BaseModel):
     """How one character is referred to and addressed throughout the book."""
 

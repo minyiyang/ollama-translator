@@ -213,11 +213,28 @@ translation:
   direction: en>ja          # or: source_language: en / target_language: ja
 ```
 
-Codes are BCP 47 (`fr`, `ja`, `pt-BR`, `zh-Hant`). A generic pair runs without
-a glossary or style sheet for now, and checks its languages cannot support are
-skipped rather than run with English or Chinese rules. `run --dry-run` and
-`status --json` list them under `languages.skipped`. Translation quality for
-other pairs depends on the model (docs/GENERIC_LANGUAGES.md).
+Codes are BCP 47 (`fr`, `ja`, `pt-BR`, `zh-Hant`). A generic pair has a
+glossary, a style sheet, and a series like any other; checks its languages
+cannot support are skipped rather than run with English or Chinese rules.
+`run --dry-run` and `status --json` list them under `languages.skipped`.
+Prose rewrite stays off for generic targets. Translation quality for other
+pairs depends on the model (docs/GENERIC_LANGUAGES.md).
+
+### Glossary files
+
+A glossary records its language pair, and each entry has a `source` term and
+its `target` rendering:
+
+```json
+{"pair": "en>ja", "entries": [{"source": "Aster", "target": "アスター", "category": "人名"}]}
+```
+
+An en/zh book's glossary is always `en-zh`, keyed by the English term, so a
+`zh-en` job uses it the other way round. Files written by earlier versions
+(`english`/`chinese`, no `pair`) are read as `en-zh`. A seed, series, or
+reviewed glossary must be in the job's glossary pair, or its exact reverse,
+which is swapped on load (its aliases, spellings of the old source term, are
+dropped). The colon-separated `.txt` format stays en/zh only.
 
 ## Start a job
 

@@ -12,7 +12,7 @@ from ..config import AppConfig
 from ..languages import glossary_language_names, glossary_pair
 from ..pipeline_state import WorkflowStage
 from ..schemas import GlossaryApprovalRecord, GlossaryCategory, GlossaryResult
-from ..style_sheet import StyleSheet, address_choices, pronoun_choices
+from ..style_sheet import StyleSheet, address_choices, check_style_choices, pronoun_choices
 from ..stages.decompile import load_decompile_manifest
 from ..state import connect_state, get_job_metadata, get_stage_status
 from ..workspace import JobWorkspace
@@ -119,6 +119,9 @@ def _style_review(workspace: JobWorkspace) -> str:
 def write_reviewed_style_sheet(workspace: JobWorkspace, style: dict[str, Any]) -> Path:
     """Validate a reviewer's style-sheet edits and store them in the job."""
     sheet = StyleSheet.model_validate(style)
+    config = _config(workspace)
+    if config is not None:
+        check_style_choices(sheet, config.translation.direction)
     stamp = datetime.now().astimezone().strftime("%Y%m%dT%H%M%S")
     path = workspace.directory(f"{REVIEW_DIR}/style.reviewed-{stamp}.json")
     path.parent.mkdir(parents=True, exist_ok=True)

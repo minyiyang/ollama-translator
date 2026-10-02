@@ -26,7 +26,6 @@ from .languages import (
     SENTENCE_END,
     UNSPACED_SCRIPT,
     LanguagePair,
-    glossary_pair,
     glossary_sides,
     profile,
 )
@@ -275,19 +274,24 @@ class _Term:
 
 
 def _terms(entries: Sequence[GlossaryEntry], direction: LanguagePair) -> list[_Term]:
-    """The job's source and target names of each entry. Aliases are variants of
-    the glossary's source term, which is the job's target in a swapped glossary
-    (the English side of an en-zh glossary in a zh-en job)."""
-    swapped = glossary_pair(direction) != direction
-    aliases_side = profile(direction.target_language if swapped else direction.source_language)
+    """The job's source and target names of each entry.
+
+    An alias counts on the side whose script it is written in: an English alias
+    is a source spelling in an en-zh job and an accepted rendering in a zh-en
+    one (where the en-zh glossary runs the other way); a Chinese alias counts as
+    a rendering.
+    """
+    source_script = profile(direction.source_language).script_pattern
+    target_script = profile(direction.target_language).script_pattern
     terms = []
     for index, entry in enumerate(entries):
         source, target = glossary_sides(entry, direction)
-        aliases = tuple(alias for alias in entry.aliases if aliases_side.script_pattern.search(alias))
-        if swapped:
-            terms.append(_Term(index, (source,), (target, *aliases)))
-        else:
-            terms.append(_Term(index, (source, *aliases), (target,)))
+        source_aliases = tuple(alias for alias in entry.aliases if source_script.search(alias))
+        target_aliases = tuple(
+            alias for alias in entry.aliases
+            if alias not in source_aliases and target_script.search(alias)
+        )
+        terms.append(_Term(index, (source, *source_aliases), (target, *target_aliases)))
     return terms
 
 

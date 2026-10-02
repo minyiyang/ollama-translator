@@ -122,7 +122,7 @@ class GlossaryComplianceTests:
             _segment("D0001-S000001", "帽匠说话了。", "The hatter spoke."),
             _segment("D0001-S000002", "帽匠叹气。", "The capmaker sighed."),
         ]
-        report = glossary_compliance(segments, entries, source_language="zh")
+        report = glossary_compliance(segments, entries, source_language="zh", target_language="en")
         assert report["miss_count"] == 1
 
 

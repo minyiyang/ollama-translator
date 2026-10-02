@@ -192,7 +192,7 @@ def test_prompts_schemas_and_stage_hashes_are_unchanged(pair: str) -> None:
     path = GOLDEN / f"{pair}.json"
     if UPDATE or not path.exists():
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(json.dumps(recorded, ensure_ascii=False, indent=1, sort_keys=True) + "\n", encoding="utf-8")
+        path.write_text(json.dumps(recorded, ensure_ascii=False, indent=1, sort_keys=True) + "\n", encoding="utf-8", newline="\n")
         if not UPDATE:
             pytest.fail(f"recorded a new golden file {path.name}; re-run to compare against it")
         return

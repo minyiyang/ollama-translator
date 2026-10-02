@@ -575,7 +575,7 @@ class GlossaryHarmonizationTests:
         assert self.rendering(entries, "Qelm") == ["奇尔"]
         assert report.change_count == 1
         assert report.changes[0].kind == "variant"
-        assert report.changes[0].previous_chinese == "奇尔族"
+        assert report.changes[0].previous_target == "奇尔族"
 
     def test_lowercase_plural_variants_share_one_rendering(self) -> None:
         entries, report = harmonize_glossary(

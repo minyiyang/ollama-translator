@@ -1,6 +1,6 @@
 # Translating between any two languages: plan
 
-Status: **phases 1 and 2 implemented (section 6); decisions in section 5 made 2026-10-02.**
+Status: **phases 1 to 3 implemented (section 6); decisions in section 5 made 2026-10-02.**
 
 How the pipeline stops assuming English on one side and Simplified Chinese on
 the other, so that a book can be translated between any two languages the
@@ -343,3 +343,65 @@ hidden:
   untranslated checks. It also runs `en>ja` and `en>de` end to end through
   the real workflow with fake model clients, both gates included. The full
   backend suite passes.
+
+**Phase 3 status (2026-10-02): done, pending review.** It supersedes phase
+2's "not available yet" list: glossary, style sheet, and series now work
+for any pair.
+
+Decisions taken while implementing it:
+
+5. **New files use `source`/`target` for every pair** (chosen 2026-10-02 over
+   keeping `english`/`chinese` on disk for en/zh). Every glossary, review
+   file, workbench, report, and preprocessed document is written with the
+   new names, and a glossary records its `pair`. Older files still load:
+   - entries without a pair are read as `en-zh`;
+   - `canonical_english`, `selected_chinese`, and the workbench's and
+     approval records' `english`/`chinese` are renamed on read.
+   New en/zh jobs therefore get new glossary and stage hashes (the golden
+   stage hashes were re-recorded on purpose). Existing jobs keep their
+   checkpoints unless their glossary is approved again.
+6. **An en/zh book's glossary is `en-zh` either way.** The glossary pipeline
+   has always keyed entries by the English term and resolved a Chinese
+   rendering, whatever the book's direction. So `glossary_pair(zh-en)` is
+   `en-zh`, and a zh-en job uses its glossary the other way round through
+   `glossary_sides`. This is the doc's "swap on load" for that case, with
+   no data rewritten. Every other job's glossary has the job's own pair and
+   is keyed by its source term.
+
+What changed:
+
+- **Model.** `GlossaryEntry` has `source`/`target`; `GlossaryResult` has
+  `pair`. Terms are validated against the pair's scripts through a
+  validation context that containers (a glossary, a preprocessed document)
+  set for their entries. A target may repeat a preserved code exactly.
+- **What the model sees.** `english`/`chinese` for an en-zh glossary,
+  byte-for-byte as before: the golden prompts and schemas are unchanged,
+  including the series-conflict, series-suggestion, and style-sheet
+  schemas. Any other pair sees `source`/`target`, with prompts that name
+  both languages and never mention Chinese.
+- **Loading.** `orient_glossary` accepts a file in the job's glossary pair
+  as is, swaps the exact reverse explicitly (dropping aliases, which spelled
+  the old source term), and refuses an unrelated pair. It applies to seed,
+  series, bound-series, and reviewed glossaries and to series imports.
+- **Series.** A series glossary has the series' glossary pair; a series can
+  be created for any pair. The workbench view reports the pair for labels;
+  CLI `series decide` takes `--target` (`--chinese` still works).
+- **Style sheet.** Pronoun and address are stored as text. The model and
+  the reviewer choose from the target profile's lists (the tuned pairs keep
+  their combined en/zh lists), and reviewed sheets are checked against
+  them. A target without pronouns is reported as skipping "style-sheet
+  pronouns".
+- **Harmonization.** Name-part alignment uses the target profile's
+  `name_separator` (`·` for Chinese) and is skipped without one.
+- **Interface.** Glossary and series pages use `source`/`target` and label
+  columns with the pair's language names (`frontend/src/lib/languages.ts`).
+- **Tested.** `tests/test_glossary_pairs.py` (old files, validation,
+  orientation, model-facing names and prompts, series, style choices).
+  `tests/test_language_generic.py` runs `en>ja` and `en>de` end to end with
+  a seed glossary in their own pair, and checks that the approved rendering
+  reaches the translation prompt. The full backend suite (1,102) and the
+  frontend tests (83) pass.
+
+Left for phase 4: language selectors in the job form and the Config tab
+(the Direction picker still lists en-zh and zh-en; other pairs are set in
+YAML), the tier notice, and skipped-check notes in the interface.

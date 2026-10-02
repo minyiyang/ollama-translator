@@ -18,6 +18,7 @@ from ..style_sheet import (
     build_style_candidate_schema,
     build_style_review_prompt,
     build_style_review_schema,
+    check_style_choices,
     candidate_from_model,
     extraction_instructions,
     keep_recurring_expressions,
@@ -858,6 +859,7 @@ def run_glossary_approval_stage(
                 style = StyleSheet.model_validate_json(
                     Path(reviewed_style_file).read_text(encoding="utf-8")
                 )
+                check_style_choices(style, config.translation.direction)
             elif use_llm_review and not style_draft.is_empty():
                 style = _review_style_sheet(style_draft, config, client, workspace, stage_root)
             else:
