@@ -83,18 +83,27 @@ class RepeatedLineTests:
         assert sorted(_by_segment(issues)) == ["D0001-S000001", "D0002-S000001"]
         assert all("D0003-S000001" in issue.suggested_fix for issue in issues)
 
-    def test_a_verified_repair_beats_the_majority_but_not_a_human_edit(self):
+    def test_a_verified_repair_breaks_a_tie_but_loses_to_a_human_edit(self):
         lines = [
             _seg("D0001-S000001", "Off with her head, now!", "砍掉她的头，现在！"),
-            _seg("D0002-S000001", "Off with her head, now!", "砍掉她的头，现在！"),
-            _seg("D0003-S000001", "Off with her head, now!", "砍了她的头，现在！", repaired=True),
+            _seg("D0002-S000001", "Off with her head, now!", "砍了她的头，现在！", repaired=True),
         ]
-        assert sorted(_by_segment(repeated_line_issues(lines, SETTINGS))) == [
-            "D0001-S000001",
-            "D0002-S000001",
-        ]
+        assert list(_by_segment(repeated_line_issues(lines, SETTINGS))) == ["D0001-S000001"]
         lines[0] = _seg("D0001-S000001", "Off with her head, now!", "砍掉她的头，现在！", edited=True)
-        assert list(_by_segment(repeated_line_issues(lines, SETTINGS))) == ["D0003-S000001"]
+        assert list(_by_segment(repeated_line_issues(lines, SETTINGS))) == ["D0002-S000001"]
+
+    def test_one_repaired_occurrence_does_not_outvote_the_majority(self):
+        """A repair made for another finding must not flag every occurrence that agrees."""
+        lines = [
+            _seg(f"D{index:04d}-S000001", "Off with her head, now!", "砍掉她的头，现在！")
+            for index in range(1, 10)
+        ]
+        lines.append(
+            _seg("D0010-S000001", "Off with her head, now!", "砍了她的头，现在！", repaired=True)
+        )
+        issues = repeated_line_issues(lines, SETTINGS)
+        assert list(_by_segment(issues)) == ["D0010-S000001"]
+        assert issues[0].suggested_fix.endswith("砍掉她的头，现在！")
 
     def test_disagreeing_human_edits_are_both_flagged_with_no_fix(self):
         issues = repeated_line_issues(
@@ -212,6 +221,20 @@ class ConventionTests:
         segments = [_seg("D0001-S000001", "x", "他停下——然后。"), _seg("D0001-S000002", "x", "他唱道：—")]
         assert book_consistency_issues(segments, SETTINGS)
         assert book_consistency_issues(segments, ConsistencySettings(conventions=False)) == []
+
+    def test_book_consistency_issues_leave_human_edits_to_the_edit_check(self):
+        """Repair works on the pipeline text, so a finding on a human edit has nothing to fix."""
+        segments = [
+            _seg("D0001-S000001", "x", "他停下——然后。"),
+            _seg("D0001-S000002", "x", "他唱道：—", edited=True),
+            _seg("D0001-S000003", "x", '他说"好"，她说：“好。”', edited=True),
+            _seg("D0001-S000004", "x", "她唱道：—"),
+            _seg("D0001-S000005", "x", "她停下——然后。"),
+        ]
+        assert sorted(_by_segment(convention_issues(segments, SETTINGS))) == [
+            "D0001-S000002", "D0001-S000003", "D0001-S000004",
+        ]
+        assert list(_by_segment(book_consistency_issues(segments, SETTINGS))) == ["D0001-S000004"]
 
 
 def test_the_semantic_auditor_cannot_emit_consistency_findings():
@@ -548,3 +571,145 @@ class CompileGateTests:
             )
             gate = unresolved_review_gate(workspace, load_repaired_validation_report(workspace))
             assert gate.unresolved_review_ids == []
+
+
+def _segment(workspace, text: str):
+    """The validated segment whose source contains ``text``."""
+    from book_agent.stages.validate_repaired import load_validated_repaired_documents
+
+    return next(
+        segment
+        for document in load_validated_repaired_documents(workspace)
+        for segment in document.document.segments
+        if text in segment.source_text
+    )
+
+
+def _edit(workspace, segment, text: str) -> None:
+    from book_agent.hashing import sha256_text
+    from book_agent.text_edits import apply_edit
+
+    apply_edit(
+        workspace,
+        segment_id=segment.segment_id,
+        text=text,
+        reason="Reviewer's wording.",
+        base_target_sha256=sha256_text(segment.translated_text),
+    )
+
+
+class DraftDriftTests:
+    """Drift already in the validated draft is validate_repaired's to queue, not compile's."""
+
+    def test_a_job_validated_before_the_checks_is_not_blocked_by_an_unrelated_edit(self):
+        from book_agent.stages.compile import run_epub_compile_stage
+        from book_agent.stages.validate_repaired import load_repaired_validation_report
+        from book_agent.text_edits import compiled_consistency_issues, unresolved_review_gate
+
+        with tempfile.TemporaryDirectory() as directory:
+            config = _config()
+            workspace = _prepared(directory, config)
+            first, second = _repeated_ids(workspace)
+            report = load_repaired_validation_report(workspace)
+            assert report.review_segment_ids == []
+            other = _segment(workspace, "Alice walked")
+            # The draft drifts, but its validation report predates the checks.
+            with patch(
+                "book_agent.text_edits.book_consistency_issues",
+                return_value=[_fake_issue(first), _fake_issue(second)],
+            ) as detector:
+                assert unresolved_review_gate(workspace, report).total_count == 0
+                assert detector.call_count == 0  # without an edit there is nothing to compare
+                _edit(workspace, other, other.translated_text + "（改）")
+                gate = unresolved_review_gate(workspace, report)
+                assert (gate.unresolved_review_ids, gate.defect_count) == ([], 0)
+                # Still listed for the reader (Text tab, compile worksheet).
+                assert {i.segment_id for i in compiled_consistency_issues(workspace)} == {first, second}
+                assert run_epub_compile_stage(workspace, config).segment_count > 0
+
+    def test_only_the_drift_an_edit_adds_joins_the_gate(self):
+        from book_agent.stages.validate_repaired import load_repaired_validation_report
+        from book_agent.text_edits import unresolved_review_gate
+
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = _prepared(directory, _config())
+            first, second = _repeated_ids(workspace)
+            other = _segment(workspace, "Alice walked")
+            _edit(workspace, other, other.translated_text + "（改）")
+
+            def detector(segments, settings, style=None):
+                found = [_fake_issue(first)]
+                if any(segment.edited for segment in segments):
+                    found.append(_fake_issue(second))
+                return found
+
+            with patch("book_agent.text_edits.book_consistency_issues", side_effect=detector):
+                gate = unresolved_review_gate(workspace, load_repaired_validation_report(workspace))
+            assert (gate.unresolved_review_ids, gate.defect_count) == ([second], 1)
+
+
+class TextTabFindingsTests:
+    def _rows(self, workspace, document_id):
+        from book_agent.web.text_view import text_chapter
+
+        return {row["segment_id"]: row for row in text_chapter(workspace, document_id)["segments"]}
+
+    def _validate_status(self, workspace) -> str:
+        connection = connect_state(workspace.state_file)
+        try:
+            return get_stage_status(connection, WorkflowStage.VALIDATE_REPAIRED.value)["status"]
+        finally:
+            connection.close()
+
+    def test_stage_findings_show_until_validation_and_not_after_the_drift_is_gone(self):
+        """An empty compile-time check means no drift, not a missing draft."""
+        from book_agent.stages.audit_consistency import load_consistency_issues, run_consistency_audit_stage
+        from book_agent.stages.validate_repaired import load_validated_repaired_documents
+
+        with tempfile.TemporaryDirectory() as directory:
+            config = _config()
+            workspace = _prepared(directory, config)
+            first, _ = _repeated_ids(workspace)
+            document_id = next(
+                d.document.manifest_id for d in load_validated_repaired_documents(workspace)
+                if any(s.segment_id == first for s in d.document.segments)
+            )
+            found = [_fake_issue(first), _fake_issue(first, AuditSeverity.LOW)]
+            with patch(
+                "book_agent.stages.audit_consistency.book_consistency_issues", return_value=found
+            ):
+                run_consistency_audit_stage(workspace, config)
+            assert load_consistency_issues(workspace)  # what the stage found before repair
+
+            # The validated draft has no drift left: the stage findings are history.
+            assert self._validate_status(workspace) == StageStatus.COMPLETED.value
+            row = self._rows(workspace, document_id)[first]
+            assert row["findings"] == [] and not row["flagged"]
+
+            # Before the draft is validated, the stage findings are all there is.
+            with patch(
+                "book_agent.stages.audit_consistency.book_consistency_issues", return_value=found
+            ):
+                run_consistency_audit_stage(workspace, _config(min_repeat_characters=20))
+            assert self._validate_status(workspace) == StageStatus.PENDING.value
+            row = self._rows(workspace, document_id)[first]
+            assert [(f["category"], f["severity"]) for f in row["findings"]] == [
+                ("consistency", "medium")
+            ]
+
+
+class EditCheckConventionTests:
+    def test_a_proposed_edit_is_still_checked_against_the_books_punctuation(self):
+        from book_agent.text_edits import check_edits
+
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = _prepared(directory, _config())
+            first, _ = _repeated_ids(workspace)
+            _edit(workspace, _segment(workspace, "Alice walked"), "爱丽丝——安静地走着。")
+            flagged = check_edits(workspace, {first: "王后—对花园里的每个人大喊。"})[first]
+            assert any(
+                f["category"] == "consistency" and "single dash" in f["message"]
+                for f in flagged["overridable"]
+            )
+            paired = check_edits(workspace, {first: "王后——对花园里的每个人大喊。"})[first]
+            assert not any("single dash" in f["message"] for f in paired["overridable"])

@@ -308,6 +308,21 @@ class GlossaryGateTests:
             assert client.prompts == []
             assert load_style_sheet(workspace).characters[0].name == "Mouse"
 
+    def test_the_command_the_gate_suggests_works_with_llm_glossary_review(self):
+        """`approve --style FILE` passes no --llm-glossary; the config alone asks for the LLM."""
+        from unittest.mock import MagicMock, patch
+
+        from book_agent.workflow import approve_glossary
+
+        with tempfile.TemporaryDirectory() as directory:
+            config = _config(style_review="human", llm_glossary_review=True)
+            workspace, _ = _extracted(directory, config)
+            reviewed = Path(directory) / "style.reviewed.json"
+            reviewed.write_text(load_style_sheet(workspace, "style_draft").model_dump_json(), encoding="utf-8")
+            with patch("book_agent.workflow.OllamaClient", return_value=MagicMock()):
+                approve_glossary(workspace, config=config, reviewed_style_file=reviewed)
+            assert load_style_sheet(workspace).characters[0].name == "Mouse"
+
     def test_approved_entries_reach_preprocessing_and_the_translation_prompt(self):
         from book_agent.stages.glossary import run_glossary_approval_stage
         from book_agent.stages.preprocess import load_preprocessed_documents, run_preprocessing_stage

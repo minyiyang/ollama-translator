@@ -163,8 +163,10 @@ therefore checks the wrong text. Three consequences:
   `validate_repaired` never passes through it.
 - **An edited rendering is the reference** (decision 7.4). When occurrences
   of a repeated line disagree, the proposed fix for the others is, in order:
-  a human edit (active in the edit log), a verified LLM repair, the majority
-  rendering, the first in reading order. Two human edits that disagree go to
+  a human edit (active in the edit log), the majority rendering, and on a tie
+  a verified LLM repair, then the first in reading order. A repair only
+  breaks a tie: a repair made for another finding would otherwise turn every
+  occurrence that agrees into a finding. Two human edits that disagree go to
   the reviewer rather than being resolved automatically.
 - **Edits are checked book-wide.** `check_edits` audits chapter by chapter
   today. The translation-memory and style-sheet checks need the whole book,
@@ -459,9 +461,13 @@ A deterministic stage between `audit_translation` and `repair_translation`
 | Conventions | a single `—` where the book uses `——`; a straight `"` in Chinese text | medium |
 
 The **reference** rendering follows decision 7.4: an active human edit, then
-(in the `validate_repaired` re-check, where repairs exist) a verified repair,
-then the majority, then the first in reading order. Two human edits that
-disagree produce a finding on both, with no automatic fix.
+the majority, then on a tie (in the `validate_repaired` re-check, where
+repairs exist) a verified repair, then the first in reading order. Two human
+edits that disagree produce a finding on both, with no automatic fix.
+
+Convention and style-sheet findings are raised on unedited segments only: a
+human edit is checked when it is proposed (point 5 below), because repair
+works on the pipeline text and cannot fix the edit.
 
 The severity rule applies whatever the reference is: when a human rewrites
 one occurrence substantially, the other copies differ clearly from it, so
@@ -502,6 +508,9 @@ the findings would otherwise be dropped silently):
    introduced by an edit in another chapter, adds its segment to the
    `unresolved_review_gate`; like any review segment, a Final review decision
    or a Text tab edit with a reason clears it (decision 7.5: overridable).
+   Only findings the edits introduced are added: drift already in the
+   validated draft is in the validation report (point 3), and a job validated
+   before these checks existed is not blocked by it on its next compile.
 5. **Edit check:** `check_edits` adds a book-level pass. A proposed text is
    compared with the other occurrences of its repeated segment or quoted
    span, with the other active edits applied, and a mismatch is an

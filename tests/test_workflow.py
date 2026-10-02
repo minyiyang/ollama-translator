@@ -317,6 +317,23 @@ class WorkflowTests:
         assert called.call_args.kwargs["llm_review"]
         assert called.call_args.kwargs["client"] is client_type.return_value
 
+    def test_approve_glossary_creates_the_reviewer_the_config_asks_for(self) -> None:
+        """`approve --style FILE` alone still LLM-reviews the glossary when configured to."""
+        config = self.config.model_copy(
+            update={
+                "workflow": self.config.workflow.model_copy(update={"llm_glossary_review": True})
+            }
+        )
+        style = Path(self.temporary.name) / "style.json"
+        with (
+            patch("book_agent.workflow.OllamaClient") as client_type,
+            patch("book_agent.workflow.run_glossary_approval_stage") as called,
+        ):
+            approve_glossary(self.workspace, config=config, reviewed_style_file=style)
+        client_type.return_value.validate_model_context.assert_called_once()
+        assert called.call_args.kwargs["client"] is client_type.return_value
+        assert called.call_args.kwargs["reviewed_style_file"] == style
+
     def test_retry_resets_stage_dependents_and_artifacts(self) -> None:
         connection = connect_state(self.workspace.state_file)
         try:

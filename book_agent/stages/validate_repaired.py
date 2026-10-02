@@ -860,7 +860,7 @@ def _consistency_defects(
 
     Human edits are not considered here: they are applied at compile, which
     runs its own check, and this stage's checkpoint must not depend on them.
-    A verified repair is the reference ahead of the majority (decision 7.4).
+    A verified repair breaks a tie between renderings (decision 7.4).
     """
     if not config.consistency.enabled or not documents:
         return {}

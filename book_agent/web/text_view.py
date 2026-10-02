@@ -108,6 +108,8 @@ def _add_consistency_findings(
     document_id: str,
     source: Any,
     findings: dict[str, list[dict[str, str]]],
+    *,
+    validated: bool,
 ) -> None:
     """Add book-level consistency drift for this chapter's segments (docs/BOOK_CONSISTENCY.md).
 
@@ -115,8 +117,10 @@ def _add_consistency_findings(
     with edits applied; before that, what the audit_consistency stage found.
     """
     segment_ids = {segment.segment_id for segment in source.segments}
-    issues = compiled_consistency_issues(workspace)
-    if not issues:
+    if validated:
+        # No findings here means the drift is gone, not that the draft is missing.
+        issues = compiled_consistency_issues(workspace)
+    else:
         issues = [
             issue
             for issue in _safe_load(
@@ -317,8 +321,14 @@ def text_chapter(workspace: JobWorkspace, document_id: str) -> dict[str, Any]:
     initial_audits = {
         item.document_id: item for item in _safe_load(load_document_audits, workspace)
     }
+    connection = connect_state(workspace.state_file)
+    try:
+        validate_stage = get_stage_status(connection, WorkflowStage.VALIDATE_REPAIRED.value)
+    finally:
+        connection.close()
+    editable = bool(validate_stage and validate_stage["status"] == StageStatus.COMPLETED.value)
     findings = _document_findings(document_id, validations, initial_audits)
-    _add_consistency_findings(workspace, document_id, source, findings)
+    _add_consistency_findings(workspace, document_id, source, findings, validated=editable)
     try:
         review_queue_ids = set(
             unresolved_review_gate(workspace, load_repaired_validation_report(workspace)).unresolved_review_ids
@@ -326,12 +336,6 @@ def text_chapter(workspace: JobWorkspace, document_id: str) -> dict[str, Any]:
     except (FileNotFoundError, RuntimeError, ValueError):
         review_queue_ids = set()
 
-    connection = connect_state(workspace.state_file)
-    try:
-        validate_stage = get_stage_status(connection, WorkflowStage.VALIDATE_REPAIRED.value)
-    finally:
-        connection.close()
-    editable = bool(validate_stage and validate_stage["status"] == StageStatus.COMPLETED.value)
     edit_events = events_by_segment(workspace) if editable else {}
 
     translated_by_id = (

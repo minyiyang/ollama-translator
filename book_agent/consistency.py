@@ -12,8 +12,8 @@ document or one chunk at a time:
 
 Each inconsistent occurrence becomes an ``AuditIssue`` (category
 ``consistency``, source ``consistency``) naming the reference rendering to
-follow. The reference is chosen by decision 7.4: a human edit, then a
-verified repair, then the majority, then the first in reading order.
+follow. The reference is chosen by decision 7.4: a human edit, then the
+majority, then on a tie a verified repair, then the first in reading order.
 """
 
 from __future__ import annotations
@@ -190,14 +190,16 @@ def _reference(members: list[_Occurrence]) -> tuple[str | None, list[_Occurrence
         if len(keys) == 1:
             return next(iter(keys)), []
         return None, edited
-    repaired = [m for m in members if m.segment.repaired]
-    if repaired and len({m.key for m in repaired}) == 1:
-        return repaired[0].key, []
     counts = Counter(m.key for m in members)
     best = max(counts.values())
-    for member in members:  # members are in reading order: first wins a tie
-        if counts[member.key] == best:
+    leading = [m for m in members if counts[m.key] == best]
+    # A repair breaks a tie only: one repaired occurrence must not turn the
+    # occurrences that agree with each other into findings nothing will fix.
+    for member in leading:
+        if member.segment.repaired:
             return member.key, []
+    if leading:  # members are in reading order: first wins a tie
+        return leading[0].key, []
     return None, []  # unreachable: members is never empty
 
 
@@ -319,12 +321,17 @@ def book_consistency_issues(
 ) -> list[AuditIssue]:
     """Every consistency issue in the book, in reading order.
 
-    With an approved style sheet, unedited segments are also checked for its
-    expressions; a human edit is checked when it is proposed instead.
+    Conventions and, with an approved style sheet, its expressions are checked
+    on unedited segments only; a human edit is checked when it is proposed
+    instead, since repair works on the pipeline text, not the edit.
     """
     issues = repeated_line_issues(segments, settings)
     if settings.conventions:
-        issues += convention_issues(segments, settings)
+        edited = {segment.segment_id for segment in segments if segment.edited}
+        issues += [
+            issue for issue in convention_issues(segments, settings)
+            if issue.segment_id not in edited
+        ]
     if style is not None:
         issues += expression_issues(
             ((s.segment_id, s.source, s.target) for s in segments if not s.edited), style

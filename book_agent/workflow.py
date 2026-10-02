@@ -484,7 +484,9 @@ def approve_glossary(
     """Approve a human- or LLM-reviewed glossary (and style sheet) and leave stages ready to resume."""
     resolved = config or load_workspace_config(workspace)
     client = None
-    if llm_review:
+    # The stage also reviews with the LLM when the config asks for it, e.g. when
+    # only a reviewed style sheet is submitted, so it needs a client then too.
+    if llm_review or resolved.workflow.llm_glossary_review:
         client = OllamaClient(
             resolved.ollama,
             progress=generation_progress,
