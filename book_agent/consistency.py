@@ -26,13 +26,13 @@ from difflib import SequenceMatcher
 from typing import Collection, Iterable, Mapping, Sequence
 
 from .audit import AuditCategory, AuditIssue, AuditSeverity
+from .languages import DEFAULT_DIRECTION, UNSPACED_SCRIPT, profile
 from .style_sheet import StyleSheet, expression_pattern
 from .translation import TranslatedDocument
 
 CONSISTENCY_SOURCE = "consistency"
 
 _INLINE_MARKER = re.compile(r"</?I\d{3}>")
-_CJK = re.compile(r"[㐀-䶿一-鿿豈-﫿]")
 _QUOTE = re.compile(r"“([^”]*)”|「([^」]*)」")
 # Punctuation and spacing ignored when comparing two renderings of one line.
 _RENDERING_NOISE = re.compile(r"[\s，。！？、；：,.!?;:…—\-“”‘’「」『』\"'（）()]")
@@ -62,7 +62,7 @@ class ConsistencySettings:
     quoted_speech: bool = True
     conventions: bool = True
     close_variant_similarity: float = 0.6
-    target_language: str = "zh"
+    target_language: str = DEFAULT_DIRECTION.target_language.value
 
 
 def book_segments(
@@ -111,14 +111,14 @@ def rendering_key(text: str) -> str:
 # then") whose rendering depends on the question or the scene: listed, never
 # queued. Four-word refrains ("Off with his head!") still count.
 _SHORT_LINE_WORDS = 3
-_SHORT_LINE_CJK = 6
+_SHORT_LINE_CHARACTERS = 6  # in a script without spaces
 
 
 def is_short_line(source: str) -> bool:
     words = re.findall(r"[A-Za-z]+(?:['’][A-Za-z]+)?", source)
     if words:
         return len(words) <= _SHORT_LINE_WORDS
-    return len(_CJK.findall(source)) < _SHORT_LINE_CJK
+    return len(UNSPACED_SCRIPT.findall(source)) < _SHORT_LINE_CHARACTERS
 
 
 def _quotes(text: str) -> list[str]:
@@ -271,12 +271,13 @@ def convention_issues(
     segments: Sequence[BookSegment], settings: ConsistencySettings
 ) -> list[AuditIssue]:
     """Punctuation that departs from the book's own majority convention (Chinese targets)."""
-    if settings.target_language != "zh":
+    rules = profile(settings.target_language)
+    if not rules.convention_checks:
         return []
     chinese = [
         (segment, visible_text(segment.target))
         for segment in segments
-        if _CJK.search(segment.target)
+        if rules.script_pattern.search(segment.target)
     ]
     paired = sum(1 for _, text in chinese if _PAIRED_DASH.search(text))
     single = [(segment, text) for segment, text in chinese if _SINGLE_DASH.search(text)]

@@ -14,6 +14,7 @@ from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field
 
 from .epub import ChapterDocument
+from .languages import UNSPACED_SCRIPT
 from .schemas import (
     CATEGORY_ORDER,
     GlossaryCategory,
@@ -151,7 +152,6 @@ class GlossarySource:
     entries: tuple[GlossaryEntry, ...]
 
 
-_CJK_RE = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]")
 
 # These rules intentionally cover only unmistakable ebook boilerplate and a
 # small set of ordinary lowercase words. Borderline fictional terms remain in
@@ -470,8 +470,8 @@ def estimate_tokens(text: str) -> int:
     """Conservatively estimate mixed English/Chinese model tokens."""
     if not text:
         return 0
-    cjk = len(_CJK_RE.findall(text))
-    non_cjk = len(_CJK_RE.sub("", text).encode("utf-8"))
+    cjk = len(UNSPACED_SCRIPT.findall(text))
+    non_cjk = len(UNSPACED_SCRIPT.sub("", text).encode("utf-8"))
     return cjk + math.ceil(non_cjk / 4)
 
 

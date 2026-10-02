@@ -21,6 +21,7 @@ from typing import Any, Sequence
 
 from .config import AppConfig
 from .glossary import find_unglossed_proper_nouns
+from .languages import ANY_SCRIPT, GLOSSARY_LANGUAGES, SENTENCE_END, UNSPACED_SCRIPT, profile
 from .pipeline_state import WorkflowStage
 from .schemas import GlossaryCategory, GlossaryEntry
 from .state import StageStatus, connect_state, get_stage_status
@@ -28,7 +29,8 @@ from .text_edits import active_edit_texts, overlay_active_edits
 from .workspace import JobWorkspace
 
 _INLINE_MARKER = re.compile(r"</?I\d{3}>")
-_CJK = re.compile(r"[㐀-䶿一-鿿豈-﫿]")
+# Han characters, for the Chinese-target character and convention reports below.
+_CJK = profile("zh").script_pattern
 _LATIN = re.compile(r"[A-Za-z]")
 _QUOTED = re.compile(r"“([^”]*)”|「([^」]*)」")
 
@@ -95,9 +97,9 @@ def _source_key(text: str) -> str:
 
 
 def _target_key(text: str) -> str:
-    # Chinese has no meaningful inter-word spaces; English targets keep single spaces.
+    # Scripts without spaces between words lose them; spaced targets keep single spaces.
     visible = visible_text(text)
-    return visible.replace(" ", "") if _CJK.search(visible) else visible
+    return visible.replace(" ", "") if UNSPACED_SCRIPT.search(visible) else visible
 
 
 def _is_mixed(counts: Counter[str] | dict[str, int]) -> bool:
@@ -203,7 +205,7 @@ def repeated_lines(
     }
 
 
-_SENTENCE_SPLIT = re.compile(r"(?<=[.!?。！？])[”’\"」]?\s*|[“”「」]")
+_SENTENCE_SPLIT = re.compile(rf"(?<=[{SENTENCE_END}])[”’\"」]?\s*|[“”「」]")
 _SPEECH_TAG = re.compile(
     r"\b(?:said|says|thought|asked|cried|replied|added|went on|continued|remarked|"
     r"exclaimed|whispered|shouted|repeated|muttered|to (?:her|him)self)\b",
@@ -229,7 +231,7 @@ def repeated_sentences(
                 len(sentence) < min_chars
                 or sentence in seen
                 or _SPEECH_TAG.search(sentence)
-                or not (_LATIN.search(sentence) or _CJK.search(sentence))  # "* * * *"
+                or not ANY_SCRIPT.search(sentence)  # "* * * *"
             ):
                 continue
             seen.add(sentence)
@@ -264,18 +266,20 @@ class _Term:
     target_terms: tuple[str, ...]
 
 
-def _terms(entries: Sequence[GlossaryEntry], source_language: str) -> list[_Term]:
-    terms = []
-    for index, entry in enumerate(entries):
-        latin_aliases = tuple(alias for alias in entry.aliases if _LATIN.search(alias))
-        cjk_aliases = tuple(alias for alias in entry.aliases if _CJK.search(alias))
-        english = (entry.english, *latin_aliases)
-        chinese = (entry.chinese, *cjk_aliases)
-        if source_language == "zh":
-            terms.append(_Term(index, chinese, english))
-        else:
-            terms.append(_Term(index, english, chinese))
-    return terms
+def _other_glossary_language(language: str) -> str:
+    return next(code for code in GLOSSARY_LANGUAGES if code != language)
+
+
+def _terms(entries: Sequence[GlossaryEntry], source_language: str, target_language: str) -> list[_Term]:
+    def side(entry: GlossaryEntry, language: str) -> tuple[str, ...]:
+        rules = profile(language)
+        aliases = (alias for alias in entry.aliases if rules.script_pattern.search(alias))
+        return (getattr(entry, rules.glossary_field), *aliases)
+
+    return [
+        _Term(index, side(entry, source_language), side(entry, target_language))
+        for index, entry in enumerate(entries)
+    ]
 
 
 _SENTENCE_START = re.compile(r"(?:^|[.!?;:]\s+|[“\"‘'(—]\s*)$")
@@ -330,12 +334,14 @@ def glossary_compliance(
     entries: Sequence[GlossaryEntry],
     *,
     source_language: str = "en",
+    target_language: str | None = None,
     examples: int = 5,
 ) -> dict[str, Any]:
     """Per glossary entry, source occurrences whose translation lacks the approved rendering."""
-    terms = _terms(entries, source_language)
+    target_language = target_language or _other_glossary_language(source_language)
+    terms = _terms(entries, source_language, target_language)
     patterns = {source: _term_pattern(source) for term in terms for source in term.source_terms}
-    ambiguous = _ambiguous_capitals(segments, terms) if source_language == "en" else set()
+    ambiguous = _ambiguous_capitals(segments, terms) if profile(source_language).cased else set()
     occurrences: Counter[int] = Counter()
     misses: dict[int, list[dict[str, str]]] = defaultdict(list)
     for segment in segments:
@@ -344,7 +350,7 @@ def glossary_compliance(
         for index in _source_matches(source, terms, patterns, ambiguous):
             occurrences[index] += 1
             term = terms[index]
-            if source_language == "zh":
+            if profile(target_language).cased:
                 present = any(t.casefold() in target.casefold() for t in term.target_terms)
             else:
                 present = any(t in target for t in term.target_terms)
@@ -537,7 +543,7 @@ def build_report(
     min_chars: int = 12,
     examples: int = 5,
 ) -> dict[str, Any]:
-    zh_target = target_language == "zh"
+    rules = profile(target_language)
     return {
         "direction": f"{source_language}-{target_language}",
         "segment_count": len(segments),
@@ -546,11 +552,17 @@ def build_report(
         "repeated_lines": repeated_lines(segments, min_chars=min_chars),
         "repeated_sentences": repeated_sentences(segments, min_chars=min_chars, examples=examples),
         "glossary": glossary_compliance(
-            segments, entries, source_language=source_language, examples=examples
+            segments,
+            entries,
+            source_language=source_language,
+            target_language=target_language,
+            examples=examples,
         ),
         "unglossed_names": unglossed or {},
-        "characters": character_usage(segments, entries, examples=examples) if zh_target else None,
-        "conventions": conventions(segments, examples=examples) if zh_target else None,
+        "characters": (
+            character_usage(segments, entries, examples=examples) if rules.convention_checks else None
+        ),
+        "conventions": conventions(segments, examples=examples) if rules.convention_checks else None,
     }
 
 
@@ -573,7 +585,7 @@ def consistency_report(
         entries = []
         glossary_note = "no approved glossary; glossary and character sections are empty"
     unglossed: dict[str, int] = {}
-    if source_language == "en":
+    if profile(source_language).cased:
         manifest = load_decompile_manifest(workspace, connection=None)
         unglossed = find_unglossed_proper_nouns(list(manifest.documents), list(entries))
     report = build_report(
@@ -683,7 +695,8 @@ def format_report(report: dict[str, Any], *, limit: int = 20) -> str:
         add("")
         add("Their renderings, pronouns and forms of address are not checked below.")
     else:
-        add("None found." if report["direction"].startswith("en") else "Not measured for this direction.")
+        measured = profile(report["direction"].split("-")[0]).cased
+        add("None found." if measured else "Not measured for this direction.")
     add("")
 
     characters = report["characters"]

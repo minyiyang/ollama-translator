@@ -24,7 +24,7 @@ from .content_policy import (
     numeric_content_matches,
 )
 from .glossary import estimate_tokens, is_suspicious_generic_candidate
-from .languages import Language, TranslationDirection
+from .languages import PROFILES, SENTENCE_END, TranslationDirection, glossary_sides, profile
 from .schemas import GlossaryCategory
 from .numeric_adjudication import (
     NUMBER_RULE_SOURCE,
@@ -183,9 +183,11 @@ class TranslationAuditReport(BaseModel):
     quantity_uncertain_count: int = Field(default=0, ge=0)
 
 
-_CJK = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]")
+# Han characters: Chinese number words in a target, and Han inside quotations.
+_CJK = profile("zh").script_pattern
 _LATIN = re.compile(r"[A-Za-z]")
-_CJK_RUN = re.compile(r"[\u3400-\u9fff]{4,}")
+# Letters of every profiled script, kept when comparing source and target prose.
+_PROSE_CHARS = "".join(item.script_basic_chars for item in PROFILES.values())
 _NUMBER_OR_UNIT = re.compile(
     r"\d|\b(?:mile|miles|inch|inches|foot|feet|yard|yards|pound|pounds|"
     r"ounce|ounces|degree|degrees|percent|percentage)\b",
@@ -194,24 +196,7 @@ _NUMBER_OR_UNIT = re.compile(
 _MOJIBAKE = re.compile(r"(?:â€|Ã.|Â.|�)")
 _SEPARATOR = re.compile(r"^[\W_]+$", flags=re.UNICODE)
 _INLINE_MARKER = re.compile(r"</?I\d{3}>")
-_SENTENCE_SPLIT = re.compile(r"(?<=[.!?。！？])\s*")
-
-_AI_PATTERNS = {
-    Language.CHINESE: (
-        "值得注意的是",
-        "总而言之",
-        "不禁让人",
-        "仿佛在诉说着",
-        "这一刻，时间仿佛静止",
-    ),
-    Language.ENGLISH: (
-        "it is worth noting that",
-        "in conclusion",
-        "a testament to",
-        "time seemed to stand still",
-        "as if whispering a story",
-    ),
-}
+_SENTENCE_SPLIT = re.compile(rf"(?<=[{SENTENCE_END}])\s*")
 
 
 def audit_translated_document(
@@ -1011,9 +996,11 @@ def deduplicate_audit_issues(issues: list[AuditIssue]) -> list[AuditIssue]:
 def _audit_language(
     segment_id, source, target, direction, config, issues, glossary=()
 ) -> None:
-    if direction.target_language is Language.CHINESE:
-        if _LATIN.search(source) and not _CJK.search(target):
-            issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.HIGH, "translation contains no Chinese text"))
+    source_rules = profile(direction.source_language)
+    target_rules = profile(direction.target_language)
+    if source_rules.script_pattern.search(source) and not target_rules.script_pattern.search(target):
+        issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.HIGH, f"translation contains no {target_rules.short_name} text"))
+    if source_rules.spaced_words:
         phrase_target = _strip_exact_preserved_inline_spans(source, target)
         phrase_target = _strip_intentional_foreign_quotations(source, phrase_target)
         phrase_target = re.sub(
@@ -1035,7 +1022,7 @@ def _audit_language(
         if phrase and not _is_preserved_titlecase_literal(
             source, phrase.group(0)
         ):
-            issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.MEDIUM, f"possible untranslated English phrase: {phrase.group(0)}"))
+            issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.MEDIUM, f"possible untranslated {source_rules.short_name} phrase: {phrase.group(0)}"))
         stray_word = _find_inflected_target_only_latin_word(source, phrase_target)
         if not stray_word:
             stray_word = _find_exact_source_latin_residue(
@@ -1049,15 +1036,13 @@ def _audit_language(
                     segment_id,
                     AuditCategory.UNTRANSLATED,
                     AuditSeverity.MEDIUM,
-                    f"possible untranslated English word: {stray_word}",
+                    f"possible untranslated {source_rules.short_name} word: {stray_word}",
                 )
             )
     else:
-        if _CJK.search(source) and not _LATIN.search(target):
-            issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.HIGH, "translation contains no English text"))
-        run = _CJK_RUN.search(target)
+        run = re.search(f"[{source_rules.script_basic_chars}]{{4,}}", target)
         if run:
-            issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.MEDIUM, f"possible untranslated Chinese text: {run.group(0)}"))
+            issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.MEDIUM, f"possible untranslated {source_rules.short_name} text: {run.group(0)}"))
     if _normalize_prose(source) == _normalize_prose(target):
         issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.HIGH, "translation is identical to source"))
 
@@ -1077,7 +1062,7 @@ def _strip_intentional_foreign_quotations(source: str, target: str) -> str:
         has_non_ascii_latin = any(
             character.isalpha()
             and ord(character) > 127
-            and not ("\u4e00" <= character <= "\u9fff")
+            and not _CJK.match(character)
             for character in content
         )
         normalized_content = unicodedata.normalize("NFKC", content)
@@ -1293,7 +1278,7 @@ def _is_unambiguous_name(source_term: str, direction, lowercase_words: frozenset
     playing card), "Rat", or "Mouse" can be an ordinary word when the chapter
     also uses it in lowercase, so a miss on them stays a low finding.
     """
-    if direction is not TranslationDirection.EN_TO_ZH:
+    if not profile(direction.source_language).cased:
         return len(source_term.strip()) >= 2
     if not any(character.isupper() for character in source_term):
         return False  # "the island": a lowercase entry is not a name, whatever its category
@@ -1319,16 +1304,7 @@ def _audit_glossary(
         # a concrete misuse with source-grounded evidence.
         if is_suspicious_generic_candidate(entry):
             continue
-        source_term = (
-            entry.english
-            if direction is TranslationDirection.EN_TO_ZH
-            else entry.chinese
-        )
-        target_term = (
-            entry.chinese
-            if direction is TranslationDirection.EN_TO_ZH
-            else entry.english
-        )
+        source_term, target_term = glossary_sides(entry, direction)
         key = unicodedata.normalize("NFKC", source_term).casefold()
         if key not in grouped:
             grouped[key] = (source_term, set())
@@ -1394,7 +1370,7 @@ def _adjacent_duplication_count(text: str) -> int:
 
 def _audit_ai_style(segment_id, target, direction, issues) -> None:
     lowered = target.casefold()
-    matches = [pattern for pattern in _AI_PATTERNS[direction.target_language] if pattern.casefold() in lowered]
+    matches = [pattern for pattern in profile(direction.target_language).stock_phrases if pattern.casefold() in lowered]
     if matches:
         issues.append(_issue(segment_id, AuditCategory.AI_STYLE, AuditSeverity.LOW, f"formulaic model-like phrase detected: {matches[0]}"))
 
@@ -1404,7 +1380,7 @@ def _issue(segment_id, category, severity, message) -> AuditIssue:
 
 
 def _normalize_prose(text: str) -> str:
-    return re.sub(r"[^\w\u3400-\u9fff]+", "", text.casefold())
+    return re.sub(f"[^\\w{_PROSE_CHARS}]+", "", text.casefold())
 
 
 def is_decorative_separator(text: str) -> bool:

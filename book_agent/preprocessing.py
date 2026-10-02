@@ -7,7 +7,7 @@ from dataclasses import dataclass
 
 from pydantic import BaseModel, ConfigDict, Field, model_serializer
 
-from .languages import Language, TranslationDirection
+from .languages import Language, TranslationDirection, glossary_sides, profile, source_aliases
 from .schemas import GlossaryEntry, normalize_term
 from .style_sheet import StyleSheet
 
@@ -26,7 +26,7 @@ class ReplacementRule:
     @property
     def normalized_source(self) -> str:
         """Return the comparison key appropriate for the source language."""
-        return normalize_term(self.source) if self.source_language is Language.ENGLISH else self.source
+        return profile(self.source_language).normalize_term(self.source)
 
 
 @dataclass(frozen=True)
@@ -106,20 +106,15 @@ def build_replacement_index(
         raise ValueError("conflict_policy must be 'skip' or 'error'")
     candidates: dict[str, list[ReplacementRule]] = {}
     display_source: dict[str, str] = {}
+    language = direction.source_language
     for entry in entries:
-        if direction is TranslationDirection.EN_TO_ZH:
-            source_terms = [entry.english, *entry.aliases]
-            target = entry.chinese
-            language = Language.ENGLISH
-        else:
-            source_terms = [entry.chinese]
-            target = entry.english
-            language = Language.CHINESE
+        source_term, target = glossary_sides(entry, direction)
+        source_terms = [source_term, *source_aliases(entry, direction)]
         for source in source_terms:
             source = source.strip()
             if not source:
                 continue
-            key = normalize_term(source) if language is Language.ENGLISH else source
+            key = profile(language).normalize_term(source)
             display_source.setdefault(key, source)
             candidates.setdefault(key, []).append(
                 ReplacementRule(source, target, entry.english, language)
@@ -197,13 +192,9 @@ def select_relevant_glossary_entries(
     """
     visible = _PROTECTED_TAG.sub("", text)
     matches: dict[tuple[int, int, str], set[int]] = {}
+    language = direction.source_language
     for entry_index, entry in enumerate(entries):
-        if direction is TranslationDirection.EN_TO_ZH:
-            terms = [entry.english, *entry.aliases]
-            language = Language.ENGLISH
-        else:
-            terms = [entry.chinese]
-            language = Language.CHINESE
+        terms = [glossary_sides(entry, direction)[0], *source_aliases(entry, direction)]
         for term in terms:
             if not term:
                 continue
@@ -212,8 +203,7 @@ def select_relevant_glossary_entries(
                 key = (
                     match.start(),
                     match.end(),
-                    normalize_term(match.group()) if language is Language.ENGLISH
-                    else match.group(),
+                    profile(language).normalize_term(match.group()),
                 )
                 matches.setdefault(key, set()).add(entry_index)
 
@@ -275,10 +265,11 @@ def render_preprocessed_document(document: PreprocessedDocument) -> str:
 
 def _rule_pattern(rule: ReplacementRule) -> re.Pattern[str]:
     escaped = re.escape(rule.source)
-    if rule.source_language is Language.ENGLISH:
+    language = profile(rule.source_language)
+    if language.spaced_words:
         return re.compile(
-            rf"(?<![A-Za-z0-9_]){escaped}(?![A-Za-z0-9_])",
-            flags=re.IGNORECASE,
+            rf"(?<![{language.word_chars}]){escaped}(?![{language.word_chars}])",
+            flags=re.IGNORECASE if language.cased else 0,
         )
     return re.compile(escaped)
 
@@ -293,15 +284,16 @@ def _selection_pattern(source: str, language: Language) -> re.Pattern[str]:
         else re.escape(character)
         for character in source
     )
-    if language is Language.ENGLISH:
-        case_sensitive = any(character.isupper() for character in source)
+    rules = profile(language)
+    if rules.spaced_words:
+        case_sensitive = not rules.cased or any(character.isupper() for character in source)
         # A term is written in prose as often in the plural as the singular
         # (``binders`` for ``binder``).  Without this the entry annotates the
         # singular only, and every plural occurrence silently escapes both the
         # translation prompt and the glossary audit.
-        plural = "(?:e?s)?" if source[-1:].isalpha() else ""
+        plural = rules.plural_suffix if source[-1:].isalpha() else ""
         return re.compile(
-            rf"(?<![A-Za-z0-9_]){escaped}{plural}(?![A-Za-z0-9_])",
+            rf"(?<![{rules.word_chars}]){escaped}{plural}(?![{rules.word_chars}])",
             flags=0 if case_sensitive else re.IGNORECASE,
         )
     return re.compile(escaped)
@@ -313,12 +305,8 @@ def _targets_are_incompatible(
     direction: TranslationDirection,
 ) -> bool:
     """Return whether nested source mappings cannot both hold in one target phrase."""
-    if direction is TranslationDirection.EN_TO_ZH:
-        longer_targets = {entry.chinese for entry in longer}
-        shorter_targets = {entry.chinese for entry in shorter}
-    else:
-        longer_targets = {entry.english for entry in longer}
-        shorter_targets = {entry.english for entry in shorter}
+    longer_targets = {glossary_sides(entry, direction)[1] for entry in longer}
+    shorter_targets = {glossary_sides(entry, direction)[1] for entry in shorter}
     return not any(
         normalize_term(short_target) in normalize_term(long_target)
         for long_target in longer_targets

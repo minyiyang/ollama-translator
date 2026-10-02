@@ -8,7 +8,7 @@ from collections import Counter
 from enum import Enum
 from typing import Iterable
 
-from .languages import TranslationDirection
+from .languages import PROFILES, SENTENCE_END, TranslationDirection, glossary_sides, profile
 from .schemas import GlossaryEntry, is_preservable_technical_identifier
 
 
@@ -19,8 +19,13 @@ class SegmentKind(str, Enum):
     STRUCTURAL = "structural"
 
 
-_CJK = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]")
+# Han characters, for the Chinese number-word and demonym rules below.
+_CJK = profile("zh").script_pattern
 _LATIN = re.compile(r"[A-Za-z]")
+# A run of letters in any profiled script (a "word" for heading detection).
+_SCRIPT_RUN = re.compile("|".join(f"[{item.script_basic_chars}]+" for item in PROFILES.values()))
+# Chinese numerals up to ten, for clock times and countdowns.
+_CHINESE_DIGITS = "零〇一二两三四五六七八九十"
 _INLINE_MARKER = re.compile(r"</?I\d{3}>")
 _SEPARATOR = re.compile(r"^[\W_]+$", flags=re.UNICODE)
 _URI = re.compile(r"(?:https?|ftp)://\S+|mailto:\S+", flags=re.IGNORECASE)
@@ -196,7 +201,7 @@ _ENGLISH_QUANTIFIED_DURATION = re.compile(
     r"(?P<scale>decades?|centur(?:y|ies)|millenn(?:ium|ia))\b",
     flags=re.IGNORECASE,
 )
-_CHINESE_COUNTDOWN_NUMBER = re.compile(r"[\u96f6\u3007\u4e00\u4e8c\u4e24\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5341\u767e]+")
+_CHINESE_COUNTDOWN_NUMBER = re.compile(f"[{_CHINESE_DIGITS}百]+")
 _ENGLISH_FRACTION_OF_MAGNITUDE = re.compile(
     r"\b(?P<numerator>a|one|two|three|four|five|six|seven|eight|nine)[ -]+"
     r"(?P<denominator>half|halves|third|thirds|quarter|quarters|fifth|fifths|"
@@ -280,7 +285,7 @@ _CHINESE_FRACTION_OF_MAGNITUDE_PREFIX = re.compile(
 )
 _CHINESE_FRACTION_OF_MAGNITUDE_SUFFIX = re.compile(
     r"(?P<magnitude>[零〇一二两三四五六七八九十百千万亿]*[万亿])"
-    r"(?:[\u3400-\u9fff]{0,8})的"
+    f"(?:[{profile('zh').script_basic_chars}]{{0,8}})的"
     r"(?P<denominator>[零〇一二两三四五六七八九十百千万亿]+)分之"
     r"(?P<numerator>[零〇一二两三四五六七八九十百千万亿]+"
     r"(?:点[零〇一二两三四五六七八九]+)?)"
@@ -339,7 +344,7 @@ _CHINESE_SUFFIX_HALF = re.compile(
     r"(?<=\u5c81)|(?<=\u5c0f\u65f6)|(?<=\u5206\u949f)|(?<=\u79d2)|"
     r"(?<=\u500d))\u534a"
 )
-_CHINESE_STANDALONE_HALF = re.compile(r"(?:\u4e00\u534a|\u534a\u6570)")
+_CHINESE_STANDALONE_HALF = re.compile(r"(?:一半|半数)")
 _CHINESE_TWO_HALVES = re.compile(r"\u4e24\u534a")
 _CHINESE_BISECTION = re.compile(
     r"(?:\u88c2|\u5288|\u5207|\u526a|\u5206|\u65a9|\u65ad)"
@@ -349,9 +354,9 @@ _CHINESE_BISECTION = re.compile(
 _CHINESE_EXTRA_PREFIX_HALF = re.compile(r"\u534a(?=\u622a)")
 _CHINESE_CLOCK_TIME = re.compile(
     r"(?P<period>\u4e0a\u5348|\u4e0b\u5348|\u665a\u4e0a|\u4e2d\u5348|\u51cc\u6668)?\s*"
-    r"(?P<hour>[\u96f6\u3007\u4e00\u4e8c\u4e24\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5341]+)"
+    f"(?P<hour>[{_CHINESE_DIGITS}]+)"
     r"[\u70b9\u6642\u65f6]"
-    r"(?P<minute>[\u96f6\u3007\u4e00\u4e8c\u4e24\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5341]+)\u5206?"
+    f"(?P<minute>[{_CHINESE_DIGITS}]+)分?"
 )
 _CHINESE_MAGNITUDE_UNIT = re.compile(
     r"^(?:\u4e2a|\u9897|\u53ea|\u672c|\u5f20|\u5e45|\u6761|\u9762|\u6b21|\u53f7|"
@@ -470,11 +475,7 @@ def classify_segment(
         )
     ):
         return SegmentKind.PROTECTED_IDENTIFIER
-    has_source_prose = (
-        bool(_LATIN.search(source))
-        if direction is TranslationDirection.EN_TO_ZH
-        else bool(_CJK.search(source))
-    )
+    has_source_prose = bool(profile(direction.source_language).script_pattern.search(source))
     if has_source_prose and _looks_like_translated_heading(source, target, direction):
         return SegmentKind.STRUCTURAL
     return SegmentKind.PROSE if has_source_prose else SegmentKind.LANGUAGE_NEUTRAL
@@ -1120,16 +1121,7 @@ def repair_preserves_glossary(
         direction,
     )
     for entry in applicable:
-        source_term = (
-            entry.english
-            if direction is TranslationDirection.EN_TO_ZH
-            else entry.chinese
-        )
-        target_term = (
-            entry.chinese
-            if direction is TranslationDirection.EN_TO_ZH
-            else entry.english
-        )
+        source_term, target_term = glossary_sides(entry, direction)
         source_count = glossary_term_count(source_visible, source_term)
         accepted_count = glossary_term_count(accepted_visible, target_term)
         if not source_count or not accepted_count:
@@ -1271,16 +1263,12 @@ def _is_bibliographic_identifier(value: str) -> bool:
 def _looks_like_translated_heading(
     source: str, target: str, direction: TranslationDirection
 ) -> bool:
-    if len(source) > 40 or re.search(r"[.!?。！？]$", source):
+    if len(source) > 40 or re.search(f"[{SENTENCE_END}]$", source):
         return False
-    source_words = re.findall(r"[A-Za-z]+|[\u3400-\u9fff]+", source)
+    source_words = _SCRIPT_RUN.findall(source)
     if not 1 <= len(source_words) <= 4:
         return False
-    return (
-        bool(_CJK.search(target))
-        if direction is TranslationDirection.EN_TO_ZH
-        else bool(_LATIN.search(target))
-    )
+    return bool(profile(direction.target_language).script_pattern.search(target))
 
 
 def _is_glossary_approved_literal(
@@ -1292,8 +1280,7 @@ def _is_glossary_approved_literal(
     source_core = _strip_outer_punctuation(source)
     target_core = _strip_outer_punctuation(target)
     for entry in glossary:
-        approved_source = entry.english if direction is TranslationDirection.EN_TO_ZH else entry.chinese
-        approved_target = entry.chinese if direction is TranslationDirection.EN_TO_ZH else entry.english
+        approved_source, approved_target = glossary_sides(entry, direction)
         if (
             source_core.casefold() == approved_source.casefold()
             and target_core == approved_target

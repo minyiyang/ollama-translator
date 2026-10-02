@@ -6,7 +6,7 @@ from typing import Literal
 import yaml
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 
-from .languages import TranslationDirection
+from .languages import DEFAULT_DIRECTION, TranslationDirection
 from .styles import TranslationStyle
 from .token_budget import TokenBudget, validate_budget
 
@@ -80,7 +80,7 @@ class BudgetConfig(StrictModel):
 
 
 class TranslationConfig(StrictModel):
-    direction: TranslationDirection = TranslationDirection.EN_TO_ZH
+    direction: TranslationDirection = DEFAULT_DIRECTION
     style: TranslationStyle = TranslationStyle.LITERARY
     custom_style_file: Path | None = None
     preserve_paragraphs: bool = True

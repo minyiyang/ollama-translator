@@ -7,6 +7,8 @@ from typing import Literal
 
 from pydantic import BaseModel, ConfigDict, Field, create_model, field_validator, model_validator
 
+from .languages import profile
+
 
 class GlossaryCategory(str, Enum):
     PERSON = "人名"
@@ -20,8 +22,9 @@ class GlossaryCategory(str, Enum):
 
 
 CATEGORY_ORDER = tuple(GlossaryCategory)
-_CJK_RE = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]")
-_LATIN_RE = re.compile(r"[A-Za-z]")
+# The scripts of the stored `chinese` and `english` glossary fields.
+_CJK_RE = profile("zh").script_pattern
+_LATIN_RE = profile("en").script_pattern
 _PRESERVED_CODE_RE = re.compile(
     r"^(?=.{1,48}$)(?:"
     r"(?=.*(?:\d|[._+/#-]))[A-Za-z0-9][A-Za-z0-9._+/#-]*"

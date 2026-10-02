@@ -18,6 +18,7 @@ from .audit import (
     audit_translated_document,
 )
 from .config import AppConfig
+from .languages import PROFILES
 from .content_policy import (
     is_intentionally_preserved,
     repair_preserves_glossary,
@@ -895,11 +896,20 @@ def retrieve_related_source_context(
     return selected
 
 
+# Content words: three letters or more in a spaced script, two characters in an unspaced one.
+_LEXICAL_TOKEN = re.compile(
+    "|".join(
+        f"[{item.script_basic_chars}]{{{3 if item.spaced_words else 2},}}" for item in PROFILES.values()
+    )
+)
+_STOP_WORDS = frozenset().union(*(item.stop_words for item in PROFILES.values()))
+
+
 def _lexical_tokens(text: str) -> list[str]:
     return [
         token
-        for token in re.findall(r"[A-Za-z]{3,}|[\u3400-\u9fff]{2,}", text.casefold())
-        if token not in {"the", "and", "that", "with", "this", "from", "was", "were"}
+        for token in _LEXICAL_TOKEN.findall(text.casefold())
+        if token not in _STOP_WORDS
     ]
 
 

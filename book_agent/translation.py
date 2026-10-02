@@ -13,7 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from .config import AppConfig
 from .content_policy import classify_segment, should_run_language_check
 from .glossary import estimate_tokens, split_text_to_budget
-from .languages import Language, TranslationDirection
+from .languages import TranslationDirection, glossary_sides, profile, source_aliases
 from .preprocessing import PreprocessedDocument
 from .schemas import (
     GlossaryEntry,
@@ -174,8 +174,6 @@ class TranslationReport(BaseModel):
     deferred_segment_ids: list[str] = Field(default_factory=list)
 
 
-_CJK = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]")
-_LATIN = re.compile(r"[A-Za-z]")
 _INLINE_MARKER = re.compile(r"</?I\d{3}>")
 _SEPARATOR = re.compile(r"^[\W_]+$", flags=re.UNICODE)
 _NONTRANSLATABLE_URI = re.compile(
@@ -344,11 +342,9 @@ def format_relevant_glossary(
     for entry in sorted(
         entries, key=lambda item: (normalize_term(item.english), normalize_term(item.chinese))
     ):
-        source = entry.english if direction is TranslationDirection.EN_TO_ZH else entry.chinese
-        target = entry.chinese if direction is TranslationDirection.EN_TO_ZH else entry.english
-        alternatives = ""
-        if entry.aliases and direction is TranslationDirection.EN_TO_ZH:
-            alternatives = f" | aliases: {', '.join(entry.aliases)}"
+        source, target = glossary_sides(entry, direction)
+        aliases = source_aliases(entry, direction)
+        alternatives = f" | aliases: {', '.join(aliases)}" if aliases else ""
         note = f" | note: {entry.note}" if entry.note else ""
         lines.append(
             f"[{entry.category.value}] {source} => {target}{alternatives}{note}"
@@ -441,28 +437,12 @@ def _build_marker_examples(
     """Return direction-aware one/few-shot examples of the exact marker contract."""
     if mode == "none":
         return ""
-    if direction is TranslationDirection.EN_TO_ZH:
-        examples = [
-            (
-                "She was <I000>very</I000> tired.",
-                "她<I000>非常</I000>疲倦。",
-            ),
-            (
-                "<I000></I000>Chapter <I001></I001> One",
-                "<I000></I000>第一章<I001></I001>",
-            ),
-        ]
-    else:
-        examples = [
-            (
-                "她<I000>非常</I000>疲倦。",
-                "She was <I000>very</I000> tired.",
-            ),
-            (
-                "<I000></I000>第一章<I001></I001>",
-                "<I000></I000>Chapter <I001></I001> One",
-            ),
-        ]
+    examples = list(
+        zip(
+            profile(direction.source_language).marker_examples,
+            profile(direction.target_language).marker_examples,
+        )
+    )
     selected = examples[:1] if mode == "one-shot" else examples
     rendered = "\n".join(
         f"Example {index} source: {source}\n"
@@ -641,10 +621,8 @@ def validate_translation_output(
             source, translated, direction, relevant_glossary or []
         )
         source_has_translatable = should_run_language_check(kind)
-        target_has_language = (
-            bool(_CJK.search(translated))
-            if direction.target_language is Language.CHINESE
-            else bool(_LATIN.search(translated))
+        target_has_language = bool(
+            profile(direction.target_language).script_pattern.search(translated)
         )
         if source_has_translatable and not target_has_language:
             issues.append(
@@ -1600,16 +1578,7 @@ def _is_approved_preserved_literal(
     if not source_core or not target_core:
         return False
     for entry in glossary:
-        approved_source = (
-            entry.english
-            if direction is TranslationDirection.EN_TO_ZH
-            else entry.chinese
-        )
-        approved_target = (
-            entry.chinese
-            if direction is TranslationDirection.EN_TO_ZH
-            else entry.english
-        )
+        approved_source, approved_target = glossary_sides(entry, direction)
         if (
             source_core.casefold() == approved_source.casefold()
             and target_core == approved_target
@@ -1638,7 +1607,7 @@ def assemble_translated_segments(
             grouped[reference_id].append((1, translated))
     source_by_id = {segment.segment_id: segment.processed_text for segment in document.segments}
     assembled: list[TranslatedSegment] = []
-    joiner = " " if direction.target_language is Language.ENGLISH else ""
+    joiner = " " if profile(direction.target_language).spaced_words else ""
     for source_segment in document.segments:
         parts = sorted(grouped.get(source_segment.segment_id, []))
         if not parts:

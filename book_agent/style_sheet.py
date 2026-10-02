@@ -18,7 +18,7 @@ from typing import Iterable, Literal, Sequence
 
 from pydantic import BaseModel, ConfigDict, Field, create_model
 
-from .languages import TranslationDirection
+from .languages import TranslationDirection, profile
 
 _INLINE_MARKER = re.compile(r"</?I\d{3}>")
 
@@ -71,10 +71,13 @@ class StyleSheet(BaseModel):
 
 
 def default_conventions(direction: TranslationDirection) -> StyleConventions:
-    if direction.target_language.value == "zh":
-        return StyleConventions()
+    rules = profile(direction.target_language)
     return StyleConventions(
-        quotation_marks="“ ”", nested_quotation_marks="‘ ’", ellipsis="…", dash="—", numerals=""
+        quotation_marks=rules.quotes,
+        nested_quotation_marks=rules.nested_quotes,
+        ellipsis=rules.ellipsis,
+        dash=rules.dash,
+        numerals="",
     )
 
 
@@ -83,12 +86,12 @@ def default_conventions(direction: TranslationDirection) -> StyleConventions:
 
 def extraction_instructions(direction: TranslationDirection, *, max_characters: int, max_expressions: int) -> str:
     """The paragraph appended to the glossary extraction prompt when the style sheet is on."""
-    zh = direction.target_language.value == "zh"
-    pronouns = "他, 她, or 它" if zh else "he, she, or it"
+    rules = profile(direction.target_language)
+    pronouns = f"{rules.pronouns[0]}, {rules.pronouns[1]}, or {rules.pronouns[2]}"
     address = (
-        " and, when the passages show it, whether other characters address them as 你 or the "
-        "polite 您"
-        if zh
+        " and, when the passages show it, whether other characters address them as "
+        f"{rules.address_forms[0]} or the polite {rules.address_forms[1]}"
+        if rules.address_forms
         else ""
     )
     return (

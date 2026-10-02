@@ -15,6 +15,7 @@ import ollama
 from pydantic import BaseModel, ValidationError
 
 from .config import OllamaConfig
+from .languages import UNSPACED_SCRIPT
 
 
 class OllamaClientError(RuntimeError):
@@ -153,13 +154,12 @@ _STRUCTURED_TRAILING_SENTINEL = re.compile(
     r"(?:<\|eot\|>|<\|end_of_text\|>|<\|end\|>)\s*$",
     flags=re.IGNORECASE,
 )
-_CJK_RE = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]")
 
 
 def _estimate_request_tokens(text: str) -> int:
     """Conservatively estimate mixed-language request tokens without a tokenizer."""
-    cjk = len(_CJK_RE.findall(text))
-    non_cjk = len(_CJK_RE.sub("", text).encode("utf-8"))
+    cjk = len(UNSPACED_SCRIPT.findall(text))
+    non_cjk = len(UNSPACED_SCRIPT.sub("", text).encode("utf-8"))
     return cjk + math.ceil(non_cjk / 4)
 
 
