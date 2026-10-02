@@ -308,3 +308,24 @@ def test_a_generic_pair_translates_end_to_end(pair, translated, term):
                 archive.read(name).decode("utf-8") for name in archive.namelist() if name.endswith("chapter.xhtml")
             )
         assert translated in chapter
+
+
+# -- interface (phase 4) ---------------------------------------------------------------------
+
+
+def test_the_picker_lists_the_profiled_languages_first_and_accepts_any_code():
+    from book_agent.languages import language_catalog
+    from book_agent.web.setup import languages_payload
+
+    catalog = language_catalog()
+    assert [item["code"] for item in catalog[:2]] == ["en", "zh"]
+    assert {"ja", "de", "zh-Hant"} <= {item["code"] for item in catalog}
+    assert len({item["code"] for item in catalog}) == len(catalog)
+    assert languages_payload("pt-BR>ja")["support"]["target"]["name"] == "Japanese"
+    assert "source>target" in languages_payload("en-ja")["error"]
+
+
+def test_a_pair_beyond_the_tuned_languages_carries_the_model_notice():
+    assert language_support(TranslationDirection.EN_TO_ZH)["notice"] == ""
+    assert language_support(TranslationDirection.ZH_TO_EN)["notice"] == ""
+    assert "weaker" in language_support(LanguagePair("ja>zh"))["notice"]

@@ -1,4 +1,7 @@
+import { directionLabel } from "../lib/format";
+import { isGeneric, type LanguageSupport } from "../lib/languages";
 import { stageLabel } from "../lib/stages";
+import { LanguageNotes } from "./LanguagePairPicker";
 import { Chip } from "./ui";
 
 export type Check = {
@@ -6,7 +9,7 @@ export type Check = {
   problems: string[];
   job_id: string;
   models: { role: string; model: string; installed: boolean | null }[];
-  summary: Record<string, string | boolean>;
+  summary: Record<string, string | boolean> & { languages?: LanguageSupport };
   stages: string[];
 };
 
@@ -22,13 +25,16 @@ export function CheckResult({ check }: { check: Check }) {
       )}
       <h2 className="label">Settings</h2>
       <div className="row" style={{ marginBottom: 14 }}>
-        <Chip>{String(s.direction)}</Chip>
+        <Chip title={String(s.direction)}>{directionLabel(String(s.direction))}</Chip>
         <Chip>style: {String(s.style)}</Chip>
         <Chip>glossary review: {String(s.glossary_review)}</Chip>
         <Chip>semantic audit: {onOff(s.semantic_audit)}</Chip>
         <Chip>prose rewrite: {onOff(s.reprose)}</Chip>
         <Chip>final approval: {s.final_review_required ? "always" : "when queue is not empty"}</Chip>
       </div>
+      {s.languages && (isGeneric(s.languages) || s.languages.skipped.length > 0) && (
+        <div style={{ marginBottom: 14 }}><LanguageNotes support={s.languages} open={isGeneric(s.languages)} /></div>
+      )}
       <h2 className="label">Models</h2>
       <table className="grid" style={{ marginBottom: 14 }}>
         <thead><tr><th>Role</th><th>Model</th><th>Installed</th></tr></thead>

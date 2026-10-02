@@ -743,6 +743,7 @@ def make_handler(app: UiApp, port_ref: list[int]) -> type[BaseHTTPRequestHandler
         ("GET", "session"): lambda q, b: {"token": app.token},
         ("GET", "setup"): lambda q, b: app.setup(),
         ("GET", "config/schema"): lambda q, b: setup_api.config_schema(),
+        ("GET", "languages"): lambda q, b: setup_api.languages_payload(q.get("pair", [""])[0]),
         ("GET", "models"): lambda q, b: {
             "installed": setup_api.installed_models(q.get("host", ["http://localhost:11434"])[0])
         },

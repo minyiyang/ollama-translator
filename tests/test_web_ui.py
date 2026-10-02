@@ -890,6 +890,9 @@ class EndpointCoverageTests(ServerTests):
                 assert get("/api/config?name=mine.yaml")[1]["text"] == text
                 assert get("/api/config?name=..%2Fescape.yaml")[0] == 422
                 assert get("/api/config/schema")[0] == 200
+                status, languages = get("/api/languages?pair=en%3Eja")
+                assert status == 200 and languages["languages"][0]["code"] == "en"
+                assert languages["support"]["target"]["tier"] == "generic" and languages["support"]["notice"]
                 assert post("/api/config/parse", {"text": text})[0] == 200
                 assert post("/api/config/dump", {"values": {"ollama": {"temperature": 0.2}}})[0] == 200
                 assert post("/api/config/check", {"text": "ollama: [1"})[1]["errors"]

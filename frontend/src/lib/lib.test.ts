@@ -144,6 +144,7 @@ describe("directionLabel", () => {
     const { directionLabel, outputUrl, xliffExportUrl } = await import("./format");
     expect(directionLabel("en-zh")).toBe("EN → ZH");
     expect(directionLabel("en-ja")).toBe("EN → JA");
+    expect(directionLabel("pt-BR>ja")).toBe("PT-BR → JA");
     expect(directionLabel("")).toBe("—");
     expect(directionLabel(undefined)).toBe("—");
     expect(outputUrl("my book")).toBe("/api/jobs/my%20book/output");

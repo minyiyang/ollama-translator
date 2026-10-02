@@ -525,12 +525,35 @@ def language_support(direction: LanguagePair) -> dict[str, Any]:
         skip("marker examples", "the translation prompt states the marker rules in words only")
     if target.tier != "tuned":
         skip("prose rewrite", "its prompt and rules are written for Chinese; reprose stays off")
+    notice = ""
+    if source.tier != "tuned" or target.tier != "tuned":
+        # docs/GENERIC_LANGUAGES.md, 2.8: no pivot through English; say the risk instead.
+        notice = (
+            "Quality depends on the local model: many are much weaker outside English and "
+            "Chinese, and weaker still between two languages other than English. Expect more "
+            "passages in human review, and try the model on a chapter first."
+        )
     return {
         "pair": direction.value,
         "source": {"code": direction.source_language.value, "name": source.display_name, "tier": source.tier},
         "target": {"code": direction.target_language.value, "name": target.display_name, "tier": target.tier},
         "skipped": skipped,
+        "notice": notice,
     }
+
+
+def language_catalog() -> list[dict[str, str]]:
+    """Languages to offer in a picker: the profiled ones first, then common
+    languages by name. Any other BCP 47 code is accepted too."""
+    profiled = [
+        {"code": code, "name": item.display_name, "tier": item.tier} for code, item in PROFILES.items()
+    ]
+    others = [
+        {"code": code, "name": _generic_profile(code).display_name, "tier": "generic"}
+        for code in [*_LANGUAGES, "zh-Hant"]
+        if code not in PROFILES
+    ]
+    return profiled + sorted(others, key=lambda item: item["name"])
 
 
 def build_direction_instruction(direction: LanguagePair) -> str:

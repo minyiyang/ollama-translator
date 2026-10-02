@@ -1,6 +1,6 @@
 # Translating between any two languages: plan
 
-Status: **phases 1 to 3 implemented (section 6); decisions in section 5 made 2026-10-02.**
+Status: **phases 1 to 4 implemented (section 6); decisions in section 5 made 2026-10-02.**
 
 How the pipeline stops assuming English on one side and Simplified Chinese on
 the other, so that a book can be translated between any two languages the
@@ -402,6 +402,32 @@ What changed:
   reaches the translation prompt. The full backend suite (1,102) and the
   frontend tests (83) pass.
 
-Left for phase 4: language selectors in the job form and the Config tab
-(the Direction picker still lists en-zh and zh-en; other pairs are set in
-YAML), the tier notice, and skipped-check notes in the interface.
+**Phase 4 status (2026-10-02): done, pending review.**
+
+- **Languages picker** (`LanguagePairPicker`). It replaces the Direction
+  setting on the Config tab and the direction select when creating a series.
+  - Two code inputs list the tuned languages first, then common languages by
+    name (`language_catalog()`, served at `GET /api/languages`).
+  - Any other BCP 47 code is accepted once typed in full.
+  - A swap button reverses the pair.
+  - It writes `translation.direction` in the stored spelling (`en-zh`,
+    `zh-en`, or `src>tgt`) and clears `source_language`/`target_language`.
+- **Tier and model notice.** For a pair beyond the tuned languages, the
+  picker and the setup check show each side's tier, the model-quality notice
+  of 2.8 (`language_support()["notice"]`), and the skipped checks with their
+  reasons. The setup summary carries them as `summary.languages`.
+- **Hidden options.** On the Config tab, the options of a skipped check are
+  hidden, with a line naming them and the reason:
+  - prose rewrite's switch, mode, and models;
+  - punctuation conventions.
+  The All settings and YAML views still show everything.
+- **Labels.** The job list and series show any pair as `EN → JA` or
+  `PT-BR → JA`. A generic-tier job's header shows its pair and how many
+  checks are skipped, with the list as a tooltip.
+- **Build.** The dashboard bundle in `book_agent/web/static` is rebuilt.
+- **Tested.** `LanguagePairPicker.test.tsx` and `ConfigEditor.test.tsx` in
+  the frontend (91 tests). On the backend, the catalog, the notice, and
+  `/api/languages` are covered over HTTP (1,104 tests).
+
+Next: phase 5, the French and Japanese profiles (conventions, address forms,
+number words, prompt examples, one benchmark book each).

@@ -27,9 +27,10 @@ export function roughDuration(seconds: number): string {
   return rest ? `${hours} h ${rest} min` : `${hours} h`;
 }
 
-/** "en-zh" -> "EN → ZH"; an unknown or missing direction shows as a dash. */
+/** "en-zh" -> "EN → ZH", "pt-BR>ja" -> "PT-BR → JA"; an unknown or missing direction shows as a dash. */
 export function directionLabel(direction: string | undefined): string {
-  const [from, to] = (direction ?? "").split("-");
+  const text = direction ?? "";
+  const [from, to] = text.includes(">") ? text.split(">") : text.split("-");
   return from && to ? `${from.toUpperCase()} → ${to.toUpperCase()}` : "—";
 }
 

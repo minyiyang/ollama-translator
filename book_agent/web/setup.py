@@ -14,6 +14,7 @@ from pydantic import ValidationError
 from ..atomic_io import atomic_write_text
 from ..cli import resolve_config_paths
 from ..config import AppConfig
+from ..languages import LanguagePair, language_catalog, language_support
 from ..pipeline_state import WorkflowStage
 from ..workspace import build_job_id, slugify_job_name, validate_job_id
 
@@ -145,6 +146,8 @@ def validate_setup(
         "models": models,
         "summary": {
             "direction": config.translation.direction.value,
+            # Tiers, skipped checks, and the model-risk notice for this pair.
+            "languages": language_support(config.translation.direction),
             "style": config.translation.style.value,
             "glossary_review": (
                 "LLM" if config.workflow.llm_glossary_review
@@ -158,6 +161,17 @@ def validate_setup(
         },
         "stages": [stage.value for stage in WorkflowStage],
     }
+
+
+def languages_payload(pair: str) -> dict[str, Any]:
+    """The language picker's list, and what a pair supports (or why it is not a pair)."""
+    payload: dict[str, Any] = {"languages": language_catalog(), "support": None, "error": ""}
+    if pair:
+        try:
+            payload["support"] = language_support(LanguagePair(pair))
+        except ValueError as error:
+            payload["error"] = str(error)
+    return payload
 
 
 _SECTION_TITLES = {

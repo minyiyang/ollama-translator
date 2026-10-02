@@ -89,3 +89,12 @@ table.grid tr:last-child td { border-bottom: 0; }
 .chip.draft { background: var(--info-bg); color: var(--accent); }
 .chip.starting, .chip.pausing { background: var(--warn-bg); color: var(--warn); }
 .chip.cancelled { background: var(--warn-bg); color: var(--warn); }
+
+/* Language pair picker and notes (docs/GENERIC_LANGUAGES.md, phase 4). */
+.pair-picker { display: grid; gap: 6px; }
+.pair-side { display: grid; gap: 2px; }
+.pair-side input { width: 120px; }
+.language-notes { display: grid; gap: 6px; margin-top: 4px; }
+.language-notes .banner { margin: 0; }
+.skipped-checks { margin: 4px 0 0; padding-left: 18px; }
+.skipped-checks li { margin: 2px 0; }

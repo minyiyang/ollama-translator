@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { api } from "../api";
 import { Shell } from "../components/Shell";
 import { useToast } from "../components/Toast";
+import { LanguagePairPicker } from "../components/LanguagePairPicker";
 import { Card, Chip } from "../components/ui";
 import { directionLabel, relativeTime } from "../lib/format";
 import { FALLBACK_PAIR, langAttr, pairCodes, type GlossaryPair } from "../lib/languages";
@@ -79,11 +80,9 @@ function NewSeriesDialog({ directions, onClose }: { directions: string[]; onClos
           <span className="hint">Letters, digits, dot, dash, underscore. Stored under <span className="mono">runs/.series/{seriesId || "…"}</span>.</span>
         </div>
         <div className="field">
-          <label htmlFor="series-direction">Translation direction</label>
-          <select id="series-direction" value={direction} onChange={(e) => setDirection(e.target.value)}>
-            {directions.map((d) => <option key={d} value={d}>{directionLabel(d)}</option>)}
-          </select>
-          <span className="hint">Every book in the series must translate in this direction.</span>
+          <span className="label-text">Languages</span>
+          <LanguagePairPicker value={direction} onChange={setDirection} />
+          <span className="hint">Every book in the series must translate between these languages.</span>
         </div>
         <div className="row dialog-actions">
           <button onClick={onClose}>Cancel</button>

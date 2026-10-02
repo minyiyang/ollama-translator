@@ -213,7 +213,8 @@ translation:
   direction: en>ja          # or: source_language: en / target_language: ja
 ```
 
-Codes are BCP 47 (`fr`, `ja`, `pt-BR`, `zh-Hant`). A generic pair has a
+In the dashboard, pick the two languages under *Languages* on a job's Config
+tab or when creating a series. Codes are BCP 47 (`fr`, `ja`, `pt-BR`, `zh-Hant`). A generic pair has a
 glossary, a style sheet, and a series like any other; checks its languages
 cannot support are skipped rather than run with English or Chinese rules.
 `run --dry-run` and `status --json` list them under `languages.skipped`.
@@ -591,7 +592,11 @@ leaving LLM review disabled performs no independent review.
 - **Jobs** lists jobs with their translation direction (for example
   `EN → ZH`) and creates new ones; a completed job has a *Download* button for
   its translated book, also in the job header. Each job's **Config** tab edits,
-  validates, and starts it. **Series** groups jobs that share a versioned
+  validates, and starts it; its *Languages* setting takes any two language
+  codes, lists the tuned ones first, and for a generic pair shows the tiers,
+  a model-quality notice, and the checks that will be skipped (options those
+  checks would use are hidden, with a line saying why). A generic-tier job
+  shows the skipped checks in its header. **Series** groups jobs that share a versioned
   series glossary (see [the plan](docs/SERIES_GLOSSARY_UI.md)). The job header pauses (after the current LLM
   call), stops, or resumes a run. `book-agent pause <workspace>` pauses a run
   started from a terminal the same way.
