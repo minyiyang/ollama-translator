@@ -707,6 +707,8 @@ def _validate_models(client: OllamaClient | None, config: AppConfig) -> None:
     model_contexts = {
         config.ollama.model: config.ollama.num_ctx,
     }
+    if config.translation.model:
+        model_contexts[config.translation.model] = config.translation.max_num_ctx
     if config.glossary.extraction_enabled:
         model_contexts[
             config.glossary.extraction_model

@@ -471,3 +471,23 @@ def test_a_preprocessed_document_without_a_style_sheet_serializes_as_before():
     assert "relevant_style" not in json.loads(document.model_dump_json())
     styled = document.model_copy(update={"relevant_style": StyleSheet()})
     assert PreprocessedDocument.model_validate_json(styled.model_dump_json()).relevant_style == StyleSheet()
+
+
+def test_an_extraction_answer_with_characters_and_no_entries_is_asked_again():
+    """qwen on Fortunata y Jacinta: 20 characters, no glossary entry, in every chunk."""
+    from book_agent.stages.decompile import load_decompile_manifest, run_decompile_stage
+    from book_agent.stages.glossary import run_glossary_extraction_stage
+    from book_agent.workspace import create_job_workspace
+
+    with tempfile.TemporaryDirectory() as directory:
+        base, config = Path(directory), _config()
+        workspace = create_job_workspace(make_epub(base / "style.epub", chapter=CHAPTER), base / "runs", config, job_id="style")
+        run_decompile_stage(workspace)
+        segment = load_decompile_manifest(workspace).documents[0].segments[0]
+        term = segment.text.split()[0].strip(".,")
+        people = [{"name": name, "pronoun": "他", "addressed_as": "你", "voice": "", "evidence": [segment.segment_id]} for name in ("A", "B", "C")]
+        empty = {"entries": [], "style": {"characters": people, "expressions": []}}
+        full = {"entries": [{"english": term, "chinese": "词", "category": "概念", "evidence": [segment.segment_id]}], "style": {"characters": people, "expressions": []}}
+        client = SchemaFakeClient([empty, full])
+        run_glossary_extraction_stage(workspace, config, client)
+        assert len(client.prompts) == 2 and "no glossary entries" in client.prompts[1]

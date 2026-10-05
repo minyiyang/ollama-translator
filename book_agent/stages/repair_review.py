@@ -65,6 +65,13 @@ class _PreScreenClient:
         raise _SemanticRepairRequired
 
 
+def _feedback_repair_model(config: AppConfig) -> str:
+    """Feedback repair rewrites a translation, so it uses the repair model when
+    one is set: the primary model may be the weaker writer of the target
+    language (qwen3.8 answered in Chinese for a Japanese target)."""
+    return config.audit.repair_model or config.ollama.model
+
+
 def run_review_repair_stage(
     workspace: JobWorkspace,
     config: AppConfig,
@@ -80,7 +87,7 @@ def run_review_repair_stage(
             {
                 "review": str(review_stage["output_hash"]),
                 "translation": config.translation.model_dump_json(),
-                "model": config.ollama.model,
+                "model": _feedback_repair_model(config),
                 "stage_version": REPAIR_REVIEW_STAGE_VERSION,
             }
         )
@@ -223,7 +230,7 @@ def run_review_repair_stage(
             segment_result_index += 1
             report_segment_result(
                 client,
-                model=config.ollama.model,
+                model=_feedback_repair_model(config),
                 stage=stage.value,
                 segment_id=segment_id,
                 result="passed",
@@ -260,7 +267,7 @@ def run_review_repair_stage(
             segment_result_index += 1
             report_segment_result(
                 client,
-                model=config.ollama.model,
+                model=_feedback_repair_model(config),
                 stage=stage.value,
                 segment_id=corrected.segment_id,
                 result=(
@@ -282,7 +289,7 @@ def run_review_repair_stage(
         targets = pending_targets
         report_stage_plan(
             client,
-            model=config.ollama.model,
+            model=_feedback_repair_model(config),
             stage=stage.value,
             prescreened=sum(len(item.repairs) for item in documents),
             llm_tasks=len(targets),
@@ -320,7 +327,7 @@ def run_review_repair_stage(
             segment_result_index += 1
             report_segment_result(
                 client,
-                model=config.ollama.model,
+                model=_feedback_repair_model(config),
                 stage=stage.value,
                 segment_id=corrected.segment_id,
                 result=(

@@ -458,9 +458,27 @@ def _is_unmistakable_ordinary_candidate(entry: GlossaryEntry) -> bool:
     )
 
 
-def is_suspicious_generic_candidate(entry: GlossaryEntry) -> bool:
-    """Return whether a term needs relevance review before series promotion."""
+def is_suspicious_generic_candidate(entry: GlossaryEntry, language=None) -> bool:
+    """Return whether a term needs relevance review before series promotion.
+
+    With `language`, the source language of a pair other than en/zh, the test is
+    that language's. Where names are capitalized, a lowercase word is no name,
+    whatever category it was given ("well" as a place); a title (señor) may be.
+    A one-syllable Korean word (죽, 간) is an everyday one.
+    """
     term = entry.source.strip()
+    if language is not None:
+        rules = profile(language)
+        if rules.cased:
+            letters = rules.script_chars
+            return (
+                entry.category is not GlossaryCategory.PERSON
+                and term == term.lower()
+                and bool(re.fullmatch(rf"[{letters}][{letters}'-]{{1,23}}", term))
+            )
+        if rules.attached_particles:
+            return entry.category in _GENERIC_CATEGORIES and len(term) == 1
+        return False
     return (
         entry.category in _GENERIC_CATEGORIES
         and term == term.lower()

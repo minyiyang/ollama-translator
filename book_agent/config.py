@@ -102,6 +102,10 @@ class TranslationConfig(StrictModel):
     de_ai_strength: Literal["conservative", "moderate"] = "conservative"
     thinking: bool = False
     marker_examples: Literal["none", "one-shot", "few-shot"] = "few-shot"
+    # The model that translates, when it is not `ollama.model`. A model trained
+    # only to translate (translategemma) writes better prose in some languages
+    # but cannot resolve a glossary; those calls stay with `ollama.model`.
+    model: str | None = None
     fallback_models: list[str] = Field(default_factory=list)
     attempts_per_model: int = Field(default=2, gt=0)
     harmonize_fallback_with_primary: bool = True
@@ -131,7 +135,7 @@ class TranslationConfig(StrictModel):
     def _omit_restated_languages(self, handler):
         data = handler(self)
         if isinstance(data, dict):
-            for key in ("source_language", "target_language"):
+            for key in ("source_language", "target_language", "model"):
                 if data.get(key) is None:
                     data.pop(key, None)
         return data
@@ -144,6 +148,8 @@ class TranslationConfig(StrictModel):
             raise ValueError("custom_style_file can only be used with the custom style")
         if any(not model.strip() for model in self.fallback_models):
             raise ValueError("fallback_models cannot contain an empty model name")
+        if self.model is not None and not self.model.strip():
+            raise ValueError("translation model cannot be empty")
         return self
 
 
@@ -394,6 +400,11 @@ class WorkflowConfig(StrictModel):
 class PathsConfig(StrictModel):
     runs: Path = Path("runs")
     prompts: Path = Path("prompts")
+
+
+def translation_model(config: "AppConfig") -> str:
+    """The model the translate stage calls first."""
+    return config.translation.model or config.ollama.model
 
 
 class AppConfig(StrictModel):

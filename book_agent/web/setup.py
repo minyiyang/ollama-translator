@@ -71,7 +71,13 @@ def parse_config(text: str, base: Path) -> AppConfig:
 
 def model_roles(config: AppConfig) -> list[dict[str, str]]:
     """Every model the enabled stages will call, with the role that uses it."""
-    roles = [("translation, glossary resolution/approval", config.ollama.model)]
+    if config.translation.model:
+        roles = [
+            ("translation", config.translation.model),
+            ("glossary resolution/approval", config.ollama.model),
+        ]
+    else:
+        roles = [("translation, glossary resolution/approval", config.ollama.model)]
     if config.glossary.extraction_enabled:
         roles.append(("glossary extraction", config.glossary.extraction_model))
     roles += [(f"fallback translation #{i + 1}", model) for i, model in enumerate(config.translation.fallback_models)]

@@ -61,8 +61,11 @@ EN_CHAPTER = b"""<?xml version='1.0'?>
         ("en", "en", "English", "tuned", ("Latin",), True),
         ("zh-Hans", "zh", "Simplified Chinese", "tuned", ("Han",), False),
         ("ja", "ja", "Japanese", "profiled", ("Han", "Hiragana", "Katakana"), False),
-        ("ko", "ko", "Korean", "generic", ("Hangul",), True),
-        ("de", "de", "German", "generic", ("Latin",), True),
+        ("ko", "ko", "Korean", "profiled", ("Hangul",), True),
+        ("de", "de", "German", "profiled", ("Latin",), True),
+        ("it", "it", "Italian", "generic", ("Latin",), True),
+        ("ru", "ru", "Russian", "generic", ("Cyrillic",), True),
+        ("th", "th", "Thai", "generic", ("Thai",), False),
         ("pt-br", "pt-BR", "Portuguese (BR)", "generic", ("Latin",), True),
         ("zh-TW", "zh-TW", "Chinese (Traditional, TW)", "generic", ("Han",), False),
         ("sr-Latn", "sr-Latn", "Serbian (Latin)", "generic", ("Latin",), True),
@@ -79,10 +82,11 @@ def test_any_code_gets_a_profile(code, stored, name, tier, scripts, spaced):
 
 
 def test_a_generic_profile_has_only_what_its_code_gives():
-    rules = profile("ko")
+    rules = profile("ru")
     assert not (rules.stock_phrases or rules.marker_examples or rules.pronouns or rules.name_separator)
     assert not (rules.address_forms or rules.quotes or rules.conventions or rules.number_words)
-    assert rules.script_pattern.search("아스터") and not rules.script_pattern.search("Aster")
+    assert not rules.function_words and not rules.inflection_suffix
+    assert rules.script_pattern.search("Астер") and not rules.script_pattern.search("Aster")
     # An unknown script still recognizes letters, so a passage counts as prose.
     assert profile("xx").script_pattern.search("ǂʼ word")
 
@@ -167,8 +171,8 @@ def test_todays_pairs_skip_nothing_they_ran_before():
 
 
 def test_a_same_script_pair_lists_every_check_it_cannot_run():
-    support = language_support(LanguagePair("en>de"))
-    assert support["target"] == {"code": "de", "name": "German", "tier": "generic"}
+    support = language_support(LanguagePair("en>it"))
+    assert support["target"] == {"code": "it", "name": "Italian", "tier": "generic"}
     assert {item["check"] for item in support["skipped"]} == {
         "untranslated text",
         "left-over source words",
@@ -202,10 +206,12 @@ def test_the_untranslated_check_follows_the_scripts():
         "translation is identical to source",
     } <= set(found)
     assert _language_issues("en>ja", english, "彼女は長い帰り道の後でとても疲れていた。") == []
-    # Same script: German prose is not "untranslated English"; only an identical long line is.
+    # Same script, no function words for Italian: only an identical long line is untranslated.
+    assert _language_issues("en>it", english, "Era molto stanca dopo la lunga passeggiata verso casa.") == []
+    assert _language_issues("en>it", english, english) == ["translation is identical to source"]
+    assert _language_issues("en>it", "Paris.", "Paris.") == []
+    # German has function words, so English left in German text is also named.
     assert _language_issues("en>de", english, "Sie war nach dem langen Heimweg sehr müde.") == []
-    assert _language_issues("en>de", english, english) == ["translation is identical to source"]
-    assert _language_issues("en>de", "Paris.", "Paris.") == []
     # Kana left in a Chinese translation of Japanese is caught; kanji is not.
     assert _language_issues("ja>zh", "彼女はとても疲れていた。", "她非常疲倦。") == []
     assert _language_issues("ja>zh", "彼女はとても疲れていた。", "她非常疲倦ですから。") == [
@@ -215,10 +221,10 @@ def test_the_untranslated_check_follows_the_scripts():
 
 
 def test_prompts_leave_out_what_the_profile_lacks():
-    assert _build_marker_examples(LanguagePair("en>ko"), "few-shot") == ""
+    assert _build_marker_examples(LanguagePair("en>it"), "few-shot") == ""
     assert "Marker examples" in _build_marker_examples(TranslationDirection.EN_TO_ZH, "few-shot")
-    instructions = extraction_instructions(LanguagePair("en>ko"), max_characters=5, max_expressions=5)
-    assert "pronoun" not in instructions and "Korean" in instructions
+    instructions = extraction_instructions(LanguagePair("en>it"), max_characters=5, max_expressions=5)
+    assert "pronoun" not in instructions and "Italian" in instructions
 
 
 # -- end to end ---------------------------------------------------------------------------
@@ -236,7 +242,8 @@ class _Auditor(FakeAuditClient):
 
 def _runners(translated: str) -> dict:
     translator = FakeTranslationClient(translated_text=translated)
-    auditor = _Auditor()
+    # The audit model reads every segment of these pairs; this one finds nothing wrong.
+    auditor = _Auditor(return_issue=False)
     repairer = FakeRepairClient()
     verifier = FakeVerificationClient()
     runners = default_stage_runners()
@@ -305,7 +312,7 @@ def test_a_generic_pair_translates_end_to_end(pair, translated, term):
         assert f"into {profile(target).display_name}" in prompts
         assert f"{term['source']} => {term['target']}" in prompts
         assert "Chinese" not in prompts
-        # Japanese is a profiled language with its own marker examples; German has none.
+        # Profiled languages (Japanese, German, French) bring their own marker examples.
         assert ("Marker examples" in prompts) == (profile(target).tier != "generic")
 
         output = next((workspace.root / "output").rglob("*.epub"))

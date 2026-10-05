@@ -9,7 +9,7 @@ from enum import Enum
 from typing import Iterable
 
 from .languages import SENTENCE_END, TUNED_PROFILES, TranslationDirection, glossary_sides, profile
-from .number_words import french_objective_patterns, french_word_values, japanese_as_chinese_numerals
+from .number_words import OBJECTIVE_PATTERNS, WORD_VALUES, japanese_as_chinese_numerals
 from .schemas import GlossaryEntry, is_preservable_technical_identifier
 
 
@@ -570,9 +570,9 @@ def number_tokens(text: str, language: str | None = None) -> Counter[str]:
                 facts.append(_canonical_numeric_fact(value))
             masked[match.start():match.end()] = " " * (match.end() - match.start())
 
-    if parser == "french":
+    if parser in OBJECTIVE_PATTERNS:
         view = _marker_split_view(text, visible)
-        for pattern, convert in french_objective_patterns():
+        for pattern, convert in OBJECTIVE_PATTERNS[parser]():
             # The marker-split view, with what earlier patterns consumed masked out.
             current = "".join(m if m != v else w for v, m, w in zip(visible, masked, view))
             for match in pattern.finditer(current):
@@ -942,9 +942,9 @@ def _number_word_tokens(text: str, language: str | None = None) -> Counter[str]:
         _canonical_numeric_fact(_parse_chinese_number(match.group("number")))
         for match in _CHINESE_NUMBER.finditer(visible)
     )
-    if parser == "french":
+    if parser in WORD_VALUES:
         view = _marker_split_view(text, visible)
-        facts.extend(_canonical_numeric_fact(value) for value in french_word_values(view))
+        facts.extend(_canonical_numeric_fact(value) for value in WORD_VALUES[parser](view))
     return Counter(facts)
 
 
@@ -1168,25 +1168,65 @@ def repair_preserves_glossary(
         list(glossary),
         direction,
     )
+    if not direction.legacy:
+        return _repair_keeps_terms(source_visible, accepted_visible, candidate_visible, applicable, direction)
     for entry in applicable:
         source_term, target_term = glossary_sides(entry, direction)
         source_count = glossary_term_count(source_visible, source_term)
-        accepted_count = glossary_term_count(accepted_visible, target_term)
+        accepted_count = glossary_term_count(accepted_visible, target_term, direction.target_language)
         if not source_count or not accepted_count:
             continue
-        candidate_count = glossary_term_count(candidate_visible, target_term)
+        candidate_count = glossary_term_count(candidate_visible, target_term, direction.target_language)
         if not accepted_count <= candidate_count <= max(accepted_count, source_count):
             return False
     return True
 
 
-def glossary_term_count(text: str, term: str) -> int:
-    """Count exact glossary terms without matching inside larger Latin words."""
+def _repair_keeps_terms(source: str, accepted: str, candidate: str, applicable, direction) -> bool:
+    """The rule for pairs other than en/zh: a repair keeps a term's count
+    between the source's and the accepted text's, in any approved rendering.
+
+    The en/zh rule (never fewer than the accepted text) refused repairs that
+    brought a count down to the source's: a name the draft wrote three times
+    for the source's once, a noun the target language replaces with a pronoun.
+    It also counted each rendering alone, so changing one approved rendering
+    for another was a loss, and read the source without its inflection.
+    """
+    renderings: dict[str, set[str]] = {}
+    for entry in applicable:
+        source_term, target_term = glossary_sides(entry, direction)
+        renderings.setdefault(source_term, set()).add(target_term)
+    for source_term, targets in renderings.items():
+        source_count = glossary_term_count(source, source_term, direction.source_language)
+        accepted_count = sum(glossary_term_count(accepted, term, direction.target_language) for term in targets)
+        if not source_count or not accepted_count:
+            continue
+        candidate_count = sum(glossary_term_count(candidate, term, direction.target_language) for term in targets)
+        if not min(accepted_count, source_count) <= candidate_count <= max(accepted_count, source_count):
+            return False
+    return True
+
+
+def glossary_term_count(text: str, term: str, language: str | None = None) -> int:
+    """Count exact glossary terms without matching inside larger Latin words.
+
+    With `language`, each word of a term may also carry that language's endings
+    (German "des Käfers" for "Käfer", "der Weiße Hase" for "Weißer Hase"), as
+    its profile allows.
+    """
     if not term:
         return 0
     visible = visible_segment_text(text)
     normalized_term = unicodedata.normalize("NFKC", term)
     escaped = re.escape(normalized_term)
+    rules = profile(language) if language else None
+    if rules is not None and rules.inflection_suffix and rules.word_chars and rules.script_pattern.search(normalized_term):
+        inflected = rules.inflected([re.escape(word) for word in normalized_term.split()], rules.inflection_suffix)
+        pattern = re.compile(
+            rf"(?<![{rules.word_chars}]){inflected}(?![{rules.word_chars}])",
+            flags=re.IGNORECASE,
+        )
+        return len(pattern.findall(visible))
     if _LATIN.search(normalized_term):
         pattern = re.compile(
             rf"(?<![A-Za-z0-9_]){escaped}(?![A-Za-z0-9_])",
@@ -1196,9 +1236,9 @@ def glossary_term_count(text: str, term: str) -> int:
     return visible.count(normalized_term)
 
 
-def glossary_target_matches(text: str, term: str) -> bool:
+def glossary_target_matches(text: str, term: str, language: str | None = None) -> bool:
     """Accept an exact target term or a conservative Chinese demonym stem."""
-    if glossary_term_count(text, term):
+    if glossary_term_count(text, term, language):
         return True
     normalized = unicodedata.normalize("NFKC", term)
     suffix = next(
@@ -1308,10 +1348,16 @@ def _is_bibliographic_identifier(value: str) -> bool:
     )
 
 
+_CLOSING_MARKS = "”’』」»«“\"'）)\\]"
+
+
 def _looks_like_translated_heading(
     source: str, target: str, direction: TranslationDirection
 ) -> bool:
-    if len(source) > 40 or re.search(f"[{SENTENCE_END}]$", source):
+    # A sentence ends before its closing quotation mark: “Not I!” and
+    # 『你出去！』 are lines of dialogue, not headings. Nor is a line that
+    # introduces speech (他站起来，两手叉在腰间说：).
+    if len(source) > 40 or re.search(f"[{SENTENCE_END}…:：][{_CLOSING_MARKS}]*$", source):
         return False
     source_words = _SCRIPT_RUN.findall(source)
     if not 1 <= len(source_words) <= 4:

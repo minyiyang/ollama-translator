@@ -11,7 +11,7 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass, field
 from functools import cached_property
-from typing import Any, ClassVar, Iterator
+from typing import Any, ClassVar, Iterator, Sequence
 
 
 # -- language profiles ---------------------------------------------------------------
@@ -32,6 +32,9 @@ class ConventionRule:
     # The slip is also the nested form (French “ ” inside « »): a segment that
     # uses the house form as well is not a departure.
     nested_ok: bool = False
+    # When the slip is one character that is always wrong under the house
+    # convention, (slip, correction): repair replaces it without a model call.
+    replace: tuple[str, str] | None = None
 
 
 @dataclass(frozen=True)
@@ -54,6 +57,13 @@ class LanguageProfile:
     # Regex for the inflection a term may carry in running prose (English
     # plurals), appended when the term ends in a letter.
     plural_suffix: str
+    # Endings an approved target term may take in a translation into this
+    # language (des Käfers, los caballeros); empty: the term must appear as is.
+    inflection_suffix: str = ""
+    # Particles that attach to the end of a word (홍길동은, 홍길동에게는): a term
+    # matches at the start of a word, followed by nothing or by particles only,
+    # so 죽 (porridge) is not found in 죽었다 (died).
+    attached_particles: tuple[str, ...] = field(default_factory=tuple)
     # Characters that end a sentence.
     sentence_end: str = ""
     # Phrases that read as machine-written prose (audit "ai_style").
@@ -83,6 +93,8 @@ class LanguageProfile:
     # What separates the parts of a transliterated name ("·" in Chinese), so a
     # full name can be checked against the rendering of each part.
     name_separator: str = ""
+    # A sentence for the glossary extraction prompt about terms in this language.
+    extraction_note: str = ""
     # The number-word parser that reads this language: "english" and "chinese"
     # run on every text; "french" and "japanese" on text known to be in them
     # (number_words.py). Empty when no parser reads it.
@@ -102,6 +114,34 @@ class LanguageProfile:
     def normalize_term(self, term: str) -> str:
         """A glossary term in the form used for matching and de-duplication."""
         return " ".join(term.casefold().split()) if self.cased else term
+
+    @cached_property
+    def term_end(self) -> str:
+        """Regex for what may follow a term in running text: the end of the word,
+        after any attached particles."""
+        boundary = f"(?![{self.word_chars}])"
+        if not self.attached_particles:
+            return boundary
+        particles = "|".join(sorted(map(re.escape, self.attached_particles), key=len, reverse=True))
+        return f"(?:{particles}){{0,3}}{boundary}"
+
+    def inflected(self, words: Sequence[str], suffix: str) -> str:
+        """Regex for a term (its words already escaped) whose words may each take
+        `suffix`. A word before the last may also change the ending it has: the
+        approved "Weißer Hase" is written "der Weiße Hase", "des Weißen Hasen".
+        Not on a word under three letters ("Mr" + "s" is "Mrs").
+        """
+        letters = "[^\\W\\d_]"
+        parts = []
+        for index, word in enumerate(words):
+            if not re.search(letters + "{3}$", word):
+                parts.append(word)
+                continue
+            if index < len(words) - 1:
+                stem = re.fullmatch(f"(.*?{letters}{{3}}?)(?:{suffix})", word)
+                word = stem.group(1) if stem else word
+            parts.append(word + suffix)
+        return "\\s+".join(parts)
 
 
 _HAN = "\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff"
@@ -338,6 +378,7 @@ PROFILES["fr"] = LanguageProfile(
     # Elided articles (l', d') end a word, so "d'Aster" still matches "Aster".
     word_chars=SCRIPTS["Latin"] + "0-9_",
     plural_suffix="(?:s|x)?",
+    inflection_suffix="(?:s|x)?",
     sentence_end=".!?",
     stock_phrases=(
         "il est important de noter que",
@@ -436,6 +477,187 @@ PROFILES["ja"] = LanguageProfile(
     # Katakana names separate their parts with a middle dot (ジョン・スミス).
     name_separator="・",
     number_words="japanese",
+    tier="profiled",
+)
+
+PROFILES["es"] = LanguageProfile(
+    code="es",
+    display_name="Spanish",
+    short_name="Spanish",
+    scripts=("Latin",),
+    script_chars=SCRIPTS["Latin"],
+    script_basic_chars=SCRIPTS["Latin"],
+    spaced_words=True,
+    cased=True,
+    word_chars=SCRIPTS["Latin"] + "0-9_",
+    plural_suffix="(?:s|es)?",
+    inflection_suffix="(?:s|es)?",
+    sentence_end=".!?",
+    stock_phrases=(
+        "cabe destacar que",
+        "es importante señalar que",
+        "en conclusión",
+        "un testimonio de",
+        "como si el tiempo se hubiera detenido",
+    ),
+    marker_examples=(
+        "Ella estaba <I000>muy</I000> cansada.",
+        "<I000></I000>Capítulo <I001></I001> uno",
+    ),
+    # Publishers use « » or “ ”; the book's majority decides. A sentence opened
+    # by either mark is opened: the Academy accepts ¡...? and ¿...!. A dash or
+    # an ellipsis does not end one (¿Te gustan —te gustan— los perros?), nor
+    # does the quotation mark before a dialogue tag («¿Sería útil», pensó, «hablarle?»).
+    quotes="« »",
+    nested_quotes="“ ”",
+    ellipsis="…",
+    dash="—",
+    conventions=(
+        ConventionRule(
+            house="[«»“”]",
+            slip='"',
+            message='A straight quotation mark " is used here, but the book uses typographic quotes ({count} segments).',
+            fix='Replace the straight quotation marks " with the book\'s « » or “ ”.',
+        ),
+        ConventionRule(
+            house="¿",
+            slip=r"(?:^|(?<=[.!?:;]))[^¿¡.!?:;]*[^\W\d_][^¿¡.!?:;]*\?",
+            message="A question here has no opening ¿, but the book writes them ({count} segments).",
+            fix="Open the question with ¿.",
+        ),
+        ConventionRule(
+            house="¡",
+            slip=r"(?:^|(?<=[.!?:;]))[^¿¡.!?:;]*[^\W\d_][^¿¡.!?:;]*!",
+            message="An exclamation here has no opening ¡, but the book writes them ({count} segments).",
+            fix="Open the exclamation with ¡.",
+        ),
+    ),
+    pronouns=("él", "ella"),
+    address_forms=("tú", "usted"),
+    stop_words=frozenset({"los", "las", "del", "una", "que", "para", "con", "por", "pero", "como", "más", "era"}),
+    function_words=frozenset({
+        "el", "la", "los", "las", "un", "una", "unos", "unas", "de", "del", "al", "y", "que", "en",
+        "es", "era", "son", "no", "se", "por", "con", "para", "su", "sus", "lo", "le", "les",
+        "pero", "como", "más", "muy", "este", "esta", "ese", "esa", "yo", "tú", "usted", "mi",
+        "me", "te", "he", "ha", "había", "sí", "también", "ya",
+    }),
+    number_words="spanish",
+    tier="profiled",
+)
+
+PROFILES["de"] = LanguageProfile(
+    code="de",
+    display_name="German",
+    short_name="German",
+    scripts=("Latin",),
+    script_chars=SCRIPTS["Latin"],
+    script_basic_chars=SCRIPTS["Latin"],
+    spaced_words=True,
+    cased=True,
+    word_chars=SCRIPTS["Latin"] + "0-9_",
+    # Case endings and plurals: des Käfers, den Männern, die Schwestern.
+    plural_suffix="(?:e|en|em|n|er|ern|es|s)?",
+    inflection_suffix="(?:e|en|em|n|er|ern|es|s)?",
+    sentence_end=".!?",
+    stock_phrases=(
+        "es ist wichtig zu beachten",
+        "zusammenfassend lässt sich sagen",
+        "ein Zeugnis für",
+        "als ob die Zeit stillstünde",
+        "es sei darauf hingewiesen",
+    ),
+    marker_examples=(
+        "Sie war <I000>sehr</I000> müde.",
+        "<I000></I000>Kapitel <I001></I001> eins",
+    ),
+    # Publishers use „ “ or » «; the book's majority decides.
+    quotes="„ “",
+    nested_quotes="‚ ‘",
+    ellipsis="…",
+    dash="–",
+    conventions=(
+        ConventionRule(
+            house="[„“»«]",
+            slip='"',
+            message='A straight quotation mark " is used here, but the book uses typographic quotes ({count} segments).',
+            fix='Replace the straight quotation marks " with the book\'s „ “ or » «.',
+        ),
+        ConventionRule(
+            house="„",
+            slip="”",
+            message="An English closing quotation mark ” is used here, but the book uses „ “ ({count} segments).",
+            fix="Close the quotation with “.",
+            replace=("”", "“"),
+        ),
+    ),
+    pronouns=("er", "sie", "es"),
+    address_forms=("du", "Sie"),
+    stop_words=frozenset({"der", "die", "das", "und", "nicht", "eine", "einen", "dem", "den", "mit", "sich", "auch"}),
+    function_words=frozenset({
+        "der", "die", "das", "den", "dem", "des", "und", "ist", "war", "nicht", "ein", "eine",
+        "einen", "einem", "einer", "zu", "mit", "sich", "auf", "auch", "es", "er", "sie", "ich",
+        "du", "wir", "ihr", "aber", "wie", "noch", "nur", "schon", "im", "vom", "zum", "zur",
+        "wenn", "dass", "doch", "hatte", "wurde", "sein", "seine", "ihre", "nach", "bei",
+    }),
+    extraction_note=(
+        "German capitalizes every noun, so a capital letter does not mark a name: leave out "
+        "ordinary nouns, family relations (Mutter, Vater) included."
+    ),
+    number_words="german",
+    tier="profiled",
+)
+
+_HANGUL = SCRIPTS["Hangul"]
+
+PROFILES["ko"] = LanguageProfile(
+    code="ko",
+    display_name="Korean",
+    short_name="Korean",
+    scripts=("Hangul",),
+    script_chars=_HANGUL,
+    script_basic_chars=_HANGUL,
+    spaced_words=True,
+    cased=False,
+    word_chars=_HANGUL + "0-9_",
+    plural_suffix="",
+    # Case and topic particles, the copula, and the plural and honorific
+    # suffixes a noun takes before them (학생들에게는, 선생님이었다).
+    attached_particles=(
+        "이", "가", "은", "는", "을", "를", "의", "에", "에게", "에게서", "에서", "께", "께서",
+        "한테", "더러", "로", "으로", "로서", "으로서", "로써", "으로써", "와", "과", "랑", "이랑",
+        "하고", "도", "만", "까지", "부터", "조차", "마저", "밖에", "뿐", "마다", "처럼", "같이",
+        "만큼", "보다", "나", "이나", "든", "이든", "며", "이며", "고", "이고", "야", "이야", "아",
+        "여", "이여", "요", "이요", "라", "이라", "라고", "이라고", "라는", "이라는", "란", "이란",
+        "다", "이다", "였다", "이었다", "입니다", "인", "들", "님", "씨", "네",
+    ),
+    sentence_end=".!?",
+    stock_phrases=(
+        "주목할 만한 점은",
+        "결론적으로",
+        "마치 시간이 멈춘 듯",
+        "라고 할 수 있습니다",
+        "의심할 여지 없이",
+    ),
+    marker_examples=(
+        "그녀는 <I000>매우</I000> 피곤했다.",
+        "<I000></I000>제1장<I001></I001>",
+    ),
+    quotes="“ ”",
+    nested_quotes="‘ ’",
+    ellipsis="……",
+    dash="—",
+    conventions=(
+        ConventionRule(
+            house="[“”]",
+            slip='"',
+            message='A straight quotation mark " is used here, but the book uses “ ” ({count} segments).',
+            fix='Replace the straight quotation marks " with “ and ”.',
+        ),
+    ),
+    # Korean marks address by speech level, not a pronoun; the style sheet keeps
+    # the third-person pronoun and the character's voice.
+    pronouns=("그", "그녀"),
+    number_words="korean",
     tier="profiled",
 )
 
@@ -647,6 +869,70 @@ def copy_is_untranslated(text: str, direction: LanguagePair) -> bool:
     return scripts_disjoint(direction) or sum(ch.isalnum() for ch in text) >= SHARED_SCRIPT_IDENTICAL_MIN
 
 
+_FUNCTION_WORD = re.compile(r"[^\W\d_]+(?:[’'][^\W\d_]+)?")
+
+
+def reads_as_source(text: str, direction: LanguagePair) -> bool:
+    """Whether a translation is, as a whole, still written in the source
+    language, for a pair sharing a script: at least four of the source's own
+    function words and more than three for each of the target's. (A copy with
+    its spelling modernized, "daß" to "dass", is not identical to the source.)
+    The audit looks for single left-over passages; this is the whole text."""
+    if leftover_scripts(direction):
+        return False
+    source = profile(direction.source_language).function_words
+    target = profile(direction.target_language).function_words
+    if not source or not target:
+        return False
+    words = [word.casefold().replace("’", "'") for word in _FUNCTION_WORD.findall(text)]
+    source_hits = sum(word in source and word not in target for word in words)
+    target_hits = sum(word in target and word not in source for word in words)
+    return source_hits >= 4 and source_hits > 3 * target_hits
+
+
+# A sentence of Japanese has kana in it. A translation this long written only
+# in the script the two languages share is the source left as it was; a
+# heading or a name ("第一章 序") is shorter.
+SHARED_SCRIPT_ONLY_MIN_CHARACTERS = 10
+
+
+def lacks_target_script(text: str, direction: LanguagePair) -> bool:
+    """Whether a translation has none of the scripts only the target is written
+    in (kana, for Chinese into Japanese) while long enough to need them."""
+    source_scripts = profile(direction.source_language).scripts
+    target_scripts = profile(direction.target_language).scripts
+    own = [name for name in target_scripts if name not in source_scripts]
+    shared = [name for name in target_scripts if name in source_scripts]
+    if not own or not shared:
+        return False
+    if re.search("[" + "".join(SCRIPTS[name] for name in own) + "]", text):
+        return False
+    letters = re.findall("[" + "".join(SCRIPTS[name] for name in shared) + "]", text)
+    return len(letters) >= SHARED_SCRIPT_ONLY_MIN_CHARACTERS
+
+
+# Two languages written without spaces in one script (Chinese and Japanese)
+# share words, names, and four-character phrases; a run this long copied
+# character for character from the source is a clause left untranslated.
+COPIED_RUN_MIN_CHARACTERS = 6
+
+
+def copied_source_run(source: str, text: str, direction: LanguagePair) -> str:
+    """A run of the shared script in a translation that stands in the source
+    as written, for a pair of unspaced languages sharing a script; else ""."""
+    source_rules, target_rules = profile(direction.source_language), profile(direction.target_language)
+    shared = [name for name in source_rules.scripts if name in target_rules.scripts]
+    if not shared or source_rules.spaced_words or target_rules.spaced_words:
+        return ""
+    chars = "".join(SCRIPTS[name] for name in shared)
+    length = COPIED_RUN_MIN_CHARACTERS
+    for run in re.findall(f"[{chars}]{{{length},}}", text):
+        for start in range(len(run) - length + 1):
+            if run[start : start + length] in source:
+                return run
+    return ""
+
+
 def glossary_pair(direction: LanguagePair) -> LanguagePair:
     """The pair a job's glossary is written in: its source and target sides.
 
@@ -684,7 +970,7 @@ def language_support(direction: LanguagePair) -> dict[str, Any]:
         skip(
             "untranslated text",
             "source and target share a script: only a translation identical to a long source is "
-            "flagged, and the semantic audit covers the rest",
+            "flagged by script; left-over source words and the semantic audit cover the rest",
         )
     if not leftover_scripts(direction) and not (source.function_words and target.function_words):
         skip("left-over source words", "no script or function words tell the source from the target")

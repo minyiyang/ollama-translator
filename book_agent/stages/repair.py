@@ -522,7 +522,7 @@ def _run_repair(
     context_bucket=None,
 ):
     deterministic, applied_rules = apply_deterministic_repairs(
-        original_translation, issues
+        original_translation, issues, config.translation.direction.target_language
     )
     if deterministic != original_translation:
         repaired, validation = validate_repair_output(

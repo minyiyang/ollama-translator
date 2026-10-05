@@ -19,6 +19,7 @@ from ..style_sheet import (
     build_style_review_prompt,
     build_style_review_schema,
     check_style_choices,
+    drop_glossary_conflicts,
     candidate_from_model,
     extraction_instructions,
     keep_recurring_expressions,
@@ -64,7 +65,7 @@ from ..glossary_prompts import (
     build_resolution_prompt,
 )
 from ..hashing import hash_named_values, sha256_file, sha256_text
-from ..languages import LanguagePair, glossary_names, glossary_pair
+from ..languages import LanguagePair, glossary_names, glossary_pair, glossary_sides
 from ..ollama_client import OllamaClient, StructuredGenerationResult
 from ..pipeline_state import (
     WorkflowStage,
@@ -804,7 +805,7 @@ def run_glossary_approval_stage(
             kept = []
             for entry in approved.entries:
                 term = normalize_term(entry.source)
-                if is_suspicious_generic_candidate(entry) and term not in configured and term not in chosen:
+                if is_suspicious_generic_candidate(entry, _screen_language(config)) and term not in configured and term not in chosen:
                     dropped_generic.append(entry)
                 else:
                     kept.append(entry)
@@ -864,6 +865,18 @@ def run_glossary_approval_stage(
                 style = _review_style_sheet(style_draft, config, client, workspace, stage_root)
             else:
                 style = style_draft
+            if reviewed_style_file is None:
+                # The glossary decides a term; a person's reviewed sheet stands as written.
+                direction = config.translation.direction
+                style = drop_glossary_conflicts(
+                    style,
+                    [
+                        glossary_sides(entry, direction)
+                        for entry in approved.entries
+                        if not is_suspicious_generic_candidate(entry, _screen_language(config))
+                    ],
+                    direction.target_language,
+                )
             style = style.model_copy(
                 update={
                     "characters": [i.model_copy(update={"alternatives": []}) for i in style.characters],
@@ -975,6 +988,20 @@ def _extract_one_chunk(
                 context_multiplier=config.glossary.extraction_context_multiplier,
                 max_attempts=1,
             )
+            # A model sometimes fills the style sheet and returns no glossary
+            # entries at all (qwen on Fortunata y Jacinta: 20 characters and no
+            # entry in each chunk, so the book ran without a glossary). With
+            # several characters named, ask again; the last attempt's answer stands.
+            style_characters = getattr(getattr(generated.value, "style", None), "characters", None) or []
+            if (
+                not generated.value.entries
+                and len(style_characters) >= _CHARACTERS_WITHOUT_ENTRIES
+                and offset <= config.workflow.max_retries
+            ):
+                raise ValueError(
+                    "the answer lists characters for the style sheet and no glossary entries; "
+                    "the names of those characters belong in `entries`"
+                )
             accepted: list[GlossaryEntry] = []
             discarded: list[str] = []
             for candidate in generated.value.entries:
@@ -1885,6 +1912,16 @@ def _build_glossary_approval_report(
         llm_count=sum(record.mode == "llm" for record in records),
         records=records,
     )
+
+
+# An extraction answer naming this many characters and no glossary entry is asked again.
+_CHARACTERS_WITHOUT_ENTRIES = 3
+
+
+def _screen_language(config: AppConfig):
+    """The language whose rules screen ordinary words: none for the en/zh glossary's own screen."""
+    pair = _pair(config)
+    return None if pair.legacy else pair.source_language
 
 
 def _style_hash_fields(config: AppConfig) -> dict[str, str]:

@@ -2,8 +2,11 @@
 
 from __future__ import annotations
 
+import math
 import re
 import unicodedata
+from difflib import SequenceMatcher
+from typing import Sequence
 from collections import defaultdict
 from collections.abc import Callable
 from dataclasses import dataclass
@@ -13,7 +16,16 @@ from pydantic import BaseModel, ConfigDict, Field
 from .config import AppConfig
 from .content_policy import classify_segment, should_run_language_check
 from .glossary import estimate_tokens, split_text_to_budget
-from .languages import TranslationDirection, copy_is_untranslated, glossary_sides, profile, source_aliases
+from .languages import (
+    TranslationDirection,
+    copied_source_run,
+    copy_is_untranslated,
+    glossary_sides,
+    lacks_target_script,
+    profile,
+    reads_as_source,
+    source_aliases,
+)
 from .preprocessing import PreprocessedDocument
 from .schemas import (
     GlossaryEntry,
@@ -647,6 +659,20 @@ def validate_translation_output(
                     message="translation is identical to source",
                 )
             )
+        elif source_has_translatable and (
+            lacks_target_script(re.sub(r"</?I\d{3}>", "", translated), direction)
+            or reads_as_source(re.sub(r"</?I\d{3}>", "", translated), direction)
+            or copied_source_run(
+                re.sub(r"</?I\d{3}>", "", source), re.sub(r"</?I\d{3}>", "", translated), direction
+            )
+        ):
+            issues.append(
+                TranslationIssue(
+                    code="untranslated_source_language",
+                    reference_id=reference_id,
+                    message=f"translation is still written in {direction.source_language.display_name}",
+                )
+            )
         source_inline_markers = re.findall(r"</?I\d{3}>", source)
         translated_inline_markers = re.findall(r"</?I\d{3}>", translated)
         if source_inline_markers != translated_inline_markers:
@@ -675,7 +701,156 @@ def validate_translation_output(
                         ),
                     )
                 )
+    # A model that loses its place in a long chunk repeats earlier passages
+    # under the later markers (translategemma on Die Verwandlung: passages 16
+    # to 31 held the text of 6 to 15). Every marker is present, so only the
+    # text shows it.
+    for reference_id, other in misplaced_passages(
+        [(key, pieces_by_id[key].source_text, text) for key, text in translations.items()]
+    ):
+        issues.append(
+            TranslationIssue(
+                code="repeated_passage",
+                reference_id=reference_id,
+                message=f"translation repeats the translation of {other}",
+            )
+        )
+    named = {issue.reference_id for issue in issues}
+    for reference_id, offset in shifted_passages(
+        [(key, pieces_by_id[key].source_text, text) for key, text in translations.items()]
+    ):
+        if reference_id not in named:
+            issues.append(
+                TranslationIssue(
+                    code="shifted_passage",
+                    reference_id=reference_id,
+                    message=(
+                        "translation fits the source passage "
+                        f"{abs(offset)} {'later' if offset > 0 else 'earlier'}, not this one"
+                    ),
+                )
+            )
     return translations, TranslationValidation(passed=not issues, issues=issues)
+
+
+# Two passages with different sources do not open with the same 80 characters;
+# under 40, a short line ("Yes," said Alice.) may honestly repeat.
+REPEATED_PASSAGE_MIN_CHARACTERS = 40
+
+
+# A passage translated under a neighbour's marker is worded afresh, not copied:
+# two translations this alike, of sources this unlike, are one passage twice.
+MISPLACED_TRANSLATION_SIMILARITY = 0.6
+MISPLACED_SOURCE_SIMILARITY = 0.5
+MISPLACED_WINDOW = 10
+
+
+def _passage_opening(text: str, length: int = 80) -> str:
+    visible = re.sub(r"</?I\d{3}>", "", text)
+    return re.sub(r"\s+", " ", visible).strip().casefold()[:length]
+
+
+def _alike(first: str, second: str, threshold: float) -> bool:
+    matcher = SequenceMatcher(None, first, second, autojunk=False)
+    return matcher.quick_ratio() >= threshold and matcher.ratio() >= threshold
+
+
+# A model that skips a passage keeps writing under the following markers, so
+# a run of translations each belongs to the source some passages away
+# (translategemma on 阿Q正传: 31 of 163 passages one marker late). Nothing is
+# repeated; what shows it is shape: a translation's length against its
+# source's, and whether each opens as dialogue. Over a window of passages, a
+# shift is named when the shifted pairing fits well and far better than the
+# straight one.
+SHIFT_WINDOW = 5
+SHIFT_REACH = 8
+SHIFT_MIN_GAIN = 2.5
+SHIFT_MAX_COST = 1.6
+_DIALOGUE_OPENERS = "“『「«„\"‹‘—–-»"
+
+
+def _shape(text: str) -> tuple[int, bool]:
+    visible = re.sub(r"</?I\d{3}>", "", text).strip()
+    return len(visible), visible[:1] in _DIALOGUE_OPENERS
+
+
+def shifted_passages(passages: Sequence[tuple[str, str, str]]) -> list[tuple[str, int]]:
+    """Passages whose translation fits another passage's source, as (id, offset).
+
+    `passages` are (id, source, translation) in reading order; the offset is
+    how many passages later (or, negative, earlier) the fitting source stands.
+    """
+    sources = [_shape(source) for _, source, _ in passages]
+    targets = [_shape(text) for _, _, text in passages]
+    ratios = sorted(
+        target[0] / source[0] for source, target in zip(sources, targets) if source[0] >= 20 and target[0]
+    )
+    count = len(passages)
+    if len(ratios) < SHIFT_WINDOW:
+        return []
+    usual = ratios[len(ratios) // 2]
+
+    def cost(target: int, source: int) -> float:
+        (source_length, source_dialogue), (target_length, target_dialogue) = sources[source], targets[target]
+        if not source_length or not target_length:
+            return 1.5
+        length = min(1.5, abs(math.log(target_length / (usual * source_length))))
+        return length + (1.0 if source_dialogue != target_dialogue else 0.0)
+
+    found: dict[int, int] = {}
+    for start in range(count - SHIFT_WINDOW + 1):
+        window = range(start, start + SHIFT_WINDOW)
+        straight = sum(cost(index, index) for index in window)
+        if straight < SHIFT_MIN_GAIN:
+            continue
+        best: tuple[float, int] | None = None
+        for offset in range(-SHIFT_REACH, SHIFT_REACH + 1):
+            if not offset or start + offset < 0 or start + SHIFT_WINDOW - 1 + offset >= count:
+                continue
+            shifted = sum(cost(index, index + offset) for index in window)
+            if best is None or shifted < best[0]:
+                best = (shifted, offset)
+        if best and straight - best[0] >= SHIFT_MIN_GAIN and best[0] <= SHIFT_MAX_COST:
+            for index in window:
+                found.setdefault(index, best[1])
+    return [(passages[index][0], offset) for index, offset in sorted(found.items())]
+
+
+def misplaced_passages(passages: Sequence[tuple[str, str, str]]) -> list[tuple[str, str]]:
+    """Passages whose translation belongs to another passage, as (id, other id).
+
+    `passages` are (id, source, translation) in reading order. A translation
+    that opens exactly like an earlier one is a repeat of it: the later passage
+    is named. Two nearby translations that are closely alike while their
+    sources are not are one passage translated twice (the model translated the
+    neighbour): which of the two is wrong the text cannot say, so both are named.
+    """
+    found: dict[str, str] = {}
+    first_with: dict[str, int] = {}
+    prepared = [
+        (key, _passage_opening(source, 300), _passage_opening(text, 300)) for key, source, text in passages
+    ]
+    for index, (key, source, text) in enumerate(prepared):
+        if len(text) < REPEATED_PASSAGE_MIN_CHARACTERS:
+            continue
+        earlier = first_with.setdefault(text[:80], index)
+        if earlier != index and prepared[earlier][1][:80] != source[:80]:
+            found.setdefault(key, prepared[earlier][0])
+            continue
+        for other in range(max(0, index - MISPLACED_WINDOW), index):
+            other_key, other_source, other_text = prepared[other]
+            if (
+                len(other_text) >= REPEATED_PASSAGE_MIN_CHARACTERS
+                and other_key not in found
+                and 2 * min(len(text), len(other_text)) >= max(len(text), len(other_text))
+                and _alike(text, other_text, MISPLACED_TRANSLATION_SIMILARITY)
+                and not _alike(source, other_source, MISPLACED_SOURCE_SIMILARITY)
+            ):
+                found.setdefault(key, other_key)
+                found.setdefault(other_key, key)
+                break
+    order = {key: index for index, (key, _, _) in enumerate(prepared)}
+    return sorted(found.items(), key=lambda item: order[item[0]])
 
 
 def build_inline_marker_placement_prompt(

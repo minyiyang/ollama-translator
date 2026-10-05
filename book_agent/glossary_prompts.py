@@ -13,7 +13,7 @@ from .glossary import (
     build_glossary_approval_cases,
     build_glossary_resolution_cases,
 )
-from .languages import TranslationDirection, glossary_pair
+from .languages import TranslationDirection, glossary_pair, profile
 from .schemas import GlossaryCategory, GlossaryEntry
 
 
@@ -140,7 +140,12 @@ def build_extraction_prompt(
     target = direction.target_language.display_name
     if not glossary_pair(direction).legacy:
         return _generic_extraction_prompt(
-            chunk, source, target, max_entries=max_entries, max_evidence_per_entry=max_evidence_per_entry
+            chunk,
+            source,
+            target,
+            max_entries=max_entries,
+            max_evidence_per_entry=max_evidence_per_entry,
+            note=profile(direction.source_language).extraction_note,
         )
     return (
         f"Analyze the following {source} book passages and extract proper names, places, "
@@ -365,6 +370,7 @@ def _generic_extraction_prompt(
     *,
     max_entries: int,
     max_evidence_per_entry: int,
+    note: str = "",
 ) -> str:
     return (
         f"Analyze the following {source} book passages and extract proper names, places, "
@@ -377,7 +383,9 @@ def _generic_extraction_prompt(
         "forms of address used for a particular person, with one fixed rendering, in the "
         "category for people. Do not include ordinary nouns, body parts, furniture, materials, "
         "tools, weapons, standard academic disciplines, common biological vocabulary, "
-        "adjectives, verbs, or transparent inflectional variants. Prefer one canonical entry "
+        "adjectives, verbs, or transparent inflectional variants. "
+        + (note + " " if note else "")
+        + "Prefer one canonical entry "
         "over separate singular/plural or capitalization variants. For a technical code, model "
         f"designation, or uppercase acronym that {target} prose normally preserves unchanged, "
         "copy the exact same identifier into both fields. "

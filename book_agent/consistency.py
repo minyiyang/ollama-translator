@@ -263,6 +263,14 @@ def repeated_line_issues(
     return issues
 
 
+def _kept_from_source(passage: str, source: str) -> bool:
+    """Whether a passage of the translation is words copied from the source: a
+    line the book quotes in a third language ("Où est ma chatte?") keeps its
+    own punctuation, not the target's."""
+    words = re.sub(r"^\W+|\W+$", "", passage)
+    return sum(character.isalpha() for character in words) >= 2 and words in source
+
+
 def convention_issues(
     segments: Sequence[BookSegment], settings: ConsistencySettings
 ) -> list[AuditIssue]:
@@ -272,8 +280,11 @@ def convention_issues(
         return []
     # Spacing is part of a convention (a no-break space before French ; : ! ?),
     # so only ordinary whitespace is collapsed here.
+    def plain(text: str) -> str:
+        return re.sub(r"[ \t\r\n]+", " ", _INLINE_MARKER.sub("", text)).strip()
+
     written = [
-        (segment, re.sub(r"[ \t\r\n]+", " ", _INLINE_MARKER.sub("", segment.target)).strip())
+        (segment, plain(segment.target))
         for segment in segments
         if rules.script_pattern.search(segment.target)
     ]
@@ -284,7 +295,8 @@ def convention_issues(
         departures = [
             (segment, text)
             for segment, text in written
-            if slip.search(text) and not (rule.nested_ok and house.search(text))
+            if any(not _kept_from_source(match.group(0), plain(segment.source)) for match in slip.finditer(text))
+            and not (rule.nested_ok and house.search(text))
         ]
         if not departures or following < len(departures):
             continue

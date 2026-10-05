@@ -295,7 +295,7 @@ def _rule_pattern(rule: ReplacementRule) -> re.Pattern[str]:
     language = profile(rule.source_language)
     if language.spaced_words:
         return re.compile(
-            rf"(?<![{language.word_chars}]){escaped}(?![{language.word_chars}])",
+            rf"(?<![{language.word_chars}]){escaped}{language.term_end}",
             flags=re.IGNORECASE if language.cased else 0,
         )
     return re.compile(escaped)
@@ -303,14 +303,17 @@ def _rule_pattern(rule: ReplacementRule) -> re.Pattern[str]:
 
 def _selection_pattern(source: str, language: Language) -> re.Pattern[str]:
     """Match glossary annotations conservatively without changing replace mode."""
-    escaped = "".join(
-        "['\u2018\u2019]"
-        if character in "'\u2018\u2019"
-        else "[-\u2010\u2011]"
-        if character in "-\u2010\u2011"
-        else re.escape(character)
-        for character in source
-    )
+    def escape(text: str) -> str:
+        return "".join(
+            "['\u2018\u2019]"
+            if character in "'\u2018\u2019"
+            else "[-\u2010\u2011]"
+            if character in "-\u2010\u2011"
+            else re.escape(character)
+            for character in text
+        )
+
+    escaped = escape(source)
     rules = profile(language)
     if rules.spaced_words:
         case_sensitive = not rules.cased or any(character.isupper() for character in source)
@@ -319,9 +322,13 @@ def _selection_pattern(source: str, language: Language) -> re.Pattern[str]:
         # singular only, and every plural occurrence silently escapes both the
         # translation prompt and the glossary audit.
         # Not on an abbreviation: "Mr" + "s" is "Mrs", another word.
-        plural = rules.plural_suffix if re.search(r"[^\W\d_]{3}$", source) else ""
+        if rules.inflection_suffix:
+            # Every word of the term inflects (des Weißen Hasen, los Conejos Blancos).
+            term = rules.inflected([escape(word) for word in source.split()], rules.plural_suffix)
+        else:
+            term = escaped + (rules.plural_suffix if re.search(r"[^\W\d_]{3}$", source) else "")
         return re.compile(
-            rf"(?<![{rules.word_chars}]){escaped}{plural}(?![{rules.word_chars}])",
+            rf"(?<![{rules.word_chars}]){term}{rules.term_end}",
             flags=0 if case_sensitive else re.IGNORECASE,
         )
     return re.compile(escaped)

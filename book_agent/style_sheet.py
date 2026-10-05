@@ -301,6 +301,34 @@ def keep_recurring_expressions(sheet: StyleSheet, texts: Iterable[str]) -> Style
     return sheet.model_copy(update={"expressions": kept})
 
 
+def drop_glossary_conflicts(
+    sheet: StyleSheet, terms: Iterable[tuple[str, str]], target_language
+) -> StyleSheet:
+    """Drop expressions that render an approved glossary term another way.
+
+    `terms` are the approved (source term, rendering) pairs. An expression that
+    contains a term and none of its renderings ("Herr Prokurist" as "the
+    Prokurist" when the glossary says "Procurator") gives the translator two
+    answers, and the prompt's last word wins over the glossary.
+    """
+    from .content_policy import glossary_target_matches
+
+    renderings: dict[str, list[str]] = {}
+    for source, target in terms:
+        renderings.setdefault(source, []).append(target)
+    patterns = [(expression_pattern(source), targets) for source, targets in renderings.items()]
+
+    def conflicts(item: StyleExpression) -> bool:
+        key = _key(item.source)
+        return any(
+            pattern.search(key)
+            and not any(glossary_target_matches(item.rendering, target, target_language) for target in targets)
+            for pattern, targets in patterns
+        )
+
+    return sheet.model_copy(update={"expressions": [item for item in sheet.expressions if not conflicts(item)]})
+
+
 # -- LLM review ------------------------------------------------------------------------
 
 

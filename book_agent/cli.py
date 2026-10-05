@@ -14,7 +14,7 @@ from pathlib import Path
 
 from . import __version__
 from .atomic_io import atomic_write_text
-from .config import AppConfig, load_config
+from .config import AppConfig, load_config, translation_model
 from .glossary import (
     GlossarySource,
     GlossarySourceKind,
@@ -771,7 +771,7 @@ def build_dry_run_summary(source: str | Path, config: AppConfig, runs: str | Pat
         "runs": str(Path(runs).resolve()),
         "direction": config.translation.direction.value,
         "languages": language_support(config.translation.direction),
-        "translation_model": config.ollama.model,
+        "translation_model": translation_model(config),
         "glossary_extraction_enabled": config.glossary.extraction_enabled,
         "glossary_extraction_model": (
             config.glossary.extraction_model

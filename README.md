@@ -206,9 +206,9 @@ depend on the current shell directory.
 
 English to Simplified Chinese (`en-zh`) and back (`zh-en`) are tuned: every
 check, the glossary, the style sheet, and prose rewrite run for them. French
-(`fr`) and Japanese (`ja`) are profiled: their punctuation conventions, forms
-of address, number words, and prompt examples are written in, to and from any
-language. Any other language is accepted at the generic tier. A pair is written
+(`fr`), Japanese (`ja`), Spanish (`es`), German (`de`), and Korean (`ko`) are
+profiled: their punctuation conventions, forms of address, number words, and
+prompt examples are written in, to and from any language. Any other language is accepted at the generic tier. A pair is written
 either way:
 
 ```yaml
@@ -222,7 +222,9 @@ glossary, a style sheet, and a series like any other; checks its languages
 cannot support are skipped rather than run with English or Chinese rules.
 `run --dry-run` and `status --json` list them under `languages.skipped`.
 Prose rewrite stays off for generic targets. Translation quality for other
-pairs depends on the model (docs/GENERIC_LANGUAGES.md).
+pairs depends on the model (docs/GENERIC_LANGUAGES.md). Section 7 of that
+document rates each benchmarked pair, says which model to use for which job,
+and lists what the pipeline cannot do.
 
 ### Glossary files
 
@@ -738,6 +740,18 @@ translation:
   fallback_models: []
   attempts_per_model: 2
   harmonize_fallback_with_primary: true
+```
+
+A model trained only to translate can take the translate stage alone. The
+primary model keeps the glossary, review, and repair calls, which such a model
+cannot do (asked to resolve six glossary terms, translategemma returned one):
+
+```yaml
+ollama:
+  model: qwen3.8:latest            # glossary resolution and approval, repair review
+translation:
+  model: translategemma:27b        # translates; empty: the primary model does
+  fallback_models: [qwen3.8:latest]
 ```
 
 Inline formatting markers are source-owned. If a model invents marker IDs, the

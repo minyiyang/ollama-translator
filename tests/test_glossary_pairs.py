@@ -191,8 +191,8 @@ def test_style_choices_follow_the_target_language():
     sheet = StyleSheet(characters=[StyleCharacter(name="Mouse", pronoun="he")])
     check_style_choices(sheet, ZH_EN)  # the tuned pairs offer both languages' pronouns
     with pytest.raises(ValueError, match="none for this language"):
-        check_style_choices(sheet, LanguagePair("en>de"))
+        check_style_choices(sheet, LanguagePair("en>it"))
     schema = json.dumps(
-        build_style_candidate_schema(["D0000-S000001"], max_characters=2, max_expressions=2, direction=LanguagePair("en>de")).model_json_schema()
+        build_style_candidate_schema(["D0000-S000001"], max_characters=2, max_expressions=2, direction=LanguagePair("en>it")).model_json_schema()
     )
     assert '"他"' not in schema and '"he"' not in schema

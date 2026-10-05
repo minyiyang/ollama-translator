@@ -60,6 +60,7 @@ export const COMMON_GROUPS: CommonGroup[] = [
       { path: "audit.repair_model", label: "Targeted repair", model: true, help: "Leave empty to use the primary model." },
       { path: "reprose.model", label: "Prose rewrite", model: true },
       { path: "reprose.verifier_model", label: "Rewrite verification", model: true },
+      { path: "translation.model", label: "Translation model", model: true, help: "Translates instead of the primary model, which keeps the glossary and review calls. Leave empty to translate with the primary model." },
       { path: "translation.fallback_models", label: "Fallback models", model: true, help: "Tried in order for passages the primary model could not translate." },
     ],
   },
