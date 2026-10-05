@@ -511,6 +511,17 @@ def _number_parser(language: str | None) -> str:
     return profile(language).number_words if language else ""
 
 
+def _marker_split_view(text: str, visible: str) -> str:
+    """`visible` with a non-space where an inline marker was, so the added parsers
+    never join a number across a formatting change ("six <I000>cents</I000>" is
+    coins, not 600). Same length and positions as `visible`."""
+    marked = unicodedata.normalize("NFKC", _INLINE_MARKER.sub("\x00", text))
+    spaced = marked.replace("\x00", " ")
+    lead = len(spaced) - len(spaced.lstrip())
+    view = marked[lead : lead + len(visible)]
+    return view if len(view) == len(visible) else visible
+
+
 def number_tokens(text: str, language: str | None = None) -> Counter[str]:
     """Return conservative, cross-language objective number facts.
 
@@ -560,8 +571,15 @@ def number_tokens(text: str, language: str | None = None) -> Counter[str]:
             masked[match.start():match.end()] = " " * (match.end() - match.start())
 
     if parser == "french":
+        view = _marker_split_view(text, visible)
         for pattern, convert in french_objective_patterns():
-            add_matches(pattern, convert)
+            # The marker-split view, with what earlier patterns consumed masked out.
+            current = "".join(m if m != v else w for v, m, w in zip(visible, masked, view))
+            for match in pattern.finditer(current):
+                value = convert(match)
+                if value is not None:
+                    facts.append(_canonical_numeric_fact(value))
+                masked[match.start():match.end()] = " " * (match.end() - match.start())
     add_matches(
         _SPACED_WORD_IDENTIFIER,
         lambda match: _SMALL_ENGLISH_NUMBERS[match.group("number").casefold()],
@@ -925,7 +943,8 @@ def _number_word_tokens(text: str, language: str | None = None) -> Counter[str]:
         for match in _CHINESE_NUMBER.finditer(visible)
     )
     if parser == "french":
-        facts.extend(_canonical_numeric_fact(value) for value in french_word_values(visible))
+        view = _marker_split_view(text, visible)
+        facts.extend(_canonical_numeric_fact(value) for value in french_word_values(view))
     return Counter(facts)
 
 

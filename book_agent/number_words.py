@@ -34,12 +34,33 @@ _FR_PERCENT = re.compile(
 )
 # Words that are also ordinary words: an article ("un livre") and "new" (neuf).
 _FR_AMBIGUOUS = {"un", "une", "neuf"}
+# "Mille" after one of these is the old unit, a mile ("un bon mille"): French
+# writes a thousand as plain "mille", never "un mille".
+_FR_MILE_BEFORE = re.compile(
+    r"(?:\b(?:un|le|du|au|ce|chaque|quel|bon|demi|premier|dernier)[\s\u00a0-]+)$",
+    flags=re.IGNORECASE,
+)
+# A time of day ("quatre heures et demie") is left to the semantic audit: the
+# other language writes it too many ways ("four thirty", "half past four").
+_FR_HOUR_AFTER = re.compile(r"^[\s\u00a0]*heures?\b", flags=re.IGNORECASE)
+
+
+def _is_mile(match: re.Match[str]) -> bool:
+    return match.group(0).casefold() == "mille" and bool(_FR_MILE_BEFORE.search(match.string[: match.start()]))
+
+
+def _is_hour(match: re.Match[str]) -> bool:
+    return bool(_FR_HOUR_AFTER.match(match.string[match.end() :]))
 
 
 def parse_french_number(text: str) -> int | None:
     """The value of French number words ("quatre-vingt-dix-neuf" -> 99), or None."""
     words = [word for word in re.split(r"[\s\u00a0-]+", text.casefold()) if word and word != "et"]
     if not words or any(word not in _FR_WORDS for word in words):
+        return None
+    # A plural follows a multiplier (deux cents, trois millions): alone it is a
+    # noun ("des millions") or another word (the coin "cents").
+    if words[0] in {"cents", "vingts", "millions", "milliards"}:
         return None
     total = 0
     current = 0
@@ -73,7 +94,9 @@ def french_objective_patterns() -> list[tuple[re.Pattern[str], Callable[[re.Matc
 
     def magnitude(match: re.Match[str]) -> int | None:
         words = set(re.split(r"[\s\u00a0-]+", match.group(0).casefold()))
-        return parse_french_number(match.group(0)) if words & {*_FR_HUNDRED, *_FR_SCALES} else None
+        if not words & {*_FR_HUNDRED, *_FR_SCALES} or _is_mile(match) or _is_hour(match):
+            return None
+        return parse_french_number(match.group(0))
 
     return [(_FR_PERCENT, percent), (_FR_NUMBER, magnitude)]
 
@@ -81,7 +104,7 @@ def french_objective_patterns() -> list[tuple[re.Pattern[str], Callable[[re.Matc
 def french_word_values(text: str) -> Iterator[int]:
     """Number words as lower-confidence counts, leaving out the ambiguous single words."""
     for match in _FR_NUMBER.finditer(text):
-        if match.group(0).casefold() in _FR_AMBIGUOUS:
+        if match.group(0).casefold() in _FR_AMBIGUOUS or _is_mile(match) or _is_hour(match):
             continue
         value = parse_french_number(match.group(0))
         if value is not None:

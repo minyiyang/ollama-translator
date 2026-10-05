@@ -13,7 +13,7 @@ from pydantic import BaseModel, ConfigDict, Field
 from .config import AppConfig
 from .content_policy import classify_segment, should_run_language_check
 from .glossary import estimate_tokens, split_text_to_budget
-from .languages import TranslationDirection, glossary_sides, profile, source_aliases
+from .languages import TranslationDirection, copy_is_untranslated, glossary_sides, profile, source_aliases
 from .preprocessing import PreprocessedDocument
 from .schemas import (
     GlossaryEntry,
@@ -635,7 +635,11 @@ def validate_translation_output(
                     message=f"translation lacks {direction.target_language.display_name} text",
                 )
             )
-        if source_has_translatable and translated.casefold() == source.casefold():
+        if (
+            source_has_translatable
+            and translated.casefold() == source.casefold()
+            and copy_is_untranslated(source, direction)
+        ):
             issues.append(
                 TranslationIssue(
                     code="untranslated_exact",

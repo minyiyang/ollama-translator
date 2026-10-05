@@ -128,7 +128,61 @@ def test_french_and_english_share_a_script_so_only_an_identical_long_line_is_unt
     issues = []
     sentence = "The soldiers waited for the order to march."
     _audit_language("S1", sentence, sentence, LanguagePair("en>fr"), AuditConfig(), issues)
-    assert [issue.category for issue in issues] == [AuditCategory.UNTRANSLATED]
+    assert {issue.message for issue in issues} == {
+        "translation is identical to source",
+        f"possible untranslated English passage: {sentence}",
+    }
     issues = []
     _audit_language("S1", sentence, "Les soldats attendaient l'ordre de marcher.", LanguagePair("en>fr"), AuditConfig(), issues)
     assert issues == []
+
+
+# -- found by the benchmarks (runs/bench/language-results.md) --------------------------------------
+
+
+def test_french_numbers_found_on_la_chasse_au_meteore():
+    # Italic English coins, not 600; "un bon mille" is a mile; a time of day is left to the model.
+    assert number_tokens("cinq ou six <I000>cents</I000>", "fr")["600"] == 0
+    assert number_tokens("six cents soldats", "fr")["600"] == 1
+    assert number_tokens("un bon mille aux environs", "fr")["1000"] == 0
+    assert number_tokens("deux mille soldats", "fr")["2000"] == 1
+    fr_en = LanguagePair("fr>en")
+    assert numeric_content_matches("Et voilà que quatre heures et demie vont sonner!", "And four thirty is about to strike!", fr_en)
+    assert numeric_content_matches("Onze heures quarante-six, répondit-il.", "Eleven forty-six, he replied.", fr_en)
+
+
+def test_a_glossary_abbreviation_does_not_match_a_longer_word():
+    fr_en = LanguagePair("fr>en")
+    mr = GlossaryEntry.for_pair({"source": "Mr", "target": "Mr.", "category": "术语"}, fr_en)
+    assert select_relevant_glossary_entries("Mrs Hudelson arriva.", [mr], fr_en) == []
+    assert select_relevant_glossary_entries("Mr Dean Forsyth arriva.", [mr], fr_en) == [mr]
+
+
+def test_a_short_name_may_stay_unchanged_between_languages_sharing_a_script():
+    from book_agent.languages import copy_is_untranslated
+
+    assert not copy_is_untranslated("DEAN FORSYTH.", LanguagePair("fr>en"))
+    assert copy_is_untranslated("The soldiers waited for the order to march.", LanguagePair("fr>en"))
+    assert copy_is_untranslated("Paris.", TranslationDirection.EN_TO_ZH)  # different scripts: always
+
+
+def test_english_dialogue_left_in_a_french_translation_is_found():
+    """Pat's dialect lines in Alice (en>fr benchmark) were kept in English inside « »."""
+    en_fr = LanguagePair("en>fr")
+    source = "“Sure, it’s an arm, yer honour!” (He pronounced it “arrum.”)"
+    issues = []
+    _audit_language("S1", source, "« Sure, it’s an arm, yer honour! » (Il prononça « arrum. »)", en_fr, AuditConfig(), issues)
+    assert [issue.message for issue in issues] == ["possible untranslated English passage: Sure, it’s an arm, yer honour!"]
+    issues = []
+    _audit_language("S1", source, "« Bien sûr, c’est un bras, votre honneur ! » (Il prononça « arrum. »)", en_fr, AuditConfig(), issues)
+    assert issues == []
+    # The other way round: French left in an English translation.
+    issues = []
+    _audit_language("S1", "« Je ne sais pas », dit-il.", "“Je ne sais pas,” he said.", LanguagePair("fr>en"), AuditConfig(), issues)
+    assert any("untranslated French passage" in issue.message for issue in issues)
+
+
+def test_french_nested_quotes_are_not_a_departure():
+    book = _segments("« Viens ! »", "« Va ! »", "« Il a dit : “Mlle Alice ! Viens ici !” »", "“Non”, répondit-il.")
+    flagged = {issue.segment_id for issue in convention_issues(book, ConsistencySettings(target_language="fr"))}
+    assert flagged == {"S3"}

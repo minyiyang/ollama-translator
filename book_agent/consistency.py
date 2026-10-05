@@ -281,7 +281,11 @@ def convention_issues(
     for rule in rules.conventions:
         house, slip = re.compile(rule.house), re.compile(rule.slip)
         following = sum(1 for _, text in written if house.search(text))
-        departures = [(segment, text) for segment, text in written if slip.search(text)]
+        departures = [
+            (segment, text)
+            for segment, text in written
+            if slip.search(text) and not (rule.nested_ok and house.search(text))
+        ]
         if not departures or following < len(departures):
             continue
         for segment, text in departures:

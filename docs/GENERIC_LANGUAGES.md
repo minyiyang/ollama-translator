@@ -1,6 +1,6 @@
 # Translating between any two languages: plan
 
-Status: **phases 1 to 4 implemented, phase 5 implemented pending its benchmark runs (section 6); decisions in section 5 made 2026-10-02.**
+Status: **phases 1 to 5 implemented and benchmarked (section 6); decisions in section 5 made 2026-10-02.**
 
 How the pipeline stops assuming English on one side and Simplified Chinese on
 the other, so that a book can be translated between any two languages the
@@ -85,7 +85,7 @@ Each check declares what it needs. When the profile lacks it, the check is
 | Structure, markers, empty segments, duplication, mojibake | nothing | always runs |
 | Glossary compliance, repeated lines, style-sheet expressions | `spaced_words` (generic profile has it) | always runs |
 | Untranslated text | source and target scripts differ | same-script pairs (`en`→`de`): flag only a target identical to a long source; the semantic audit covers the rest |
-| Leftover source words | `script`, `spaced_words` | skipped for same-script pairs |
+| Leftover source words | `script`, `spaced_words`; for a same-script pair, `function_words` on both sides | skipped (a same-script pair whose profiles lack function words) |
 | Digits, percentages, identifiers | nothing | always runs |
 | Number words, clocks, fractions | `number_words` on both sides | sent to the quantity model (`numeric_adjudication`), which already rules on what the rules cannot |
 | Punctuation conventions | `quotes`, `dash` | skipped |
@@ -429,7 +429,7 @@ What changed:
   the frontend (91 tests). On the backend, the catalog, the notice, and
   `/api/languages` are covered over HTTP (1,104 tests).
 
-**Phase 5 status (2026-10-02): profiles done; benchmark runs pending.**
+**Phase 5 status (2026-10-02): profiles done and benchmarked (results below).**
 
 - **Profiles.** `fr` and `ja` are at the profiled tier (`PROFILES` in
   `languages.py`).
@@ -482,3 +482,51 @@ What changed:
     quarter; the budget's reserve covers it.
   - The optional quantity audit (`quantities.py`) reads English and Chinese
     only.
+
+**Phase 5 benchmark results (2026-10-02).** Unattended runs with qwen3.8 for
+translation and gemma4 for the audit; details in
+`runs/bench/language-results.md`.
+
+| Run | Time | Review queue | Outcome |
+|---|---|---|---|
+| `ja>zh` 羅生門 | 2.4 min | 0 | Complete. The single 6,095-character story segment translated whole; glossary of 15 entries in `ja>zh` (羅生門 → 罗生门); style sheet 下人 (他, 你). |
+| `en>fr` Alice 1–4 | 22.7 min | 2 | « » in 114 segments; tu/vous chosen per character. One French grammar slip and calques caught by the semantic audit. Pat's dialect lines **left in English**, missed by every check (fixed below). |
+| `en>ja` Alice 1–4 | 21.0 min | 1 | 「」 in 114 segments; a repeated sentence caught as duplication; a stray "splash" caught and repaired. One glossary review looped for 48k characters before a retry (8.7 min; fixed below). |
+| `fr>en` Météore I–III | 16.6 min | 1 | Fluent; literal time formats ("nine o'clock thirty") caught by the semantic audit. 15 false glossary findings and two short lines refused by translation (fixed below). |
+
+Fixed from the benchmarks (all with tests):
+
+1. **Same-script leftovers.** The doc assumed the semantic audit would catch
+   untranslated text when two languages share a script; it did not. Profiles
+   now carry `function_words`. In a pair sharing a script, a sentence or
+   quoted span with at least two of the source's function words and none of
+   the target's is "possible untranslated … passage". On the benchmark
+   output it finds Pat's three lines and nothing in the other 482 segments.
+2. **Identical short lines.** The translate stage refused "DEAN FORSYTH."
+   because it matched the source. `copy_is_untranslated()` now gives the
+   translate stage and the audit one rule: always when the scripts differ,
+   from 20 letters when they share one.
+3. **Abbreviations and plurals.** The glossary term "Mr" matched "Mrs"
+   through the plural ending, so ten "Mr." findings were false. A plural
+   ending now needs a word of three letters or more (English too).
+4. **French nested quotes.** “ ” inside « » is the French nested quote, not a
+   slip (`ConventionRule.nested_ok`). The one finding was a false positive
+   and sent a segment to review.
+5. **French number words.**
+   - A number never runs across an inline marker ("six *cents*" is coins).
+   - "un bon mille" is a mile.
+   - A bare plural (cents, millions) is not a number.
+   - Times of day go to the model.
+   The layer then turns two false mismatches on the book into matches and
+   adds none.
+6. **Runaway glossary review.** Approval calls are capped at 400 output
+   tokens per case plus 1,024.
+
+Left as is:
+- One repair wrote the superscript "Dr" as `Dr <I000>r</I000>`, a model slip
+  on an inline marker.
+- Style-sheet "expressions" sometimes pick ordinary words (rendez-vous);
+  these are low findings, listed only, as for en-zh.
+- The French typographic no-break space was never used by the model (121
+  segments with an ordinary space). The majority rule correctly stays quiet.
+  A compile-time typographic pass could add it, if wanted.

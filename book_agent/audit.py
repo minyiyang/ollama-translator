@@ -29,6 +29,7 @@ from .languages import (
     SCRIPTS,
     SENTENCE_END,
     TranslationDirection,
+    copy_is_untranslated,
     glossary_sides,
     leftover_scripts,
     profile,
@@ -1003,11 +1004,6 @@ def deduplicate_audit_issues(issues: list[AuditIssue]) -> list[AuditIssue]:
     )
 
 
-# In a pair sharing a script, a short identical line is usually a name or a
-# title kept on purpose ("Paris."); only a longer one counts as untranslated.
-_SHARED_SCRIPT_IDENTICAL_MIN = 20
-
-
 def _audit_language(
     segment_id, source, target, direction, config, issues, glossary=()
 ) -> None:
@@ -1024,6 +1020,10 @@ def _audit_language(
         and not target_rules.script_pattern.search(target)
     ):
         issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.HIGH, f"translation contains no {target_rules.short_name} text"))
+    if not leftover and source_rules.function_words and target_rules.function_words:
+        passage = _shared_script_leftover(target, source_rules, target_rules)
+        if passage:
+            issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.MEDIUM, f"possible untranslated {source_rules.short_name} passage: {passage}"))
     if "Latin" in leftover:
         phrase_target = _strip_exact_preserved_inline_spans(source, target)
         phrase_target = _strip_intentional_foreign_quotations(source, phrase_target)
@@ -1072,11 +1072,28 @@ def _audit_language(
         run = re.search(f"[{chars}]{{4,}}", target)
         if run:
             issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.MEDIUM, f"possible untranslated {source_rules.short_name} text: {run.group(0)}"))
-    normalized = _normalize_prose(source)
-    if normalized == _normalize_prose(target) and (
-        disjoint or len(normalized) >= _SHARED_SCRIPT_IDENTICAL_MIN
-    ):
+    if _normalize_prose(source) == _normalize_prose(target) and copy_is_untranslated(source, direction):
         issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.HIGH, "translation is identical to source"))
+
+
+# Where a quoted line or a sentence ends, for the shared-script leftover check.
+_PASSAGE_SPLIT = re.compile(r"[«»“”\"„‹›]|(?<=[.!?…])\s+")
+_WORD = re.compile(r"[^\W\d_]+(?:[’'][^\W\d_]+)?")
+
+
+def _shared_script_leftover(target, source_rules, target_rules) -> str:
+    """A passage of the translation still written in the source language, for a
+    pair sharing a script (en/fr): two or more of the source's function words and
+    none of the target's. Names and short exclamations have neither."""
+    for passage in _PASSAGE_SPLIT.split(_INLINE_MARKER.sub("", target)):
+        words = [word.casefold().replace("’", "'") for word in _WORD.findall(passage)]
+        if len(words) < 3:
+            continue
+        source_hits = sum(word in source_rules.function_words for word in words)
+        target_hits = sum(word in target_rules.function_words for word in words)
+        if source_hits >= 2 and target_hits == 0:
+            return passage.strip()[:120]
+    return ""
 
 
 def _strip_intentional_foreign_quotations(source: str, target: str) -> str:

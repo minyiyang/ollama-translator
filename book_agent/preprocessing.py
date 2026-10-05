@@ -318,7 +318,8 @@ def _selection_pattern(source: str, language: Language) -> re.Pattern[str]:
         # (``binders`` for ``binder``).  Without this the entry annotates the
         # singular only, and every plural occurrence silently escapes both the
         # translation prompt and the glossary audit.
-        plural = rules.plural_suffix if source[-1:].isalpha() else ""
+        # Not on an abbreviation: "Mr" + "s" is "Mrs", another word.
+        plural = rules.plural_suffix if re.search(r"[^\W\d_]{3}$", source) else ""
         return re.compile(
             rf"(?<![{rules.word_chars}]){escaped}{plural}(?![{rules.word_chars}])",
             flags=0 if case_sensitive else re.IGNORECASE,

@@ -1626,6 +1626,9 @@ def _review_glossary(
     ), report
 
 
+_APPROVAL_TOKENS_PER_CASE = 400
+
+
 def _review_glossary_batch(
     connection,
     unit_id: str,
@@ -1681,6 +1684,9 @@ def _review_glossary_batch(
                 context_maximum=context_bucket,
                 context_multiplier=config.glossary.approval_context_multiplier,
                 max_attempts=1,
+                # A decision is about a hundred tokens; the cap only stops a runaway
+                # (one en>ja review looped in a reason for 48k characters).
+                max_output_tokens=_APPROVAL_TOKENS_PER_CASE * len(approval_cases) + 1_024,
             )
             reviewed, approval_records = _materialize_approval_decisions(
                 generated.value,

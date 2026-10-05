@@ -29,6 +29,9 @@ class ConventionRule:
     slip: str  # regex of the departure
     message: str  # with {count}: the segments that follow the convention
     fix: str
+    # The slip is also the nested form (French “ ” inside « »): a segment that
+    # uses the house form as well is not a departure.
+    nested_ok: bool = False
 
 
 @dataclass(frozen=True)
@@ -73,6 +76,10 @@ class LanguageProfile:
     address_forms: tuple[str, ...] = field(default_factory=tuple)
     # Frequent function words that say nothing about a passage's content.
     stop_words: frozenset[str] = field(default_factory=frozenset)
+    # Short words found in almost every sentence of the language and rarely in
+    # another's: in a pair sharing a script, a passage full of the source's and
+    # none of the target's is left untranslated (audit, "left-over source words").
+    function_words: frozenset[str] = field(default_factory=frozenset)
     # What separates the parts of a transliterated name ("·" in Chinese), so a
     # full name can be checked against the rendering of each part.
     name_separator: str = ""
@@ -131,6 +138,12 @@ PROFILES: dict[str, LanguageProfile] = {
         dash="—",
         pronouns=("he", "she", "it"),
         stop_words=frozenset({"the", "and", "that", "with", "this", "from", "was", "were"}),
+        function_words=frozenset({
+            "the", "and", "of", "is", "was", "are", "were", "it's", "i'm", "don't", "can't",
+            "won't", "isn't", "you", "your", "he", "she", "they", "we", "them", "this", "that",
+            "what", "with", "have", "has", "had", "not", "but", "an", "at", "be", "would",
+            "will", "there", "here", "my", "me", "him", "her", "his", "it", "if", "do", "did",
+        }),
         number_words="english",
         tier="tuned",
     ),
@@ -354,6 +367,7 @@ PROFILES["fr"] = LanguageProfile(
             slip="[“”]",
             message="English quotation marks “ ” are used here, but the book uses « » ({count} segments).",
             fix="Replace “ and ” with « and ».",
+            nested_ok=True,  # “ ” is the French nested quote, inside « »
         ),
         ConventionRule(
             house=f"[{_NBSP}][;:!?]",
@@ -365,6 +379,12 @@ PROFILES["fr"] = LanguageProfile(
     pronouns=("il", "elle"),
     address_forms=("tu", "vous"),
     stop_words=frozenset({"les", "des", "une", "que", "qui", "dans", "pour", "avec", "est", "sont", "était", "elle", "mais"}),
+    function_words=frozenset({
+        "le", "la", "les", "un", "une", "des", "du", "de", "et", "est", "sont", "était", "être",
+        "que", "qui", "dans", "pour", "avec", "pas", "ne", "je", "tu", "il", "elle", "nous",
+        "vous", "ils", "elles", "mais", "ou", "sur", "au", "aux", "ce", "cette", "son", "sa",
+        "ses", "mon", "ma", "mes", "c'est", "n'est", "j'ai", "plus", "très", "oui", "non",
+    }),
     number_words="french",
     tier="profiled",
 )
@@ -617,6 +637,16 @@ def leftover_scripts(direction: LanguagePair) -> tuple[str, ...]:
     return tuple(item for item in profile(direction.source_language).scripts if item not in target)
 
 
+# In a pair sharing a script, a short identical line is usually a name or a
+# title kept on purpose ("Paris.", "DEAN FORSYTH."); only a longer one counts.
+SHARED_SCRIPT_IDENTICAL_MIN = 20
+
+
+def copy_is_untranslated(text: str, direction: LanguagePair) -> bool:
+    """Whether a translation identical to `text` counts as left untranslated."""
+    return scripts_disjoint(direction) or sum(ch.isalnum() for ch in text) >= SHARED_SCRIPT_IDENTICAL_MIN
+
+
 def glossary_pair(direction: LanguagePair) -> LanguagePair:
     """The pair a job's glossary is written in: its source and target sides.
 
@@ -656,8 +686,8 @@ def language_support(direction: LanguagePair) -> dict[str, Any]:
             "source and target share a script: only a translation identical to a long source is "
             "flagged, and the semantic audit covers the rest",
         )
-    if not leftover_scripts(direction):
-        skip("left-over source words", "no script tells the source from the target")
+    if not leftover_scripts(direction) and not (source.function_words and target.function_words):
+        skip("left-over source words", "no script or function words tell the source from the target")
     if not (source.number_words and target.number_words):
         skip("number words", "numbers written as words go to the semantic audit's numeric ruling")
     if not target.conventions:
