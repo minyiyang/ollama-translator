@@ -7,7 +7,13 @@ import uuid
 from pathlib import Path
 
 from ..atomic_io import atomic_write_text
-from ..epub import ChapterDocument, EpubPackageManifest, inspect_epub_package, safe_extract_epub
+from ..epub import (
+    ChapterDocument,
+    EpubPackageManifest,
+    archive_order,
+    inspect_epub_package,
+    safe_extract_epub,
+)
 from ..hashing import sha256_file
 from ..rtf import inspect_rtf_document
 from ..pipeline_state import (
@@ -108,7 +114,10 @@ def run_decompile_stage(workspace: JobWorkspace) -> EpubPackageManifest:
             "DELETE FROM artifacts WHERE stage = ?", (WorkflowStage.DECOMPILE.value,)
         )
         connection.commit()
-        for artifact_path in sorted(path for path in final_root.rglob("*") if path.is_file()):
+        for artifact_path in sorted(
+            (path for path in final_root.rglob("*") if path.is_file()),
+            key=lambda path: archive_order(path, final_root),
+        ):
             relative = artifact_path.relative_to(workspace.root).as_posix()
             kind = _artifact_kind(artifact_path, final_root)
             record_artifact(

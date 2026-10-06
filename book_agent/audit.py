@@ -8,7 +8,7 @@ import unicodedata
 from collections.abc import Mapping
 from enum import Enum
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_serializer
 
 from .config import AuditConfig
 from .content_policy import (
@@ -30,6 +30,7 @@ from .languages import (
     SENTENCE_END,
     TranslationDirection,
     copied_source_run,
+    source_worded_passage,
     copy_is_untranslated,
     lacks_target_script,
     glossary_pair,
@@ -148,6 +149,17 @@ class AuditIssue(BaseModel):
     )
     risk_tags: set[AuditRiskTag] = Field(default_factory=set)
     quantity_mismatches: list[QuantityMismatch] = Field(default_factory=list)
+    # What the pipeline found, for code that acts on a finding: the message is
+    # for a reader and may be reworded or translated. Empty for a finding the
+    # auditor model wrote and for one that nothing acts on.
+    code: str = ""
+
+    @model_serializer(mode="wrap")
+    def _omit_absent_code(self, handler):
+        data = handler(self)
+        if isinstance(data, dict) and not data.get("code"):
+            data.pop("code", None)
+        return data
 
 
 def _without_decimal_patterns(schema):
@@ -176,6 +188,8 @@ class SemanticAuditResult(BaseModel):
         categories existed, so it cannot start labelling findings `consistency`.
         """
         schema = super().model_json_schema(*args, **kwargs)
+        # The pipeline's own findings carry a code; the auditor does not write one.
+        schema.get("$defs", {}).get("AuditIssue", {}).get("properties", {}).pop("code", None)
         category = schema.get("$defs", {}).get("AuditCategory")
         if category and "enum" in category:
             category["enum"] = [
@@ -360,6 +374,7 @@ def audit_translated_document(
                         AuditCategory.DUPLICATION,
                         AuditSeverity.HIGH,
                         f"translation duplicates a different source segment: {duplicate_ids[0]}",
+                        DUPLICATES_OTHER_SEGMENT,
                     )
                 )
     # The same passage worded twice: one of the two translations stands under
@@ -379,6 +394,7 @@ def audit_translated_document(
                     AuditCategory.DUPLICATION,
                     AuditSeverity.HIGH,
                     f"translation closely matches that of a different source segment: {other_id}",
+                    MATCHES_OTHER_SEGMENT,
                 )
             )
     # A run of translations each standing some segments away from its source.
@@ -397,6 +413,7 @@ def audit_translated_document(
                 "translation fits the source segment "
                 f"{abs(offset)} {'later' if offset > 0 else 'earlier'}, not this one: "
                 "the translations here appear shifted",
+                SHIFTED_TRANSLATION,
             )
         )
 
@@ -416,6 +433,7 @@ def audit_translated_document(
                     AuditCategory.OMISSION if share < 1 else AuditCategory.ADDITION,
                     AuditSeverity.HIGH,
                     f"translation length is far from usual here: {share} of the usual length for its source",
+                    UNUSUAL_LENGTH,
                 )
             )
 
@@ -1105,7 +1123,7 @@ def _audit_language(
         and source_rules.script_pattern.search(source)
         and not target_rules.script_pattern.search(target)
     ):
-        issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.HIGH, f"translation contains no {target_rules.short_name} text"))
+        issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.HIGH, f"translation contains no {target_rules.short_name} text", NO_TARGET_TEXT))
     if not leftover and source_rules.function_words and target_rules.function_words:
         passage = _shared_script_leftover(target, source_rules, target_rules)
         if passage:
@@ -1160,16 +1178,19 @@ def _audit_language(
             issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.MEDIUM, f"possible untranslated {source_rules.short_name} text: {run.group(0)}"))
     approved = [glossary_sides(entry, direction)[1] for entry in glossary]
     if lacks_target_script(_INLINE_MARKER.sub("", target), direction, approved):
-        issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.HIGH, f"translation contains no {target_rules.short_name} text"))
+        issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.HIGH, f"translation contains no {target_rules.short_name} text", NO_TARGET_TEXT))
     copied = copied_source_run(_INLINE_MARKER.sub("", source), _INLINE_MARKER.sub("", target), direction, approved)
     if copied and _normalize_prose(source) != _normalize_prose(target):
         issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.MEDIUM, f"possible untranslated {source_rules.short_name} text: {copied[:40]}"))
+    worded = source_worded_passage(_INLINE_MARKER.sub("", source), _INLINE_MARKER.sub("", target), direction, approved)
+    if worded and _normalize_prose(source) != _normalize_prose(target):
+        issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.MEDIUM, f"possible untranslated {source_rules.short_name} passage: {worded}"))
     if not direction.legacy:
         stray = _foreign_script_text(source, target, source_rules, target_rules)
         if stray:
             issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.MEDIUM, f"text in a script neither language uses: {stray}"))
     if _normalize_prose(source) == _normalize_prose(target) and copy_is_untranslated(source, direction):
-        issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.HIGH, "translation is identical to source"))
+        issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.HIGH, "translation is identical to source", IDENTICAL_TO_SOURCE))
 
 
 # Where a quoted line or a sentence ends, for the shared-script leftover check.
@@ -1455,6 +1476,23 @@ WRONG_PASSAGE_MIN_TERMS = 4
 WRONG_PASSAGE_BY_TERMS = "translation may be another passage's, or leaves most of this one out: it has"
 # Findings that say the whole translation belongs elsewhere or is not a
 # translation: repair translates the segment again instead of editing it.
+NO_TARGET_TEXT = "no_target_text"
+IDENTICAL_TO_SOURCE = "identical_to_source"
+DUPLICATES_OTHER_SEGMENT = "duplicates_other_segment"
+MATCHES_OTHER_SEGMENT = "matches_other_segment"
+SHIFTED_TRANSLATION = "shifted_translation"
+WRONG_PASSAGE_TERMS = "wrong_passage_terms"
+UNUSUAL_LENGTH = "unusual_length"
+WHOLE_TRANSLATION_CODES = frozenset({
+    NO_TARGET_TEXT,
+    IDENTICAL_TO_SOURCE,
+    DUPLICATES_OTHER_SEGMENT,
+    MATCHES_OTHER_SEGMENT,
+    SHIFTED_TRANSLATION,
+    WRONG_PASSAGE_TERMS,
+    UNUSUAL_LENGTH,
+})
+# The wording of those findings, for an audit written before they had a code.
 WHOLE_TRANSLATION_WRONG = re.compile(
     r"^(?:translation contains no .+ text$"
     r"|translation is identical to source$"
@@ -1510,6 +1548,7 @@ def _audit_glossary(
                 AuditCategory.MISTRANSLATION,
                 AuditSeverity.HIGH,
                 f"{WRONG_PASSAGE_BY_TERMS} {kept} of the {len(grouped)} approved terms in this passage",
+                WRONG_PASSAGE_TERMS,
             )
         )
 
@@ -1577,8 +1616,19 @@ def _audit_ai_style(segment_id, target, direction, issues) -> None:
         issues.append(_issue(segment_id, AuditCategory.AI_STYLE, AuditSeverity.LOW, f"formulaic model-like phrase detected: {matches[0]}"))
 
 
-def _issue(segment_id, category, severity, message) -> AuditIssue:
-    return AuditIssue(segment_id=segment_id, category=category, severity=severity, message=message)
+def _issue(segment_id, category, severity, message, code="") -> AuditIssue:
+    return AuditIssue(segment_id=segment_id, category=category, severity=severity, message=message, code=code)
+
+
+def whole_translation_is_wrong(issue: AuditIssue) -> bool:
+    """Whether a pipeline finding says the translation is another passage's or
+    not a translation at all. Decided by the finding's code; by its wording
+    only for an audit written before findings had one."""
+    if issue.source == "semantic" or issue.severity is not AuditSeverity.HIGH:
+        return False
+    if issue.code:
+        return issue.code in WHOLE_TRANSLATION_CODES
+    return WHOLE_TRANSLATION_WRONG.match(issue.message) is not None
 
 
 def _normalize_prose(text: str) -> str:

@@ -6,7 +6,7 @@ export const Chip = ({ kind = "", title, children }: { kind?: string; title?: st
 
 export const Bar = ({ percent, running = false }: { percent: number; running?: boolean }) => (
   <div className={`bar ${running ? "run" : ""}`}>
-    <i style={{ width: `${Math.max(0, Math.min(100, percent))}%` }} />
+    <i style={{ width: `${Math.max(0, Math.min(100, percent || 0))}%` }} />
   </div>
 );
 

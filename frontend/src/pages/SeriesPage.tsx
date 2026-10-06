@@ -86,7 +86,7 @@ function NewSeriesDialog({ directions, onClose }: { directions: string[]; onClos
         </div>
         <div className="row dialog-actions">
           <button onClick={onClose}>Cancel</button>
-          <button className="primary" disabled={busy || !idOk} onClick={create}>Create series</button>
+          <button className="primary" disabled={busy || !idOk || !name.trim()} onClick={create}>Create series</button>
         </div>
       </section>
     </div>
@@ -147,13 +147,16 @@ function BooksTab({ detail, onChange, onCurate }: { detail: Detail; onChange: (d
   const newBook = async () => {
     try { setSetup(await api<Setup>("/api/setup")); } catch (e) { toast("bad", (e as Error).message, 0); }
   };
+  /** Resolves to whether the request went through. */
   const run = async (path: string, body: object, done: string) => {
     setBusy(true);
     try {
       onChange(await seriesApi<Detail>(detail.series_id, path, body));
       toast("ok", done);
+      return true;
     } catch (e) {
       toast("bad", (e as Error).message, 0);
+      return false;
     } finally {
       setBusy(false);
     }
@@ -216,7 +219,7 @@ function BooksTab({ detail, onChange, onCurate }: { detail: Detail; onChange: (d
             </div>
             <div className="row">
               <button className="primary" disabled={busy || !picked.length}
-                onClick={() => run("books", { job_ids: picked }, `Added ${picked.length} book${picked.length === 1 ? "" : "s"}.`).then(() => setPicked([]))}>
+                onClick={() => run("books", { job_ids: picked }, `Added ${picked.length} book${picked.length === 1 ? "" : "s"}.`).then((added) => { if (added) setPicked([]); })}>
                 Add {picked.length || ""} as next volume{picked.length === 1 ? "" : "s"}
               </button>
               <span className="meta">Volumes follow the order you tick them.</span>
@@ -316,7 +319,9 @@ export function SeriesPage() {
   const [error, setError] = useState("");
   const [tab, setTab] = useState<"books" | "workbench" | "versions">("books");
   const load = useCallback(() => {
-    seriesApi<Detail>(seriesId, "detail").then(setDetail).catch((e) => setError((e as Error).message));
+    seriesApi<Detail>(seriesId, "detail")
+      .then((next) => { setDetail(next); setError(""); })
+      .catch((e) => setError((e as Error).message));
   }, [seriesId]);
   useEffect(load, [load]);
   // Follow a background LLM run; the workbench reloads when it ends.
@@ -340,11 +345,11 @@ export function SeriesPage() {
               <Chip>{directionLabel(detail.direction)}</Chip>
               <Chip kind={detail.versions.length ? "ok" : undefined}>{detail.versions.at(-1)?.version ?? "no version yet"}</Chip>
             </div>
-            <div className="segmented" style={{ marginBottom: 12 }}>
-              <button className={tab === "books" ? "on" : ""} onClick={() => setTab("books")}>Books</button>
-              <button className={tab === "workbench" ? "on" : ""} disabled={!detail.workbench} title={detail.workbench ? "" : "Build the candidate on the Books tab first"}
+            <div className="segmented" role="tablist" style={{ marginBottom: 12 }}>
+              <button role="tab" aria-selected={tab === "books"} className={tab === "books" ? "on" : ""} onClick={() => setTab("books")}>Books</button>
+              <button role="tab" aria-selected={tab === "workbench"} className={tab === "workbench" ? "on" : ""} disabled={!detail.workbench} title={detail.workbench ? "" : "Build the candidate on the Books tab first"}
                 onClick={() => setTab("workbench")}>Workbench{detail.workbench?.pending ? ` (${detail.workbench.pending} pending)` : ""}</button>
-              <button className={tab === "versions" ? "on" : ""} onClick={() => setTab("versions")}>Versions ({detail.versions.length})</button>
+              <button role="tab" aria-selected={tab === "versions"} className={tab === "versions" ? "on" : ""} onClick={() => setTab("versions")}>Versions ({detail.versions.length})</button>
             </div>
             {tab === "books" && <BooksTab detail={detail} onChange={setDetail} onCurate={() => setTab("workbench")} />}
             {tab === "workbench" && detail.workbench && (

@@ -25,6 +25,7 @@ from ..pipeline_state import (
     stage_is_current,
 )
 from ..repair import (
+    FAILED_BEFORE_SEMANTIC_REVIEW,
     PairwiseRepairVerificationResult,
     RepairDisposition,
     RepairVerification,
@@ -335,7 +336,7 @@ def run_repaired_review_stage(
                     passed=False,
                     current_acceptable=False,
                     message=(
-                        "Deterministic validation failed before semantic review: "
+                        f"{FAILED_BEFORE_SEMANTIC_REVIEW} "
                         + "; ".join(messages)
                     ),
                 )

@@ -664,9 +664,19 @@ npm ci
 npm run dev      # hot-reloading UI; proxies /api to a running `book-agent ui`
 npm test         # helper unit tests and component tests (jsdom + Testing Library)
 npm run build    # type-check and rebuild book_agent/web/static; commit the result
+npm run e2e      # browser tests (Playwright) of the built dashboard
 ```
 
 CI rebuilds the UI and fails if the committed bundle is out of date.
+
+The browser tests open the dashboard that `book-agent ui` serves, so build
+first. `frontend/e2e/serve.py` makes their jobs: a short excerpt of *Alice's
+Adventures in Wonderland* taken through the real workflow with the Python test
+suite's stand-ins for the models, so no Ollama is needed (the package and its
+`dev` extra must be installed). Once per machine:
+`npx playwright install chromium`. Each scenario is written as something a
+person does (`e2e/review.e2e.ts`: a reviewer corrects a wrong hour, applies the
+decision, compiles, and downloads the book).
 
 Qwen translation thinking is controlled separately by
 `translation.thinking` and defaults to `false`. This is sent to Ollama as the

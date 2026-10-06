@@ -167,7 +167,11 @@ function StageActionButtons({ stage, live, onLaunched }: { stage: Stage; live: b
       `Rerun from ${stageLabel(stage.name)}?`,
       <>
         {stopped && <p>Resume would keep this stage's finished work; a rerun starts it over.</p>}
-        <p>{ran.length === 1 ? "This stage is" : "These stages are"} reset and run again; their finished work is discarded:</p>
+        <p>
+          {ran.length === 1
+            ? "This stage is reset and runs again; its finished work is discarded:"
+            : "These stages are reset and run again; their finished work is discarded:"}
+        </p>
         <ol className="rerun-stages">
           {ran.map((s) => (
             <li key={s.name}>
@@ -176,7 +180,7 @@ function StageActionButtons({ stage, live, onLaunched }: { stage: Stage; live: b
             </li>
           ))}
         </ol>
-        {later > 0 && <p className="meta">The run then continues through the {later} later stage{later === 1 ? "" : "s"} that have not run yet.</p>}
+        {later > 0 && <p className="meta">The run then continues through the {later} later stage{later === 1 ? " that has" : "s that have"} not run yet.</p>}
         {preview.previous_seconds ? <p className="meta">These stages took about {roughDuration(preview.previous_seconds)} so far.</p> : null}
         {preview.warnings.map((w) => <div key={w.code} className="banner warn">{w.message}</div>)}
       </>,
@@ -234,14 +238,18 @@ export function ProgressPage() {
   const [follow, setFollow] = useState(true);
   const cursor = useRef({ log: "", count: 0 });
   const timer = useRef<number | undefined>(undefined);
+  // Bumped when the page leaves or changes job, so a request still in flight is dropped.
+  const visit = useRef(0);
   const logBox = useRef<HTMLDivElement>(null);
 
   const poll = useCallback(async () => {
     window.clearTimeout(timer.current);
+    const mine = visit.current;
     let live = false;
     try {
       const { log, count: after } = cursor.current;
       const next = await jobApi<Snapshot>(jobId, `progress?after=${after}&log=${encodeURIComponent(log)}`);
+      if (mine !== visit.current) return;
       const p = next.progress;
       const switched = (p.log ?? "") !== log;
       if (switched || p.lines.length) {
@@ -253,8 +261,10 @@ export function ProgressPage() {
       jobApi<Estimate>(jobId, "estimate").then(setEstimate).catch(() => setEstimate(null));
       live = next.status.overall === "running" || !!next.process?.running;
     } catch (e) {
+      if (mine !== visit.current) return;
       setError((e as Error).message);
     }
+    window.clearTimeout(timer.current);
     timer.current = window.setTimeout(poll, live ? 2000 : 8000);
   }, [jobId]);
 
@@ -263,7 +273,7 @@ export function ProgressPage() {
     cursor.current = { log: "", count: 0 };
     setLines([]);
     poll();
-    return () => window.clearTimeout(timer.current);
+    return () => { visit.current += 1; window.clearTimeout(timer.current); };
   }, [poll, started]);
 
   useEffect(() => {

@@ -41,25 +41,31 @@ export function JobLayout() {
   const [info, setInfo] = useState<JobInfo | null>(null);
   const [error, setError] = useState("");
   const timer = useRef<number | undefined>(undefined);
+  // Bumped when the layout leaves or changes job, so a request still in flight is dropped.
+  const visit = useRef(0);
 
   const refresh = useCallback(async () => {
     window.clearTimeout(timer.current);
+    const mine = visit.current;
     let fast = false;
     try {
       const next = await jobApi<JobInfo>(jobId, "info");
+      if (mine !== visit.current) return;
       setInfo(next);
       setError("");
       fast = next.running || next.overall === "starting";
     } catch (e) {
+      if (mine !== visit.current) return;
       setError((e as Error).message);
     }
+    window.clearTimeout(timer.current);
     timer.current = window.setTimeout(refresh, fast ? 2000 : 6000);
   }, [jobId]);
 
   useEffect(() => {
     setInfo(null);
     refresh();
-    return () => window.clearTimeout(timer.current);
+    return () => { visit.current += 1; window.clearTimeout(timer.current); };
   }, [refresh]);
 
   return (

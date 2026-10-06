@@ -175,7 +175,6 @@ def test_a_same_script_pair_lists_every_check_it_cannot_run():
     assert support["target"] == {"code": "it", "name": "Italian", "tier": "generic"}
     assert {item["check"] for item in support["skipped"]} == {
         "untranslated text",
-        "left-over source words",
         "number words",
         "punctuation conventions",
         "character report",

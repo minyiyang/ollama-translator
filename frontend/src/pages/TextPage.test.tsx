@@ -764,3 +764,142 @@ describe("Text tab", () => {
     });
   });
 });
+
+// -- journeys -------------------------------------------------------------------
+// README: "The Text tab shows every chapter as paired source and translation rows. Any
+// segment can be edited in place, with a reason, the same deterministic check, and a
+// diff ... it can be reverted and its history read ... Recompile rebuilds the book".
+
+describe("Text tab: a proofreader reads the finished book", () => {
+  const RABBIT_HOLE = "Down the Rabbit-Hole";
+  const POOL = "The Pool of Tears";
+  const TIRED = "Alice was beginning to get very tired of sitting by her sister on the bank.";
+  const LATE = "“Oh dear! Oh dear! I shall be late!”";
+  const CURIOUSER = "“Curiouser and curiouser!” cried Alice.";
+
+  /** Alice on a pretend server that keeps the proofreader's edits. */
+  function alice(overrides: Record<string, unknown> = {}) {
+    const book = {
+      edits: 0,
+      one: [
+        segment({ segment_id: "D0001-S000001", source: TIRED, pipeline_text: "爱丽丝挨着姐姐坐在河岸上，开始觉得非常疲倦。", text: "爱丽丝挨着姐姐坐在河岸上，开始觉得非常疲倦。", base_target_sha256: "h1" }),
+        segment({ segment_id: "D0001-S000002", source: LATE, pipeline_text: "“哦天哪！哦天哪！我要迟到了！”", text: "“哦天哪！哦天哪！我要迟到了！”", base_target_sha256: "h2" }),
+      ] as Record<string, unknown>[],
+      two: [
+        segment({ segment_id: "D0002-S000001", source: CURIOUSER, pipeline_text: "“越来越奇怪了！”爱丽丝喊道。", text: "“越来越奇怪了！”爱丽丝喊道。", base_target_sha256: "h3" }),
+      ] as Record<string, unknown>[],
+    };
+    const api = textApi({
+      "GET /api/jobs/demo/text": () => outline({
+        chapters: [
+          { document_id: "chapter-1", order: 1, title: RABBIT_HOLE, segment_count: 2, ...counts, edited_count: book.edits },
+          { document_id: "chapter-2", order: 2, title: POOL, segment_count: 1, ...counts },
+        ],
+        totals: { documents: 2, segments: 3, flagged: 0, in_review_queue: 0, edited: book.edits, conflicts: 0 },
+        uncompiled_edit_count: book.edits,
+      }),
+      "GET /api/jobs/demo/text/chapter": (_: unknown, url: URL) =>
+        url.searchParams.get("document_id") === "chapter-2"
+          ? { document_id: "chapter-2", title: POOL, order: 2, editable: true, segments: book.two }
+          : { document_id: "chapter-1", title: RABBIT_HOLE, order: 1, editable: true, segments: book.one },
+      "POST /api/jobs/demo/text/edit": (body: { segment_id: string; text: string; reason: string }) => {
+        book.edits += 1;
+        book.one = book.one.map((s) => (s.segment_id === body.segment_id
+          ? { ...s, text: body.text, state: "edited", edit_revision: "E000001", last_edit: { action: "edit", author: "proofreader", at: "2026-10-06T10:00:00+08:00", reason: body.reason, based_on: s.pipeline_text } }
+          : s));
+        return { event_id: "E000001", action: "edit" };
+      },
+      "POST /api/jobs/demo/rerun": { running: true },
+      ...overrides,
+    });
+    return { api, book };
+  }
+
+  it("reads chapter one, smooths a stiff sentence with a reason, and rebuilds the book with the change", async () => {
+    const { api } = alice();
+    const user = renderTextTab();
+    expect(await screen.findByText(TIRED)).toBeInTheDocument();
+    expect(within(screen.getByRole("complementary")).getByRole("button", { name: new RegExp(RABBIT_HOLE) })).toBeInTheDocument();
+
+    await user.click(within(rowOf(TIRED)).getByRole("button", { name: "Edit" }));
+    const editor = editorOf("爱丽丝挨着姐姐坐在河岸上，开始觉得非常疲倦。");
+    await user.clear(editor);
+    await user.type(editor, "爱丽丝挨着姐姐坐在河岸上，渐渐觉得腻烦了。");
+    expect(await screen.findByText("Passes deterministic validation.")).toBeInTheDocument();
+    await user.type(screen.getByPlaceholderText("Why you are making this change"), "“tired of” is boredom here, not fatigue.");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(await screen.findByText("Edit saved.")).toBeInTheDocument();
+    expect(within(rowOf(TIRED)).getByText("爱丽丝挨着姐姐坐在河岸上，渐渐觉得腻烦了。")).toBeInTheDocument();
+    expect(within(rowOf(TIRED)).getByText("edited")).toBeInTheDocument();
+    expect(api.posted("/api/jobs/demo/text/edit")).toEqual([expect.objectContaining({
+      segment_id: "D0001-S000001", text: "爱丽丝挨着姐姐坐在河岸上，渐渐觉得腻烦了。", reason: "“tired of” is boredom here, not fatigue.",
+    })]);
+
+    // The compiled EPUB is now behind the text: the page says so and offers to rebuild it.
+    expect(await screen.findByText(/1 edit not in the compiled book/)).toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Recompile" }));
+    await user.click(within(screen.getByRole("alertdialog")).getByRole("button", { name: "Recompile" }));
+    expect(await screen.findByRole("link", { name: "Follow it on the Progress tab →" })).toHaveAttribute("href", "/jobs/demo/progress");
+    expect(api.posted("/api/jobs/demo/rerun")).toEqual([{ stage: "compile" }]);
+  });
+
+  it("looks for the White Rabbit's line, then moves on to the next chapter", async () => {
+    alice();
+    const user = renderTextTab();
+    await screen.findByText(TIRED);
+
+    await user.type(screen.getByPlaceholderText("Search source or translation"), "迟到");
+    expect(screen.getByText(LATE)).toBeInTheDocument();
+    expect(screen.queryByText(TIRED)).not.toBeInTheDocument();
+    expect(screen.getByText("1 of 2 segments")).toBeInTheDocument();
+
+    await user.clear(screen.getByPlaceholderText("Search source or translation"));
+    await user.click(within(screen.getByRole("complementary")).getByRole("button", { name: new RegExp(POOL) }));
+    expect(await screen.findByText(CURIOUSER)).toBeInTheDocument();
+    expect(within(rowOf(CURIOUSER)).getByText("“越来越奇怪了！”爱丽丝喊道。")).toBeInTheDocument();
+    expect(screen.queryByText(TIRED)).not.toBeInTheDocument();
+  });
+
+  it("keeps Alice's bad grammar on purpose: the check objects, the proofreader explains, and the edit is saved", async () => {
+    const { api } = alice({
+      "POST /api/jobs/demo/text/check": { segment_id: "D0002-S000001", hard: [], overridable: [{ category: "naturalness", severity: "medium", message: "non-standard wording" }] },
+      "POST /api/jobs/demo/text/edit": { event_id: "E000002", action: "edit" },
+    });
+    const user = renderTextTab();
+    await screen.findByText(TIRED);
+    await user.click(within(screen.getByRole("complementary")).getByRole("button", { name: new RegExp(POOL) }));
+    await screen.findByText(CURIOUSER);
+
+    await user.click(within(rowOf(CURIOUSER)).getByRole("button", { name: "Edit" }));
+    const editor = editorOf("“越来越奇怪了！”爱丽丝喊道。");
+    await user.clear(editor);
+    await user.type(editor, "“越奇越怪了！”爱丽丝喊道。");
+    expect(await screen.findByText("Needs an override reason:")).toBeInTheDocument();
+    expect(screen.getByText(/non-standard wording/)).toBeInTheDocument();
+
+    await user.type(screen.getByPlaceholderText("Why you are making this change"), "Carroll's “curiouser” is wrong English on purpose.");
+    expect(screen.getByRole("button", { name: "Save" })).toBeDisabled();
+    await user.type(screen.getByPlaceholderText("Why this is fine despite the finding"), "The mistake is the joke.");
+    await user.click(screen.getByRole("button", { name: "Save" }));
+
+    expect(await screen.findByText("Edit saved.")).toBeInTheDocument();
+    expect(api.posted("/api/jobs/demo/text/edit")).toEqual([expect.objectContaining({
+      segment_id: "D0002-S000001", text: "“越奇越怪了！”爱丽丝喊道。", override_reason: "The mistake is the joke.",
+    })]);
+  });
+
+  it("thinks better of a change halfway through and leaves the sentence as it was", async () => {
+    const { api } = alice();
+    const user = renderTextTab();
+    await screen.findByText(LATE);
+    await user.click(within(rowOf(LATE)).getByText("“哦天哪！哦天哪！我要迟到了！”")); // a click on the translation opens it
+    await user.type(editorOf("“哦天哪！哦天哪！我要迟到了！”"), "！！");
+    await user.keyboard("{Escape}");
+
+    expect(document.querySelector("textarea.editor")).toBeNull();
+    expect(within(rowOf(LATE)).getByText("“哦天哪！哦天哪！我要迟到了！”")).toBeInTheDocument();
+    expect(api.posted("/api/jobs/demo/text/edit")).toEqual([]);
+    expect(screen.queryByText(/not in the compiled book/)).not.toBeInTheDocument();
+  });
+});

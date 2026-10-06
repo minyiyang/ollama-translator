@@ -7,6 +7,7 @@ import { SideLayout } from "../components/SideLayout";
 import { useToast } from "../components/Toast";
 import { Chip, Highlight } from "../components/ui";
 import { diffChars } from "../lib/diff";
+import { FALLBACK_PAIR, langAttr, leftoverSourceText, pairCodes } from "../lib/languages";
 import type { WorkflowStatus } from "../lib/stages";
 
 type Decision = "pending" | "accept" | "replace";
@@ -38,9 +39,10 @@ type Item = { res: Resolution; edit: string; custom: string; customOn: boolean; 
 
 const REASONS = {
   accept: ["Verified against source; the audit finding is a false positive.", "Current wording is faithful; flagged difference is stylistic only."],
-  replace: ["Corrected the mistranslation identified by the audit.", "Translated the remaining English text.", "Restored meaning omitted from the source."],
+  replace: ["Corrected the mistranslation identified by the audit.", "Translated the text left in the source language.", "Restored meaning omitted from the source."],
 };
-const PRESETS = [...REASONS.accept, ...REASONS.replace];
+// The last is how that reason read when every book was English: a worksheet saved with it is not a custom reason.
+const PRESETS = [...REASONS.accept, ...REASONS.replace, "Translated the remaining English text."];
 
 const edited = (it: Item) => it.edit !== it.res.current_translation;
 const hasReason = (it: Item) => it.res.reason.trim().length >= 3;
@@ -48,20 +50,22 @@ const isResolved = (it: Item) => it.res.decision !== "pending" && hasReason(it);
 const checkKey = (it: Item) => `${it.res.decision}|${it.res.decision === "accept" ? "" : it.edit}`;
 const currentCheck = (it: Item) => (it.check && it.check.key === checkKey(it) ? it.check : undefined);
 
-function lint(it: Item): string[] {
+type Pair = { source: string; target: string; sourceName: string };
+
+function lint(it: Item, pair: Pair): string[] {
   const out: string[] = [];
   if (!it.edit.trim()) out.push("translation is empty");
-  const latin = [...new Set(it.edit.match(/[A-Za-z]{2,}/g) ?? [])];
-  if (latin.length) out.push(`English left in text: ${latin.slice(0, 5).join(", ")}`);
+  const left = leftoverSourceText(it.edit, pair.source, pair.target);
+  if (left.length) out.push(`${pair.sourceName} left in text: ${left.slice(0, 5).join(", ")}`);
   const digits = (s: string) => (s.match(/\d+(?:\.\d+)?/g) ?? []).sort().join(",");
   if (edited(it) && digits(it.edit) !== digits(it.res.current_translation)) out.push("digits changed from current");
   if (it.res.decision !== "pending" && !hasReason(it)) out.push("reason required");
   return out;
 }
 
-function Diff({ before, after }: { before: string; after: string }) {
+function Diff({ before, after, lang }: { before: string; after: string; lang: string }) {
   return (
-    <div className="diff" lang="zh-CN">
+    <div className="diff" lang={lang}>
       {diffChars(before, after).map((part, i) =>
         part.kind === "same" ? <span key={i}>{part.text}</span> : part.kind === "del" ? <del key={i}>{part.text}</del> : <ins key={i}>{part.text}</ins>,
       )}
@@ -73,15 +77,28 @@ function CompileCard({ jobId, initial }: { jobId: string; initial?: CompileState
   const toast = useToast();
   const [state, setState] = useState<CompileState | undefined>(initial);
   const timer = useRef<number | undefined>(undefined);
+  // Bumped when the card goes away: an answer that arrives afterwards is dropped and asks for nothing more.
+  const visit = useRef(0);
   const poll = useCallback(async () => {
-    const next = await jobApi<CompileState>(jobId, "review/compile");
+    const asked = visit.current;
+    let next: CompileState;
+    try {
+      next = await jobApi<CompileState>(jobId, "review/compile");
+    } catch (e) {
+      if (asked !== visit.current) return;
+      // Keep following: one failed request does not mean the compile stopped.
+      toast("bad", `Could not check the compile: ${(e as Error).message}`, 0);
+      timer.current = window.setTimeout(poll, 1500);
+      return;
+    }
+    if (asked !== visit.current) return;
     setState(next);
     if (next.state === "running") timer.current = window.setTimeout(poll, 1500);
     else if (next.result) toast(next.result.result === "complete" ? "ok" : "warn", `Compile finished: ${next.result.result}`, 0);
   }, [jobId, toast]);
   useEffect(() => {
     if (initial?.state === "running") poll();
-    return () => window.clearTimeout(timer.current);
+    return () => { visit.current += 1; window.clearTimeout(timer.current); };
   }, [initial, poll]);
   const start = async () => {
     try { await jobApi(jobId, "review/compile", {}); poll(); } catch (e) { toast("bad", (e as Error).message, 0); }
@@ -137,6 +154,7 @@ export function ReviewPage() {
         customOn: !!res.reason && !PRESETS.includes(res.reason),
       })));
       setDirty(false);
+      setError("");
     } catch (e) {
       setError((e as Error).message);
     }
@@ -359,6 +377,12 @@ export function ReviewPage() {
   const check = currentCheck(it);
   const resolvedCount = order.filter((i) => isResolved(items[i])).length;
   const custom = it.customOn || (it.res.reason !== "" && !PRESETS.includes(it.res.reason));
+  // The job's own languages; an older server names only the direction, or nothing.
+  const [source, target] = info?.languages
+    ? [info.languages.source.code, info.languages.target.code]
+    : pairCodes(info?.direction || FALLBACK_PAIR.pair);
+  const pair: Pair = { source, target, sourceName: info?.languages?.source.name ?? source.toUpperCase() };
+  const [sourceLang, targetLang] = [source, target].map(langAttr);
 
   const setEdit = (text: string) =>
     patch(index, (x) => {
@@ -417,23 +441,23 @@ export function ReviewPage() {
           <section className="card">
             <h2>Source</h2>
             {ctx.previous_source_context && <div className="ctx">{ctx.previous_source_context}</div>}
-            <div className="text"><Highlight text={it.res.source_text} quote={focus?.source_quote} /></div>
+            <div className="text" lang={sourceLang}><Highlight text={it.res.source_text} quote={focus?.source_quote} /></div>
             {ctx.next_source_context && <div className="ctx">{ctx.next_source_context}</div>}
           </section>
           <section className="card">
             <h2>Current translation</h2>
-            <div className="text zh" lang="zh-CN"><Highlight text={it.res.current_translation} quote={focus?.translation_quote} /></div>
+            <div className="text zh" lang={targetLang}><Highlight text={it.res.current_translation} quote={focus?.translation_quote} /></div>
           </section>
         </div>
 
         <section className="card">
           <h2>Your translation</h2>
-          <textarea className="editor" lang="zh-CN" spellCheck={false} value={it.edit} onChange={(e) => setEdit(e.target.value)} />
+          <textarea className="editor" lang={targetLang} spellCheck={false} value={it.edit} onChange={(e) => setEdit(e.target.value)} />
           <div className="row">
             <button className="small" onClick={() => setEdit(it.res.current_translation)}>Reset to current</button>
             <span className="meta">{[...it.edit].length} chars (current {[...it.res.current_translation].length})</span>
             <button className="small" onClick={() => runCheck(index)}>Check</button>
-            <span className="lint">{lint(it).join(" · ")}</span>
+            <span className="lint">{lint(it, pair).join(" · ")}</span>
           </div>
           {check && it.res.decision !== "pending" && (
             check.blocking.length ? (
@@ -446,7 +470,7 @@ export function ReviewPage() {
           {edited(it) && (
             <>
               <h2 style={{ marginTop: 14 }}>Changes vs current</h2>
-              <Diff before={it.res.current_translation} after={it.edit} />
+              <Diff before={it.res.current_translation} after={it.edit} lang={targetLang} />
             </>
           )}
 
@@ -473,9 +497,9 @@ export function ReviewPage() {
           </div>
           <div className="row" style={{ marginTop: 14 }}>
             <div className="segmented">
-              <button className={it.res.decision === "pending" ? "on" : ""} onClick={() => setDecision("pending")}>Pending</button>
-              <button className={it.res.decision === "accept" ? "on" : ""} disabled={!hasReason(it)} title={hasReason(it) ? "" : "Select or enter a reason first"} onClick={() => setDecision("accept")}>Accept current</button>
-              <button className={it.res.decision === "replace" ? "on" : ""} onClick={() => setDecision("replace")}>Replace with edit</button>
+              <button className={it.res.decision === "pending" ? "on" : ""} aria-pressed={it.res.decision === "pending"} onClick={() => setDecision("pending")}>Pending</button>
+              <button className={it.res.decision === "accept" ? "on" : ""} aria-pressed={it.res.decision === "accept"} disabled={!hasReason(it)} title={hasReason(it) ? "" : "Select or enter a reason first"} onClick={() => setDecision("accept")}>Accept current</button>
+              <button className={it.res.decision === "replace" ? "on" : ""} aria-pressed={it.res.decision === "replace"} onClick={() => setDecision("replace")}>Replace with edit</button>
             </div>
             {!hasReason(it) && <span className="meta">Select a reason to enable Accept.</span>}
           </div>
@@ -488,8 +512,8 @@ export function ReviewPage() {
               <div key={i} className={`finding ${i === activeFinding ? "on" : ""}`} onClick={() => setActiveFinding(i === activeFinding ? -1 : i)}>
                 {f.severity && <Chip kind={f.severity}>{f.severity}</Chip>} {f.category && <Chip>{f.category}</Chip>} {f.origin && <span className="meta">{f.origin}</span>}
                 <div className="msg">{f.message}</div>
-                {f.source_quote && <div className="quote">EN: {f.source_quote}</div>}
-                {f.translation_quote && <div className="quote" lang="zh-CN">ZH: {f.translation_quote}</div>}
+                {f.source_quote && <div className="quote" lang={sourceLang}>{source.toUpperCase()}: {f.source_quote}</div>}
+                {f.translation_quote && <div className="quote" lang={targetLang}>{target.toUpperCase()}: {f.translation_quote}</div>}
               </div>
             ))}
           </section>
@@ -501,7 +525,7 @@ export function ReviewPage() {
                   <Chip>{v.stage}</Chip>
                   <button className="small" onClick={() => setEdit(v.text)}>Load into editor</button>
                 </div>
-                <div className="text zh" lang="zh-CN">{v.text}</div>
+                <div className="text zh" lang={targetLang}>{v.text}</div>
               </div>
             )) : <p className="meta">No alternative versions recorded.</p>}
           </section>

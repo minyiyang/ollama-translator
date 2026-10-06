@@ -12,7 +12,6 @@ from __future__ import annotations
 
 import json
 import os
-import sys
 import tempfile
 from pathlib import Path
 
@@ -57,16 +56,6 @@ from tests.test_validate_repaired_stage import FakeVerificationClient
 
 GOLDEN = Path(__file__).parent / "golden" / "languages"
 UPDATE = os.environ.get("UPDATE_LANGUAGE_GOLDEN") == "1"
-# Stage hashes are compared on the platform the golden files were recorded on.
-# The decompile manifest is not the same everywhere: a package's files are
-# listed in the platform's path order (Windows ignores case, so `mimetype`
-# comes before `OEBPS`), and their media types come from the system's own table
-# (`text/xml` or `application/xml` for container.xml). Every later stage hashes
-# what came before it, so all the hashes differ. Prompts and schemas do not, and
-# are compared on every platform.
-HASHES_RECORDED_ON = "win32"
-PLATFORM_KEYS = {"stage_hashes"}
-
 EN_CHAPTER = b"""<?xml version='1.0'?>
 <html xmlns='http://www.w3.org/1999/xhtml'><head><title>Fixture</title></head>
 <body><h1>Chapter One</h1><p>Aster opened the <em>small</em> door at 3 o'clock.</p>
@@ -99,6 +88,7 @@ def _reproducible_epub(path: Path, chapter: bytes) -> Path:
         for item in source.infolist():
             info = ZipInfo(item.filename, date_time=(2020, 1, 1, 0, 0, 0))
             info.compress_type = ZIP_STORED if item.filename == "mimetype" else ZIP_DEFLATED
+            info.create_system = 0  # zipfile writes the platform here: 0 on Windows, 3 elsewhere
             target.writestr(info, source.read(item.filename))
     return path
 
@@ -200,11 +190,6 @@ def test_prompts_schemas_and_stage_hashes_are_unchanged(pair: str) -> None:
     chapter, translated = PAIRS[pair]
     recorded = {**_direct(TranslationDirection(pair)), **_pipeline(pair, chapter, translated)}
     path = GOLDEN / f"{pair}.json"
-    same_platform = sys.platform == HASHES_RECORDED_ON
-    if UPDATE and not same_platform and path.exists():
-        # Re-recording elsewhere keeps the hashes of the recording platform.
-        kept = json.loads(path.read_text(encoding="utf-8"))
-        recorded.update({key: kept[key] for key in PLATFORM_KEYS if key in kept})
     if UPDATE or not path.exists():
         path.parent.mkdir(parents=True, exist_ok=True)
         path.write_text(json.dumps(recorded, ensure_ascii=False, indent=1, sort_keys=True) + "\n", encoding="utf-8", newline="\n")
@@ -214,8 +199,6 @@ def test_prompts_schemas_and_stage_hashes_are_unchanged(pair: str) -> None:
     golden = json.loads(path.read_text(encoding="utf-8"))
     current = json.loads(json.dumps(recorded, ensure_ascii=False))
     for key in sorted(golden.keys() | current.keys()):
-        if key in PLATFORM_KEYS and not same_platform:
-            continue
         assert current.get(key) == golden.get(key), (
             f"{pair}: {key} changed. Prompts, schemas, and stage hashes for today's pairs must stay "
             "byte-for-byte the same (docs/GENERIC_LANGUAGES.md, 6); re-record only for a deliberate change."

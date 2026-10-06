@@ -11,7 +11,7 @@ from collections import Counter
 from pydantic import BaseModel, ConfigDict, Field
 
 from .audit import (
-    WHOLE_TRANSLATION_WRONG,
+    whole_translation_is_wrong,
     AuditCategory,
     AuditIssue,
     AuditSeverity,
@@ -75,6 +75,11 @@ class TranslationRepairReport(BaseModel):
     targeted_segment_count: int = Field(ge=0)
     repaired_segment_count: int = Field(ge=0)
     review_segment_ids: list[str] = Field(default_factory=list)
+
+
+# How a verification's message opens when the repair never reached the
+# semantic reviewer.
+FAILED_BEFORE_SEMANTIC_REVIEW = "Deterministic validation failed before semantic review:"
 
 
 class RepairVerification(BaseModel):
@@ -312,12 +317,7 @@ def select_repair_targets(
 def requires_full_segment_translation(issues: list[AuditIssue]) -> bool:
     """Identify a source safety copy that must be translated, not locally edited."""
     return any(
-        item.source == "translation-deferred"
-        or (
-            item.severity is AuditSeverity.HIGH
-            and item.source != "semantic"
-            and WHOLE_TRANSLATION_WRONG.match(item.message) is not None
-        )
+        item.source == "translation-deferred" or whole_translation_is_wrong(item)
         for item in issues
     )
 

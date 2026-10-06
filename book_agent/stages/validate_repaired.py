@@ -38,6 +38,7 @@ from ..pipeline_state import (
     stage_is_current,
 )
 from ..repair import (
+    FAILED_BEFORE_SEMANTIC_REVIEW,
     PairwiseRepairVerificationResult,
     RepairDisposition,
     RepairedDocument,
@@ -200,9 +201,7 @@ def run_repaired_validation_stage(
                 item.segment_id
                 for item in (review.verifications if review else [])
                 if not item.passed
-                and not item.message.startswith(
-                    "Deterministic validation failed before semantic review:"
-                )
+                and not item.message.startswith(FAILED_BEFORE_SEMANTIC_REVIEW)
             }
             target_ids.update(
                 repair.segment_id

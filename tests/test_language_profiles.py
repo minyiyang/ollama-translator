@@ -716,16 +716,16 @@ def test_a_translation_far_from_the_usual_length_is_found():
 def test_a_language_without_a_known_script_still_matches_whole_words():
     from book_agent.preprocessing import ReplacementRule, _rule_pattern, _selection_pattern
 
-    amharic = profile("am")
-    assert amharic.word_chars == "" and amharic.spaced_words  # no script of its own in SCRIPTS
-    rule = ReplacementRule("ሀሎ", "Hello", "Hello", amharic.code)
+    tigre = profile("tig")  # Tigre: written like Amharic, and not in the language table
+    assert tigre.word_chars == "" and tigre.spaced_words  # no script of its own in SCRIPTS
+    rule = ReplacementRule("ሀሎ", "Hello", "Hello", tigre.code)
     assert _rule_pattern(rule).sub("Hello", "በጣም") == "በጣም"  # not between the letters of another word
     assert _rule_pattern(rule).sub("Hello", "ሀሎ በጣም ሀሎ።") == "Hello በጣም Hello።"
     assert _rule_pattern(rule).sub("Hello", "በሀሎም") == "በሀሎም"  # nor inside one
-    assert _selection_pattern("ሀሎ", amharic.code).search("በጣም") is None
-    assert _selection_pattern("ሀሎ", amharic.code).search("በጣም ሀሎ።")
+    assert _selection_pattern("ሀሎ", tigre.code).search("በጣም") is None
+    assert _selection_pattern("ሀሎ", tigre.code).search("በጣም ሀሎ።")
     # A profiled language keeps its own boundary.
-    assert profile("fr").term_start != amharic.term_start
+    assert profile("fr").term_start != tigre.term_start
 
 
 def test_digits_are_read_with_the_languages_separators():
@@ -742,6 +742,13 @@ def test_digits_are_read_with_the_languages_separators():
     assert numeric_content_matches("1.5 liters and 1,000 men", "1,5 Liter und 1.000 Mann", en_de)
     assert not numeric_content_matches("1.5 liters", "15 Liter", en_de)
     assert repair_preserves_numbers("1.5 liters", "1.5 Liter", "1,5 Liter", en_de)
+    # English grouping kept in a German translation is the same number, wrongly
+    # punctuated: accepted where the source says a thousand, and only there.
+    assert numeric_content_matches("1,000 men and 12,345.5 marks", "1,000 Mann und 12,345.5 Mark", en_de)
+    assert not numeric_content_matches("2,000 men", "1,000 Mann", en_de)
+    assert numeric_content_matches("0.125 grams", "0,125 Gramm", en_de)  # a decimal stays a decimal
+    assert repair_preserves_numbers("1,000 men", "1,000 Mann", "1.000 Mann", en_de)  # a repair may correct it
+    assert not repair_preserves_numbers("1,000 men", "1.000 Mann", "1,000 Mann", en_de)  # and may not bring it in
     config = AppConfig.model_validate({"translation": {"direction": "en>de"}})
     _, validation = validate_repair_output(
         "<S1>Er trank 1,5 Liter Wasser.</S1>", "He drank 1.5 liters of water.", "S1", "Er trank 1.5 Liter Wasser.", config
@@ -793,3 +800,29 @@ def test_korean_native_numbers_are_read_written_together():
         "<S1>스물두 명이 왔다.</S1>", "Twenty-two people came.", "S1", "22명이 왔다.", config
     )
     assert validation.passed, validation.issues
+
+
+def test_repair_acts_on_a_findings_code_not_its_wording():
+    from book_agent import audit
+    from book_agent.audit import AuditIssue, AuditSeverity, SemanticAuditResult, _audit_glossary, whole_translation_is_wrong
+    from book_agent.repair import requires_full_segment_translation
+
+    def finding(message, code="", **fields):
+        return AuditIssue(segment_id="S1", category=AuditCategory.UNTRANSLATED, severity=AuditSeverity.HIGH, message=message, code=code, **fields)
+
+    # The message may be reworded or translated; the code decides.
+    assert requires_full_segment_translation([finding("译文与原文完全相同", audit.IDENTICAL_TO_SOURCE)])
+    assert not requires_full_segment_translation([finding("translation is identical to source", "some_other_finding")])
+    # An audit written before findings had a code is read by its wording.
+    assert requires_full_segment_translation([finding("translation is identical to source")])
+    # Never the auditor model's own finding, and never below high.
+    assert not whole_translation_is_wrong(finding("translation is identical to source", audit.IDENTICAL_TO_SOURCE, source="semantic"))
+    assert not whole_translation_is_wrong(finding("x y z", audit.UNUSUAL_LENGTH).model_copy(update={"severity": AuditSeverity.MEDIUM}))
+    # The audit sets the code, a finding without one is stored as before, and the auditor is not asked for one.
+    issues = []
+    english = "She was beginning to get very tired of sitting by her sister on the bank."
+    _audit_language("S1", english, english, LanguagePair("en>ja"), AuditConfig(), issues)
+    assert {issue.code for issue in issues} - {""} == {audit.NO_TARGET_TEXT, audit.IDENTICAL_TO_SOURCE}
+    assert "code" not in finding("anything else").model_dump() and finding("x y z", "a_code").model_dump()["code"] == "a_code"
+    assert AuditIssue.model_validate_json(finding("x y z", "a_code").model_dump_json()).code == "a_code"
+    assert "code" not in SemanticAuditResult.model_json_schema()["$defs"]["AuditIssue"]["properties"]

@@ -1,2 +1,6 @@
 node_modules/
 *.tsbuildinfo
+# Playwright: results, reports, and the book e2e/serve.py writes for the upload test
+test-results/
+playwright-report/
+e2e/.books/

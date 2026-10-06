@@ -37,11 +37,29 @@ export function DialogProvider({ children }: { children: ReactNode }) {
 }
 
 function DialogView({ request, onClose }: { request: Request; onClose: (value: string | null) => void }) {
-  const primary = useRef<HTMLButtonElement>(null);
+  const box = useRef<HTMLElement>(null);
+  const initial = useRef<HTMLButtonElement>(null);
+  // Focus starts on the primary action, or on the safe one when the other is dangerous.
+  const first = request.actions.find((a) => a.primary) ?? request.actions.find((a) => !a.danger) ?? request.actions[0];
+  // Focus returns to where it was once the dialog is gone.
   useEffect(() => {
-    primary.current?.focus();
+    const opener = document.activeElement;
+    return () => { if (opener instanceof HTMLElement && opener.isConnected) opener.focus(); };
+  }, []);
+  useEffect(() => { initial.current?.focus(); }, [request]);
+  useEffect(() => {
     // Capture phase so Escape cancels this dialog before any page handler sees it.
     const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Tab") {
+        // Keep Tab inside the dialog.
+        const stops = [...(box.current?.querySelectorAll<HTMLElement>("button, a[href], input, select, textarea") ?? [])];
+        if (!stops.length) return;
+        const at = stops.indexOf(document.activeElement as HTMLElement);
+        const next = e.shiftKey ? (at <= 0 ? stops.length - 1 : at - 1) : (at + 1) % stops.length;
+        e.preventDefault();
+        stops[next].focus();
+        return;
+      }
       if (e.key !== "Escape") return;
       e.stopPropagation();
       onClose(null);
@@ -51,14 +69,14 @@ function DialogView({ request, onClose }: { request: Request; onClose: (value: s
   }, [onClose]);
   return (
     <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(null); }}>
-      <section className="card modal dialog" role="alertdialog" aria-modal="true" aria-labelledby="dialog-title">
+      <section ref={box} className="card modal dialog" role="alertdialog" aria-modal="true" aria-labelledby="dialog-title">
         <h2 id="dialog-title">{request.title}</h2>
         <div className="dialog-body">{request.body}</div>
         <div className="row dialog-actions">
           {request.actions.map((action) => (
             <button
               key={action.value}
-              ref={action.primary ? primary : undefined}
+              ref={action === first ? initial : undefined}
               className={action.primary ? "primary" : action.danger ? "danger" : ""}
               onClick={() => onClose(action.value)}
             >

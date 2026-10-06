@@ -55,10 +55,10 @@ export function Shell({
         {(jobId || crumb) && <span className={jobId ? "crumb mono" : "crumb"}>{jobId ?? crumb}</span>}
         {jobId && info?.languages && isGeneric(info.languages) && (
           <span className="chip warn" title={[
-            `${info.languages.source.name} → ${info.languages.target.name}: generic tier.`,
+            `${info.languages.source.name} (${info.languages.source.tier}) → ${info.languages.target.name} (${info.languages.target.tier}).`,
             ...info.languages.skipped.map((item) => `Skipped: ${item.check} (${item.reason}).`),
           ].join("\n")}>
-            {directionLabel(info.direction)} · {info.languages.skipped.length} checks skipped
+            {directionLabel(info.direction)} · {info.languages.skipped.length} {info.languages.skipped.length === 1 ? "check" : "checks"} skipped
           </span>
         )}
         {jobId && info?.series && (
