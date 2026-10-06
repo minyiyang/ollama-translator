@@ -118,7 +118,7 @@ class BookAuditor(FakeAuditClient):
         return super().generate_structured(prompt, schema, **options)
 
 
-def build_job(base: Path, job_id: str, pair: str, wrong_hour: bool = True) -> None:
+def build_job(base: Path, job_id: str, pair: str, wrong_hour: bool = True, book: str = "alice-in-wonderland.epub") -> None:
     """One job, run as `book-agent run` runs it, with stand-ins for the models.
     With `wrong_hour` the translation has a mistake the repair model cannot fix,
     so the run stops for the final review; without, it completes."""
@@ -138,7 +138,7 @@ def build_job(base: Path, job_id: str, pair: str, wrong_hour: bool = True) -> No
         json.dumps({"pair": glossary_pair(config.translation.direction).value, "entries": terms}, ensure_ascii=False),
         encoding="utf-8",
     )
-    workspace = create_job_workspace(base / "books" / "alice-in-wonderland.epub", base / "runs", config, job_id=job_id)
+    workspace = create_job_workspace(base / "books" / book, base / "runs", config, job_id=job_id)
     translator, auditor = BookTranslator(1 if german else 2, wrong_hour), BookAuditor(wrong_hour)
     # The repair model fails on the wrong hour, so it is left for the reviewer.
     repairer = FakeRepairClient(invalid_calls=10 if wrong_hour else 0)
@@ -186,6 +186,10 @@ def main() -> None:
         make_epub(UPLOAD, opf=HOLMES, chapter=HOLMES_CHAPTER)
         for job_id, (pair, wrong_hour) in JOBS.items():
             build_job(base, job_id, pair, wrong_hour)
+        # The same chapter as its translator might keep it: a Markdown manuscript.
+        manuscript = "\n\n".join(["# " + PASSAGES[0][0], *(passage[0] for passage in PASSAGES[1:])]) + "\n"
+        (base / "books" / "alice-manuscript.md").write_text(manuscript, encoding="utf-8")
+        build_job(base, "alice-manuscript-finished", "en>de", False, "alice-manuscript.md")
         serve_ui(
             base / "runs",
             base / "configs",

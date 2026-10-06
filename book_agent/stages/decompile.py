@@ -14,6 +14,7 @@ from ..epub import (
     inspect_epub_package,
     safe_extract_epub,
 )
+from ..book_formats import CONVERTED_SUFFIXES, read_book, write_source_package
 from ..hashing import sha256_file
 from ..rtf import inspect_rtf_document
 from ..pipeline_state import (
@@ -48,7 +49,7 @@ def render_document_segments(document: ChapterDocument) -> str:
 
 
 def run_decompile_stage(workspace: JobWorkspace) -> EpubPackageManifest:
-    """Inspect and atomically publish an EPUB or RTF document inventory."""
+    """Inspect and atomically publish the source book's document inventory."""
     connection = connect_state(workspace.state_file)
     try:
         initialize_state(connection)
@@ -90,8 +91,13 @@ def run_decompile_stage(workspace: JobWorkspace) -> EpubPackageManifest:
                 manifest = inspect_epub_package(package_root, source_hash)
             elif source_format == ".rtf":
                 manifest = inspect_rtf_document(workspace.source_file, source_hash)
+            elif source_format in CONVERTED_SUFFIXES:
+                # Text, Markdown, HTML, Word: written as an EPUB package, and an EPUB from here on.
+                package_root = staging / "package"
+                write_source_package(read_book(workspace.source_file), package_root, source_hash)
+                manifest = inspect_epub_package(package_root, source_hash)
             else:
-                raise ValueError("source must be an EPUB or RTF file")
+                raise ValueError("source must be an EPUB, RTF, text, Markdown, HTML, or Word (.docx) file")
             chapters_root = staging / "chapters"
             chapters_root.mkdir()
             for document in manifest.documents:

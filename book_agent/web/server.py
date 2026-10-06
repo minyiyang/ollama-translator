@@ -13,6 +13,7 @@ import re
 import secrets
 import subprocess
 import sys
+import tempfile
 import threading
 import webbrowser
 from collections.abc import Callable
@@ -46,6 +47,7 @@ from .book_info import allowed_book, book_cover, book_info
 from .estimate import estimate as estimate_job
 from . import setup as setup_api
 from .glossary_view import glossary_payload, write_reviewed_glossary, write_reviewed_style_sheet
+from ..book_formats import EXPORT_MEDIA_TYPES, export_book
 from ..stages.compile import load_compiled_epub_path
 from .jobs import ProgressReader, draft_direction, job_direction, job_path, list_jobs, open_job
 from .text_view import text_chapter, text_outline
@@ -810,9 +812,15 @@ def make_handler(app: UiApp, port_ref: list[int]) -> type[BaseHTTPRequestHandler
                     return self._json({"error": str(error)}, HTTPStatus.NOT_FOUND)
                 return self._send(data, media_type)
             if method == "GET" and len(parts) == 4 and parts[1] == "jobs" and parts[3] == "output":
+                wanted = parse_qs(url.query).get("format", ["epub"])[0]
                 try:
                     validate_job_id(parts[2])
                     output = app.job_output(parts[2])
+                    if wanted != "epub":
+                        # The same book in another format, made from the EPUB as it is asked for.
+                        with tempfile.TemporaryDirectory() as directory:
+                            exported = export_book(output, Path(directory) / f"{output.stem}.{wanted}", wanted)
+                            return self._send(exported.read_bytes(), EXPORT_MEDIA_TYPES[wanted], download=exported.name)
                     data = output.read_bytes()
                 except (ValueError, OSError) as error:
                     return self._json({"error": str(error)}, HTTPStatus.NOT_FOUND)

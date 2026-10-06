@@ -28,7 +28,9 @@ from .manual_review import (
 from .pipeline_state import WorkflowStage
 from .ollama_client import GenerationProgressEvent, OllamaClient, PauseRequested
 from .styles import TranslationStyle
+from .book_formats import EXPORT_FORMATS, SOURCE_SUFFIXES, export_book
 from .languages import LanguagePair, language_support
+from .stages.compile import load_compiled_epub_path
 from .schemas import DEFAULT_GLOSSARY_PAIR
 from .series import (
     add_books,
@@ -187,7 +189,7 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("styles", help="list available prose-style names")
 
     run_parser = subparsers.add_parser("run", help="create and run a translation job")
-    run_parser.add_argument("source", help="source EPUB or RTF path")
+    run_parser.add_argument("source", help="source book: EPUB, RTF, .txt, .md, .html, or .docx")
     run_parser.add_argument("--config", dest="config_file", help="YAML configuration path")
     run_parser.add_argument("--runs", help="override the run-workspace directory")
     run_parser.add_argument("--job-id", help="explicit safe workspace name")
@@ -197,6 +199,14 @@ def build_parser() -> argparse.ArgumentParser:
     resume_parser = subparsers.add_parser("resume", help="continue an existing job")
     resume_parser.add_argument("workspace", help="job workspace path")
     resume_parser.add_argument("--plain", action="store_true", help="disable styled progress output")
+
+    export_parser = subparsers.add_parser(
+        "export",
+        help="write a completed job's translated book as text, Markdown, HTML, or a Word document",
+    )
+    export_parser.add_argument("workspace", help="job workspace directory")
+    export_parser.add_argument("--format", required=True, choices=EXPORT_FORMATS, help="format to write")
+    export_parser.add_argument("--out", help="output path (default: next to the compiled EPUB)")
 
     status_parser = subparsers.add_parser("status", help="show current job state")
     status_parser.add_argument("workspace", help="job workspace path")
@@ -762,8 +772,8 @@ def build_dry_run_summary(source: str | Path, config: AppConfig, runs: str | Pat
     if not source_path.is_file():
         raise FileNotFoundError(source_path)
     source_format = source_path.suffix.casefold().lstrip(".")
-    if source_format not in {"epub", "rtf"}:
-        raise ValueError("source must be an EPUB or RTF file")
+    if source_path.suffix.casefold() not in SOURCE_SUFFIXES:
+        raise ValueError("source must be an EPUB, RTF, text, Markdown, HTML, or Word (.docx) file")
     return {
         "dry_run": True,
         "source": str(source_path),
@@ -1392,6 +1402,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "pause":
             request_pause(open_job_workspace(args.workspace))
             print("Pause requested; the run stops after its current model call. Use `resume` to continue.")
+            return ExitCode.COMPLETE
+        if args.command == "export":
+            compiled = Path(load_compiled_epub_path(open_job_workspace(args.workspace)))
+            target = Path(args.out) if args.out else compiled.with_suffix(f".{args.format}")
+            print(export_book(compiled, target, args.format))
             return ExitCode.COMPLETE
         if args.command == "status":
             snapshot = workflow_status(open_job_workspace(args.workspace))

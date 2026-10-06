@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { jobApi } from "../api";
-import { outputUrl } from "../lib/format";
+import { OUTPUT_FORMATS, outputUrl } from "../lib/format";
 import { attentionFrom } from "../lib/stages";
 import { useConfirm } from "./Dialog";
 import { useJob } from "./JobContext";
@@ -25,6 +25,7 @@ export function JobControls() {
   const confirm = useConfirm();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
+  const [format, setFormat] = useState("epub");
   if (!info) return null;
 
   type Ask = { title: string; body: string; label: string };
@@ -77,7 +78,13 @@ export function JobControls() {
         </span>
       )}
       {info.downloadable && (
-        <a className="button primary" href={outputUrl(jobId)} download title="Download the translated book">⤓ Download</a>
+        <>
+          <select className="small" aria-label="Download format" value={format} onChange={(e) => setFormat(e.target.value)}
+            title="The EPUB keeps the book's layout and pictures; the others carry its text, headings, and emphasis.">
+            {OUTPUT_FORMATS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </select>
+          <a className="button primary" href={outputUrl(jobId, format)} download title="Download the translated book">⤓ Download</a>
+        </>
       )}
       {info.kind === "job" && !info.running && !waiting && info.overall !== "complete" && (
         <span title={TIPS.resume}>

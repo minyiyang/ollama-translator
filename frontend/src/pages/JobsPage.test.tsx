@@ -263,7 +263,7 @@ describe("Jobs page", () => {
       jobsApi();
       const user = renderJobs();
       const dialog = await openDialog(user);
-      expect(within(dialog).getByText(/Drop an EPUB or RTF here, or/)).toBeInTheDocument();
+      expect(within(dialog).getByText(/Drop a book here .*, or/)).toBeInTheDocument();
       expect(within(dialog).getByLabelText("Config file name")).toHaveValue("");
       expect(within(dialog).getByText("Pick a source to get a suggested name.")).toBeInTheDocument();
       expect(within(dialog).getByLabelText("Job ID")).toHaveValue("");
@@ -326,7 +326,7 @@ describe("Jobs page", () => {
       const api = jobsApi();
       const user = renderJobs();
       const dialog = await openDialog(user);
-      const zone = within(dialog).getByText(/Drop an EPUB or RTF here, or/);
+      const zone = within(dialog).getByText(/Drop a book here .*, or/);
 
       fireEvent.dragOver(zone);
       expect(zone).toHaveClass("over");
@@ -338,15 +338,15 @@ describe("Jobs page", () => {
       expect(api.requested("/api/uploads?name=crusoe.RTF")).toBe(true);
     });
 
-    it("refuses a file that is not an EPUB or RTF without uploading it", async () => {
+    it("refuses a PDF, which is not a book it can read, without uploading it", async () => {
       const api = jobsApi();
       const user = renderJobs();
       const dialog = await openDialog(user);
-      fireEvent.drop(within(dialog).getByText(/Drop an EPUB or RTF here, or/), { dataTransfer: { files: [new File(["x"], "notes.pdf")] } });
+      fireEvent.drop(within(dialog).getByText(/Drop a book here .*, or/), { dataTransfer: { files: [new File(["x"], "notes.pdf")] } });
 
-      expect(await screen.findByRole("status")).toHaveTextContent("Choose an .epub or .rtf file.");
+      expect(await screen.findByRole("status")).toHaveTextContent("Choose an EPUB, RTF, text, Markdown, HTML, or Word (.docx) file.");
       expect(api.calls.some((c) => c.path.startsWith("/api/uploads"))).toBe(false);
-      expect(within(dialog).getByText(/Drop an EPUB or RTF here, or/)).toBeInTheDocument();
+      expect(within(dialog).getByText(/Drop a book here .*, or/)).toBeInTheDocument();
     });
 
     it("shows why an upload failed and lets the user try again", async () => {
@@ -590,10 +590,10 @@ describe("Jobs page: a translator's day", () => {
     const api = signApi();
     const user = renderJobs();
     const dialog = await openDialog(user);
-    const zone = within(dialog).getByText(/Drop an EPUB or RTF here, or/);
+    const zone = within(dialog).getByText(/Drop a book here .*, or/);
 
     fireEvent.drop(zone, { dataTransfer: { files: [new File(["%PDF"], "the-sign-of-the-four.pdf")] } });
-    expect(await screen.findByRole("status")).toHaveTextContent("Choose an .epub or .rtf file.");
+    expect(await screen.findByRole("status")).toHaveTextContent("Choose an EPUB, RTF, text, Markdown, HTML, or Word (.docx) file.");
     expect(within(dialog).getByRole("button", { name: "Create job" })).toBeDisabled();
 
     fireEvent.drop(zone, { dataTransfer: { files: [signEpub()] } });

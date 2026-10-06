@@ -329,7 +329,8 @@ class ServerTests:
                 assert upload("book.epub", b"one")[1]["path"] == first["path"]
                 second = upload("book.epub", b"two")[1]["path"]
                 assert second != first["path"] and Path(second).read_bytes() == b"two"
-                assert upload("notes.txt", b"x")[0] == 422
+                assert upload("notes.pdf", b"x")[0] == 422
+                assert upload("notes.txt", b"x")[0] == 200  # a text file is a book the pipeline reads
                 assert upload("../evil.epub", b"x")[1]["path"].endswith("evil.epub")  # name only, no traversal
             finally:
                 server.shutdown()

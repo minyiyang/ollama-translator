@@ -34,8 +34,23 @@ export function directionLabel(direction: string | undefined): string {
   return from && to ? `${from.toUpperCase()} → ${to.toUpperCase()}` : "—";
 }
 
+/** The files a job can be made from, as the file picker's `accept` and as a test of a name. */
+export const SOURCE_ACCEPT = ".epub,.rtf,.txt,.md,.markdown,.html,.htm,.xhtml,.docx";
+export const isSourceBook = (name: string) => /\.(epub|rtf|txt|md|markdown|html?|xhtml|docx)$/i.test(name);
+export const SOURCE_KINDS = "EPUB, RTF, text, Markdown, HTML, or Word (.docx)";
+
+/** What a translated book can be downloaded as: the EPUB the pipeline builds, or its text in another format. */
+export const OUTPUT_FORMATS: [string, string][] = [
+  ["epub", "EPUB"],
+  ["docx", "Word (.docx)"],
+  ["html", "HTML"],
+  ["md", "Markdown"],
+  ["txt", "Plain text"],
+];
+
 /** Download URL of a completed job's translated book. */
-export const outputUrl = (jobId: string) => `/api/jobs/${encodeURIComponent(jobId)}/output`;
+export const outputUrl = (jobId: string, format = "epub") =>
+  `/api/jobs/${encodeURIComponent(jobId)}/output${format === "epub" ? "" : `?format=${format}`}`;
 
 /** Download URL of the whole book's current translation (edits included) as XLIFF 2.1. */
 export const xliffExportUrl = (jobId: string) => `/api/jobs/${encodeURIComponent(jobId)}/text/export?format=xliff`;

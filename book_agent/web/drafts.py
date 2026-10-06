@@ -14,13 +14,14 @@ from pathlib import Path
 from typing import Any
 
 from ..atomic_io import atomic_write_text
+from ..book_formats import SOURCE_SUFFIXES
 from ..hashing import sha256_text
 from ..workspace import slugify_job_name, validate_job_id
 from . import setup as setup_api
 
 DRAFT_DIR = ".drafts"
 UPLOAD_DIR = ".uploads"
-_SOURCE_SUFFIXES = {".epub", ".rtf"}
+_SOURCE_SUFFIXES = SOURCE_SUFFIXES
 
 
 def _draft_path(runs: Path, job_id: str) -> Path:
@@ -79,7 +80,7 @@ def create_draft(
     if not source_path.is_file():
         raise ValueError(f"source file not found: {source_path}")
     if source_path.suffix.casefold() not in _SOURCE_SUFFIXES:
-        raise ValueError("source must be an EPUB or RTF file")
+        raise ValueError("source must be an EPUB, RTF, text, Markdown, HTML, or Word (.docx) file")
     config_path = setup_api.config_path(config_dir, config_name)
     job_id = job_id or Path(config_name).stem
     validate_job_id(job_id)
@@ -107,7 +108,7 @@ def store_upload(runs: Path, filename: str, stream, length: int) -> Path:
     name = Path(filename).name
     stem, suffix = Path(name).stem, Path(name).suffix
     if suffix.casefold() not in _SOURCE_SUFFIXES:
-        raise ValueError("only .epub and .rtf files can be uploaded")
+        raise ValueError("only .epub, .rtf, .txt, .md, .html, and .docx files can be uploaded")
     safe_stem = re.sub(r"[^\w .'()-]+", "_", stem).strip() or "book"
     directory = runs / UPLOAD_DIR
     directory.mkdir(parents=True, exist_ok=True)

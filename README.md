@@ -7,8 +7,9 @@
 **English** | [简体中文](README.zh-CN.md)
 
 A local, resumable book-translation pipeline for English-to-Chinese and
-Chinese-to-English literary prose. It takes an EPUB or RTF and produces a
-translated EPUB, running entirely against local Ollama models: no cloud API,
+Chinese-to-English literary prose. It takes an EPUB, RTF, text, Markdown,
+HTML, or Word (.docx) file and produces a translated EPUB, which can also be
+written as Word, HTML, Markdown, or text. It runs entirely against local Ollama models: no cloud API,
 no MCP server, and no agent framework such as LangGraph or AutoGen.
 
 Long-form translation fails in ways one model call cannot fix. A character's
@@ -143,6 +144,7 @@ reasoning to justify the additional runtime.
 - [Full-text review and tracked manual edits](docs/FULL_TEXT_REVIEW.md)
 - [XLIFF import](docs/XLIFF_IMPORT.md)
 - [Series glossary in the dashboard plan](docs/SERIES_GLOSSARY_UI.md)
+- [Text, Markdown, HTML, and Word books](docs/FORMAT_SUPPORT.md)
 - [Working plan](docs/PLAN.md)
 - [Unrun inference-framework benchmark plan](docs/FRAMEWORK_BENCHMARK_PLAN.md)
 
@@ -276,6 +278,27 @@ EPUB 3 with those accepted translations; source-specific fonts, styling,
 embedded objects, headers, and metadata are intentionally not reproduced.
 RTF parsing uses the lightweight `striprtf` package under a bounded input
 contract; rendering and parse-back validation remain deterministic.
+
+A text (`.txt`), Markdown (`.md`), HTML (`.html`), or Word (`.docx`) file
+uses the same command too. It is read for its text and structure, turned into
+an EPUB inside the job, and translated as any EPUB is; the translated book is
+written as an EPUB and, next to it, in the format it came in.
+
+```powershell
+book-agent run "D:\books\manuscript.docx" --config .\my-book.yaml
+book-agent export .\runs\manuscript-en-zh --format docx   # or html, md, txt; any completed job
+```
+
+What is kept from these files is headings, paragraphs, lists, quotations,
+emphasis, and links. Page layout, fonts, pictures, tables as tables,
+footnotes, and comments are not; a deletion under tracked changes is left
+out and an insertion kept. In a text file, a blank line separates
+paragraphs when the lines are wrapped at a fixed width, and otherwise every
+line is a paragraph; a short line such as "Chapter 3" or "第一章" starts a
+chapter. A Word file is read for its heading styles, so a book whose
+headings are only bold text becomes one chapter. PDF is not read.
+[docs/FORMAT_SUPPORT.md](docs/FORMAT_SUPPORT.md) has the design and the
+limits.
 
 The command prints the workspace path. Save it; all later commands operate on
 that directory. `--runs` overrides the configured workspace parent and
@@ -602,7 +625,8 @@ leaving LLM review disabled performs no independent review.
 
 - **Jobs** lists jobs with their translation direction (for example
   `EN → ZH`) and creates new ones; a completed job has a *Download* button for
-  its translated book, also in the job header. Each job's **Config** tab edits,
+  its translated book, also in the job header, where a format can be chosen
+  (EPUB, Word, HTML, Markdown, or text). Each job's **Config** tab edits,
   validates, and starts it; its *Languages* setting takes any two language
   codes, lists the tuned ones first, and for a generic pair shows the tiers,
   a model-quality notice, and the checks that will be skipped (options those

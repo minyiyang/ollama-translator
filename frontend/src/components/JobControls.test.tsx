@@ -187,6 +187,18 @@ describe("The job's buttons in the header", () => {
       expect(download).toHaveAttribute("download");
     });
 
+    it("lets the reader take the book as a Word document instead of an EPUB", async () => {
+      controlsApi(jobInfo({ downloadable: true }));
+      await renderControls("complete");
+      const format = screen.getByRole("combobox", { name: "Download format" });
+      expect(format).toHaveValue("epub");
+      expect(within(format).getAllByRole("option").map((option) => option.textContent)).toEqual([
+        "EPUB", "Word (.docx)", "HTML", "Markdown", "Plain text",
+      ]);
+      await userEvent.selectOptions(format, "Word (.docx)");
+      expect(screen.getByRole("link", { name: "⤓ Download" })).toHaveAttribute("href", "/api/jobs/demo/output?format=docx");
+    });
+
     it("has no download link before there is a book", async () => {
       controlsApi(stopped());
       await renderControls("paused");

@@ -62,7 +62,7 @@ export function BookCard({
 }) {
   const [coverFailed, setCoverFailed] = useState(false);
   const [zoomed, setZoomed] = useState(false);
-  const title = book.title || book.name.replace(/\.(epub|rtf)$/i, "");
+  const title = book.title || book.name.replace(/\.[a-z]+$/i, "");
   const authors = book.authors.join(", ");
   const showCover = book.has_cover && !coverFailed;
   const coverSrc = `/api/book/cover?path=${encodeURIComponent(book.path)}`;

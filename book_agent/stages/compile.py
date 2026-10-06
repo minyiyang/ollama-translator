@@ -20,6 +20,7 @@ from ..pipeline_state import (
     invalidate_stage_and_dependents,
     stage_is_current,
 )
+from ..book_formats import CONVERTED_SUFFIXES, export_book
 from ..rtf import compile_rtf_document
 from ..text_edits import (
     active_edit_texts,
@@ -173,6 +174,12 @@ def run_epub_compile_stage(
         report_path = workspace.directory("reports") / f"compile-{input_hash[:16]}.json"
         atomic_write_text(report_path, report.model_dump_json(indent=2))
         _record_file(connection, workspace, output_path, "compiled_epub")
+        # A book that came as text, Markdown, HTML, or a Word document is also
+        # written in the format it came in, next to the EPUB.
+        export_format = CONVERTED_SUFFIXES.get(workspace.source_file.suffix.casefold())
+        if export_format:
+            exported = export_book(output_path, output_path.with_suffix(f".{export_format}"), export_format)
+            _record_file(connection, workspace, exported, "compiled_export")
         _record_file(connection, workspace, report_path, "epub_compilation_report")
         set_job_metadata(
             connection,

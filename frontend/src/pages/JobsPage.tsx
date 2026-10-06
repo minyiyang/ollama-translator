@@ -5,7 +5,7 @@ import { BookCard, type BookInfo } from "../components/BookCard";
 import { Shell } from "../components/Shell";
 import { useToast } from "../components/Toast";
 import { Bar, Card, Chip } from "../components/ui";
-import { directionLabel, outputUrl, relativeTime } from "../lib/format";
+import { directionLabel, isSourceBook, outputUrl, relativeTime, SOURCE_ACCEPT, SOURCE_KINDS } from "../lib/format";
 import { stageLabel } from "../lib/stages";
 
 type Job = {
@@ -125,7 +125,7 @@ export function NewJobDialog({ setup, series, onClose }: {
 
   const upload = async (file: File | undefined) => {
     if (!file) return;
-    if (!/\.(epub|rtf)$/i.test(file.name)) { toast("bad", "Choose an .epub or .rtf file."); return; }
+    if (!isSourceBook(file.name)) { toast("bad", `Choose an ${SOURCE_KINDS} file.`); return; }
     setUploading(true);
     try {
       const path = await uploadSource(file);
@@ -173,15 +173,15 @@ export function NewJobDialog({ setup, series, onClose }: {
         )}
 
         <div className="field">
-          <label>Source EPUB or RTF</label>
-          <input ref={picker} type="file" accept=".epub,.rtf" hidden onChange={(e) => { upload(e.target.files?.[0]); e.target.value = ""; }} />
+          <label>Source book</label>
+          <input ref={picker} type="file" accept={SOURCE_ACCEPT} hidden onChange={(e) => { upload(e.target.files?.[0]); e.target.value = ""; }} />
           {book && !uploading ? (
             <div {...dropHandlers} className={over ? "drop-over" : ""}>
               <BookCard book={book} onChange={() => picker.current?.click()} />
             </div>
           ) : (
             <div {...dropHandlers} className={`dropzone ${over ? "over" : ""}`}>
-              {uploading ? "Uploading and reading the book…" : <>Drop an EPUB or RTF here, or{" "}
+              {uploading ? "Uploading and reading the book…" : <>Drop a book here ({SOURCE_KINDS}), or{" "}
                 <button type="button" className="small" onClick={() => picker.current?.click()}>Browse…</button></>}
             </div>
           )}
