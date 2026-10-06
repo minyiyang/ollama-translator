@@ -1,0 +1,368 @@
+
+================ de-en
+  minutes              qwen: 12.7
+                       tg  : 39.5
+  stages               qwen: {'audit_translation': 8.5, 'translate': 1.9, 'extract_glossary': 0.8, 'repair_translation': 0.7, 'review_repaired': 0.4}
+                       tg  : {'audit_translation': 13.9, 'repair_translation': 9.0, 'translate': 7.4, 'repair_review': 3.5, 'resolve_glossary': 2.6}
+  glossary             qwen: {'draft': 4, 'approved': 4}
+                       tg  : {'draft': 4, 'approved': 4}
+  approved             qwen: 4
+                       tg  : 4
+  rule                 qwen: {'glossary': 15}
+                       tg  : {'glossary': 34, 'duplication': 11, 'mistranslation': 4, 'omission': 1}
+  semantic             qwen: {'mistranslation': 11, 'glossary': 1}
+                       tg  : {'mistranslation': 1}
+  wrong_text_findings  qwen: 0
+                       tg  : 14
+  first                qwen: {'identical long texts': 0, 'conventions': 0, 'third script': 0, 'source-language passage': 0, 'broken marker': 0, 'ratio<0.5 or >2 of median': 0}
+                       tg  : {'identical long texts': 16, 'conventions': 0, 'third script': 0, 'source-language passage': 0, 'broken marker': 0, 'ratio<0.5 or >2 of median': 0}
+  final                qwen: {'identical long texts': 0, 'conventions': 0, 'third script': 0, 'source-language passage': 0, 'broken marker': 0, 'ratio<0.5 or >2 of median': 0}
+                       tg  : {'identical long texts': 4, 'conventions': 0, 'third script': 0, 'source-language passage': 0, 'broken marker': 0, 'ratio<0.5 or >2 of median': 0}
+  repaired_segments    qwen: 6
+                       tg  : 12
+  queue                qwen: 0
+                       tg  : 4
+  segments             qwen: 31
+                       tg  : 31
+  -- D0000-S000004
+     SRC : Gregors Blick richtete sich dann zum Fenster, und das trübe Wetter – man hörte Regentropfen auf das Fensterblech aufschlagen – machte ihn ganz melancholisch. »Wie wäre es, wenn ich noch ein wenig weiterschliefe  und alle Narrheiten vergäße,« dachte er, aber das war gänzlich undurchführbar, denn er war gewöhnt, auf der rechten Seite zu schlafen, konnte sich aber in seinem gegenwärtigen Zustand nicht in diese Lage brin
+     QWEN: Gregor’s gaze then turned to the window, and the gloomy weather—he could hear raindrops striking the window screen—made him quite melancholy. “What if I were to sleep a little longer  and forget all this nonsense,” he thought, but that was entirely impossible, for he was accustomed to sleeping on his right side, yet in his present condition he could not bring himself into that position. No matter how hard he threw hi
+     TG  : Gregor’s gaze then fell on the window, and the gloomy weather – he could hear raindrops pattering on the window sill – made him feel quite melancholy. “What if I were to sleep a little longer and forget all this nonsense,” he thought, but that was completely impossible, for he was used to sleeping on his right side, but he could not bring himself into that position in his present state. No matter how hard he tried to
+  -- D0000-S000011
+     SRC : Zuerst wollte er mit dem unteren Teil seines Körpers aus dem Bett hinauskommen, aber dieser untere Teil, den er übrigens noch nicht gesehen hatte und von dem er sich auch keine rechte Vorstellung machen konnte, erwies sich als zu schwer beweglich; es ging so langsam; und als er schließlich, fast wild geworden, mit gesammelter Kraft, ohne Rücksicht sich vorwärtsstieß, hatte er die Richtung falsch gewählt, schlug an de
+     QWEN: First, he wanted to get the lower part of his body out of the bed, but this lower part, which he had not yet seen and of which he could not form a proper idea, proved to be too heavy to move; it went so slowly; and when he finally, almost wild, with gathered strength, pushed himself forward without regard, he had chosen the wrong direction, struck the lower bedpost violently, and the burning pain he felt taught him t
+     TG  : First, he wanted to get the lower part of his body out of bed, but this lower part, which he had not yet seen and of which he could not even imagine, proved to be too difficult to move; it went so slowly; and when he finally, almost frantic, pushed himself forward with all his might, he had the wrong direction, hit the lower bedpost hard, and the burning pain he felt taught him that it was precisely the lower part of
+  -- D0000-S000016
+     SRC : Schon war er so weit, daß er bei stärkerem Schaukeln kaum das Gleichgewicht noch erhielt, und sehr bald mußte er sich nun endgültig entscheiden, denn es war in fünf Minuten einviertel acht, – als es an der Wohnungstür läutete. »Das ist jemand aus dem Geschäft,« sagte er sich und erstarrte fast, während seine Beinchen nur desto eiliger tanzten. Einen Augenblick blieb alles still. »Sie öffnen nicht,« sagte sich Gregor,
+     QWEN: He was already so far along that with stronger shaking he could barely maintain his balance, and very soon he had to make a final decision, for it was five minutes past a quarter to eight, — when the doorbell rang at the apartment door. “That is someone from the office,” he said to himself and almost froze, while his little legs danced all the more hurriedly. For a moment, everything was still. “They are not opening,
+     TG  : He slid back into his former position. “This early rising,” he thought, “makes one quite foolish. A man must have his sleep. Other traveling salesmen live like harem women. If, for example, I go back to the inn in the morning to rewrite the orders I have obtained, these gentlemen are just having breakfast. I should try that with my boss; I would be kicked out immediately. Who knows, by the way, if that wouldn’t be ve
+  -- D0000-S000021
+     SRC : »Aber Herr Prokurist,« rief Gregor außer sich und vergaß in der Aufregung alles andere, »ich mache ja sofort, augenblicklich auf. Ein leichtes Unwohlsein, ein Schwindelanfall, haben mich verhindert aufzustehen. Ich  liege noch jetzt im Bett. Jetzt bin ich aber schon wieder ganz frisch. Eben steige ich aus dem Bett. Nur einen kleinen Augenblick Geduld! Es geht noch nicht so gut, wie ich dachte. Es ist mir aber schon w
+     QWEN: “But the Prokurist,” Gregor called out, out of his mind and forgetting everything else in the agitation, “I am opening up immediately, at once. A slight indisposition, a dizzy spell, prevented me from getting up. I  am still lying in bed. But now I am quite fresh again. I am just getting out of bed. Only a little patience! It is not going as well as I thought. But I am feeling better now. How can it only overtake a p
+     TG  : “But Mr. Authorized Signatory,” Gregor cried, beside himself and forgetting everything else in his agitation, “I am opening up right now, this instant. A slight indisposition, a dizzy spell, has prevented me from getting up. I  am still lying in bed. But now I am quite refreshed again. I am getting out of bed this very moment. Just a little patience! It is not going as well as I thought. But I am feeling better now. 
+  -- D0000-S000028
+     SRC : »Nun,« sagte Gregor und war sich dessen wohl bewußt, daß er der einzige war, der die Ruhe bewahrt hatte, »ich werde mich gleich anziehen, die Kollektion zusammenpacken und wegfahren. Wollt ihr, wollt ihr  mich wegfahren lassen? Nun, Herr Prokurist, Sie sehen, ich bin nicht starrköpfig und ich arbeite gern; das Reisen ist beschwerlich, aber ich könnte ohne das Reisen nicht leben. Wohin gehen Sie denn, Herr Prokurist? 
+     QWEN: “Well,” said Gregor and was well aware that he was the only one who had kept his calm, “I will dress up immediately, pack the collection and leave. Do you want, do you want  to let me leave? Well, the Prokurist, you see, I am not stubborn and I like to work; traveling is burdensome, but I could not live without traveling. Where are you going, the Prokurist? To the office? Yes? Will you report everything truthfully? O
+     TG  : As he thought all this in great haste, without being able to decide to get out of bed – just then the alarm clock struck half past seven – there was a gentle knock on the door at the head of his bed. “Gregor,” it said – it was his mother – “it’s half past seven. Didn’t you want to leave?” The gentle voice! Gregor was startled when he heard his answering voice, which was undoubtedly his former voice, but into which, a
+
+================ en-ko
+  minutes              qwen: 16.3
+                       tg  : 96.2
+  stages               qwen: {'audit_translation': 7.6, 'translate': 4.2, 'extract_glossary': 1.3, 'repair_translation': 1.1, 'repair_review': 0.6}
+                       tg  : {'translate': 37.1, 'audit_translation': 26.7, 'repair_review': 13.2, 'repair_translation': 11.2, 'approve_glossary': 2.7}
+  glossary             qwen: {'draft': 40, 'approved': 36, 'dropped-generic': 1}
+                       tg  : {'draft': 47, 'approved': 43, 'dropped-generic': 4}
+  approved             qwen: 36
+                       tg  : 43
+  rule                 qwen: {'untranslated': 5, 'ai_style': 1}
+                       tg  : {'glossary': 11, 'duplication': 5, 'addition': 3, 'mistranslation': 2, 'ai_style': 2, 'untranslated': 1}
+  semantic             qwen: {'mistranslation': 17}
+                       tg  : {'mistranslation': 18, 'omission': 2, 'untranslated': 1}
+  wrong_text_findings  qwen: 0
+                       tg  : 6
+  first                qwen: {'identical long texts': 1, 'conventions': 0, 'third script': 7, 'source-language passage': '-', 'broken marker': 0, 'ratio<0.5 or >2 of median': 0}
+                       tg  : {'identical long texts': 5, 'conventions': 0, 'third script': 1, 'source-language passage': '-', 'broken marker': 2, 'ratio<0.5 or >2 of median': 0}
+  final                qwen: {'identical long texts': 1, 'conventions': 0, 'third script': 7, 'source-language passage': '-', 'broken marker': 0, 'ratio<0.5 or >2 of median': 0}
+                       tg  : {'identical long texts': 1, 'conventions': 0, 'third script': 0, 'source-language passage': '-', 'broken marker': 2, 'ratio<0.5 or >2 of median': 0}
+  repaired_segments    qwen: 15
+                       tg  : 23
+  queue                qwen: 4
+                       tg  : 3
+  segments             qwen: 145
+                       tg  : 145
+  -- D0000-S000004
+     SRC : There was nothing so very remarkable in that; nor did Alice think it so very much out of the way to hear the Rabbit say to itself, “Oh dear! Oh dear! I shall be late!” (when she thought it over afterwards, it occurred to her that she ought to have wondered at this, but at the time it all seemed quite natural); but when the Rabbit actually took a watch out of its waistcoat-pocket, and looked at it, and then hurried on
+     QWEN: 그것은 매우 특별할 것이 없었다. 흰 토끼가 자기 자신에게 “아이고! 아이고! 늦겠어!”라고 말하는 소리를 듣는 것도 매우 이상할 일은 아니었다. (사후에 생각해보니, 그때 놀랐어야 했다는 생각이 들었지만, 당시는 모든 것이 너무나 자연스러웠다.) 그러나 흰 토끼가 실제로 베스트 포켓에서 시계를 꺼내 보고, 서둘러 달려가자, 앨리스는 벌떡 일어섰다. 그녀의 머릿속에 번개처럼 스쳐 지나간 생각은, 베스트 포켓이 있는 토끼, 혹은 그 안에서 꺼내는 시계를 가진 토끼를 본 적이 없다는 것이었다. 호기심에 불타오른 그녀는 들판을 가로질러 뒤쫓아갔고, 다행히도 울타리 아래 큰 토끼 구멍으로 사라지는 것을 막赶上했다.
+     TG  : 그것은 매우 특별할 것이 없었고, 앨리스는 토끼가 스스로에게 “아이고! 아이고! 늦겠어!”라고 말하는 것을 듣는 것도 매우 이상하게 생각하지 않았다. (나중에 생각해보니, 그때에 그 점이 놀라웠어야 했다는 생각이 들었지만, 당시에는 모든 것이 꽤 자연스러웠다.) 그러나 토끼가 실제로 베스트 주머니에서 시계를 꺼내 보고, 서둘러 달려가자, 앨리스는 벌떡 일어섰다. 그녀의 머릿속에 번개처럼 스쳐간 생각은, 베스트 주머니나 그 안에서 꺼내는 시계를 가진 토끼를 본 적이 없다는 것이었다. 호기심에 불타오른 그녀는 들판을 가로질러 뒤쫓아갔고, 다행히도 울타리 아래 큰 토끼굴로 사라지는 것을 막 볼 수 있었다.
+  -- D0001-S000022
+     SRC : “Well, perhaps not,” said Alice in a soothing tone: “don’t be angry about it. And yet I wish I could show you our cat Dinah: I think you’d take a fancy to cats if you could only see her. She is such a dear quiet thing,” Alice went on, half to herself, as she swam lazily about in the pool, “and she sits purring so nicely by the fire, licking her paws and washing her face—and she is such a nice soft thing to nurse—and 
+     QWEN: “음, 아마도 그렇지 않을 거야,” 앨리스가 달래는 어조로 말했다: “그것에 대해 화내지 마세요. 그리고 나는 우리 고양이 디나를 보여줄 수 있으면 좋겠어: 나는 당신이 그녀를 볼 수만 있다면 고양이를 좋아할 거라고 생각해. 그녀는 정말로 조용한 것,” 앨리스가 계속했다, 절반은 자기 자신에게, 연못에서 게으르게 수영하며, “그리고 그녀는 벽난로 옆에서 그렇게 잘 울음소리를 내며, 발을 핥고 얼굴을 씻고—그리고 그녀는 정말로 부드러운 것을 돌보는 것—그리고 그녀는 쥐를 잡는 데 정말로 잘해—아, 저는 죄송합니다!” 앨리스가 다시 외쳤다, 이번에는 쥐가 온몸이 솟아 있었고, 그녀는 그것이 정말로 화가 났다고 확신했다. “당신이 원하지 않는다면, 우리는 더 이상 그녀에 대해 말하지 않을 거야.”
+     TG  : “글쎄, 아마 아닐 거야.” 앨리스는 부드러운 어조로 말했다. “화내지 마. 그리고 나는 당신에게 우리 고양이 디나를 보여주고 싶어. 당신은 그녀를 보면 고양이를 좋아하게 될 거야. 그녀는 너무나 사랑스럽고 조용한 존재야.” 앨리스는 수영장에서 게으르게 헤엄치며 혼잣말을 했다. “그리고 그녀는 벽난로 옆에서 웅크리고 앉아 발을 핥고 얼굴을 씻으며, 그녀는 간호하기에 너무나 부드러운 존재이고, 그녀는 쥐를 잡는 데 매우 유능해. 아, 죄송합니다!” 앨리스가 다시 말했다. 이번에는 쥐가 온통 뻣뻣해졌고, 그녀는 쥐가 정말로 불쾌감을 느꼈다고 확신했다. “나는 더 이상 그녀에 대해 이야기하지 않을게, 당신이 원하지 않는다면.”
+  -- D0002-S000020
+     SRC : First it marked out a race-course, in a sort of circle, (“the exact shape doesn’t matter,” it said,) and then all the party were placed along the course, here and there. There was no “One, two, three, and away,” but they began running when they liked, and left off when they liked, so that it was not easy to know when the race was over. However, when they had been running half an hour or so, and were quite dry again, 
+     QWEN: 먼저 도도새는 경주 코스를 표시했다. 일종의 원형으로 (“정확한 모양은 중요하지 않다”고 말했고), 그리고 그들 모두는 코스 여기저기에 배치되었다. “하나, 둘, 셋, 출발”이라는 신호는 없었지만, 그들은 원하는 때에 달리기 시작하고 원하는 때에 멈추었으므로, 경주가 언제 끝났는지 알기 어려웠다. 그러나 그들이 약 반 시간 정도 달리고 완전히 마른 후, 도도새는 갑자기 “경주가 끝났다!”라고 외쳤고, 그들은 모두 헐떡이며 그 주위에 몰려들었다. “하지만 누가 이겼나요?”
+     TG  : 먼저 일종의 원 모양으로 경주 코스를 표시했는데, “정확한 모양은 중요하지 않다”고 말했다. 그런 다음 모든 사람들이 코스를 따라 여기저기에 배치되었다. “하나, 둘, 셋, 출발!”이라고 말하지 않고, 그들은 원하는 대로 달리기 시작했고, 원하는 대로 멈췄기 때문에 경기가 언제 끝났는지 알기가 쉽지 않았다. 그러나 그들이 약 30분 정도 달리고 완전히 마르자, 도도새는 갑자기 “경기가 끝났습니다!”라고 외쳤고, 그들은 모두 도도새 주위로 모여 숨을 헐떡이며 “하지만 누가 이겼나요?”라고 물었다.
+  -- D0002-S000044
+     SRC : “What a pity it wouldn’t stay!” sighed the Lory, as soon as it was quite out of sight; and an old Crab took the opportunity of saying to her daughter “Ah, my dear! Let this be a lesson to you never to lose your temper!” “Hold your tongue, Ma!” said the young Crab, a little snappishly. “You’re enough to try the patience of an oyster!”
+     QWEN: “안 오다니 정말 아쉽다!” 로리새는 완전히 시야에서 사라지자마자 한숨을 쉬었다. 그리고 늙은 게는 딸에게 말할 기회를 잡았다. “아, 내 딸아! 이걸 교훈으로 삼아 네 성미를 잃지 않도록 해라!” “입 다물어, 엄마!” 젊은 게는 약간 날카롭게 말했다. “당신은 굴의 인내심까지 시험할 정도야!”
+     TG  : “그것이 사라지지 않고 계속 있었더라면 얼마나 좋을까!” 로리새가 한숨을 쉬며 말했다. 그것이 완전히 시야에서 사라지자, 늙은 게는 딸에게 말할 기회를 잡았다. “아, 내 사랑! 이것을 교훈으로 삼아 절대로 네 분노를 잃지 마라!” “엄마는 조용히 해!” 어린 게가 약간 짜증스럽게 말했다. “엄마는 굴의 인내심을 시험하게 만들 거야!”
+  -- D0003-S000040
+     SRC : This seemed to Alice a good opportunity for making her escape; so she set off at once, and ran till she was quite tired and out of breath, and till the puppy’s bark sounded quite faint in the distance.
+     QWEN: 이것은 앨리스에게 도망칠 좋은 기회로 보였다; 그래서 그녀는 즉시 출발했고, 완전히 지치고 숨이 차기까지, 그리고 강아지의 짖음 소리가 멀리서 아주 희미하게 들리기까지 달렸다.
+     TG  : 그녀는 무엇을 해야 할지 거의 알지 못하면서 작은 막대기를 집어 강아지에게 내밀었고, 그러자 강아지는 한 번에 발을 공중으로 띄우며 기쁨에 겨워 짖었고, 막대기를 향해 달려들어 씹는 척했다. 그러자 앨리스는 큰 엉겅퀴 뒤로 몸을 숨겨 강아지가 그녀를 밟고 지나가지 않도록 했다. 그리고 그녀가 다른 쪽으로 나타나자, 강아지는 다시 막대기를 향해 달려들었고, 그것을 잡으려고 서둘러 움직이다가 머리부터 발끝까지 넘어졌다. 그러자 앨리스는 그것이 마치 마차 말과 게임을 하는 것과 같다고 생각했고, 매 순간 밟힐 것이라고 예상하며, 다시 엉겅퀴 주위를 달렸다. 그러자 강아지는 막대기를 향한 짧은 돌진을 시작했고, 매번 조금씩 앞으로 나아가고 멀리 뒤로 물러나며, 끊임없이 쉰 목소리로 짖었다. 마침내 그것은 멀리 떨어진 곳에 앉아 헐떡이며, 혀를 입 밖
+
+================ en-de
+  minutes              qwen: 59.5
+                       tg  : 86.8
+  stages               qwen: {'audit_translation': 47.1, 'translate': 4.9, 'repair_translation': 2.9, 'extract_glossary': 1.6, 'repair_review': 0.9}
+                       tg  : {'audit_translation': 28.3, 'translate': 19.7, 'resolve_glossary': 15.6, 'repair_translation': 9.9, 'repair_review': 8.5}
+  glossary             qwen: {'draft': 45, 'approved': 42, 'dropped-generic': 3}
+                       tg  : {'draft': 42, 'approved': 38, 'dropped-generic': 3}
+  approved             qwen: 42
+                       tg  : 38
+  rule                 qwen: {'untranslated': 14, 'glossary': 7, 'mistranslation': 2}
+                       tg  : {'glossary': 16, 'mistranslation': 4, 'duplication': 4, 'addition': 1}
+  semantic             qwen: {'mistranslation': 13, 'untranslated': 6, 'glossary': 1}
+                       tg  : {'mistranslation': 7}
+  wrong_text_findings  qwen: 0
+                       tg  : 4
+  first                qwen: {'identical long texts': 1, 'conventions': 32, 'third script': 0, 'source-language passage': 13, 'broken marker': 0, 'ratio<0.5 or >2 of median': 0}
+                       tg  : {'identical long texts': 7, 'conventions': 2, 'third script': 0, 'source-language passage': 0, 'broken marker': 0, 'ratio<0.5 or >2 of median': 0}
+  final                qwen: {'identical long texts': 1, 'conventions': 10, 'third script': 0, 'source-language passage': 0, 'broken marker': 0, 'ratio<0.5 or >2 of median': 0}
+                       tg  : {'identical long texts': 2, 'conventions': 0, 'third script': 0, 'source-language passage': 0, 'broken marker': 0, 'ratio<0.5 or >2 of median': 0}
+  repaired_segments    qwen: 56
+                       tg  : 19
+  queue                qwen: 16
+                       tg  : 1
+  segments             qwen: 145
+                       tg  : 145
+  -- D0000-S000004
+     SRC : There was nothing so very remarkable in that; nor did Alice think it so very much out of the way to hear the Rabbit say to itself, “Oh dear! Oh dear! I shall be late!” (when she thought it over afterwards, it occurred to her that she ought to have wondered at this, but at the time it all seemed quite natural); but when the Rabbit actually took a watch out of its waistcoat-pocket, and looked at it, and then hurried on
+     QWEN: Es war nichts besonders Bemerkenswertes daran; und Alice fand es auch nicht allzu ungewöhnlich, den Hasen bei sich selbst sagen zu hören: „Oh weh! Oh weh! Ich komme zu spät!“ (Als sie es später überdachte, fiel ihr ein, dass sie sich darüber hätte wundern sollen, aber im Augenblick schien ihr alles völlig natürlich); doch als der Hase tatsächlich eine Uhr aus seiner Westentasche zog, sie ansah und dann eilig weitergi
+     TG  : Es war nichts außergewöhnliches daran; und Alice fand es auch nicht besonders merkwürdig, den Hasen zu hören, wie er zu sich selbst murmelte: „Oh je! Oh je! Ich werde zu spät kommen!“ (Als sie später darüber nachdachte, kam ihr der Gedanke, dass sie sich darüber hätte wundern müssen, aber in diesem Moment erschien es ihr alles ganz natürlich); doch als der Hase tatsächlich eine Taschenuhr aus seiner Westentasche zog,
+  -- D0001-S000022
+     SRC : “Well, perhaps not,” said Alice in a soothing tone: “don’t be angry about it. And yet I wish I could show you our cat Dinah: I think you’d take a fancy to cats if you could only see her. She is such a dear quiet thing,” Alice went on, half to herself, as she swam lazily about in the pool, “and she sits purring so nicely by the fire, licking her paws and washing her face—and she is such a nice soft thing to nurse—and 
+     QWEN: „Nun, vielleicht nicht“, sagte Alice in einem besänftigenden Ton: „sei nicht böreswegen. Und doch wünschte ich, ich könnte dir unsere Katze Dinah zeigen: Ich denke, du würdest eine Vorliebe für Katzen entwickeln, wenn du sie nur sehen könntest. Sie ist so ein liebes, ruhiges Ding“, fuhr Alice fort, halb zu sich selbst, während sie träge im Pool schwamm, „und sie sitzt so schön schnurrend am Feuer, leckt ihre Pfoten u
+     TG  : „Nun, vielleicht nicht“, sagte Alice in beruhigendem Ton: „Sei nicht darüber verärgert. Und doch wünschte ich, ich könnte dir unsere Katze Dinah zeigen: Ich glaube, du würdest Katzen ins Herz schließen, wenn du sie nur sehen könntest. Sie ist so ein liebes, stilles Wesen“, fuhr Alice fort, halb zu sich selbst, während sie träge im Becken hin und her schwamm, „und sie sitzt so schön schnurrend am Feuer, leckt sich die
+  -- D0002-S000020
+     SRC : First it marked out a race-course, in a sort of circle, (“the exact shape doesn’t matter,” it said,) and then all the party were placed along the course, here and there. There was no “One, two, three, and away,” but they began running when they liked, and left off when they liked, so that it was not easy to know when the race was over. However, when they had been running half an hour or so, and were quite dry again, 
+     QWEN: Zuerst markierte er eine Rennstrecke, in einer Art Kreis, („die genaue Form ist nicht wichtig“, sagte er,) und dann wurden alle Teilnehmer entlang der Strecke platziert, hier und da. Es gab kein „Eins, zwei, drei, los“, aber sie begannen zu laufen, wann immer sie wollten, und hörten auf, wann immer sie wollten, so dass es nicht leicht war zu wissen, wann das Rennen zu Ende war. Allerdings, als sie etwa eine halbe Stu
+     TG  : Zuerst markierte er eine Rennstrecke in einer Art Kreis aus („die genaue Form ist egal“, sagte er), und dann wurden alle Anwesenden entlang der Strecke platziert, hier und da. Es gab kein „Eins, zwei, drei und los“, aber sie begannen zu laufen, wann immer sie wollten, und hörten auf, wann sie wollten, so dass es nicht einfach war zu wissen, wann das Rennen vorbei war. Als sie jedoch etwa eine halbe Stunde lang gelauf
+  -- D0002-S000044
+     SRC : “What a pity it wouldn’t stay!” sighed the Lory, as soon as it was quite out of sight; and an old Crab took the opportunity of saying to her daughter “Ah, my dear! Let this be a lesson to you never to lose your temper!” “Hold your tongue, Ma!” said the young Crab, a little snappishly. “You’re enough to try the patience of an oyster!”
+     QWEN: „Wie schade, dass sie nicht bleiben wollte!” seufzte die Lori, sobald sie außer Sichtweite war; und eine alte Krabbe nutzte die Gelegenheit, zu ihrer Tochter zu sagen: „Ah, mein Liebes! Lass dies eine Lektion für dich sein, nie dein Temperament zu verlieren!” „Halte den Mund, Mama!” sagte die junge Krabbe, ein wenig scharf. „Du bist genug, um die Geduld einer Auster zu testen!”
+     TG  : „Was für eine Schande, dass sie nicht bleiben wollte!“, seufzte der Lori, sobald sie außer Sichtweite war; und eine alte Krabbe nutzte die Gelegenheit, um zu ihrer Tochter zu sagen: „Ach, meine Liebe! Lasst dies eine Lehre für euch sein, niemals die Beherrschung zu verlieren!“ „Halt deine Zunge, Mama!“, sagte die junge Krabbe etwas gereizt. „Du bist genug, um die Geduld einer Auster auf die Probe zu stellen!“
+  -- D0003-S000040
+     SRC : This seemed to Alice a good opportunity for making her escape; so she set off at once, and ran till she was quite tired and out of breath, and till the puppy’s bark sounded quite faint in the distance.
+     QWEN: Dies schien Alice eine gute Gelegenheit zu sein, um zu entkommen; also machte sie sich sofort auf den Weg und rannte, bis sie völlig erschöpft und außer Atem war, und bis das Bellen des Welpen in der Ferne ganz leise klang.
+     TG  : Dies schien Alice eine gute Gelegenheit zu sein, um zu entkommen; also machte sie sich sofort auf den Weg und rannte, bis sie völlig erschöpft und außer Atem war, und bis das Bellen des Welpen in der Ferne kaum noch zu hören war.
+
+================ en-es
+  minutes              qwen: 26.9
+                       tg  : 30.7
+  stages               qwen: {'audit_translation': 16.6, 'translate': 3.8, 'repair_translation': 2.3, 'extract_glossary': 1.4, 'repair_review': 1.0}
+                       tg  : {'translate': 16.7, 'audit_translation': 6.0, 'repair_translation': 3.4, 'extract_glossary': 1.4, 'resolve_glossary': 1.2}
+  glossary             qwen: {'draft': 53, 'approved': 48, 'dropped-generic': 5}
+                       tg  : {'draft': 45, 'approved': 39, 'dropped-generic': 6}
+  approved             qwen: 48
+                       tg  : 39
+  rule                 qwen: {'glossary': 11}
+                       tg  : {'glossary': 11, 'mistranslation': 5, 'omission': 1}
+  semantic             qwen: {'mistranslation': 16, 'glossary': 2}
+                       tg  : {'mistranslation': 10, 'glossary': 2, 'omission': 2}
+  wrong_text_findings  qwen: 0
+                       tg  : 1
+  first                qwen: {'identical long texts': 1, 'conventions': 17, 'third script': 0, 'source-language passage': 0, 'broken marker': 0, 'ratio<0.5 or >2 of median': 0}
+                       tg  : {'identical long texts': 1, 'conventions': 3, 'third script': 0, 'source-language passage': 0, 'broken marker': 0, 'ratio<0.5 or >2 of median': 0}
+  final                qwen: {'identical long texts': 1, 'conventions': 8, 'third script': 0, 'source-language passage': 0, 'broken marker': 0, 'ratio<0.5 or >2 of median': 0}
+                       tg  : {'identical long texts': 1, 'conventions': 3, 'third script': 0, 'source-language passage': 0, 'broken marker': 0, 'ratio<0.5 or >2 of median': 0}
+  repaired_segments    qwen: 23
+                       tg  : 19
+  queue                qwen: 14
+                       tg  : 5
+  segments             qwen: 145
+                       tg  : 145
+  -- D0000-S000004
+     SRC : There was nothing so very remarkable in that; nor did Alice think it so very much out of the way to hear the Rabbit say to itself, “Oh dear! Oh dear! I shall be late!” (when she thought it over afterwards, it occurred to her that she ought to have wondered at this, but at the time it all seemed quite natural); but when the Rabbit actually took a watch out of its waistcoat-pocket, and looked at it, and then hurried on
+     QWEN: No había nada de muy extraordinario en ello; ni Alicia pensó que fuera muy fuera de lo común oír al Conejo decirse a sí mismo: «¡Ay, Dios mío! ¡Ay, Dios mío! ¡Llegaré tarde!» (cuando lo pensó después, le ocurrió que debería haberse asombrado de esto, pero en el momento todo pareció bastante natural); pero cuando el Conejo sacó un reloj de su bolsillo de chaleco, y lo miró, y luego se apresuró a seguir, Alicia se puso
+     TG  : No había nada tan remarcable en ello; ni tampoco Alicia pensó que fuera algo tan insólito oír al Conejo decir para sí mismo: “¡Ay, Dios mío! ¡Ay, Dios mío! ¡Llegaré tarde!”. (Cuando lo pensó después, se dio cuenta de que debería haberse maravillado de ello, pero en ese momento todo le pareció bastante natural); pero cuando el Conejo sacó un reloj de su bolsillo del chaleco, lo miró y luego se apresuró, Alicia se leva
+  -- D0001-S000022
+     SRC : “Well, perhaps not,” said Alice in a soothing tone: “don’t be angry about it. And yet I wish I could show you our cat Dinah: I think you’d take a fancy to cats if you could only see her. She is such a dear quiet thing,” Alice went on, half to herself, as she swam lazily about in the pool, “and she sits purring so nicely by the fire, licking her paws and washing her face—and she is such a nice soft thing to nurse—and 
+     QWEN: «Bueno, quizás no», dijo Alicia en un tono calmante: «no te enojes por eso. Y sin embargo, me gustaría mostrarte a nuestra gata Dinah; creo que te encantarían los gatos si pudieras verla. Es una cosa tan querida y tranquila», continuó Alicia, a medias para sí misma, mientras nadaba perezosamente en el charco, «y se sienta ronroneando tan bien junto a la chimenea, lamiendo sus patas y lavándose la cara —y es una cosa 
+     TG  : “¡No lo haré!”, dijo Alicia, con mucha prisa por cambiar el tema de la conversación. “¿Te gusta… te gustan… los perros?”. El ratón no respondió, así que Alicia continuó con entusiasmo: “Hay un perro pequeño muy bonito cerca de nuestra casa, me gustaría mostrártelo. Un pequeño terrier de ojos brillantes, ya sabes, con un pelo largo y castaño rizado. Y trae cosas cuando las lanzas, y se sienta y suplica por su cena, y 
+  -- D0002-S000020
+     SRC : First it marked out a race-course, in a sort of circle, (“the exact shape doesn’t matter,” it said,) and then all the party were placed along the course, here and there. There was no “One, two, three, and away,” but they began running when they liked, and left off when they liked, so that it was not easy to know when the race was over. However, when they had been running half an hour or so, and were quite dry again, 
+     QWEN: Primero marcó un circuito de carrera, en una especie de círculo, («la forma exacta no importa», dijo,) y luego toda la compañía fue colocada a lo largo del circuito, aquí y allá. No hubo «Uno, dos, tres, y fuera», pero comenzaron a correr cuando quisieron, y dejaron de hacerlo cuando quisieron, de modo que no era fácil saber cuándo terminaba la carrera. Sin embargo, cuando habían estado corriendo media hora o así, y 
+     TG  : Primero, marcó un circuito, en forma de círculo (“la forma exacta no importa”, dijo), y luego todos los del grupo se colocaron a lo largo del circuito, aquí y allá. No hubo un “uno, dos, tres, y a correr”, sino que comenzaron a correr cuando quisieron y dejaron de correr cuando quisieron, por lo que no fue fácil saber cuándo terminó la carrera. Sin embargo, cuando habían estado corriendo durante media hora más o meno
+  -- D0002-S000044
+     SRC : “What a pity it wouldn’t stay!” sighed the Lory, as soon as it was quite out of sight; and an old Crab took the opportunity of saying to her daughter “Ah, my dear! Let this be a lesson to you never to lose your temper!” “Hold your tongue, Ma!” said the young Crab, a little snappishly. “You’re enough to try the patience of an oyster!”
+     QWEN: «¡Qué lástima que no se quedara!», suspiró el Lori, en cuanto estuvo completamente fuera de vista; y un viejo Cangrejo aprovechó la oportunidad de decirle a su hija: «¡Ah, mi querida! Que esto sea una lección para ti de nunca perder tu temperamento». «¡Cállate, mamá!», dijo el joven Cangrejo, un poco cortante. «¡Eres suficiente para probar la paciencia de una ostra!»
+     TG  : “¡Qué lástima que no se quede!”, suspiró el Lori, tan pronto como desapareció de la vista; y un viejo Cangrejo aprovechó la oportunidad para decirle a su hija: “¡Ah, querida! ¡Que esto te sirva de lección para que nunca pierdas el temple!”. “¡Cállate, mamá!”, dijo el cangrejo joven, un poco de mal humor. “¡Eres suficiente para poner a prueba la paciencia de una ostra!”.
+  -- D0003-S000040
+     SRC : This seemed to Alice a good opportunity for making her escape; so she set off at once, and ran till she was quite tired and out of breath, and till the puppy’s bark sounded quite faint in the distance.
+     QWEN: Esto pareció a Alicia una buena oportunidad para hacer su escape; así que se puso en marcha de inmediato, y corrió hasta que estuvo completamente cansada y sin aliento, y hasta que el ladrido del cachorro sonó muy débil en la distancia.
+     TG  : Esto le pareció a Alicia una buena oportunidad para escapar, así que salió corriendo de inmediato, y corrió hasta que estuvo bastante cansada y sin aliento, y hasta que el ladrido del cachorro sonó muy débil a la distancia.
+
+================ en-fr
+  minutes              qwen: 22.7
+                       tg  : 34.7
+  stages               qwen: {'audit_translation': 14.7, 'translate': 3.8, 'extract_glossary': 1.4, 'repair_translation': 0.7, 'resolve_glossary': 0.6}
+                       tg  : {'translate': 17.9, 'audit_translation': 8.5, 'repair_translation': 3.4, 'extract_glossary': 1.4, 'resolve_glossary': 1.1}
+  glossary             qwen: {'draft': 49, 'approved': 43, 'dropped-generic': 1}
+                       tg  : {'draft': 49, 'approved': 45, 'dropped-generic': 4}
+  approved             qwen: 43
+                       tg  : 45
+  rule                 qwen: {'glossary': 1, 'untranslated': 1}
+                       tg  : {'glossary': 21, 'duplication': 4, 'mistranslation': 3, 'addition': 1}
+  semantic             qwen: {'mistranslation': 8, 'structure': 1}
+                       tg  : {'mistranslation': 5, 'glossary': 2, 'structure': 1, 'omission': 1}
+  wrong_text_findings  qwen: 0
+                       tg  : 5
+  first                qwen: {'identical long texts': 1, 'conventions': 0, 'third script': 0, 'source-language passage': 4, 'broken marker': 0, 'ratio<0.5 or >2 of median': 0}
+                       tg  : {'identical long texts': 9, 'conventions': 0, 'third script': 0, 'source-language passage': 0, 'broken marker': 0, 'ratio<0.5 or >2 of median': 0}
+  final                qwen: {'identical long texts': 1, 'conventions': 0, 'third script': 0, 'source-language passage': 3, 'broken marker': 0, 'ratio<0.5 or >2 of median': 0}
+                       tg  : {'identical long texts': 2, 'conventions': 0, 'third script': 0, 'source-language passage': 0, 'broken marker': 0, 'ratio<0.5 or >2 of median': 0}
+  repaired_segments    qwen: 7
+                       tg  : 13
+  queue                qwen: 2
+                       tg  : 1
+  segments             qwen: 145
+                       tg  : 145
+  -- D0000-S000004
+     SRC : There was nothing so very remarkable in that; nor did Alice think it so very much out of the way to hear the Rabbit say to itself, “Oh dear! Oh dear! I shall be late!” (when she thought it over afterwards, it occurred to her that she ought to have wondered at this, but at the time it all seemed quite natural); but when the Rabbit actually took a watch out of its waistcoat-pocket, and looked at it, and then hurried on
+     QWEN: Il n’y avait rien de très remarquable là-dedans ; ni Alice ne trouva-t-elle très étrange d’entendre le Lapin se dire à lui-même : « Oh, mon Dieu ! Oh, mon Dieu ! Je vais être en retard ! » (quand elle y repensa plus tard, il lui vint à l’esprit qu’elle aurait dû s’en étonner, mais au moment même, tout cela lui parut parfaitement naturel) ; mais quand le Lapin sortit une montre de sa poche de gilet, et la regarda, pui
+     TG  : Il n’y avait rien de très remarquable à cela ; et Alice ne trouvait pas non plus si très étrange d’entendre le Lapin se dire à lui-même : « Ma parole ! Ma parole ! Je vais être en retard ! » (quand elle y repensa plus tard, il lui vint à l’esprit qu’elle aurait dû s’en étonner, mais au moment même, tout lui semblait parfaitement naturel) ; mais quand le Lapin sortit une montre de sa poche de gilet, et la regarda, pui
+  -- D0001-S000022
+     SRC : “Well, perhaps not,” said Alice in a soothing tone: “don’t be angry about it. And yet I wish I could show you our cat Dinah: I think you’d take a fancy to cats if you could only see her. She is such a dear quiet thing,” Alice went on, half to herself, as she swam lazily about in the pool, “and she sits purring so nicely by the fire, licking her paws and washing her face—and she is such a nice soft thing to nurse—and 
+     QWEN: « Eh bien, peut-être pas », dit Alice d’un ton apaisant : « ne vous fâchez pas pour cela. Et pourtant, j’aimerais pouvoir vous montrer notre chat Dinah : je pense que vous aimeriez les chats si vous pouviez seulement la voir. Elle est si douce et calme », continua Alice, à moitié pour elle-même, en nageant paresseusement dans l’étang, « et elle ronronne si joliment près du feu, se lèche les pattes et se lave la face—
+     TG  : « Eh bien, peut-être pas », dit Alice d'un ton apaisant : « ne vous fâchez pas pour cela. Et pourtant, j'aimerais pouvoir vous montrer notre chatte Dinah : je pense que vous prendriez goût aux chats si vous pouviez seulement la voir. C'est une petite chose si douce et si tranquille », poursuivit Alice, à demi pour elle-même, tandis qu'elle nageait paresseusement dans le bassin, « et elle s'assoit en ronronnant si jol
+  -- D0002-S000020
+     SRC : First it marked out a race-course, in a sort of circle, (“the exact shape doesn’t matter,” it said,) and then all the party were placed along the course, here and there. There was no “One, two, three, and away,” but they began running when they liked, and left off when they liked, so that it was not easy to know when the race was over. However, when they had been running half an hour or so, and were quite dry again, 
+     QWEN: D’abord, il traça un parcours de course, en sorte de cercle, (« la forme exacte n’a pas d’importance, » dit-il,) et puis toute la compagnie fut placée le long du parcours, ici et là. Il n’y eut pas « Un, deux, trois, et partez, » mais ils commencèrent à courir quand ils voulurent, et s’arrêtèrent quand ils voulurent, de sorte qu’il n’était pas facile de savoir quand la course était finie. Cependant, quand ils avaient
+     TG  : D’abord, il marqua un parcours de course, en forme de cercle (« la forme exacte n’a pas d’importance », dit-il), puis tous les participants furent placés le long du parcours, ici et là. Il n’y eut pas de « un, deux, trois, et en route », mais ils commencèrent à courir quand ils le voulurent, et s’arrêtèrent quand ils le voulurent, de sorte qu’il n’était pas facile de savoir quand la course était terminée. Cependant, 
+  -- D0002-S000044
+     SRC : “What a pity it wouldn’t stay!” sighed the Lory, as soon as it was quite out of sight; and an old Crab took the opportunity of saying to her daughter “Ah, my dear! Let this be a lesson to you never to lose your temper!” “Hold your tongue, Ma!” said the young Crab, a little snappishly. “You’re enough to try the patience of an oyster!”
+     QWEN: « Quel dommage qu’elle ne veuille pas rester ! » soupira le Lori, dès qu’elle fut tout à fait hors de vue ; et un vieux Crabe prit l’occasion de dire à sa fille « Ah, ma chère ! Que cela soit une leçon pour toi de ne jamais perdre ton tempérament ! » « Tais-toi, Maman ! » dit le jeune Crabe, un peu sèchement. « Tu es assez pour éprouver la patience d’une huître ! »
+     TG  : « Quel dommage qu’il ne soit pas resté ! » soupira le Lori, dès qu’il fut tout à fait hors de vue ; et un vieux Crabe en profita pour dire à sa fille : « Ah, ma chère ! Que cela vous serve de leçon de ne jamais perdre ton tempérament ! » « Tais-toi, Maman ! » dit le jeune Crabe, un peu sèchement. « Tu es assez pour mettre à l’épreuve la patience d’une huître ! »
+  -- D0003-S000040
+     SRC : This seemed to Alice a good opportunity for making her escape; so she set off at once, and ran till she was quite tired and out of breath, and till the puppy’s bark sounded quite faint in the distance.
+     QWEN: Cela sembla à Alice une bonne opportunité pour faire sa fuite ; alors elle partit immédiatement, et courut jusqu’à être tout à fait fatiguée et hors d’haleine, et jusqu’à ce que l’aboiement du chiot sonne tout à fait faible dans la distance.
+     TG  : Cela sembla à Alice être une bonne occasion de s’échapper ; alors elle se lança aussitôt, et courut jusqu’à ce qu’elle soit tout à fait fatiguée et essoufflée, et jusqu’à ce que les aboiements du chiot ne soient plus qu’un faible écho au loin.
+
+================ en-ja
+  minutes              qwen: 21.0
+                       tg  : 57.8
+  stages               qwen: {'approve_glossary': 8.7, 'audit_translation': 4.8, 'translate': 4.1, 'extract_glossary': 1.2, 'repair_translation': 0.6}
+                       tg  : {'audit_translation': 26.6, 'translate': 21.0, 'repair_translation': 3.4, 'rescue_translation': 1.7, 'extract_glossary': 1.3}
+  glossary             qwen: {'draft': 43, 'approved': 41, 'dropped-generic': 2}
+                       tg  : {'draft': 46, 'approved': 42, 'dropped-generic': 4}
+  approved             qwen: 41
+                       tg  : 42
+  rule                 qwen: {'duplication': 1, 'untranslated': 1}
+                       tg  : {'glossary': 16, 'duplication': 8, 'untranslated': 2, 'addition': 2, 'mistranslation': 1, 'omission': 1}
+  semantic             qwen: {'mistranslation': 8}
+                       tg  : {'mistranslation': 11, 'untranslated': 2, 'structure': 1, 'omission': 1, 'glossary': 1}
+  wrong_text_findings  qwen: 0
+                       tg  : 9
+  first                qwen: {'identical long texts': 1, 'conventions': 0, 'third script': 0, 'source-language passage': '-', 'broken marker': 0, 'ratio<0.5 or >2 of median': 0}
+                       tg  : {'identical long texts': 4, 'conventions': 0, 'third script': 0, 'source-language passage': '-', 'broken marker': 0, 'ratio<0.5 or >2 of median': 0}
+  final                qwen: {'identical long texts': 1, 'conventions': 0, 'third script': 0, 'source-language passage': '-', 'broken marker': 0, 'ratio<0.5 or >2 of median': 0}
+                       tg  : {'identical long texts': 2, 'conventions': 0, 'third script': 0, 'source-language passage': '-', 'broken marker': 0, 'ratio<0.5 or >2 of median': 0}
+  repaired_segments    qwen: 7
+                       tg  : 25
+  queue                qwen: 1
+                       tg  : 2
+  segments             qwen: 145
+                       tg  : 145
+  -- D0000-S000004
+     SRC : There was nothing so very remarkable in that; nor did Alice think it so very much out of the way to hear the Rabbit say to itself, “Oh dear! Oh dear! I shall be late!” (when she thought it over afterwards, it occurred to her that she ought to have wondered at this, but at the time it all seemed quite natural); but when the Rabbit actually took a watch out of its waistcoat-pocket, and looked at it, and then hurried on
+     QWEN: それ自体は、別にたいそう珍しいことではなかった。ウサギが独り言で「あらまあ、あらまあ、遅れるわ！」と言っているのを聞くのも、アリスにはたいそうおかしいことには思えなかった（後で思い返すと、そこで驚くべきだったのに、と気づいたが、当時はすべてごく自然に思えた）。しかし、ウサギが実際にベストのポケットから懐中時計を取り出し、それを見て、また急いで走り去ったのを見ると、アリスは飛び起きた。なぜなら、彼女の頭をよぎったのは、ベストのポケットも、そこから取り出す懐中時計も、ウサギに持ったことがない、ということだった。好奇心に燃え、彼女は野原を横切ってウサギの後を追った。幸いにも、ちょうどそのとき、生垣の下の大きなウサギの穴に飛び込んでいくのを見ることができた。
+     TG  : それ自体は、特に驚くべきことではなかった。ウサギが独り言で「あらまあ、あらまあ、遅れるわ！」と言っているのを聞いたことも、特におかしいとは思わなかった（後で思い返すと、そこで驚くべきだったのに、と気づいたが、当時はすべてごく自然に思えた）。しかし、ウサギが実際にベストのポケットから懐中時計を取り出し、それを見て、急いで去っていったとき、アリスは飛び起きた。なぜなら、ベストのポケットを持っているウサギも、そこから取り出す時計を持っているウサギも、これまで一度も見たことがないということが、ふと頭をよぎったからだ。好奇心に燃え、彼女は野原を横切ってそのあとを追った。幸いにも、ちょうどそのとき、生垣の下の大きなウサギの穴に飛び込んでいくのを見ることができた。
+  -- D0001-S000022
+     SRC : “Well, perhaps not,” said Alice in a soothing tone: “don’t be angry about it. And yet I wish I could show you our cat Dinah: I think you’d take a fancy to cats if you could only see her. She is such a dear quiet thing,” Alice went on, half to herself, as she swam lazily about in the pool, “and she sits purring so nicely by the fire, licking her paws and washing her face—and she is such a nice soft thing to nurse—and 
+     QWEN: 「まあ、おそらくそうではない」とアリスはなだめるような調子で言った：「それについて怒らないで。しかし、私は私たちの猫ダイナを見せたい：私はあなたが彼女を見ることができれば、猫に魅力を感じると思うわ。彼女は非常に愛らしく静かなもの」とアリスは続けた、半分自分に語りかけながら、池で怠惰に泳ぎ回りながら、「そして彼女は火のそばで非常に心地よくゴロゴロと鳴き、爪をなめて顔を洗う――そして彼女は非常に心地よく柔らかいもの――そして彼女はネズミを捕まえる非常に優れたもの――ああ、ごめんなさい！」アリスはまた叫んだ、この時ネズミは全身が逆立っており、彼女はそれが本当に怒っていると感じた。「あなたが望まないなら、私たちは彼女について話すのをやめましょう。」
+     TG  : 「そうね、たぶんそうではないわ」とアリスは、穏やかな口調で言った。「怒らないで。そして、それでも、私は、私たちの猫のダイナをあなたに見せてあげたいの。もし、彼女を見ることができたら、あなたは猫を好きになると思うわ。彼女は、とても愛らしくて、静かな子なの」と、アリスは、半分独り言のように、池の中でのんびりと泳ぎながら言った。「そして、彼女は、暖炉のそばで、とても気持ちよさそうにゴロゴロと喉を鳴らし、前足を舐めて、顔を洗うの。そして、彼女は、抱っこしてあげるのがとても気持ちの良い、素敵な柔らかい子なの。そして、彼女は、ネズミを捕まえるのがとても上手なの。ああ、申し訳ありません！」とアリスは再び言った。なぜなら、今回は、ネズミは全身を震わせており、彼女は、彼が本当に気分を害したに違いないと思った。「もしあなたがそれを望まないのであれば、私たちは、それについて話さないわ。」
+  -- D0002-S000020
+     SRC : First it marked out a race-course, in a sort of circle, (“the exact shape doesn’t matter,” it said,) and then all the party were placed along the course, here and there. There was no “One, two, three, and away,” but they began running when they liked, and left off when they liked, so that it was not easy to know when the race was over. However, when they had been running half an hour or so, and were quite dry again, 
+     QWEN: まず、ドードーはレースのコースを、ある種の円形に区切った（「正確な形は関係ない」と言った）、そして全員がコースに沿って、あちこちに並べられた。「いち、に、さん、はい」という合図はなく、各自が好きなときに走り始め、好きなときに止めたので、レースが終わったのがいつかわかりにくかった。しかし、約半時間走り、完全に乾いた頃、ドードーは突然「レースは終わった！」と叫び、全員が息を切らしながら彼を取り囲み、「でも、誰が勝ったの？」と尋ねた。
+     TG  : まず、彼は円のようなコースをマークした（「正確な形は重要ではありません」と彼は言った）、そして、パーティーの全員がコースに沿って、あちこちに配置された。そこには「準備、よーい、ドン！」という合図はなく、彼らは好きなときに走り始め、好きなときにやめたので、レースがいつ終わったのかを知るのは簡単ではなかった。しかし、彼らが30分ほど走り、完全に乾いた後、ドードーは突然「レースは終わりました！」と叫び、彼らは皆、息を切らしながら、彼に群がり、「でも、誰が勝ったのですか？」と尋ねた。
+  -- D0002-S000044
+     SRC : “What a pity it wouldn’t stay!” sighed the Lory, as soon as it was quite out of sight; and an old Crab took the opportunity of saying to her daughter “Ah, my dear! Let this be a lesson to you never to lose your temper!” “Hold your tongue, Ma!” said the young Crab, a little snappishly. “You’re enough to try the patience of an oyster!”
+     QWEN: 「残念だ、留まらなかった！」とロリーは、彼が完全に視界から消えたすぐにため息をついた；そして、老カニは娘に言う機会を得た、「ああ、私の愛しい子！ これを教訓として、決してあなたの怒りを失わないようにしなさい！」「黙って、母さん！」と若いカニは、少し短気な声で言った。「あなたは牡蠣の忍耐を試すのに十分だ！」
+     TG  : 「ああ、もったいない、消えてしまった！」とロリーはため息をついた。そして、カニが娘に言った。「ああ、愛しい子よ。これは教訓にすべきだ。決して怒りをあらわにしてはいけない。」「お母さん、黙って！」と若いカニは少し不機嫌そうに言った。「あなたはカキの忍耐力を試すほどだわ！」
+  -- D0003-S000040
+     SRC : This seemed to Alice a good opportunity for making her escape; so she set off at once, and ran till she was quite tired and out of breath, and till the puppy’s bark sounded quite faint in the distance.
+     QWEN: これはアリスにとって、逃げるための良い機会に思えた；所以她はすぐに走り出し、完全に疲れて息切れするまで、そして子犬の吠え声が遠くでかなり小さく聞こえるまで走った。
+     TG  : アリスには、これが逃げ出す絶好の機会に思えた。そこで彼女はすぐに走り出し、すっかり疲れ果てて息が切れるまで、そして子犬の吠える声が遠くでかすかに聞こえるまで走り続けた。
+
+================ fr-en
+  minutes              qwen: 16.6
+                       tg  : 119.1
+  stages               qwen: {'audit_translation': 5.1, 'translate': 4.5, 'extract_glossary': 2.7, 'resolve_glossary': 1.4, 'approve_glossary': 0.9}
+                       tg  : {'resolve_glossary': 48.2, 'translate': 36.7, 'approve_glossary': 13.3, 'audit_translation': 10.2, 'repair_translation': 7.9}
+  glossary             qwen: {'draft': 155, 'approved': 99, 'dropped-generic': 4}
+                       tg  : {'draft': 75, 'approved': 56, 'dropped-generic': 15}
+  approved             qwen: 99
+                       tg  : 56
+  rule                 qwen: {'glossary': 15, 'untranslated': 2}
+                       tg  : {'glossary': 111, 'omission': 16, 'duplication': 10, 'addition': 9, 'mistranslation': 5, 'untranslated': 2}
+  semantic             qwen: {'mistranslation': 19}
+                       tg  : {'mistranslation': 7, 'untranslated': 5, 'omission': 2}
+  wrong_text_findings  qwen: 0
+                       tg  : 15
+  first                qwen: {'identical long texts': 0, 'conventions': 0, 'third script': 0, 'source-language passage': 0, 'broken marker': 0, 'ratio<0.5 or >2 of median': 0}
+                       tg  : {'identical long texts': 6, 'conventions': 0, 'third script': 0, 'source-language passage': 2, 'broken marker': 0, 'ratio<0.5 or >2 of median': 0}
+  final                qwen: {'identical long texts': 0, 'conventions': 0, 'third script': 0, 'source-language passage': 0, 'broken marker': 0, 'ratio<0.5 or >2 of median': 0}
+                       tg  : {'identical long texts': 0, 'conventions': 0, 'third script': 0, 'source-language passage': 0, 'broken marker': 0, 'ratio<0.5 or >2 of median': 0}
+  repaired_segments    qwen: 11
+                       tg  : 72
+  queue                qwen: 1
+                       tg  : 2
+  segments             qwen: 340
+                       tg  : 340
+  -- D0000-S000004
+     SRC : Cette année-là, le 12 mars, dans la matinée, ceux des habitants de Whaston qui traversèrent Exeter street au moment convenable purent apercevoir un élégant cavalier monter et descendre la rue, qui est en forte pente, au petit pas de son cheval, puis finalement s’arrêter sur la place de la Constitution, à peu près au centre de la ville.
+     QWEN: That year, on March 12, in the morning, those inhabitants of Whaston who crossed Exeter Street at the opportune moment were able to see an elegant rider mount and dismount the street, which is steeply sloped, at the slow pace of his horse, and finally stop on Constitution Square, near the center of the town.
+     TG  : That year, on March 12, in the morning, those of the inhabitants of Whaston who passed through Exeter Street at the appropriate time could see an elegant horseman riding up and down the street, which has a steep slope, at a slow pace, and finally stopping on Constitution Square, approximately in the center of the city.
+  -- D0000-S000114
+     SRC : Qu’on ne soit pas étonné si les curieux, dont le nombre s’était accru, se pressaient autour du couple, comme autant de témoins d’une union célébrée dans des conditions qui paraîtraient un peu extraordinaires en tout autre pays. Mais ce n’était ni pour gêner les deux fiancés, ni pour leur déplaire.
+     QWEN: Let no one be surprised if the onlookers, whose number had increased, crowded around the couple, like so many witnesses of a union celebrated under conditions that would seem a little extraordinary in any other country. But it was neither to embarrass the two fiancés, nor to displease them.
+     TG  : One should not be surprised if the curious, whose numbers had grown, pressed around the couple, like so many witnesses to a union celebrated under conditions that would seem somewhat extraordinary in any other country. But this was neither to hinder the two betrothed, nor to displease them.
+  -- D0001-S000040
+     SRC : —Oui, Mr Dean, perpendiculairement au sens du soleil.
+     QWEN: —Yes, Mr. Dean, perpendicularly to the direction of the sun.
+     TG  : —Yes, Mr. Dean, perpendicular to the apparent direction of the sun.
+  -- D0001-S000096
+     SRC : —Est-ce que ces maudits nuages ne vont pas enfin dégager le ciel, fût-ce au prix d’une pluie torrentielle?
+     QWEN: —Are these damned clouds not going to finally clear the sky, even at the price of a torrential rain?
+     TG  : —Will these damned clouds finally clear, even at the cost of a torrential rain?
+  -- D0002-S000082
+     SRC : Mr Dean Forsyth et Mr Hudelson y accordèrent-ils même grande attention? Il est permis de croire, plutôt, qu’ils étaient partis à la poursuite de quelque astéroïde perdu à travers l’espace, chacun d’eux se demandant si l’autre n’était pas sur le point de le retrouver.
+     QWEN: Did Mr. Dean Forsyth and Mr. Hudelson pay great attention to it? It is permitted to believe, rather, that they had set out in pursuit of some asteroid lost in space, each of them wondering if the other was not on the point of finding it.
+     TG  : Did Mr. Dean Forsyth and Mr. Hudelson pay much attention to it? It is permissible to believe, rather, that they were pursuing some lost asteroid through space, each of them wondering if the other was not about to find it.
+
+================ es-en
+  minutes              qwen: 2.3
+                       tg  : 80.2
+  stages               qwen: {'repair_review': 1.1, 'review_repaired': 0.7, 'validate_repaired': 0.4, 'approve_glossary': 0.0, 'audit_consistency': 0.0}
+                       tg  : {'translate': 44.3, 'audit_translation': 16.4, 'repair_translation': 13.4, 'approve_glossary': 2.5, 'extract_glossary': 2.3}
+  glossary             qwen: {'draft': 175, 'approved': 157, 'dropped-generic': 17}
+                       tg  : {'draft': 0, 'approved': 0}
+  approved             qwen: 157
+                       tg  : 0
+  rule                 qwen: {'glossary': 5, 'mistranslation': 2, 'ai_style': 1}
+                       tg  : {'duplication': 24, 'mistranslation': 18, 'addition': 3}
+  semantic             qwen: {'mistranslation': 28}
+                       tg  : {'mistranslation': 8, 'untranslated': 1}
+  wrong_text_findings  qwen: 0
+                       tg  : 36
+  first                qwen: {'identical long texts': 0, 'conventions': 0, 'third script': 0, 'source-language passage': 0, 'broken marker': 0, 'ratio<0.5 or >2 of median': 0}
+                       tg  : {'identical long texts': 30, 'conventions': 0, 'third script': 0, 'source-language passage': 0, 'broken marker': 0, 'ratio<0.5 or >2 of median': 0}
+  final                qwen: {'identical long texts': 0, 'conventions': 0, 'third script': 0, 'source-language passage': 0, 'broken marker': 0, 'ratio<0.5 or >2 of median': 0}
+                       tg  : {'identical long texts': 4, 'conventions': 0, 'third script': 0, 'source-language passage': 0, 'broken marker': 0, 'ratio<0.5 or >2 of median': 0}
+  repaired_segments    qwen: 22
+                       tg  : 35
+  queue                qwen: 2
+                       tg  : 1
+  segments             qwen: 88
+                       tg  : 88
+  -- D0000-S000004
+     SRC : Las noticias más remotas que tengo de la persona que lleva este nombre me las ha dado Jacinto María Villalonga, y alcanzan al tiempo en que este amigo mío y el otro y el de más allá, Zalamero, Joaquinito Pez, Alejandro Miquis, iban a las aulas de la Universidad. No cursaban todos el mismo año, y aunque se reunían en la cátedra de Camús, separábanse en la de Derecho Romano: el chico de Santa Cruz era discípulo de Nova
+     QWEN: The most remote news I have of the person who bears this name was given to me by Jacinto María Villalonga, and it reaches back to the time when this friend of mine, and the other, and the one beyond, Zalamero, Joaquinito Pez, Alejandro Miquis, were attending the halls of the University. They were not all in the same year, and although they gathered in Camús’s lecture hall, they separated in Roman Law: the boy from Sa
+     TG  : The most remote news I have of the person who bears this name comes from Jacinto María Villalonga, and it dates back to the time when this friend of mine, and the other, and the one from further away, Zalamero, Joaquinito Pez, Alejandro Miquis, used to attend classes at the University. Not all of them were in the same year, and although they met in Camús's lecture hall, they separated in the Roman Law hall: the boy f
+  -- D0000-S000030
+     SRC : La casa del gordo Arnaiz era relativamente moderna. Se había hecho pañero porque tuvo que quedarse con las existencias de Albert, para indemnizarse de un préstamo que le hiciera en 1843. Trabajaba exclusivamente en género extranjero; pero cuando Santa Cruz hizo su traspaso a los Chicos, también Arnaiz se inclinaba a hacer lo mismo, porque estaba ya muy rico, muy obeso, bastante viejo y no quería trabajar. Daba y toma
+     QWEN: The house of Fatty Arnaiz was relatively modern. He had become a cloth merchant because he had to take over the stocks of Albert, to indemnify himself for a loan he had made in 1843. He worked exclusively in foreign goods; but when Santa Cruz made his transfer to the Chicos, Arnaiz also inclined to do the same, for he was already very rich, very obese, quite old, and did not want to work. He gave and took bills on Lo
+     TG  : Fat Arnaiz's house was relatively modern. He had become a partner because he had to take over Albert's stock to indemnify himself for a loan he had made in 1843. He worked exclusively in foreign goods; but when Santa Cruz transferred his business to the Chicos, Arnaiz also inclined toward doing the same, for he was already very rich, very obese, quite old, and did not want to work. He issued and accepted bills of exc
+  -- D0000-S000045
+     SRC : Esta niña y otras del barrio, bien apañaditas por sus respectivas mamás, peinadas a estilo de maja, con peineta y flores en la cabeza, y sobre los hombros pañuelo de Manila de los que llaman de talle, se reunían en un portal de la calle de Postas para pedir el cuartito para la Cruz de Mayo, el 3 de dicho mes, repicando en una bandeja de plata, junto a una mesilla forrada de damasco rojo. Los dueños de la casa llamada
+     QWEN: This girl and others from the neighborhood, well-groomed by their respective mothers, coiffed in the maja style, with a peineta and flowers in their hair, and a Manila shawl of the waist-length kind over their shoulders, gathered in a portal on Calle de Postas to ask for the small donation for the May Cross, on the 3rd of that month, ringing a silver tray next to a small table covered with red damask. The owners of t
+     TG  : This girl and other girls in the neighborhood, well-dressed by their respective mothers, with their hair styled in the maja fashion, with a comb and flowers in their hair, and a Manila shawl over their shoulders, the kind they call "talle," gathered on a doorstep on Postas Street to ask for the little coin for the May Cross, on the 3rd of that month, tapping on a silver tray, next to a small table covered with red da
+  -- D0000-S000059
+     SRC : A los dos meses de casados, y después de una temporadilla en que Barbarita estuvo algo distraída, melancólica y como con ganas de llorar, alarmando mucho a su madre, empezaron a notarse en aquel matrimonio, en tan malas condiciones hecho, síntomas de idilio. Baldomero parecía otro. En el escritorio canturriaba, y buscaba pretextos para salir, subir a la casa y decir una palabrita a su mujer, cogiéndola en los pasillo
+     QWEN: Two months after their marriage, and after a little while in which Barbarita was somewhat distracted, melancholy, and as if she wanted to cry, alarming her mother a lot, symptoms of idyll began to be noticed in that marriage, made under such bad conditions. Baldomero seemed another person. At the desk he hummed, and looked for pretexts to go out, go up to the house and say a little word to his wife, catching her in t
+     TG  : Two months after they were married, and after a short period in which Barbarita was a little distracted, melancholic, and as if she wanted to cry, alarming her mother, they began to notice in that marriage, which had been made under such bad conditions, symptoms of idyll. Baldomero seemed like another person. In the office, he hummed, and he looked for pretexts to go upstairs to the house and say a word to his wife, 
+  -- D0000-S000085
+     SRC : ¡Y que no pasaba flojos apuros la pobre para salir airosa en aquel papel inmenso! A Barbarita le hacía ordinariamente sus confidencias. «Mira, hija, algunos meses me veo tan agonizada, que no sé qué hacer. Dios me protege, que si no... Tú no sabes lo que es vestir siete hijas. Los varones, con los desechos de la ropa de su padre que yo les arreglo, van tirando. ¡Pero las niñas!... ¡Y con estas modas de ahora y este s
+     QWEN: And how the poor woman did not pass through tight straits to come out well in that immense role! She usually made her confidences to Barbarita. “Look, daughter, some months I see myself so agonized, that I do not know what to do. God protects me, if not... You do not know what it is to dress seven daughters. The males, with the leftovers of their father’s clothes that I arrange for them, get by. But the girls!... And
+     TG  : And what narrow escapes the poor woman had to endure to come out of that immense role with her dignity intact! She usually confided in Barbarita. “Look, daughter, some months I am so on the verge of collapse that I don’t know what to do. God protects me, for if He didn’t… You have no idea what it is to dress seven daughters. The boys, with the remnants of their father’s clothes that I mend, manage to get by. But the 

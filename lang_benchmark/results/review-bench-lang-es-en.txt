@@ -1,0 +1,71 @@
+
+======== bench-lang-es-en
+segments 88; longest D0000-S000085: source 3044 chars, translation 3136 chars
+  longest translation head: And how the poor woman did not pass through tight straits to come out well in that immense role! She usually made her confidences to Barbarita. “Look, daughter, some months I see myself so agonized, t
+  longest translation tail: d what they were not, the mother very stiff with gloves, which disabled the use of her fingers, with a muff that gave her hands excessive heat, and her good cashmere. Without being old, she seemed so.
+-- rule findings (all)
+  [glossary/low] D0000-S000016: approved glossary term was not preserved: God
+      SRC: Cuando comunicaba sus temores a D. Baldomero, este se echaba a reír y le decía: «El chico es de buena índole. Déjale que se divierta y que la corra. L
+      TGT: When she communicated her fears to Don Baldomero, he burst out laughing and told her: “The boy is of good stock. Let him have his fun and let him run 
+  [glossary/low] D0000-S000045: approved glossary term was not preserved: Cruz
+      SRC: Esta niña y otras del barrio, bien apañaditas por sus respectivas mamás, peinadas a estilo de maja, con peineta y flores en la cabeza, y sobre los hom
+      TGT: This girl and others from the neighborhood, well-groomed by their respective mothers, coiffed in the maja style, with a peineta and flowers in their h
+  [glossary/medium] D0000-S000049: approved glossary term was not preserved: the East
+      SRC: En esto apareció en el extremo Oriente un nuevo artista, un genio que acabó de perturbar a D. Bonifacio. Este innovador fue Senquá, del cual puede dec
+      TGT: In this, a new artist appeared in the East, a genius who finally perturbed Don Bonifacio. This innovator was Senquá, of whom it can be said that he re
+  [mistranslation/high] D0000-S000070: numeric content differs from source: SOURCE: 'Comprometido éste del 40 al 45' (referring to years 1840-1845); TRANSLATION: 'Compromised from
+      SRC: También la casa de Gumersindo Arnaiz, hermano de Barbarita, ha pasado por grandes crisis y mudanzas desde que murió D. Bonifacio. Dos años después del
+      TGT: The house of Gumersindo Arnaiz, brother of Barbarita, has also passed through great crises and changes since the death of Don Bonifacio. Two years aft
+  [glossary/medium] D0000-S000071: approved glossary term was not preserved: China
+      SRC: Las comunicaciones rápidas nos trajeron mensajeros de la potente industria belga, francesa e inglesa, que necesitaban mercados. Todavía no era moda ir
+      TGT: The rapid communications brought us messengers of the powerful Belgian, French, and English industry, which needed markets. It was not yet fashionable
+  [glossary/low] D0000-S000076: approved glossary term was not preserved: the Court
+      SRC: Pero Gumersindo e Isabel habían llegado un poco tarde, porque las novedades estaban en manos de mercaderes listos, que sabían ya el camino de París. A
+      TGT: But Gumersindo and Isabel had arrived a little late, because the novelties were in the hands of shrewd merchants who already knew the way to Paris. Ar
+  [mistranslation/high] D0000-S000082: numeric content differs from source: The source specifies the years 'desde el 38 al 60' (from '38 to '60), which in the context of the prece
+      SRC: He dicho que eran nueve. Falta consignar que de estas nueve cifras, siete correspondían al sexo femenino. ¡Vaya una plaga que le había caído al bueno 
+      TGT: I have said that there were nine. It remains to record that of these nine figures, seven corresponded to the female sex. What a plague had fallen on p
+  [ai_style/low] D0000-S000084: formulaic model-like phrase detected: it is worth noting that
+      SRC: Isabel Cordero era, veinte años ha, una mujer desmejorada, pálida, deforme de talle, como esas personas que parece se están desbaratando y que no tien
+      TGT: Isabel Cordero was, twenty years ago, a woman deteriorated, pale, deformed in the waist, like those persons who seem to be falling apart and who do no
+-- semantic findings (first 8)
+  [mistranslation/medium] D0000-S000004: The translation 'blowing each other the lesson' is a literal translation of the Spanish idiom 'soplar la lección', which means to whisper the answer to someone during an exam or when called upon by a 
+  [mistranslation/medium] D0000-S000008: The translation renders 'sofocones' as 'sweat', which is a literal physical manifestation rather than the figurative meaning of the source. In this context, 'sofocones' refers to the fits of anger, he
+  [mistranslation/medium] D0000-S000009: The translation 'the boy from Pez' is a concrete error in relation; it should identify the subject as the son of Pez.
+  [mistranslation/medium] D0000-S000011: The translation 'plainness' for 'llaneza castiza' fails to capture the specific cultural connotation of 'castiza' (purely Spanish/traditional), reducing a cultural trait to a generic personality trait
+  [mistranslation/medium] D0000-S000015: The translation 'ordering the Divine Majesty to be displayed in Manifest' mistranslates the specific religious practice of 'poner de Manifiesto la Divina Majestad'. In this context, 'Manifiesto' refer
+  [mistranslation/medium] D0000-S000015: The translation 'the Manifest' continues the error of treating the religious act as a noun/object rather than the state of exposition.
+  [mistranslation/low] D0000-S000015: The phrase 'heavy resource' is a literal translation of 'recurso gordo' (meaning a 'major' or 'significant' resource/trump card), resulting in awkward target-language prose that sounds like a physical
+  [mistranslation/medium] D0000-S000016: The translation of 'que usted lo pase bien' as 'that you have a good day' is a mistranslation of a social formula. In this context, it refers to a generic, polite wish for someone to enjoy themselves 
+  [mistranslation/medium] D0000-S000017: The translation 'God my!' is a literal word-for-word rendering of 'Dios mío' that violates English syntax. While 'Dios' is approved as 'God', the possessive adjective must follow English grammar.
+  [mistranslation/medium] D0000-S000030: The translation 'taken the grace' is a literal translation of the Spanish idiom 'hacer la gracia de', which in this context means to have the audacity, presumption, or 'cheek' to do something, rather 
+  [mistranslation/high] D0000-S000032: The translation 'He used to prove nothing' mistranslates 'Solía no probar nada'. In this context, 'probar' refers to the act of testing, challenging, or attempting to prove a point in an argument (lin
+  [mistranslation/medium] D0000-S000037: The translation 'stripped of petals' for 'deshojar' is an unsupported addition of a specific object (petals). While 'deshojar' refers to removing leaves/petals, in the context of embroidered flowers o
+  [mistranslation/medium] D0000-S000040: The translation renders 'dueño de la droguería' as 'owner of the druggist'. In Spanish, 'droguería' refers to the establishment (drugstore/hardware store), whereas 'druggist' refers to the person (the
+  [mistranslation/medium] D0000-S000041: The translation renders 'chamusquina' as 'burnt toast', which is too specific. 'Chamusquina' refers to a general smell of scorching or burning (often associated with fabric or electrical shorts), not 
+  [mistranslation/high] D0000-S000055: The translation 'jangling of chains' for 'cencerrada' is a concrete error. 'Cencerrada' refers to the sound of a cowbell (cencerro) or the act of being locked up/confined; in this context, it refers t
+  [mistranslation/medium] D0000-S000055: The translation 'a single letter of love things' is a literalist rendering of 'ni una miaja de letra' that results in awkward, non-idiomatic English. 'Miaja de letra' is an idiomatic expression meanin
+  [mistranslation/medium] D0000-S000057: The translation 'became somewhat alert' for 'despabiló algo' is a concrete error in the context of a courtship. In this context, 'despabilarse' refers to gaining confidence, waking up from a state of 
+  [mistranslation/medium] D0000-S000060: The translation renders 'matrimonio' as 'marriage' (the institution/state), whereas the source refers to the couple (the people). In Spanish, 'matrimonio' frequently denotes the pair of spouses.
+  [mistranslation/medium] D0000-S000061: The translation 'on the walk' fails to capture the habitual state of the couple's activity described in the source.
+  [mistranslation/medium] D0000-S000064: The translation renders 'estrepitoso' as 'noisy', which is a literal meaning. In the context of 'cariño paternal' (paternal affection), 'estrepitoso' means 'overwhelming', 'excessive', or 'boisterous'
+  [mistranslation/medium] D0000-S000065: The translation 'entered the chair of Salmerón' is a literal translation of 'entraba en la cátedra de Salmerón'. In the context of a student, this means he was attending the lectures/course of Profess
+  [mistranslation/medium] D0000-S000065: The translation 'take the disciplines' is a literal but incorrect rendering of the idiomatic 'coger las disciplinas', which in this educational context refers to applying discipline or administering p
+  [mistranslation/low] D0000-S000065: The translation 'money for the pocket' is a literal rendering of 'dinero para el bolsillo'. The natural English equivalent for a student's allowance is 'pocket money'.
+  [mistranslation/medium] D0000-S000066: The translation 'there as God gave her to understand' is a literal but incorrect rendering of the Spanish idiom 'allá como Dios le daba a entender', which means 'however she saw fit' or 'as best she c
+  [mistranslation/high] D0000-S000069: The translation 'placed itself' for 'se colocase' in the context of travel time is a literal translation of the verb that fails to convey the intended meaning of 'being positioned' or 'becoming' a cer
+  [mistranslation/high] D0000-S000069: The translation creates a double negative ('were not yet known' combined with 'not yet known'), which in English can be interpreted as an affirmative, whereas the source is a simple negation.
+  [mistranslation/medium] D0000-S000069: The translation 'dances of the candle' is a literal mistranslation of 'bailes de candil', which refers to low-budget, poorly lit dances (candle-lit dances) as opposed to the high-society 'bailes de Vi
+  [mistranslation/medium] D0000-S000069: The translation 'this place' for 'este lugarón' fails to capture the augmentative suffix '-ón', which in this context implies a large, perhaps ungainly or imposing area/district.
+-- consistency report
+  {"enabled": true, "document_count": 1, "segment_count": 88, "issue_count": 0, "repair_count": 0, "by_severity": {}, "documents_with_issues": {}}
+-- review queue and validations
+  queue: ['D0000-S000015', 'D0000-S000066']
+  D0000-S000015 SRC: Presentose en aquellos días al simpático joven la coyuntura de hacer su primer viaje a París, adonde iban Villalonga y Federico Ruiz comisionados por el Gobierno, el uno a comprar máquinas de agricultura, el otro a adquirir aparatos de astronomía. A D. Baldomero le pareció muy bien el viaje del chic
+  D0000-S000015 TGT: The opportunity presented itself in those days for the pleasant young man to make his first trip to Paris, where Villalonga and Federico Ruiz were going, commissioned by the Government, the one to buy agricultural machines, the other to acquire astronomical apparatus. Don Baldomero thought the boy’s
+  D0000-S000066 SRC: Mientras estudió la segunda enseñanza en el colegio de Masarnau, donde estaba a media pensión, su mamá le repasaba las lecciones todas las noches, se las metía en el cerebro a puñados y a empujones, como se mete la lana en un cojín. Ved por dónde aquella señora se convirtió en sibila, intérprete de 
+  D0000-S000066 TGT: While he studied secondary education in the college of Masarnau, where he was on half board, his mother reviewed his lessons every night, she stuffed them into his brain by handfuls and by shoves, as wool is stuffed into a cushion. See how that lady became a sibyl, interpreter of all human science, 
+-- cost by stage (calls / min)
+  repair_review: 8 calls, 1.1 min, prompt 38550, output 4368
+  review_repaired: 16 calls, 0.7 min, prompt 63274, output 2090
+  validate_repaired: 1 calls, 0.4 min, prompt 7378, output 157

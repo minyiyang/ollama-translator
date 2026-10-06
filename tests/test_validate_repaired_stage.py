@@ -847,6 +847,17 @@ class ValidateRepairedStageTests:
                 )
             ))
 
+    def test_feedback_repair_runs_on_the_repair_model_when_one_is_set(self):
+        config = AppConfig.model_validate(
+            {"audit": {"semantic_sample_every": 2, "repair_model": "gemma4:31b"}, "workflow": {"max_retries": 0}}
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = self.prepare_workspace(Path(directory), config, repair_fails=True)
+            client = FakeUnchangedFeedbackClient(passed=True)
+            self.run_validation_pipeline(workspace, config, client)
+            # The call itself, not a label: the primary model is qwen3.8.
+            assert client.feedback_models == ["gemma4:31b"]
+
     def test_unrepaired_failure_remains_in_review_without_verifier(self):
         config = AppConfig.model_validate(
             {"audit": {"semantic_sample_every": 2}, "workflow": {"max_retries": 0}}

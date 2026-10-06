@@ -848,7 +848,7 @@ def test_every_placement_failure_of_a_merged_chunk_is_a_retry():
     from book_agent.translation import TranslationChunk, TranslationChunkPiece, validate_translation_output
 
     # The codes the contract gives for passages compared with their neighbours.
-    assert _PLACEMENT_CODES == {"repeated_passage", "shifted_passage"}
+    assert _PLACEMENT_CODES == {"repeated_passage", "shifted_passage", "unusual_length"}
     text = "He slid back into his former position and thought for a long time about getting up early in the morning."
     chunk = TranslationChunk(
         chunk_id="c", document_id="d", document_order=0, estimated_source_tokens=0,

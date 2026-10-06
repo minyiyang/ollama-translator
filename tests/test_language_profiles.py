@@ -682,3 +682,31 @@ def test_feedback_repair_uses_the_repair_model_and_the_audit_schema_has_no_libra
     config = AppConfig.model_validate({"audit": {"repair_model": "gemma4:31b"}})
     assert _feedback_repair_model(config) == "gemma4:31b"
     assert "(?!" not in json.dumps(SemanticAuditResult.model_json_schema())
+
+
+def test_a_translation_far_from_the_usual_length_is_found():
+    from book_agent.audit import WHOLE_TRANSLATION_WRONG
+    from book_agent.translation import (
+        TranslationChunk, TranslationChunkPiece, unusual_length_passages, validate_translation_output,
+    )
+
+    sentence = "Alice was beginning to get very tired of sitting by her sister on the bank, and of having nothing to do. "
+    korean = "앨리스는 강둑에서 언니 곁에 앉아 아무 할 일도 없는 것이 몹시 지루해지기 시작했다. "
+    passages = [(f"S{index}", sentence * (1 + index % 3), korean * (1 + index % 3)) for index in range(6)]
+    assert unusual_length_passages(passages) == []
+    # A paragraph of three sentences answered with part of one.
+    passages[5] = ("S5", sentence * 3, "그녀가 이 말을 하자 발이 미끄러졌다.")
+    found = unusual_length_passages(passages)
+    assert [key for key, _ in found] == ["S5"] and found[0][1] < 0.4
+    assert unusual_length_passages(passages[:3]) == []  # too few to know what is usual
+    en_ko = LanguagePair("en>ko")
+    chunk = TranslationChunk(
+        chunk_id="c", document_id="d", document_order=0, estimated_source_tokens=0,
+        pieces=[TranslationChunkPiece(reference_id=k, segment_id=k, part_number=1, source_text=s) for k, s, _ in passages],
+    )
+    output = "".join(f"<{k}>{t}</{k}>" for k, _, t in passages)
+    codes = [(i.code, i.reference_id) for i in validate_translation_output(output, chunk, en_ko)[1].issues]
+    assert ("unusual_length", "S5") in codes
+    # en/zh keeps its fixed token ratio in the audit and has no such contract failure.
+    assert not [i for i in validate_translation_output(output, chunk, TranslationDirection.EN_TO_ZH)[1].issues if i.code == "unusual_length"]
+    assert WHOLE_TRANSLATION_WRONG.match("translation length is far from usual here: 0.17 of the usual length for its source")

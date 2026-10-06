@@ -1,0 +1,77 @@
+
+======== bench-lang-de-en
+segments 31; longest D0000-S000031: source 4388 chars, translation 4136 chars
+  longest translation head: “Mother, Mother,” Gregor said softly and looked up  to her. The Prokurist had completely slipped from his mind for a moment; on the other hand, he could not refrain, at the sight of the flowing coffee
+  longest translation tail: hen the Father gave him a strong push from behind, which was now truly liberating, and he flew, bleeding heavily, far into his room. The door was still closed with the cane, then it was finally quiet.
+-- rule findings (all)
+  [glossary/low] D0000-S000016: approved glossary term was not preserved: Procurator
+      SRC: Schon war er so weit, daß er bei stärkerem Schaukeln kaum das Gleichgewicht noch erhielt, und sehr bald mußte er sich nun endgültig entscheiden, denn 
+      TGT: He was already so far along that with stronger shaking he could barely maintain his balance, and very soon he had to make a final decision, for it was
+  [glossary/low] D0000-S000017: approved glossary term was not preserved: Procurator
+      SRC: »Da drin ist etwas gefallen,« sagte der Prokurist im Nebenzimmer links. Gregor suchte sich vorzustellen, ob nicht auch einmal dem Prokuristen etwas Äh
+      TGT: “Something fell in there,” said the Prokurist in the adjoining room on the left. Gregor tried to imagine whether something similar could ever happen t
+  [glossary/low] D0000-S000018: approved glossary term was not preserved: Procurator
+      SRC: »Gregor,« sagte nun der Vater aus dem Nebenzimmer links, »der Herr Prokurist ist gekommen und erkundigt sich, warum du nicht mit dem Frühzug weggefahr
+      TGT: “Gregor,” said the Father now from the adjoining room on the left, “the Prokurist has come and is asking why you did not leave with the early train. W
+  [glossary/low] D0000-S000019: approved glossary term was not preserved: Procurator
+      SRC: Warum ging denn die Schwester nicht zu den anderen? Sie war wohl erst jetzt aus dem Bett aufgestanden und hatte noch gar nicht angefangen sich anzuzie
+      TGT: Why did the sister not go to the others? She had probably only just gotten out of bed and had not yet started to dress. And why was she crying? Becaus
+  [glossary/low] D0000-S000020: approved glossary term was not preserved: Procurator
+      SRC:  »Herr Samsa,« rief nun der Prokurist mit erhobener Stimme, »was ist denn los? Sie verbarrikadieren sich da in Ihrem Zimmer, antworten bloß mit ja und
+      TGT:  “Mr. Samsa,” the Prokurist now called out in a raised voice, “what is going on? You are barricading yourself in your room, answering only with yes an
+  [glossary/low] D0000-S000021: approved glossary term was not preserved: Procurator
+      SRC: »Aber Herr Prokurist,« rief Gregor außer sich und vergaß in der Aufregung alles andere, »ich mache ja sofort, augenblicklich auf. Ein leichtes Unwohls
+      TGT: “But the Prokurist,” Gregor called out, out of his mind and forgetting everything else in the agitation, “I am opening up immediately, at once. A slig
+  [glossary/low] D0000-S000022: approved glossary term was not preserved: Procurator
+      SRC: Und während Gregor dies alles hastig ausstieß und kaum wußte, was er sprach, hatte er sich leicht, wohl infolge der im Bett bereits erlangten Übung, d
+      TGT: And while Gregor was hastily spitting out all this and hardly knew what he was saying, he had easily, probably due to the practice already gained in b
+  [glossary/low] D0000-S000023: approved glossary term was not preserved: Procurator
+      SRC: »Haben Sie auch nur ein Wort verstanden?« fragte der Prokurist die Eltern, »er macht sich doch wohl nicht einen Narren aus uns?« »Um Gottes willen,« r
+      TGT: “Did you understand even one word?” the Prokurist asked the parents, “is he not making a fool of us?” “For God’s sake,” the Mother called out, already
+  [glossary/low] D0000-S000024: approved glossary term was not preserved: Procurator
+      SRC: Gregor war aber viel ruhiger geworden. Man verstand zwar also seine Worte nicht mehr, trotzdem sie ihm genug klar, klarer als früher, vorgekommen ware
+      TGT: Gregor, however, had become much calmer. One understood, therefore, his words no longer, although they had seemed to him quite clear, clearer than bef
+  [glossary/low] D0000-S000025: approved glossary term was not preserved: Procurator
+      SRC: Gregor schob sich langsam mit dem Sessel zur Tür hin, ließ ihn dort los, warf sich gegen die Tür, hielt sich an ihr aufrecht – die Ballen seiner Beinc
+      TGT: Gregor slowly pushed himself with the chair toward the door, let it go there, threw himself against the door, held himself upright on it—the pads of h
+  [glossary/low] D0000-S000026: approved glossary term was not preserved: Procurator
+      SRC: Da er die Türe auf diese Weise öffnen mußte, war sie eigentlich schon recht weit geöffnet, und er selbst noch nicht zu sehen. Er mußte sich erst langs
+      TGT: Since he had to open the door in this way, it was actually already quite wide open, and he himself was not yet to be seen. He first had to slowly turn
+  [glossary/low] D0000-S000028: approved glossary term was not preserved: Procurator
+      SRC: »Nun,« sagte Gregor und war sich dessen wohl bewußt, daß er der einzige war, der die Ruhe bewahrt hatte, »ich werde mich gleich anziehen, die Kollekti
+      TGT: “Well,” said Gregor and was well aware that he was the only one who had kept his calm, “I will dress up immediately, pack the collection and leave. Do
+  [glossary/low] D0000-S000029: approved glossary term was not preserved: Procurator
+      SRC: Aber der Prokurist hatte sich schon bei den ersten Worten Gregors abgewendet, und nur über die zuckende Schulter hinweg sah er mit aufgeworfenen Lippe
+      TGT: But the Prokurist had already turned away at the first words of Gregor, and only over the twitching shoulder did he look back at Gregor with raised li
+  [glossary/low] D0000-S000030: approved glossary term was not preserved: Procurator
+      SRC: Gregor sah ein, daß er den Prokuristen in dieser Stimmung auf keinen Fall weggehen lassen dürfe, wenn dadurch seine Stellung im Geschäft nicht aufs äu
+      TGT: Gregor realized that he must not let the Prokurist go in this mood under any circumstances, if his position in the office was not to be endangered to 
+  [glossary/low] D0000-S000031: approved glossary term was not preserved: Procurator
+      SRC: »Mutter, Mutter,« sagte Gregor leise und sah zu  ihr hinauf. Der Prokurist war ihm für einen Augenblick ganz aus dem Sinn gekommen; dagegen konnte er 
+      TGT: “Mother, Mother,” Gregor said softly and looked up  to her. The Prokurist had completely slipped from his mind for a moment; on the other hand, he cou
+-- semantic findings (first 8)
+  [mistranslation/medium] D0000-S000005: The translation 'could not make out' for 'nicht zu beurteilen verstand' is a factual reduction. The source indicates a lack of capacity to judge or evaluate the nature of the dots, whereas 'make out' 
+  [mistranslation/medium] D0000-S000006: The translation renders 'blödsinnig' as 'foolish', which describes a character trait or a lack of judgment. In this context, the source refers to the mental fog or disorientation caused by waking up t
+  [mistranslation/high] D0000-S000010: The translation 'it was the first thing he straightened' incorrectly renders the German 'so war es das erste, daß er sich streckte'. The source describes a result/consequence (the first thing that hap
+  [mistranslation/high] D0000-S000014: The translation renders 'einviertel acht' as 'a quarter to eight' (7:45), but in German time-telling, 'einviertel acht' means a quarter past seven (7:15).
+  [mistranslation/medium] D0000-S000014: The translation renders 'den lauten Krach, den es geben müßte' as a crash that 'would have to be made', implying an intentional act of creation. The source refers to the noise that would inevitably oc
+  [glossary/high] D0000-S000016: The translation fails to use the mandatory glossary term 'Procurator' for 'Prokurist'.
+  [mistranslation/high] D0000-S000016: The translation incorrectly renders the time. 'fünf Minuten einviertel acht' (five minutes past a quarter to eight, i.e., 7:20) is translated as 'five minutes to a quarter to eight' (7:10).
+  [mistranslation/medium] D0000-S000021: The translation 'out of his mind' for 'außer sich' is a concrete error in state. In this context, 'außer sich' denotes extreme agitation, distress, or being beside oneself with emotion, whereas 'out o
+  [mistranslation/medium] D0000-S000021: The translation 'the Prokurist' as a vocative is a concrete error in target-language prose and relation. In English, titles used as direct addresses (vocatives) do not take the definite article 'the'.
+  [mistranslation/medium] D0000-S000022: The translation renders 'ausstieß' as 'spitting out', which introduces a concrete physical action (saliva/spitting) not present in the source. In this context, 'ausstieß' refers to the rapid, breathle
+  [mistranslation/medium] D0000-S000029: The translation 'did not stand still for a moment' incorrectly renders the German 'stand er keinen Augenblick still'. In this context, 'keinen Augenblick' functions as 'not for a single moment' or 'no
+  [mistranslation/medium] D0000-S000029: The translation 'pulled his foot out of the living room' is a factual error regarding spatial relationship. The source 'den Fuß aus dem Wohnzimmer zog' describes the act of withdrawing the foot from t
+-- consistency report
+  {"enabled": true, "document_count": 1, "segment_count": 31, "issue_count": 0, "repair_count": 0, "by_severity": {}, "documents_with_issues": {}}
+-- review queue and validations
+  queue: []
+-- cost by stage (calls / min)
+  audit_translation: 26 calls, 8.5 min, prompt 64331, output 8973
+  translate: 1 calls, 1.9 min, prompt 12183, output 8874
+  extract_glossary: 2 calls, 0.8 min, prompt 11283, output 2547
+  repair_translation: 9 calls, 0.7 min, prompt 27594, output 1559
+  review_repaired: 4 calls, 0.4 min, prompt 18182, output 634
+  resolve_glossary: 1 calls, 0.2 min, prompt 583, output 282
+  approve_glossary: 1 calls, 0.2 min, prompt 1599, output 1103
+  validate_repaired: 0 calls, 0.0 min, prompt 0, output 0

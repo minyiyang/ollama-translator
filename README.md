@@ -224,7 +224,13 @@ cannot support are skipped rather than run with English or Chinese rules.
 Prose rewrite stays off for generic targets. Translation quality for other
 pairs depends on the model (docs/GENERIC_LANGUAGES.md). Section 7 of that
 document rates each benchmarked pair, says which model to use for which job,
-and lists what the pipeline cannot do.
+and lists what the pipeline cannot do. The benchmark books, configs, and
+scripts are in `lang_benchmark/`.
+
+For a pair other than English and Chinese the audit model reads every prose
+segment, not only the ones the rules mark as risky: the rules are weaker
+there. Expect the audit to be most of a run, and a run to take about twice
+as long as the same text between English and Chinese.
 
 ### Glossary files
 

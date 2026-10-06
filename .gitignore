@@ -31,3 +31,6 @@ config.yaml
 .vscode/
 .DS_Store
 Thumbs.db
+
+# Benchmark excerpts: built locally from the sources in lang_benchmark/BOOKS.md
+lang_benchmark/books/

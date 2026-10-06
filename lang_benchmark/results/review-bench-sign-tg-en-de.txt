@@ -1,0 +1,141 @@
+
+======== bench-sign-tg-en-de
+segments 303; longest D0001-S000010: source 1258 chars, translation 1447 chars
+  longest translation head: „Kurz gesagt“, fuhr sie fort, „die Fakten sind wie folgt. Mein Vater war ein Offizier in einem indischen Regiment, der mich nach Hause schickte, als ich noch ein Kind war. Meine Mutter war tot, und ic
+  longest translation tail: r gehört. Er kam mit einem Herzen voller Hoffnung nach Hause, um Frieden und Trost zu finden, und stattdessen –“ Sie legte ihre Hand an ihren Hals, und ein erstickendes Schluchzen unterbrach den Satz.
+-- rule findings (all)
+  [glossary/low] D0000-S000002: approved glossary term was not preserved: Hypodermespritzspritze
+      SRC: Sherlock Holmes took his bottle from the corner of the mantel-piece and his hypodermic syringe from its neat morocco case. With his long, white, nervo
+      TGT: Sherlock Holmes nahm seine Flasche vom Kaminsims und seine Hypodermespritzspritze aus ihrer ordentlichen Marokkoeinlage. Mit seinen langen, weißen, ne
+  [glossary/low] D0000-S000002: approved glossary term was not preserved: lange, weiße, nervöse Finger
+      SRC: Sherlock Holmes took his bottle from the corner of the mantel-piece and his hypodermic syringe from its neat morocco case. With his long, white, nervo
+      TGT: Sherlock Holmes nahm seine Flasche vom Kaminsims und seine Hypodermespritzspritze aus ihrer ordentlichen Marokkoeinlage. Mit seinen langen, weißen, ne
+  [glossary/low] D0000-S000017: approved glossary term was not preserved: analytisches Schließen
+      SRC: “Some facts should be suppressed, or at least a just sense of proportion should be observed in treating them. The only point in the case which deserve
+      TGT: „Einige Fakten sollten unterdrückt werden, oder zumindest sollte ein angemessenes Maß an Proportionen bei ihrer Darstellung eingehalten werden. Der ei
+  [glossary/medium] D0000-S000018: approved glossary term was not preserved: Baker Street
+      SRC: I was annoyed at this criticism of a work which had been specially designed to please him. I confess, too, that I was irritated by the egotism which s
+      TGT: Ich war verärgert über diese Kritik an einem Werk, das eigens dazu entworfen worden war, ihm zu gefallen. Ich gestehe zudem, dass ich irritiert war üb
+  [glossary/medium] D0000-S000019: approved glossary term was not preserved: französische Detektivbehörde
+      SRC: “My practice has extended recently to the Continent,” said Holmes, after a while, filling up his old brier-root pipe. “I was consulted last week by Fr
+      TGT: „Meine Praxis hat sich in letzter Zeit auf den Kontinent ausgedehnt“, sagte Holmes nach einer Weile und füllte seine alte Briarwurzel-Pfeife. „Ich wur
+  [glossary/low] D0000-S000021: approved glossary term was not preserved: Beobachtungsgabe
+      SRC: “Oh, he rates my assistance too highly,” said Sherlock Holmes, lightly. “He has considerable gifts himself. He possesses two out of the three qualitie
+      TGT: „Oh, er schätzt meine Hilfe zu hoch ein“, sagte Sherlock Holmes, leicht. „Er hat selbst beträchtliche Fähigkeiten. Er besitzt zwei der drei Qualitäten
+  [mistranslation/high] D0000-S000023: translation may be another passage's, or leaves most of this one out: it has 1 of the 5 approved terms in this passage
+      SRC: “Oh, didn’t you know?” he cried, laughing. “Yes, I have been guilty of several monographs. They are all upon technical subjects. Here, for example, is
+      TGT: „Oh, wussten Sie das nicht?“, rief er lachend. „Ja, ich habe mich an einigen Monografien schuldig gemacht. Sie behandeln alle technische Themen. Hier 
+  [glossary/low] D0000-S000023: approved glossary term was not preserved: Farbtafeln
+      SRC: “Oh, didn’t you know?” he cried, laughing. “Yes, I have been guilty of several monographs. They are all upon technical subjects. Here, for example, is
+      TGT: „Oh, wussten Sie das nicht?“, rief er lachend. „Ja, ich habe mich an einigen Monografien schuldig gemacht. Sie behandeln alle technische Themen. Hier 
+  [glossary/low] D0000-S000023: approved glossary term was not preserved: Indian lunkah
+      SRC: “Oh, didn’t you know?” he cried, laughing. “Yes, I have been guilty of several monographs. They are all upon technical subjects. Here, for example, is
+      TGT: „Oh, wussten Sie das nicht?“, rief er lachend. „Ja, ich habe mich an einigen Monografien schuldig gemacht. Sie behandeln alle technische Themen. Hier 
+  [glossary/low] D0000-S000023: approved glossary term was not preserved: Vogelperspektive
+      SRC: “Oh, didn’t you know?” he cried, laughing. “Yes, I have been guilty of several monographs. They are all upon technical subjects. Here, for example, is
+      TGT: „Oh, wussten Sie das nicht?“, rief er lachend. „Ja, ich habe mich an einigen Monografien schuldig gemacht. Sie behandeln alle technische Themen. Hier 
+  [glossary/low] D0000-S000023: approved glossary term was not preserved: Über den Unterschied zwischen den Aschen der verschiedenen Tabake
+      SRC: “Oh, didn’t you know?” he cried, laughing. “Yes, I have been guilty of several monographs. They are all upon technical subjects. Here, for example, is
+      TGT: „Oh, wussten Sie das nicht?“, rief er lachend. „Ja, ich habe mich an einigen Monografien schuldig gemacht. Sie behandeln alle technische Themen. Hier 
+  [glossary/low] D0000-S000031: approved glossary term was not preserved: Eliminiere alle anderen Faktoren, und der eine, der übrig bleibt, muss die Wahrheit sein
+      SRC: “Why, of course I knew that you had not written a letter, since I sat opposite to you all morning. I see also in your open desk there that you have a 
+      TGT: „Nun, natürlich weiß ich, dass Sie keinen Brief geschrieben haben, da ich den ganzen Morgen vor Ihnen saß. Ich sehe auch in Ihrem offenen Schreibtisch
+  [glossary/low] D0000-S000047: approved glossary term was not preserved: Wahrscheinlichkeitsbilanz
+      SRC: “Ah, that is good luck. I could only say what was the balance of probability. I did not at all expect to be so accurate.”
+      TGT: „Ah, das ist Glück. Ich kann nur sagen, was die Wahrscheinlichkeitsbilanz war. Ich habe nicht erwartet, so genau zu sein.“
+  [glossary/low] D0000-S000051: approved glossary term was not preserved: innere Platte
+      SRC: “It is very customary for pawnbrokers in England, when they take a watch, to scratch the number of the ticket with a pin-point upon the inside of the 
+      TGT: „Es ist sehr üblich, dass Pfandleiher in England, wenn sie eine Uhr annehmen, die Nummer des Belegs mit einer Reißnadel auf der Innenseite des Gehäuse
+  [mistranslation/high] D0001-S000036: numeric content differs from source: SOURCE: "three little children" (quantity: 3, object: children); TRANSLATION: "den Mord an drei kleinen
+      SRC: He smiled gently. “It is of the first importance,” he said, “not to allow your judgment to be biased by personal qualities. A client is to me a mere u
+      TGT: Er lächelte sanft. „Es ist von größter Bedeutung“, sagte er, „nicht zuzulassen, dass Ihr Urteil durch persönliche Eigenschaften beeinflusst wird. Ein 
+  [glossary/low] D0001-S000041: approved glossary term was not preserved: Will-o’-the-wisps
+      SRC: I sat in the window with the volume in my hand, but my thoughts were far from the daring speculations of the writer. My mind ran upon our late visitor
+      TGT: Ich saß mit dem Buch in der Hand am Fenster, aber meine Gedanken waren weit entfernt von den kühnen Spekulationen des Autors. Mein Geist kreiste um un
+  [glossary/medium] D0002-S000026: approved glossary term was not preserved: Thames
+      SRC: We did indeed get a fleeting view of a stretch of the Thames with the lamps shining upon the broad, silent water; but our cab dashed on, and was soon 
+      TGT: Wir bekamen in der Tat einen flüchtigen Blick auf einen Teil der Themse, wobei die Lampen auf dem breiten, stillen Wasser schimmerten, aber unser Miet
+  [mistranslation/high] D0003-S000026: numeric content differs from source: The translation contains significant added content (hallucination) regarding 'justice', 'Bartholomew', 
+      SRC: “‘I will tell you how Morstan died,’ he continued. ‘He had suffered for years from a weak heart, but he concealed it from every one. I alone knew it. 
+      TGT: „Ich werde euch erzählen, wie Morstan starb“, fuhr er fort. „Er litt jahrelang an einem schwachen Herzen, doch er verheimlichte es vor jedermann. Nur 
+  [glossary/medium] D0003-S000026: approved glossary term was not preserved: Lal Chowdar
+      SRC: “‘I will tell you how Morstan died,’ he continued. ‘He had suffered for years from a weak heart, but he concealed it from every one. I alone knew it. 
+      TGT: „Ich werde euch erzählen, wie Morstan starb“, fuhr er fort. „Er litt jahrelang an einem schwachen Herzen, doch er verheimlichte es vor jedermann. Nur 
+  [mistranslation/high] D0003-S000039: numeric content differs from source: SOURCE: "not one inch" (unit: inch); TRANSLATION: "kein einziger Zentimeter" (unit: centimeter). The un
+      SRC: “Bartholomew is a clever fellow,” said he. “How do you think he found out where the treasure was? He had come to the conclusion that it was somewhere 
+      TGT: „Bartholomew ist ein kluger Kerl“, sagte er. „Wie glauben Sie, hat er herausgefunden, wo sich der Schatz befindet? Er war zu dem Schluss gekommen, das
+  [glossary/medium] D0003-S000039: approved glossary term was not preserved: Bartholomew
+      SRC: “Bartholomew is a clever fellow,” said he. “How do you think he found out where the treasure was? He had come to the conclusion that it was somewhere 
+      TGT: „Bartholomew ist ein kluger Kerl“, sagte er. „Wie glauben Sie, hat er herausgefunden, wo sich der Schatz befindet? Er war zu dem Schluss gekommen, das
+  [glossary/medium] D0004-S000037: approved glossary term was not preserved: Miss Morstan
+      SRC: Sherlock Holmes took the lamp and led the way, for Thaddeus Sholto’s teeth were chattering in his head. So shaken was he that I had to pass my hand un
+      TGT: Sherlock Holmes nahm die Laterne und führte den Weg, denn Thaddeus Sholtos Zähne klapperten in seinem Kopf. So erschüttert war er, dass ich meine Hand
+  [glossary/medium] D0004-S000042: approved glossary term was not preserved: Bartholomew Sholto
+      SRC: “The door must come down,” he answered, and, springing against it, he put all his weight upon the lock. It creaked and groaned, but did not yield. Tog
+      TGT: „Die Tür muss aufgebrochen werden“, antwortete er und sprang dagegen und setzte sein ganzes Gewicht auf das Schloss. Es knarrte und ächzte, gab aber n
+  [glossary/medium] D0005-S000052: approved glossary term was not preserved: Holmes
+      SRC: “Well, well, if it was fastened the steps could have nothing to do with the matter. That’s common sense. Man might have died in a fit; but then the je
+      TGT: „Nun, nun, wenn es verschlossen war, könnten die Schritte nichts mit der Sache zu tun haben. Das ist gesunder Menschenverstand. Der Mann könnte in ein
+-- semantic findings (first 8)
+  [mistranslation/medium] D0000-S000002: The translation uses 'aus ihrem ordentlichen Marokkoeinlage', but 'Einlage' is feminine (die Einlage), requiring the dative feminine article 'ihrer' instead of the neuter/plural 'ihrem'.
+  [mistranslation/medium] D0000-S000003: The phrase 'take anything approaching to a liberty' is mistranslated as 'etwas in der Art zu tun' (do something of that sort), which is too vague and fails to capture the specific meaning of 'taking a
+  [mistranslation/medium] D0000-S000008: The translation 'dass es seine Wirkung physisch gesehen schlecht ist' is grammatically incorrect and logically flawed in German. The use of 'es' as a dummy subject combined with 'seine Wirkung' as a s
+  [mistranslation/medium] D0000-S000009: The idiom 'Count the cost!' is translated literally as 'Rechnen Sie mit den Kosten!', which in German means 'expect/anticipate the costs' rather than the source's imperative to weigh the risks or cons
+  [mistranslation/medium] D0000-S000010: The translation 'als hätte er Freude an einem Gespräch' (as if he had joy in a conversation) fails to capture the specific nuance of 'relish', which implies a keen appetite, zest, or a particular tast
+  [omission/medium] D0000-S000014: The translation omits the phrase 'by anything in my life', which specifies the scope and duration of the speaker's experience.
+  [mistranslation/medium] D0000-S000015: The translation 'ich kann es Ihnen nicht dafür loben' is a concrete defect in German. The verb 'loben' (to praise) does not take the construction 'jemanden für etwas loben' in the negative to mean 'co
+  [mistranslation/medium] D0000-S000016: The verb 'remonstrated' implies a protest or a formal complaint, which is stronger than the neutral 'erwiderte' (replied/answered).
+  [mistranslation/medium] D0000-S000019: The translation renders 'notes of admiration' as 'Ausrufezeichen' (exclamation marks), which is a concrete factual error. The source refers to written expressions of praise, not punctuation marks.
+  [glossary/medium] D0000-S000021: The translation uses 'Fähigkeit zur Beobachtung' instead of the mandatory glossary term 'Beobachtungsgabe'.
+  [glossary/high] D0000-S000023: The translation fails to use the mandatory glossary rendering for 'coloured plates'.
+  [mistranslation/medium] D0000-S000027: The translation 'Warum, kaum' is a literal but incorrect rendering of the idiomatic 'Why, hardly'. In this context, 'Why' is an interjection of surprise or contradiction, not a question of causality, 
+  [mistranslation/medium] D0000-S000028: The translation 'wie Sie dazu gekommen sind' is too vague for 'how you arrived at it'. In this context, 'arrived at it' refers to the process of reaching a specific conclusion or deduction, whereas 'd
+  [mistranslation/medium] D0000-S000029: The source term 'mould' in this context refers to a specific type of soil or earth (consistent with the subsequent mention of 'earth' and 'reddish tint'), not 'Schmutz' (dirt/grime), which is too gene
+  [mistranslation/medium] D0000-S000036: The term 'suggestive facts' in the context of a forensic or technical examination refers to 'indicative' or 'revealing' evidence/clues, not 'suggestive' in the psychological or erotic sense implied by
+  [mistranslation/medium] D0000-S000044: The translation 'ableiten' is a poor choice for the specific detective-work 'deduce'.
+  [mistranslation/medium] D0000-S000044: The translation 'unhöflich' fails to capture the emotional weight of 'unkind' in the context of a brother's tragedy.
+  [mistranslation/low] D0000-S000044: The translation 'fantasievolle Weise' for 'fanciful way' misses the derogatory connotation of 'fanciful' (meaning unrealistic or far-fetched).
+  [mistranslation/medium] D0000-S000045: The translation 'bitte entschuldigen Sie mich' is a concrete error in this context. In German, 'entschuldigen Sie mich' is used to ask for permission to leave a room or to excuse oneself from a social
+  [glossary/high] D0000-S000047: The translation fails to use the mandatory glossary term for 'balance of probability'.
+  [mistranslation/high] D0000-S000049: The translation incorrectly identifies the subject of the carelessness. The source states the 'brother' was careless, but the translation attributes this to the listener ('Sie').
+  [mistranslation/medium] D0000-S000049: The translation renders 'careless' as 'unordentlich' (untidy), whereas the context of damaging a watch implies 'leichtsinnig' or 'unvorsichtig' (negligent/careless).
+  [mistranslation/medium] D0000-S000049: The translation renders 'careless' as 'unordentlich' in the second instance, failing to capture the sense of negligence.
+  [mistranslation/medium] D0000-S000050: The translation fails to capture the specific action of 'following' the reasoning, replacing it with a result ('understanding').
+  [mistranslation/medium] D0000-S000050: The translation turns the action of following a logical path into a state of understanding.
+  [glossary/high] D0000-S000051: The translation uses 'innere Plättchen' instead of the mandatory glossary term 'innere Platte'.
+  [mistranslation/medium] D0001-S000002: The translation uses the masculine article 'eine kleine Turban' instead of the feminine 'ein kleiner Turban' (or 'eine kleine Turban-Kopfbedeckung'), but more critically, 'Turban' is masculine in Germ
+  [mistranslation/medium] D0001-S000005: The translation 'Sie dachte nicht so' is a literal calque of the English 'She did not think so' and is unnatural in German. In this context, it incorrectly renders the subject's opinion/belief as a ma
+  [mistranslation/medium] D0001-S000007: The word 'position' in this context refers to the speaker's social or situational standing/circumstance, not a physical location or a formal job title. The German 'Position' is too literal and typical
+  [structure/medium] D0001-S000024: The translation contains a grammatical defect in German; the adjective 'flehend' is used as a nominalized adjective but lacks the necessary capitalization and proper phrasing to function as a noun in 
+  [omission/medium] D0001-S000027: The adverb 'however' is omitted in the translation, removing the contrastive transition between the two statements.
+  [mistranslation/medium] D0001-S000039: The translation 'einem gewissen Charakter' omits the attribute 'force'.
+  [mistranslation/high] D0001-S000040: The translation uses 'langen Buchstaben' (long letters/characters), which in German refers to the physical length of the characters. However, the source 'long letters' in the context of handwriting an
+  [mistranslation/medium] D0001-S000041: The translation renders 'sweet age' as 'reifes Alter' (mature age). While 'reife' can be a consequence of the age described, 'sweet' in this context refers to the desirability or charm of the age, not
+  [mistranslation/medium] D0002-S000002: The translation of 'bright' as 'aufgeweckt' (meaning 'alert' or 'precocious') misses the intended meaning of 'bright' in this context, which refers to Holmes's intellectual radiance or high spirits/an
+  [mistranslation/high] D0002-S000006: Semantic audit could not produce a complete structured decision after 4 attempts; this segment requires conservative source-grounded repair and independent verification.
+  [mistranslation/medium] D0002-S000010: The translation renders 'night’s work' as 'heutige Arbeit' (today's work), which ignores the specific temporal constraint of the night. While the context is 'today', the source specifically emphasizes
+  [mistranslation/medium] D0002-S000012: The translation 'Ich nehme an, dass es von geringer Bedeutung ist' contradicts the source 'I don’t suppose that it is of the slightest importance'.
+  [mistranslation/medium] D0002-S000014: The translation 'Bleistift Schrift' is grammatically incorrect in German; it is either a compound noun 'Bleistiftschrift' or a phrase 'Schrift mit Bleistift'. As written, it is a concrete prose defect
+  [mistranslation/medium] D0002-S000016: The translation renders 'present expedition' as 'heutige Expedition' (today's expedition). While 'present' can refer to the current day, in this context it refers to the specific undertaking or journe
+-- consistency report
+  {"enabled": true, "document_count": 6, "segment_count": 303, "issue_count": 0, "repair_count": 0, "by_severity": {}, "documents_with_issues": {}}
+-- review queue and validations
+  queue: ['D0002-S000026', 'D0003-S000025', 'D0004-S000055', 'D0005-S000023']
+  D0002-S000026 SRC: We did indeed get a fleeting view of a stretch of the Thames with the lamps shining upon the broad, silent water; but our cab dashed on, and was soon involved in a labyrinth of streets upon the other side.
+  D0002-S000026 TGT: Wir bekamen in der Tat einen flüchtigen Blick auf einen Teil der Themse, wobei die Lampen auf dem breiten, stillen Wasser schimmerten, aber unser Mietwagen raste weiter und war bald in ein Labyrinth von Straßen auf der anderen Seite versunken.
+  D0003-S000025 SRC: “‘I have only one thing,’ he said, ‘which weighs upon my mind at this supreme moment. It is my treatment of poor Morstan’s orphan. The cursed greed which has been my besetting sin through life has withheld from her the treasure, half at least of which should have been hers. And yet I have made no us
+  D0003-S000025 TGT: „Ich habe nur eine Sache“, sagte er, „die schwer auf meinem Gemüt lastet in diesem höchsten Moment. Es ist mein Umgang mit dem Waisenkind des armen Morstan. Die verfluchte Habgier, die meine größte Schwäche im Leben war, hat ihr den Schatz vorenthalten, zumindest die Hälfte davon, die ihr zustand. U
+  D0004-S000055 SRC: “The treasure is gone!” he said. “They have robbed him of the treasure! There is the hole through which we lowered it. I helped him to do it! I was the last person who saw him! I left him here last night, and I heard him lock the door as I came downstairs.”
+  D0004-S000055 TGT: „Der Schatz ist weg!“, sagte er. „Sie haben ihn um den Schatz bestohlen! Da ist das Loch, durch das wir ihn hinuntergelassen haben. Ich habe ihm geholfen, es zu tun! Ich war die letzte Person, die ihn gesehen hat! Ich habe ihn gestern Abend hier verlassen, und ich habe gehört, wie er die Tür verrieg
+  D0005-S000023 SRC: He held down the lamp to the floor, and as he did so I saw for the second time that night a startled, surprised look come over his face. For myself, as I followed his gaze my skin was cold under my clothes. The floor was covered thickly with the prints of a naked foot,—clear, well defined, perfectly
+  D0005-S000023 TGT: Er hielt die Lampe auf den Boden, und als er das tat, sah ich zum zweiten Mal in dieser Nacht ein erschrockener, überraschter Ausdruck über sein Gesicht gleiten. Denn als ich seinem Blick folgte, wurde mir unter meiner Kleidung kalt. Der Boden war dick mit den Abdrücken eines nackten Fußes bedeckt, 
+-- cost by stage (calls / min)
+  audit_translation: 332 calls, 101.2 min, prompt 354217, output 137120
+  translate: 19 calls, 15.9 min, prompt 74468, output 36032
+  repair_translation: 94 calls, 13.8 min, prompt 142177, output 11448
+  extract_glossary: 4 calls, 3.4 min, prompt 42368, output 19205
+  resolve_glossary: 1 calls, 1.8 min, prompt 11628, output 11106
+  review_repaired: 26 calls, 1.5 min, prompt 84041, output 7238
+  approve_glossary: 2 calls, 0.9 min, prompt 8030, output 4035
+  repair_review: 11 calls, 0.9 min, prompt 22874, output 2154
+  validate_repaired: 7 calls, 0.6 min, prompt 14475, output 968

@@ -1,0 +1,123 @@
+
+======== bench-tg2-es-en
+segments 88; longest D0000-S000085: source 3044 chars, translation 3123 chars
+  longest translation head: And what narrow escapes the poor woman had to make to come out of that immense role with grace! She usually confided in Barbarita. “Look, daughter, some months I am so on the verge of collapse that I 
+  longest translation tail: ey were not, the mother very stiff in her gloves, which prevented her from using her fingers, with a muff that gave her hands excessive warmth, and her good cashmere. Without being old, she seemed so.
+-- rule findings (all)
+  [glossary/medium] D0000-S000005: approved glossary term was not preserved: Gobernación
+      SRC: ¡Ay!, el susto que se llevaron D. Baldomero Santa Cruz y Barbarita no es para contado. ¡Qué noche de angustia la del 10 al 11! Ambos creían no volver 
+      TGT: Oh, the fright that Don Baldomero Santa Cruz and Barbarita experienced is beyond description. What a night of anguish from the 10th to the 11th! Both 
+  [glossary/medium] D0000-S000005: approved glossary term was not preserved: González Bravo
+      SRC: ¡Ay!, el susto que se llevaron D. Baldomero Santa Cruz y Barbarita no es para contado. ¡Qué noche de angustia la del 10 al 11! Ambos creían no volver 
+      TGT: Oh, the fright that Don Baldomero Santa Cruz and Barbarita experienced is beyond description. What a night of anguish from the 10th to the 11th! Both 
+  [mistranslation/high] D0000-S000006: numeric content differs from source: In the source, 'daba quince y raya' is an idiomatic expression of high praise/approval (equivalent to '
+      SRC: Cuando el niño estudiaba los últimos años de su carrera, verificose en él uno de esos cambiazos críticos que tan comunes son en la edad juvenil. De tr
+      TGT: When the boy was studying the last years of his degree, he underwent one of those critical changes that are so common in youth. He went from being mis
+  [mistranslation/high] D0000-S000025: numeric content differs from source: SOURCE: "por los años del 10 al 15" (range: 1810-1815) is missing in TRANSLATION.
+      SRC: Don Baldomero Santa Cruz era hijo de otro D. Baldomero Santa Cruz que en el siglo pasado tuvo ya tienda de paños del Reino en la calle de la Sal, en e
+      TGT: Don Baldomero Santa Cruz was the son of another Don Baldomero Santa Cruz who, in the last century, already had a cloth shop in the Calle de la Sal, in
+  [mistranslation/high] D0000-S000026: numeric content differs from source: The source range "del 45 al 55" refers to the years 1845 to 1855, whereas the translation adds a centur
+      SRC: En el reinado de D. Baldomero I, o sea desde los orígenes hasta 1848, la casa trabajó más en géneros del país que en los extranjeros. Escaray y Pradol
+      TGT: In the reign of Don Baldomero I, that is, from its origins until 1848, the business dealt more in domestic goods than in foreign ones. Escaray and Pra
+  [mistranslation/high] D0000-S000027: numeric content differs from source: The year of death for Albert is '55' in SOURCE (referring to 1855 based on context) but '1955' in TRANS
+      SRC: En las contratas de vestuario para el Ejército y Milicia Nacional, ni Santa Cruz, ni Arnaiz, ni tampoco Bringas daban la cara. Aparecía como contratis
+      TGT: In the contracts for clothing for the Army and National Militia, neither Santa Cruz, nor Arnaiz, nor Bringas put their name forward. A certain Albert,
+  [glossary/medium] D0000-S000030: approved glossary term was not preserved: Bolsa
+      SRC: La casa del gordo Arnaiz era relativamente moderna. Se había hecho pañero porque tuvo que quedarse con las existencias de Albert, para indemnizarse de
+      TGT: The house of the fat Arnaiz was relatively modern. He had become a cloth merchant because he had to take over the stocks of Albert, in order to be com
+  [glossary/medium] D0000-S000032: approved glossary term was not preserved: China
+      SRC: Solía no probar nada, ni el otro tampoco, quedándose cada cual con su opinión; pero con estas sabrosas peloteras pasaban el tiempo. También había entr
+      TGT: He used to not taste anything, nor did the other, each remaining with his own opinion; but with these tasty skirmishes, they passed the time. There wa
+  [glossary/low] D0000-S000035: approved glossary term was not preserved: Manila handkerchief
+      SRC: Creció Bárbara en una atmósfera saturada de olor de sándalo, y las fragancias orientales, juntamente con los vivos colores de la pañolería chinesca, d
+      TGT: Barbara grew up in an atmosphere saturated with the scent of sandalwood, and the oriental fragrances, together with the bright colors of the Chinese f
+  [glossary/low] D0000-S000042: approved glossary term was not preserved: Cologne water
+      SRC: La chiquilla de Moreno fundaba su vanidad en llevar papelejos con figuritas y letras de colores, en los cuales se hablaba de píldoras, de barnices o d
+      TGT: The girl from Moreno based her vanity on wearing papers with figures and colored letters, in which pills, varnishes, or ingredients for dyeing hair we
+  [glossary/medium] D0000-S000043: approved glossary term was not preserved: Arnaiz
+      SRC: Al siguiente día, Barbarita, que no quería dar su brazo a torcer, llevaba unos papelitos muy raros de pasta, todos llenos de garabatos chinescos. Desp
+      TGT: The next day, Barbarita, who refused to give in, brought some very strange slips of paste, all covered in Chinese scribbles. After making much of hers
+  [glossary/medium] D0000-S000043: approved glossary term was not preserved: Castita
+      SRC: Al siguiente día, Barbarita, que no quería dar su brazo a torcer, llevaba unos papelitos muy raros de pasta, todos llenos de garabatos chinescos. Desp
+      TGT: The next day, Barbarita, who refused to give in, brought some very strange slips of paste, all covered in Chinese scribbles. After making much of hers
+  [glossary/medium] D0000-S000043: approved glossary term was not preserved: Doña Calixta
+      SRC: Al siguiente día, Barbarita, que no quería dar su brazo a torcer, llevaba unos papelitos muy raros de pasta, todos llenos de garabatos chinescos. Desp
+      TGT: The next day, Barbarita, who refused to give in, brought some very strange slips of paste, all covered in Chinese scribbles. After making much of hers
+  [glossary/medium] D0000-S000043: approved glossary term was not preserved: Eulalia
+      SRC: Al siguiente día, Barbarita, que no quería dar su brazo a torcer, llevaba unos papelitos muy raros de pasta, todos llenos de garabatos chinescos. Desp
+      TGT: The next day, Barbarita, who refused to give in, brought some very strange slips of paste, all covered in Chinese scribbles. After making much of hers
+  [glossary/low] D0000-S000045: approved glossary term was not preserved: Manila handkerchief
+      SRC: Esta niña y otras del barrio, bien apañaditas por sus respectivas mamás, peinadas a estilo de maja, con peineta y flores en la cabeza, y sobre los hom
+      TGT: This girl and other girls from the neighborhood, well-dressed by their respective mothers, with their hair styled in the maja fashion, with a comb and
+  [glossary/low] D0000-S000045: approved glossary term was not preserved: Manila shawls
+      SRC: Esta niña y otras del barrio, bien apañaditas por sus respectivas mamás, peinadas a estilo de maja, con peineta y flores en la cabeza, y sobre los hom
+      TGT: This girl and other girls from the neighborhood, well-dressed by their respective mothers, with their hair styled in the maja fashion, with a comb and
+  [mistranslation/high] D0000-S000048: numeric content differs from source: The source value 'cincuenta mil duros' (fifty thousand duros) is translated as 'fifty thousand reales'.
+      SRC: Los herederos de Arnaiz, al inventariar la riqueza de la casa, que sólo en aquel artículo no bajaba de cincuenta mil duros, comprendieron que se aprox
+      TGT: The heirs of Arnaiz, when inventorying the wealth of the house, which in that item alone amounted to no less than fifty thousand duros, realized that 
+  [glossary/medium] D0000-S000056: approved glossary term was not preserved: Baldomerito
+      SRC: También pensaba Barbarita, oyendo a su novio, que la procesión iba por dentro y que el pobre chico, a pesar de ser tan grandullón, no tenía alma para 
+      TGT: Barbarita also thought, listening to her boyfriend, that the procession was going on inside and that the poor boy, despite being so big, did not have 
+  [mistranslation/high] D0000-S000068: numeric content differs from source: The source year '45' is translated as '1845' and '49' as '1849'. While contextually likely, the source 
+      SRC: En este interesante periodo de la crianza del heredero, desde el 45 para acá, sufrió la casa de Santa Cruz la transformación impuesta por los tiempos,
+      TGT: In this interesting period of the heir's upbringing, since '45 , the house of Santa Cruz underwent the transformation imposed by the times, although i
+  [glossary/low] D0000-S000070: approved glossary term was not preserved: Manila handkerchief
+      SRC: También la casa de Gumersindo Arnaiz, hermano de Barbarita, ha pasado por grandes crisis y mudanzas desde que murió D. Bonifacio. Dos años después del
+      TGT: The house of Gumersindo Arnaiz, brother of Barbarita, has also gone through great crises and changes since Don Bonifacio died. Two years after his sis
+  [glossary/low] D0000-S000070: approved glossary term was not preserved: Manila shawls
+      SRC: También la casa de Gumersindo Arnaiz, hermano de Barbarita, ha pasado por grandes crisis y mudanzas desde que murió D. Bonifacio. Dos años después del
+      TGT: The house of Gumersindo Arnaiz, brother of Barbarita, has also gone through great crises and changes since Don Bonifacio died. Two years after his sis
+  [glossary/medium] D0000-S000071: approved glossary term was not preserved: China
+      SRC: Las comunicaciones rápidas nos trajeron mensajeros de la potente industria belga, francesa e inglesa, que necesitaban mercados. Todavía no era moda ir
+      TGT: The rapid communications brought us messengers from the powerful Belgian, French, and English industries, who needed markets. It was not yet fashionab
+  [glossary/low] D0000-S000071: approved glossary term was not preserved: Manila handkerchief
+      SRC: Las comunicaciones rápidas nos trajeron mensajeros de la potente industria belga, francesa e inglesa, que necesitaban mercados. Todavía no era moda ir
+      TGT: The rapid communications brought us messengers from the powerful Belgian, French, and English industries, who needed markets. It was not yet fashionab
+  [glossary/low] D0000-S000071: approved glossary term was not preserved: Manila shawls
+      SRC: Las comunicaciones rápidas nos trajeron mensajeros de la potente industria belga, francesa e inglesa, que necesitaban mercados. Todavía no era moda ir
+      TGT: The rapid communications brought us messengers from the powerful Belgian, French, and English industries, who needed markets. It was not yet fashionab
+  [glossary/medium] D0000-S000072: approved glossary term was not preserved: Canton
+      SRC: Ya en 1840 las casas que traían directamente el género de Cantón no podían competir con las que lo encargaban a Liverpool. Cualquier mercachifle de la
+      TGT: By 1840, the houses that brought goods from Canton directly could not compete with those that ordered them from Liverpool. Any merchant in Calle de Po
+  [mistranslation/high] D0000-S000078: numeric content differs from source: The source 'la rejilla de a tercia' refers to a grid pattern of 'one third' (a ratio/proportion), where
+      SRC: De la pañolería y artículos asiáticos, sólo quedaban en la casa por los años del 50 al 60 tradiciones religiosamente conservadas. Aún había alguna tor
+      TGT: Of the fan and Asian articles, only traditions religiously preserved remained in the house by the 1850s and 1860s. There was still a small ivory tower
+  [mistranslation/high] D0000-S000082: numeric content differs from source: In the source, the years are 'del 38 al 60' (from '38 to '60), which in the context of the preceding te
+      SRC: He dicho que eran nueve. Falta consignar que de estas nueve cifras, siete correspondían al sexo femenino. ¡Vaya una plaga que le había caído al bueno 
+      TGT: I said that there were nine. It remains to be noted that of these nine figures, seven corresponded to the female sex. What a plague had fallen upon th
+-- semantic findings (first 8)
+  [mistranslation/medium] D0000-S000010: The translation 'live to a ripe old age' introduces a specific state of longevity/age that is not present in the source. The source 'se hartan de vivir' literally means 'get tired of living' or 'have 
+  [mistranslation/medium] D0000-S000035: The translation renders 'dibujado y pintado con dureza' as 'drawn and painted with boldness'. In this artistic context, 'dureza' refers to a harsh, rigid, or severe style of execution rather than 'bol
+  [mistranslation/high] D0000-S000039: The translation contains a redundant and awkward phrasing 'window of the barred window', which is a concrete target-language defect. The source 'vitrina de la ventana enrejada' refers to a display cas
+  [mistranslation/medium] D0000-S000039: The translation renders 'encarnadas' as 'red'. In the context of a chess set from this period, 'encarnadas' (flesh-colored/reddish) refers to the opposite side of the 'blancas' (white), typically the 
+  [mistranslation/medium] D0000-S000039: The translation renders 'estuchitos' as 'boxes', which creates an accidental repetition with the subsequent 'cajas' (also translated as 'cases/boxes'). In this context, 'estuchitos' refers to small ca
+  [mistranslation/medium] D0000-S000045: The translation renders 'molinillos' as 'mills', which is a generic industrial term. In the context of a 'taller de cucharas' (spoon workshop) in old Madrid, 'molinillos' refers specifically to the tr
+  [mistranslation/medium] D0000-S000054: The translation 'neither did she hate him' is a concrete error in atomic facts regarding the subject's feelings toward a third party.
+  [mistranslation/medium] D0000-S000057: The translation 'religious care' fails to capture the specific metaphor of 'maternidad' (maternity/motherhood), which is essential for the subsequent parallel to Nature's 'works in gestation'.
+  [mistranslation/medium] D0000-S000070: The translation renders 'Comprometido éste' as 'Committed', which is a literal mistranslation of the financial term 'comprometido' (meaning financially overextended or in debt/distress).
+  [mistranslation/medium] D0000-S000070: The translation renders 'galeras aceleradas' as 'fast galleons'. A 'galera' is a galley (rowed vessel), whereas a 'galeón' is a galleon. In the context of 19th-century Parisian novelties, this refers 
+  [mistranslation/medium] D0000-S000070: The translation renders 'pañuelos chillones' as 'bright shawls'. The approved glossary mandates 'Manila shawls' for 'pañuelos de Manila', but here 'pañuelos' refers to the same garment type. However, 
+  [mistranslation/medium] D0000-S000070: The translation renders 'pañuelos de Manila' as 'Manila handkerchiefs'. The approved glossary explicitly mandates 'Manila shawls' for 'pañuelos de Manila'.
+  [mistranslation/medium] D0000-S000070: The translation renders 'toquillas de gama clara' as 'light-colored toques'. A 'toquilla' in this historical fashion context is a small bonnet or cap, not a 'toque' (which is a specific type of small 
+-- consistency report
+  {"enabled": true, "document_count": 1, "segment_count": 88, "issue_count": 2, "repair_count": 0, "by_severity": {"low": 2}, "documents_with_issues": {"pg-header": 2}}
+  FILE 0000-pg-header.consistency.json {"segment_id": "D0000-S000063", "category": "consistency", "severity": "low", "message": "The style sheet renders \"el gordo Arnaiz\" as \"the fat Arnaiz\", but this translation does not use it.", "suggested_fix": "Render \"el gordo Arnaiz\" as \"the fat Arnaiz\".", "source": "consistency", "source_quote": "el gordo Arnaiz", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-pg-header.consistency.json {"segment_id": "D0000-S000064", "category": "consistency", "severity": "low", "message": "The style sheet renders \"el gordo Arnaiz\" as \"the fat Arnaiz\", but this translation does not use it.", "suggested_fix": "Render \"el gordo Arnaiz\" as \"the fat Arnaiz\".", "source": "consistency", "source_quote": "el gordo Arnaiz", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+-- review queue and validations
+  queue: ['D0000-S000025', 'D0000-S000070', 'D0000-S000078']
+  D0000-S000025 SRC: Don Baldomero Santa Cruz era hijo de otro D. Baldomero Santa Cruz que en el siglo pasado tuvo ya tienda de paños del Reino en la calle de la Sal, en el mismo local que después ocupó D. Mauro Requejo. Había empezado el padre por la más humilde jerarquía comercial, y a fuerza de trabajo, constancia y 
+  D0000-S000025 TGT: Don Baldomero Santa Cruz was the son of another Don Baldomero Santa Cruz who, in the last century, already had a cloth shop in the Calle de la Sal, in the same place that Don Mauro Requejo later occupied. The father started in the humblest commercial hierarchy, and through hard work, constancy, and 
+  D0000-S000070 SRC: También la casa de Gumersindo Arnaiz, hermano de Barbarita, ha pasado por grandes crisis y mudanzas desde que murió D. Bonifacio. Dos años después del casamiento de su hermana con Santa Cruz, casó Gumersindo con Isabel Cordero, hija de D. Benigno Cordero, mujer de gran disposición, que supo ver clar
+  D0000-S000070 TGT: The house of Gumersindo Arnaiz, brother of Barbarita, has also gone through great crises and changes since Don Bonifacio died. Two years after his sister's marriage to Santa Cruz, Gumersindo married Isabel Cordero, daughter of Don Benigno Cordero, a woman of great ability, who knew how to see clearl
+  D0000-S000078 SRC: De la pañolería y artículos asiáticos, sólo quedaban en la casa por los años del 50 al 60 tradiciones religiosamente conservadas. Aún había alguna torrecilla de marfil, y buena porción de mantones ricos de alto precio en cajas primorosas. Era quizás Gumersindo la persona que en Madrid tenía más arte
+  D0000-S000078 TGT: Of the fan and Asian articles, only traditions religiously preserved remained in the house by the 1850s and 1860s. There was still a small ivory tower, and a good number of rich shawls in exquisite boxes. Perhaps Gumersindo was the person in Madrid who had the most skill in folding them, because it 
+-- cost by stage (calls / min)
+  audit_translation: 69 calls, 18.3 min, prompt 150345, output 32760
+  translate: 22 calls, 14.9 min, prompt 94775, output 33418
+  extract_glossary: 6 calls, 4.1 min, prompt 54849, output 24231
+  repair_translation: 26 calls, 2.9 min, prompt 82948, output 3983
+  resolve_glossary: 1 calls, 1.8 min, prompt 11828, output 11017
+  repair_review: 6 calls, 0.9 min, prompt 24792, output 2249
+  approve_glossary: 3 calls, 0.6 min, prompt 4392, output 2277
+  review_repaired: 7 calls, 0.6 min, prompt 20131, output 945
+  validate_repaired: 2 calls, 0.4 min, prompt 5226, output 346

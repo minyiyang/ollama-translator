@@ -972,7 +972,15 @@ def language_support(direction: LanguagePair) -> dict[str, Any]:
             "source and target share a script: only a translation identical to a long source is "
             "flagged by script; left-over source words and the semantic audit cover the rest",
         )
-    if not leftover_scripts(direction) and not (source.function_words and target.function_words):
+    unspaced_shared = (
+        not source.spaced_words and not target.spaced_words and bool(set(source.scripts) & set(target.scripts))
+    )
+    if (
+        not leftover_scripts(direction)
+        and not (source.function_words and target.function_words)
+        # Chinese and Japanese: a run copied from the source, or no kana, shows it.
+        and not unspaced_shared
+    ):
         skip("left-over source words", "no script or function words tell the source from the target")
     if not (source.number_words and target.number_words):
         skip("number words", "numbers written as words go to the semantic audit's numeric ruling")

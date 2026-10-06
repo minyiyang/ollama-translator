@@ -1,0 +1,53 @@
+== zh>ja round 3; kana-less in final: []
+D0000-S000082 SRC: 『和尚动得，我动不得？』他扭住伊的面颊。
+   round2 final: 「和尚动得，我动不得？」他扭住她的面颊。
+   round3 first: 「和尚が触れるなら、私が触れてはいけないのか？」彼は彼女の頬を掴んだ。
+   round3 final: 「和尚が触れるなら、私が触れてはいけないのか？」彼は彼女の頬を掴んだ。
+D0000-S000093 SRC: 阿Q的耳朵里又听到这句话。他想：不错，应该有一个女人，断子绝孙便没有人供一碗饭，……应该有一个女人。夫『不孝有三无后为大』，而『若敖之鬼馁而
+   round2 final: その日、阿Qは、趙太爺の家で、一日中、米を舂いていた。夕食後、彼は、台所に座って、タバコを吸っていた。もし、他の家であれば、夕食後には、彼は家に帰ることができただろう。しかし、趙家
+   round3 first: その日、阿Qは、趙太爺の家で、一日中、米を舂いていた。夕食後、彼は、台所に座って、タバコを吸っていた。もし、他の家であれば、夕食後には、彼は家に帰ることができただろう。しかし、趙家
+   round3 final: その日、阿Qは、趙太爺の家で、一日中、米を舂いていた。夕食後、彼は、台所に座って、タバコを吸っていた。もし、他の家であれば、夕食後には、彼は家に帰ることができただろう。しかし、趙家では、夕食は早く、そして、通常、ランプは点けられない。しかし、例外もある。一つは、趙太爺が秀才になる前に、彼がランプを点けて本を読むことを許
+D0000-S000107 SRC: 『我们的少奶奶是八月里要生孩子了……』
+   round2 final: 阿Qは、その時、自分が、何をしたのか、ようやく理解した。
+   round3 first: 阿Qは、その時、自分が、何をしたのか、ようやく理解した。
+   round3 final: 阿Qは、その時、自分が、何をしたのか、ようやく理解した。
+segments changed by repair: 50 | stages: {'audit_translation': 46.7, 'translate': 21.6, 'repair_translation': 6.1, 'extract_glossary': 3.6, 'resolve_glossary': 1.7}
+
+== zh>de round 2 (resumed) final: passages matching another passage's qwen translation: []
+stages: {'audit_translation': 36.5, 'translate': 20.0, 'repair_translation': 9.4, 'extract_glossary': 2.5, 'repair_review': 1.3} queue ['0005', '0029', '0037', '0039', '0050', '0052', '0064', '0066', '0073', '0119', '0130', '0138', '0140']
+-- D0000-S000005 [queue]
+  SRC : 然而要做这一篇速朽的文章，才下笔，便感到万分的困难了。第一是文章的名目。孔子曰：『名不正则言不顺。』这原是应该极注意的。传的名目很繁多：列传、自传、内传、外传、别传、家传、小传，……而可惜都不合。『列传』么，这一篇并非和许多阔人排在『正史』里；『自传』么，我又并非就是阿Q。说是『外传』，『内传』在那里呢？倘用『内传』，阿Q又决不是神仙。『别传』呢，阿Q实在未曾有大总统上谕宣付国史馆立『本传』——虽说英国正史上并无『博徒列传』，而文豪迭更司也做过博徒别传这一部书，但文豪则可，在我辈却不可的。其次是『家传』，则我既不知
+  QWEN: Doch als ich mich an dieses schnell vergängliche Werk machte, spürte ich, kaum hatte ich die Feder in die Hand genommen, eine unermessliche Schwierigkeit. Erstens der Titel des Werks. Konfuzius sagte: „Wenn die Namen nicht richtig sind, sind die Worte nicht flüssig.“ Dies ist etwas, auf das man unbedingt achten sollte. Die Titel für Biographien sind vielfältig: Biographien, Aut
+  TG  : Doch kaum hatte ich mit diesem schnell vergänglichen Artikel begonnen, da erfasste mich eine unermessliche Schwierigkeit. Erstens der Titel. Konfuzius sprach: „Wenn die Namen nicht richtig sind, sind die Worte nicht flüssig.“ Dies verdient größte Aufmerksamkeit. Die Titel für Biographien sind vielfältig: Biographien, Autobiographie, Innere Biographie, Äußere Biographie, Nebenbi
+-- D0000-S000007
+  SRC : 『阿Q，你这浑小子！你说我是你的本家么？』
+  QWEN: „A-Q, du unverschämter Bursche! Du sagst, ich sei dein Verwandter?“
+  TG  : „A-Q, du Schurke! Du nennst mich deinen Verwandten?“
+-- D0000-S000020
+  SRC : 阿Q没有家，住在未庄的土谷祠里；也没有固定的职业，只给人家做短工，割麦便割麦，舂米便舂米，撑船便撑船。工作略长久时，他也或住在临时主人的家里，但一完就走了。所以，人们忙碌的时候，也还记起阿Q来，然而记起的是做工，并不是『行状』；一闲空，连阿Q都早忘却，更不必说『行状』了。只是有一回，有一个老头子颂扬说：『阿Q真能做！』这时阿Q赤着膊，懒洋洋的瘦伶仃的正在他面前，别人也摸不着这话是真心还是讥笑，然而阿Q很喜欢。
+  QWEN: A-Q hatte kein Zuhause und wohnte im Tugu-Tempel in Weizhuang; er hatte auch keinen festen Beruf, sondern machte nur Aushilfsarbeit: Wenn man Weizen schneiden musste, schnitt er Weizen; wenn man Reis stampfen musste, stampfte er Reis; wenn man ein Boot stützen musste, stützte er ein Boot. Wenn die Arbeit etwas länger dauerte, wohnte er auch manchmal im Haus des vorübergehenden 
+  TG  : Der A-Q hatte kein Zuhause, wohnte im Tugu-Tempel in Weizhuang; er hatte keinen festen Beruf, nur Gelegenheitsarbeit: Ernte, Reismahlen, Bootfahren. Bei längerer Arbeit wohnte er manchmal im Haus des Arbeitgebers, ging aber nach Beendigung. So erinnerten sich die Menschen an den A-Q, wenn sie beschäftigt waren, aber an die Arbeit, nicht an den Lebenslauf; in der Freizeit vergaß
+-- D0000-S000034
+  SRC : 但虽然是虫豸，闲人也并不放，仍旧在就近什么地方给他碰了五六个响头，这才心满意足的得胜的走了，他以为阿Q这回可遭了瘟。然而不到十秒钟，阿Q也心满意足的得胜的走了，他觉得他是第一个能够自轻自贱的人，除了『自轻自贱』不算外，馀下的就是『第一个』。状元不也是『第一个』么？『你算是什么东西』呢！？
+  QWEN: Aber selbst wenn er ein Insekt war, ließen die Müßiggänger ihn nicht los, sie schlugen ihm irgendwo in der Nähe fünf oder sechs Kopfschläge, dann gingen sie zufrieden und siegreich davon, in der Meinung, A-Q habe diesmal Pech gehabt. Doch nach weniger als zehn Sekunden ging A-Q auch zufrieden und siegreich davon; er fühlte, dass er der erste war, der sich selbst verachtete. Abg
+  TG  : Aber selbst als Insekt ließen die Leute ihn nicht los; sie schlugen ihm fünf oder sechs Kopfschläge gegen die Wand und gingen zufrieden und siegreich davon, überzeugt, dass der A-Q diesmal Pech hatte. Doch nach zehn Sekunden ging der A-Q auch zufrieden und siegreich davon; er fühlte, dass er der erste war, der sich selbst verachtete, und abgesehen von der Selbstverachtung war e
+-- D0000-S000049
+  SRC : 他付过地保二百文酒钱，忿忿的躺下了，后来想：『现在的世界太不成话，儿子打老子……』于是忽而想到赵太爷的威风，而现在是他的儿子了，便自己也渐渐的得意起来，爬起身，唱着小孤孀上坟到酒店去。这时候，他又觉得赵太爷高人一等了。
+  QWEN: Nachdem er dem Dibao zweihundert Cash Trinkgeld gezahlt hatte, legte er sich wütend hin. Später dachte er: „Die Welt von heute ist wirklich nicht in Ordnung, ein Sohn schlägt seinen Vater …“ Dann dachte er an die Macht von Vater Zhao, und da dieser jetzt sein Sohn war, wurde er allmählich selbstbewusst, stand auf und sang das Lied der jungen Witwe, die zum Grab ihres Mannes geh
+  TG  : Nachdem er dem Dibao zweihundert Cash Trinkgeld gegeben hatte, legte er sich wütend hin und dachte: „Die Welt ist wirklich nicht in Ordnung, ein Sohn schlägt seinen Vater …“ Dann dachte er an die Macht von Vater Zhao, und da dieser nun sein Sohn war, wurde er allmählich selbstbewusst; er stand auf, sang ein Lied von einer jungen Witwe, die zum Grab ihres Mannes ging, und ging i
+-- D0000-S000082
+  SRC : 『和尚动得，我动不得？』他扭住伊的面颊。
+  QWEN: „Den Mönch kann man anfassen, mich nicht?“ Er packte ihre Wange.
+  TG  : „Wenn die Mönche es dürfen, warum darf ich es dann nicht?“, sagte er und packte sie am Gesicht.
+-- D0000-S000093
+  SRC : 阿Q的耳朵里又听到这句话。他想：不错，应该有一个女人，断子绝孙便没有人供一碗饭，……应该有一个女人。夫『不孝有三无后为大』，而『若敖之鬼馁而』，也是一件人生的大哀，所以他那思想，其实是样样合于圣经贤传的，只可惜后来有些『不能收其放心』了。
+  QWEN: A-Q hörte diese Worte wieder. Er dachte: Richtig, es sollte eine Frau geben, ohne Nachkommen gibt es niemanden, der eine Schale Reis opfert, … es sollte eine Frau geben. Von drei Arten der Unfilialität ist die größte die Nachkommenschaftslosigkeit, und „Der Geist von Ru'ao hungert“ ist auch ein großes Leid im Leben, also war sein Denken eigentlich im Einklang mit den heiligen S
+  TG  : A-Q dachte: „Ja, es sollte eine Frau geben, denn bei Nachkommenschaftslosigkeit wird niemand eine Schale Reis opfern, … es sollte eine Frau geben. Denn „Von drei Arten der Unfilialität ist die größte die Nachkommenschaftslosigkeit“ und dass „Der Geist von Ru'ao hungert“ ist ebenfalls ein großes Leid des Lebens,“. Seine Gedanken waren in Wirklichkeit mit den heiligen Schriften u
+-- D0000-S000107
+  SRC : 『我们的少奶奶是八月里要生孩子了……』
+  QWEN: „Unsere junge Dame wird im August ein Kind bekommen …“
+  TG  : „Unsere junge Frau wird in acht Monaten ein Kind bekommen…“, sagte sie.
+-- D0000-S000138 [queue]
+  SRC : 阿Q忍不下去了，他只好到老主顾的家里去探问，——但独不许踏进赵府的门槛，——然而情形也异样：一定走出一个男人来，现了十分烦厌的相貌，像回复乞丐一般的摇手道：——
+  QWEN: A-Q konnte es nicht mehr aushalten, er musste in die Häuser seiner Stammkunden gehen, um nachzufragen – aber er durfte die Schwelle des Hauses der Zhao nicht überschreiten – doch die Lage war auch seltsam: Ein Mann kam heraus, mit einem sehr genervten Gesicht, und schüttelte die Hand, als würde er einen Bettler abweisen:
+  TG  : A-Q konnte es nicht mehr ertragen, also beschloss er, zu den Häusern seiner alten Bekannten zu gehen und sich zu erkundigen, – aber er durfte auf keinen Fall die Schwelle des Hauses der Zhao betreten, – doch die Situation war eigenartig: Es trat gewiss ein Mann heraus, der ein äußerst genervtes Gesicht machte und, wie einen Bettler abweisend, mit der Hand winkte: –

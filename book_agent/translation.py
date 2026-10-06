@@ -730,6 +730,19 @@ def validate_translation_output(
                     ),
                 )
             )
+    if not direction.legacy:
+        named = {issue.reference_id for issue in issues}
+        for reference_id, share in unusual_length_passages(
+            [(key, pieces_by_id[key].source_text, text) for key, text in translations.items()]
+        ):
+            if reference_id not in named:
+                issues.append(
+                    TranslationIssue(
+                        code="unusual_length",
+                        reference_id=reference_id,
+                        message=f"translation is {share} of the usual length for its source",
+                    )
+                )
     return translations, TranslationValidation(passed=not issues, issues=issues)
 
 
@@ -814,6 +827,33 @@ def shifted_passages(passages: Sequence[tuple[str, str, str]]) -> list[tuple[str
             for index in window:
                 found.setdefault(index, best[1])
     return [(passages[index][0], offset) for index, offset in sorted(found.items())]
+
+
+# How long a translation is for its source differs by language pair (Korean is
+# half the length of its English, Spanish four times its Chinese), so the usual
+# ratio is taken from the passages at hand. One far below it has left most of
+# its source out or belongs to a shorter passage (translategemma: one sentence
+# for a paragraph of nine); one far above it carries text from elsewhere.
+UNUSUAL_LENGTH_MIN_SOURCE = 80
+UNUSUAL_LENGTH_LOW = 0.4
+UNUSUAL_LENGTH_HIGH = 2.5
+
+
+def unusual_length_passages(passages: Sequence[tuple[str, str, str]]) -> list[tuple[str, float]]:
+    """Passages whose translation is far shorter or longer than usual here, as
+    (id, share of the usual length). `passages` are (id, source, translation)."""
+    sized = [(key, _shape(source)[0], _shape(text)[0]) for key, source, text in passages]
+    ratios = sorted(target / source for _, source, target in sized if source >= UNUSUAL_LENGTH_MIN_SOURCE and target)
+    if len(ratios) < SHIFT_WINDOW:
+        return []
+    usual = ratios[len(ratios) // 2]
+    return [
+        (key, round(target / source / usual, 2))
+        for key, source, target in sized
+        if source >= UNUSUAL_LENGTH_MIN_SOURCE
+        and target
+        and not UNUSUAL_LENGTH_LOW <= target / source / usual <= UNUSUAL_LENGTH_HIGH
+    ]
 
 
 def misplaced_passages(passages: Sequence[tuple[str, str, str]]) -> list[tuple[str, str]]:

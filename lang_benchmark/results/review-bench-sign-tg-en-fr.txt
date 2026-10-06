@@ -1,0 +1,174 @@
+
+======== bench-sign-tg-en-fr
+segments 303; longest D0001-S000010: source 1258 chars, translation 1385 chars
+  longest translation head: « En bref, » continua-t-elle, « les faits sont les suivants. Mon père était officier dans un régiment indien qui m’a renvoyée chez moi quand j’étais encore enfant. Ma mère était morte, et je n’avais p
+  longest translation tail:  père. Il est rentré au pays avec le cœur plein d’espoir, pour trouver un peu de paix, un peu de réconfort, et à la place… » Elle porta sa main à sa gorge, et un sanglot étouffé interrompit la phrase.
+-- rule findings (all)
+  [glossary/medium] D0001-S000010: approved glossary term was not preserved: Captain Morstan
+      SRC: “Briefly,” she continued, “the facts are these. My father was an officer in an Indian regiment who sent me home when I was quite a child. My mother wa
+      TGT: « En bref, » continua-t-elle, « les faits sont les suivants. Mon père était officier dans un régiment indien qui m’a renvoyée chez moi quand j’étais e
+  [glossary/medium] D0001-S000016: approved glossary term was not preserved: 34e régiment d'infanterie de Bombay
+      SRC: “Only one that we know of,—Major Sholto, of his own regiment, the 34th Bombay Infantry. The major had retired some little time before, and lived at Up
+      TGT: « Un seul, à notre connaissance, le Major Sholto, de son propre régiment, le 34e régiment d'infanterie de Bombay. Le major avait pris sa retraite peu 
+  [glossary/medium] D0001-S000023: approved glossary term was not preserved: Dr Watson
+      SRC: “Then we shall most certainly go. You and I and—yes, why, Dr. Watson is the very man. Your correspondent says two friends. He and I have worked togeth
+      TGT: « Alors, nous y irons certainement. Vous et moi et… oui, Dr Watson est l’homme qu’il faut. Votre correspondant dit deux amis. Lui et moi avons déjà tr
+  [glossary/low] D0001-S000040: approved glossary term was not preserved: Le Martyre de l'Homme
+      SRC: Holmes shook his head. “Look at his long letters,” he said. “They hardly rise above the common herd. That d might be an a, and that l an e. Men of cha
+      TGT: Holmes secoua la tête. « Regardez ses longs traits, » dit-il. « Ils ne s’élèvent guère au-dessus de la masse. Ce d pourrait être un a, et ce l un e. L
+  [glossary/medium] D0002-S000005: approved glossary term was not preserved: 34e régiment d'infanterie de Bombay
+      SRC: “Well, that would be too much to say. I have discovered a suggestive fact, that is all. It is, however, very suggestive. The details are still to be a
+      TGT: « Eh bien, ce serait trop dire. J’ai découvert un fait suggestif, c’est tout. C’est cependant très suggestif. Les détails restent à ajouter. Je viens 
+  [glossary/medium] D0002-S000007: approved glossary term was not preserved: Captain Morstan
+      SRC: “No? You surprise me. Look at it in this way, then. Captain Morstan disappears. The only person in London whom he could have visited is Major Sholto. 
+      TGT: « Non ? Vous m’étonnez. Voyez les choses ainsi : Captain Morstan disparaît. La seule personne à Londres qu’il aurait pu aller voir est le major Sholto
+  [glossary/medium] D0002-S000024: approved glossary term was not preserved: Londres
+      SRC: The situation was a curious one. We were driving to an unknown place, on an unknown errand. Yet our invitation was either a complete hoax,—which was a
+      TGT: La situation était curieuse. Nous allions vers un endroit inconnu, pour une mission inconnue. Pourtant, notre invitation était soit un canular complet
+  [glossary/medium] D0002-S000024: approved glossary term was not preserved: Sherlock Holmes
+      SRC: The situation was a curious one. We were driving to an unknown place, on an unknown errand. Yet our invitation was either a complete hoax,—which was a
+      TGT: La situation était curieuse. Nous allions vers un endroit inconnu, pour une mission inconnue. Pourtant, notre invitation était soit un canular complet
+  [glossary/medium] D0002-S000026: approved glossary term was not preserved: Thames
+      SRC: We did indeed get a fleeting view of a stretch of the Thames with the lamps shining upon the broad, silent water; but our cab dashed on, and was soon 
+      TGT: Nous avons en effet aperçu rapidement une portion de la Tamise, avec les lampes illuminant la vaste étendue d’eau silencieuse ; mais notre cabriolet a
+  [mistranslation/high] D0002-S000028: numeric content differs from source: In the source, 'third-rate' is an adjective describing the quality/class of the dwelling-house ('third-
+      SRC: We had, indeed, reached a questionable and forbidding neighbourhood. Long lines of dull brick houses were only relieved by the coarse glare and tawdry
+      TGT: Nous étions, en effet, arrivés dans un quartier douteux et peu accueillant. De longues rangées de maisons en briques ternes étaient seulement soulagée
+  [glossary/medium] D0003-S000003: approved glossary term was not preserved: Miss Morstan
+      SRC: “Your servant, Miss Morstan,” he kept repeating, in a thin, high voice. “Your servant, gentlemen. Pray step into my little sanctum. A small place, mis
+      TGT: « Votre serviteur, Miss Morstan », répétait-il, d’une voix fine et aiguë. « Votre servante, messieurs. Je vous prie de bien vouloir entrer dans mon pe
+  [glossary/medium] D0003-S000005: approved glossary term was not preserved: M. Thaddeus Sholto
+      SRC: “Mr. Thaddeus Sholto,” said the little man, still jerking and smiling. “That is my name. You are Miss Morstan, of course. And these gentlemen—”
+      TGT: « M. Thaddeus Sholto », dit le petit homme, toujours en train de se tortiller et de sourire. « C’est mon nom. Vous êtes Miss Morstan, bien sûr. Et ces
+  [glossary/medium] D0003-S000005: approved glossary term was not preserved: Miss Morstan
+      SRC: “Mr. Thaddeus Sholto,” said the little man, still jerking and smiling. “That is my name. You are Miss Morstan, of course. And these gentlemen—”
+      TGT: « M. Thaddeus Sholto », dit le petit homme, toujours en train de se tortiller et de sourire. « C’est mon nom. Vous êtes Miss Morstan, bien sûr. Et ces
+  [glossary/medium] D0003-S000006: approved glossary term was not preserved: Dr Watson
+      SRC: “This is Mr. Sherlock Holmes, and this is Dr. Watson.”
+      TGT: « C’est Monsieur Sherlock Holmes, et c’est Dr Watson. »
+  [glossary/medium] D0003-S000009: approved glossary term was not preserved: Miss Morstan
+      SRC: “You will excuse my anxiety, Miss Morstan,” he remarked, airily. “I am a great sufferer, and I have long had suspicions as to that valve. I am delight
+      TGT: « Vous excuserez mon anxiété, Miss Morstan », remarqua-t-il, d’un ton désinvolte. « Je suis un grand souffrant, et j’ai depuis longtemps des soupçons 
+  [glossary/medium] D0003-S000010: approved glossary term was not preserved: Miss Morstan
+      SRC: I could have struck the man across the face, so hot was I at this callous and off-hand reference to so delicate a matter. Miss Morstan sat down, and h
+      TGT: J’aurais pu frapper cet homme au visage, tant j’étais irrité par cette référence insensible et désinvolte à une question aussi délicate. Miss Morstan 
+  [glossary/medium] D0003-S000014: approved glossary term was not preserved: Miss Morstan
+      SRC: “That is well! That is well!” said he. “May I offer you a glass of Chianti, Miss Morstan? Or of Tokay? I keep no other wines. Shall I open a flask? No
+      TGT: « C’est bien ! C’est bien ! » dit-il. « Puis-je vous offrir un verre de Chianti, Miss Morstan ? Ou de Tokay ? Je n’ai pas d’autres vins. Dois-je ouvri
+  [glossary/medium] D0003-S000016: approved glossary term was not preserved: Miss Morstan
+      SRC: “You will excuse me, Mr. Sholto,” said Miss Morstan, “but I am here at your request to learn something which you desire to tell me. It is very late, a
+      TGT: « Vous m’excuserez, Monsieur Sholto », dit Miss Morstan, « mais je suis ici à votre demande pour apprendre quelque chose que vous désirez me dire. Il 
+  [glossary/medium] D0003-S000021: approved glossary term was not preserved: Captain Morstan
+      SRC: “I very well remember the sensation which was caused by the disappearance of Captain Morstan. We read the details in the papers, and, knowing that he 
+      TGT: « Je me souviens très bien de la sensation que la disparition du Capitaine Morstan a causée. Nous avons lu les détails dans les journaux, et, sachant 
+  [glossary/low] D0003-S000025: approved glossary term was not preserved: trésor d'Agra
+      SRC: “‘I have only one thing,’ he said, ‘which weighs upon my mind at this supreme moment. It is my treatment of poor Morstan’s orphan. The cursed greed wh
+      TGT: « J’ai une seule chose », dit-il, « qui pèse sur mon esprit à cet ultime moment. C’est mon traitement de la pauvre orpheline de Morstan. L’avidité dém
+  [glossary/medium] D0003-S000028: approved glossary term was not preserved: Captain Morstan
+      SRC: “‘I was still pondering over the matter, when, looking up, I saw my servant, Lal Chowdar, in the doorway. He stole in and bolted the door behind him. 
+      TGT: « J’étais encore en train de réfléchir à la question, quand, en levant les yeux, j’ai vu mon serviteur, Lal Chowdar, dans l’embrasure de la porte. Il 
+  [glossary/medium] D0003-S000031: approved glossary term was not preserved: M. Thaddeus Sholto
+      SRC: The little man stopped to relight his hookah and puffed thoughtfully for a few moments. We had all sat absorbed, listening to his extraordinary narrat
+      TGT: Le petit homme s’arrêta pour rallumer son narguilé et souffla pensivement pendant quelques instants. Nous étions tous absorbés, écoutant son récit ext
+  [glossary/medium] D0003-S000031: approved glossary term was not preserved: Miss Morstan
+      SRC: The little man stopped to relight his hookah and puffed thoughtfully for a few moments. We had all sat absorbed, listening to his extraordinary narrat
+      TGT: Le petit homme s’arrêta pour rallumer son narguilé et souffla pensivement pendant quelques instants. Nous étions tous absorbés, écoutant son récit ext
+  [mistranslation/high] D0003-S000039: numeric content differs from source: The source height of the building is 'seventy-four feet' and the total of rooms is 'seventy feet', leav
+      SRC: “Bartholomew is a clever fellow,” said he. “How do you think he found out where the treasure was? He had come to the conclusion that it was somewhere 
+      TGT: « Bartholomew est un garçon intelligent, » dit-il. « Comment pensez-vous qu’il ait découvert où se trouvait le trésor ? Il était arrivé à la conclusio
+  [glossary/medium] D0004-S000012: approved glossary term was not preserved: les salons d'Alison
+      SRC: “Oh, yes you do, McMurdo,” cried Sherlock Holmes, genially. “I don’t think you can have forgotten me. Don’t you remember the amateur who fought three 
+      TGT: « Oh, si, vous me connaissez, McMurdo », s'exclama Sherlock Holmes, avec amabilité. « Je ne pense pas que vous puissiez m’avoir oublié. Ne vous souven
+  [glossary/medium] D0004-S000021: approved glossary term was not preserved: Mrs. Bernstone
+      SRC: “Ah, that is the housekeeper’s room. That is where old Mrs. Bernstone sits. She can tell us all about it. But perhaps you would not mind waiting here 
+      TGT: « Ah, c’est la chambre de la gouvernante. C’est là que se trouve la vieille Mrs. Bernstone. Elle peut nous dire tout ce qui se passe. Mais peut-être q
+  [glossary/medium] D0004-S000023: approved glossary term was not preserved: Mrs. Bernstone
+      SRC: “It is Mrs. Bernstone,” said Sholto. “She is the only woman in the house. Wait here. I shall be back in a moment.” He hurried for the door, and knocke
+      TGT: « C’est Mrs. Bernstone », dit Sholto. « C’est la seule femme dans la maison. Attendez ici. Je reviendrai dans un instant.» Il se précipita vers la por
+  [glossary/medium] D0004-S000037: approved glossary term was not preserved: Miss Morstan
+      SRC: Sherlock Holmes took the lamp and led the way, for Thaddeus Sholto’s teeth were chattering in his head. So shaken was he that I had to pass my hand un
+      TGT: Sherlock Holmes prit la lampe et ouvrit la voie, car les dents de Thaddeus Sholto claquaient dans sa tête. Il était si ébranlé que je dus passer mon b
+  [glossary/low] D0005-S000046: approved glossary term was not preserved: l'affaire des bijoux de Bishopgate
+      SRC: “Why, of course I do!” he wheezed. “It’s Mr. Sherlock Holmes, the theorist. Remember you! I’ll never forget how you lectured us all on causes and infe
+      TGT: « Ah, bien sûr ! » haleta-t-il. « C’est M. Sherlock Holmes, le théoricien. Je me souviens de vous ! Je n’oublierai jamais comment vous nous avez tous 
+  [glossary/medium] D0005-S000048: approved glossary term was not preserved: Norwood
+      SRC: “Oh, come, now, come! Never be ashamed to own up. But what is all this? Bad business! Bad business! Stern facts here,—no room for theories. How lucky 
+      TGT: « Oh, allez, ne soyez pas timide. Ne soyez pas gêné d’admettre. Mais qu’est-ce que tout cela ? Quel malheur ! Quel malheur ! Des faits concrets ici, p
+  [glossary/medium] D0005-S000070: approved glossary term was not preserved: Miss Morstan
+      SRC: “I have just been thinking so,” I answered. “It is not right that Miss Morstan should remain in this stricken house.”
+      TGT: « Je viens de le penser », répondis-je. « Il n’est pas juste que Miss Morstan reste dans cette maison sinistre. »
+  [glossary/medium] D0005-S000071: approved glossary term was not preserved: Mrs. Cecil Forrester
+      SRC: “No. You must escort her home. She lives with Mrs. Cecil Forrester, in Lower Camberwell: so it is not very far. I will wait for you here if you will d
+      TGT: « Non. Vous devez l’escorter chez elle. Elle vit avec Mrs. Cecil Forrester, à Lower Camberwell : ce n’est donc pas très loin. Je vous attendrai ici si
+-- semantic findings (first 8)
+  [mistranslation/medium] D0000-S000003: The translation 'me libérer de cette pensée' (free myself from this thought) is a mistranslation of 'deliver my soul upon the subject'. The source phrase is an idiomatic expression meaning to speak ou
+  [mistranslation/medium] D0000-S000008: The translation renders 'secondary action' as 'effets secondaires' (side effects). In the context of 19th-century pharmacology/chemistry, 'secondary action' refers to the subsequent phase of a drug's 
+  [mistranslation/medium] D0000-S000009: The translation 'réaction noire' is a literal translation of 'black reaction' that fails to convey the intended meaning of a 'dark' or 'depressing' aftermath/crash in French, resulting in awkward and 
+  [mistranslation/medium] D0000-S000014: The translation 'intégré cela dans' (integrated that into) is a mistranslation of 'embodied it in'. In this context, 'embodied' means the narrator wrote the events into a physical form (the brochure),
+  [mistranslation/medium] D0000-S000016: The source term 'romance' in this context refers to the romantic/exciting elements of the narrative or plot, whereas 'romantisme' refers to the artistic/literary movement or a general state of being r
+  [mistranslation/medium] D0000-S000017: The translation 'un juste sens de la proportion' is a literal calque of the English idiom. In French, the standard expression for this concept is 'un sens des proportions' (plural).
+  [omission/medium] D0000-S000019: The adjective 'foreign' describing the notepaper is omitted in the translation.
+  [mistranslation/medium] D0000-S000021: The adverb 'lightly' (referring to the manner of speaking/tone) is mistranslated as 'à voix basse' (meaning 'in a low voice' or 'quietly'), which changes the character's delivery from a casual/flippan
+  [mistranslation/medium] D0000-S000026: The translation 'avec enthousiasme' (with enthusiasm) is a mistranslation of 'earnestly'. While related, 'earnestly' denotes sincerity, seriousness, or conviction rather than high-spirited excitement.
+  [mistranslation/medium] D0000-S000034: The translation 'J’ai entendu dire que vous disiez' translates to 'I have heard it said that you say,' which introduces an indirect hearsay layer not present in the source. The source 'I have heard yo
+  [mistranslation/medium] D0000-S000035: The translation 'Il équilibra la montre' implies a dynamic action of balancing or stabilizing an object, whereas the source 'He balanced the watch in his hand' describes a state of position/weight dis
+  [structure/medium] D0000-S000042: The translation contains a syntactic rupture (anacoluthon) in the final clause, repeating the subject 'il' after the participial phrase, which results in ungrammatical target-language prose.
+  [mistranslation/medium] D0000-S000046: The translation 'comment diable' (how the devil) is a common idiom, but it fails to capture the specific nuance and tone of the source's 'in the name of all that is wonderful,' which is a characterist
+  [mistranslation/medium] D0000-S000052: The translation 'clair que de jour' is a literal rendering that results in unnatural target-language prose. The English idiom 'clear as daylight' corresponds to the French idiom 'clair comme le jour'.
+  [mistranslation/medium] D0001-S000002: The translation 'une contenance extérieure' is an incomplete rendering of 'an outward composure of manner'. While 'contenance' implies composure, the source specifies the quality of that composure (ou
+  [mistranslation/medium] D0001-S000007: The translation of 'excuse me' as 'excuserez' is grammatically incomplete in French; the verb 'excuser' requires a direct object to avoid being an intransitive error in this context.
+  [mistranslation/medium] D0001-S000018: The translation 'est apparue' (present perfect/passé composé) for the recurring annual event fails to capture the habitual nature of the source 'has always appeared', which describes a repeated state/
+  [mistranslation/high] D0001-S000020: The translation 'cela ne date pas d’aujourd’hui' reverses the temporal fact of the source.
+  [mistranslation/medium] D0001-S000020: The translation 'que vous voudrez bien lire' changes the modality from a possibility ('perhaps') to a polite expectation/request.
+  [omission/low] D0001-S000020: The reflexive emphasis 'for yourself' is missing.
+  [omission/medium] D0001-S000032: The translation omits the opening quotation mark for the dialogue, creating a punctuation mismatch with the closing mark.
+  [mistranslation/medium] D0001-S000036: The translation 'argent d’assurance' is a literal calque of 'insurance-money'. In French, the correct term for the payout from an insurance policy is 'prime d'assurance' or 'indemnités d'assurance'.
+  [mistranslation/medium] D0001-S000041: The translation renders 'self-consciousness' as 'timidité' (shyness/timidity). In this context, 'self-consciousness' refers to the acute awareness of oneself or the awkwardness of youth, which is dist
+  [mistranslation/medium] D0002-S000008: The translation 'Il est peu probable' changes the modality from a judgment of the supposition's validity to a simple statement of probability.
+  [mistranslation/medium] D0002-S000008: The translation 'Il est peu probable' fails to capture the specific logic of the source 'too much to suppose', which indicates a leap in logic or an overestimation of probability.
+  [mistranslation/high] D0002-S000012: The translation reverses the polarity of the speaker's assumption regarding the importance of the document.
+  [omission/medium] D0002-S000013: The translation omits the intensifier 'very' modifying 'methodically', which diminishes the characterization of Holmes's precise nature.
+  [mistranslation/medium] D0002-S000016: The translation 'dans la cabine' (in the cabin/compartment) is a mistranslation of 'in the cab'. In this context, a 'cab' is a horse-drawn carriage (fiacre), not a room or a cabin.
+  [mistranslation/high] D0002-S000017: The translation fails to translate the English phrase 'endless procession', leaving it in the source language within the target text.
+  [mistranslation/high] D0002-S000024: The translation renders 'double-barrelled tiger cub' as 'fusil à deux canons' (double-barrelled gun), omitting the specific and absurd detail 'tiger cub'. This changes a surreal/humorous element into 
+  [omission/high] D0002-S000024: The translation completely omits the final two sentences of the source segment, failing to mention the narrator losing his bearings and Sherlock Holmes muttering the names of the streets.
+  [mistranslation/medium] D0002-S000024: The translation uses 'sur lui' (at him/it) to refer to the musket, but in French 'fusil' is masculine, whereas the preceding 'histoire émouvante' is feminine. While grammatically possible, the phrasin
+  [mistranslation/medium] D0002-S000026: The translation 'a foncé' (dashed/sped) is an incomplete rendering of 'dashed on'. In this context, 'dashed on' indicates continued forward motion/progress, whereas 'a foncé' focuses only on the speed
+  [glossary/low] D0003-S000009: The translation uses 'Mademoiselle Morstan' instead of the mandatory glossary rendering 'Miss Morstan'.
+  [mistranslation/medium] D0003-S000011: The translation 'Nous pouvons tous faire face' fails to capture the specific idiom 'show a bold front', which implies a collective display of courage or defiance rather than simply 'facing' someone.
+  [untranslated/medium] D0003-S000012: The translation adds a specific spatial referent ('ces murs') not found in the source, turning a general statement of secrecy into a location-specific one.
+  [mistranslation/medium] D0003-S000015: The translation 'un connaisseur puisse douter' weakens the source's specific modality 'throw a doubt upon', which implies introducing a possibility of doubt rather than simply doubting. While subtle, 
+  [mistranslation/medium] D0003-S000019: The translation 'si fort' (so loudly) introduces a specific auditory quality not present in the source, which describes the result of the laughter (red ears) without specifying the volume of the laugh
+  [mistranslation/medium] D0003-S000021: The translation renders 'hidden in his own breast' as 'caché dans son propre cœur'. While 'breast' can be metaphorical for the heart, in this context of keeping a secret, 'breast' refers to the intern
+  [mistranslation/medium] D0003-S000023: The translation 'écriture tremblante' (shaking handwriting) incorrectly renders 'scrawling hand'. A 'scrawl' refers to handwriting that is hurried, careless, or illegible, not necessarily shaking due 
+-- consistency report
+  {"enabled": true, "document_count": 6, "segment_count": 303, "issue_count": 13, "repair_count": 0, "by_severity": {"low": 13}, "documents_with_issues": {"item6": 1, "item7": 5, "item8": 1, "item9": 6}}
+  FILE 0002-item6.consistency.json {"segment_id": "D0002-S000014", "category": "consistency", "severity": "low", "message": "The style sheet renders \"The sign of the four\" as \"Le Signe des Quatre\", but this translation does not use it.", "suggested_fix": "Render \"The sign of the four\" as \"Le Signe des Quatre\".", "source": "consistency", "source_quote": "The sign of the four", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0003-item7.consistency.json {"segment_id": "D0003-S000020", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Brother Bartholomew\" as \"Frère Bartholomew\", but this translation does not use it.", "suggested_fix": "Render \"Brother Bartholomew\" as \"Frère Bartholomew\".", "source": "consistency", "source_quote": "Brother Bartholomew", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0003-item7.consistency.json {"segment_id": "D0003-S000030", "category": "consistency", "severity": "low", "message": "The style sheet renders \"The sign of the four\" as \"Le Signe des Quatre\", but this translation does not use it.", "suggested_fix": "Render \"The sign of the four\" as \"Le Signe des Quatre\".", "source": "consistency", "source_quote": "The sign of the four", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0003-item7.consistency.json {"segment_id": "D0003-S000032", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Brother Bartholomew\" as \"Frère Bartholomew\", but this translation does not use it.", "suggested_fix": "Render \"Brother Bartholomew\" as \"Frère Bartholomew\".", "source": "consistency", "source_quote": "Brother Bartholomew", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0003-item7.consistency.json {"segment_id": "D0003-S000035", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Mr. Thaddeus\" as \"Monsieur Thaddeus\", but this translation does not use it.", "suggested_fix": "Render \"Mr. Thaddeus\" as \"Monsieur Thaddeus\".", "source": "consistency", "source_quote": "Mr. Thaddeus", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0003-item7.consistency.json {"segment_id": "D0003-S000041", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Mr. Thaddeus\" as \"Monsieur Thaddeus\", but this translation does not use it.", "suggested_fix": "Render \"Mr. Thaddeus\" as \"Monsieur Thaddeus\".", "source": "consistency", "source_quote": "Mr. Thaddeus", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0004-item8.consistency.json {"segment_id": "D0004-S000046", "category": "consistency", "severity": "low", "message": "The style sheet renders \"The sign of the four\" as \"Le Signe des Quatre\", but this translation does not use it.", "suggested_fix": "Render \"The sign of the four\" as \"Le Signe des Quatre\".", "source": "consistency", "source_quote": "The sign of the four", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0005-item9.consistency.json {"segment_id": "D0005-S000030", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Number One\" as \"le Numéro Un\", but this translation does not use it.", "suggested_fix": "Render \"Number One\" as \"le Numéro Un\".", "source": "consistency", "source_quote": "Number One", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0005-item9.consistency.json {"segment_id": "D0005-S000046", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Mr. Sherlock Holmes\" as \"Monsieur Sherlock Holmes\", but this translation does not use it.", "suggested_fix": "Render \"Mr. Sherlock Holmes\" as \"Monsieur Sherlock Holmes\".", "source": "consistency", "source_quote": "Mr. Sherlock Holmes", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0005-item9.consistency.json {"segment_id": "D0005-S000052", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Mr. Sholto\" as \"Monsieur Sholto\", but this translation does not use it.", "suggested_fix": "Render \"Mr. Sholto\" as \"Monsieur Sholto\".", "source": "consistency", "source_quote": "Mr. Sholto", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0005-item9.consistency.json {"segment_id": "D0005-S000052", "category": "consistency", "severity": "low", "message": "The style sheet renders \"common sense\" as \"le bon sens\", but this translation does not use it.", "suggested_fix": "Render \"common sense\" as \"le bon sens\".", "source": "consistency", "source_quote": "common sense", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0005-item9.consistency.json {"segment_id": "D0005-S000062", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Mr. Sholto\" as \"Monsieur Sholto\", but this translation does not use it.", "suggested_fix": "Render \"Mr. Sholto\" as \"Monsieur Sholto\".", "source": "consistency", "source_quote": "Mr. Sholto", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0005-item9.consistency.json {"segment_id": "D0005-S000064", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Mr. Sholto\" as \"Monsieur Sholto\", but this translation does not use it.", "suggested_fix": "Render \"Mr. Sholto\" as \"Monsieur Sholto\".", "source": "consistency", "source_quote": "Mr. Sholto", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+-- review queue and validations
+  queue: ['D0002-S000026', 'D0003-S000021']
+  D0002-S000026 SRC: We did indeed get a fleeting view of a stretch of the Thames with the lamps shining upon the broad, silent water; but our cab dashed on, and was soon involved in a labyrinth of streets upon the other side.
+  D0002-S000026 TGT: Nous avons en effet aperçu rapidement une portion de la Tamise, avec les lampes illuminant la vaste étendue d’eau silencieuse ; mais notre cabriolet a foncé, et nous nous sommes rapidement retrouvés dans un labyrinthe de rues de l’autre côté.
+  D0003-S000021 SRC: “I very well remember the sensation which was caused by the disappearance of Captain Morstan. We read the details in the papers, and, knowing that he had been a friend of our father’s, we discussed the case freely in his presence. He used to join in our speculations as to what could have happened. N
+  D0003-S000021 TGT: « Je me souviens très bien de la sensation que la disparition du Capitaine Morstan a causée. Nous avons lu les détails dans les journaux, et, sachant qu’il avait été un ami de notre père, nous avons discuté de l’affaire en sa présence. Il participait à nos spéculations sur ce qui aurait pu se passer
+-- cost by stage (calls / min)
+  audit_translation: 316 calls, 36.4 min, prompt 336642, output 50214
+  translate: 15 calls, 16.9 min, prompt 74731, output 39952
+  repair_translation: 91 calls, 7.5 min, prompt 142943, output 9261
+  extract_glossary: 3 calls, 2.0 min, prompt 30555, output 10597
+  review_repaired: 20 calls, 1.2 min, prompt 66203, output 5403
+  resolve_glossary: 1 calls, 1.0 min, prompt 6235, output 5633
+  repair_review: 5 calls, 0.5 min, prompt 10442, output 955
+  validate_repaired: 3 calls, 0.5 min, prompt 4923, output 245
+  approve_glossary: 2 calls, 0.4 min, prompt 4736, output 2130

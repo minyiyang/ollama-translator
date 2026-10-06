@@ -1,0 +1,101 @@
+
+======== bench-tg-en-es
+segments 145; longest D0000-S000011: source 980 chars, translation 1074 chars
+  longest translation head: Abajo, abajo, abajo. No había nada más que hacer, así que Alicia pronto comenzó a hablar de nuevo. “¡Dinah me extrañará mucho esta noche, creo!”. (Dinah era la gata). “Espero que recuerden su plato de
+  longest translation tail: con Dinah, y le decía muy en serio: “Ahora, Dinah, dime la verdad: ¿alguna vez comiste un murciélago?”, de repente, ¡zas! ¡zas! cayó sobre un montón de palos y hojas secas, y la caída había terminado.
+-- rule findings (all)
+  [glossary/low] D0000-S000014: approved glossary term was not preserved: llavita dorada
+      SRC: Suddenly she came upon a little three-legged table, all made of solid glass; there was nothing on it except a tiny golden key, and Alice’s first thoug
+      TGT: De repente, se encontró con una pequeña mesa de tres patas, hecha de cristal macizo; no había nada sobre ella excepto una pequeña llave dorada, y el p
+  [glossary/low] D0000-S000022: approved glossary term was not preserved: llavita dorada
+      SRC: After a while, finding that nothing more happened, she decided on going into the garden at once; but, alas for poor Alice! when she got to the door, s
+      TGT: Después de un rato, al ver que no pasaba nada más, decidió entrar en el jardín de inmediato; pero, ¡ay, pobre Alicia! cuando llegó a la puerta, descub
+  [mistranslation/high] D0001-S000006: numeric content differs from source: The source value 'nine feet' is converted to 'dos metros y setenta centímetros' (approx. 8.85 feet) in 
+      SRC: Just then her head struck against the roof of the hall: in fact she was now more than nine feet high, and she at once took up the little golden key an
+      TGT: Justo entonces, su cabeza golpeó el techo del salón: de hecho, ahora medía más de nueve pies, y de inmediato tomó la llavita dorada y se apresuró haci
+  [glossary/low] D0001-S000006: approved glossary term was not preserved: llavita dorada
+      SRC: Just then her head struck against the roof of the hall: in fact she was now more than nine feet high, and she at once took up the little golden key an
+      TGT: Justo entonces, su cabeza golpeó el techo del salón: de hecho, ahora medía más de nueve pies, y de inmediato tomó la llavita dorada y se apresuró haci
+  [mistranslation/high] D0001-S000008: numeric content differs from source: The depth of the pool is translated as 'unos diez centímetros' (about ten centimeters), whereas the sou
+      SRC: “You ought to be ashamed of yourself,” said Alice, “a great girl like you,” (she might well say this), “to go on crying in this way! Stop this moment,
+      TGT: “Deberías avergonzarte de ti misma”, dijo Alicia, “una chica grande como tú” (y con razón podía decirlo), “¡seguir llorando de esta manera! ¡Deja de h
+  [mistranslation/high] D0001-S000014: numeric content differs from source: SOURCE: 'about two feet high' (value: 2, unit: feet, approximation: 'about'); TRANSLATION: 'unos sesent
+      SRC: As she said this she looked down at her hands, and was surprised to see that she had put on one of the Rabbit’s little white kid gloves while she was 
+      TGT: Mientras decía esto, miró sus manos y se sorprendió al ver que se había puesto uno de los pequeños guantes blancos de cuero del Conejo Blanco mientras
+  [glossary/medium] D0001-S000016: approved glossary term was not preserved: Alicia
+      SRC: As she said these words her foot slipped, and in another moment, splash! she was up to her chin in salt water. Her first idea was that she had somehow
+      TGT: Mientras decía estas palabras, se le resbaló el pie y, al instante siguiente, ¡plas! se encontró con el agua salada hasta la barbilla. Su primera idea
+  [glossary/medium] D0001-S000019: approved glossary term was not preserved: Alicia
+      SRC: “Would it be of any use, now,” thought Alice, “to speak to this mouse? Everything is so out-of-the-way down here, that I should think very likely it c
+      TGT: «¿Serviría de algo ahora», pensó Alicia, «hablarle a este ratón? Todo es tan insólito aquí abajo que me parece muy probable que pueda hablar; en cualq
+  [omission/medium] D0001-S000019: translation/source token ratio is unusually low: 0.19
+      SRC: “Would it be of any use, now,” thought Alice, “to speak to this mouse? Everything is so out-of-the-way down here, that I should think very likely it c
+      TGT: «¿Serviría de algo ahora», pensó Alicia, «hablarle a este ratón? Todo es tan insólito aquí abajo que me parece muy probable que pueda hablar; en cualq
+  [glossary/medium] D0001-S000020: approved glossary term was not preserved: Guillermo el Conquistador
+      SRC: “Perhaps it doesn’t understand English,” thought Alice; “I daresay it’s a French mouse, come over with William the Conqueror.” (For, with all her know
+      TGT: «Tal vez no entienda el inglés», pensó Alicia; «me atrevo a decir que es un ratón francés, que vino con Guillermo el Conquistador». (Pues, con todo su
+  [glossary/low] D0001-S000020: approved glossary term was not preserved: ¿Dónde está mi gata?
+      SRC: “Perhaps it doesn’t understand English,” thought Alice; “I daresay it’s a French mouse, come over with William the Conqueror.” (For, with all her know
+      TGT: «Tal vez no entienda el inglés», pensó Alicia; «me atrevo a decir que es un ratón francés, que vino con Guillermo el Conquistador». (Pues, con todo su
+  [mistranslation/high] D0001-S000022: numeric content differs from source: The source text discusses a cat ('Dinah', 'our cat') and the Mouse's hatred for cats ('hated cats'). Th
+      SRC: “Well, perhaps not,” said Alice in a soothing tone: “don’t be angry about it. And yet I wish I could show you our cat Dinah: I think you’d take a fanc
+      TGT: “¡No lo haré!”, dijo Alicia, con mucha prisa por cambiar el tema de la conversación. “¿Te gusta… te gustan… los perros?”. El ratón no respondió, así q
+  [glossary/medium] D0001-S000022: approved glossary term was not preserved: Dinah
+      SRC: “Well, perhaps not,” said Alice in a soothing tone: “don’t be angry about it. And yet I wish I could show you our cat Dinah: I think you’d take a fanc
+      TGT: “¡No lo haré!”, dijo Alicia, con mucha prisa por cambiar el tema de la conversación. “¿Te gusta… te gustan… los perros?”. El ratón no respondió, así q
+  [mistranslation/high] D0001-S000024: numeric content differs from source: The translation introduces entirely new quantity-bearing facts (a duck, a dodo, a parrot, a young eagle
+      SRC: “I won’t indeed!” said Alice, in a great hurry to change the subject of conversation. “Are you—are you fond—of—of dogs?” The Mouse did not answer, so 
+      TGT: Ya era hora de irse, porque la piscina se estaba llenando de pájaros y animales que se habían caído en ella: había un pato y un dodo, un loro y un águ
+  [glossary/low] D0001-S000024: approved glossary term was not preserved: Ratón
+      SRC: “I won’t indeed!” said Alice, in a great hurry to change the subject of conversation. “Are you—are you fond—of—of dogs?” The Mouse did not answer, so 
+      TGT: Ya era hora de irse, porque la piscina se estaba llenando de pájaros y animales que se habían caído en ella: había un pato y un dodo, un loro y un águ
+  [glossary/medium] D0002-S000035: approved glossary term was not preserved: Fury
+      SRC: “Fury said to a mouse, That he met in the house, ‘Let us both go to law: I will prosecute you.—Come, I’ll take no denial; We must have a trial: For re
+      TGT: “Fury le dijo a un ratón"}, {, que se encontró en la casa: ‘Vamos los dos a juicio: yo te demandaré a ti’. —Vamos, no aceptaré ninguna negación; debem
+  [glossary/medium] D0003-S000001: approved glossary term was not preserved: Bill
+      SRC: CHAPTER IV. The Rabbit Sends in a Little Bill
+      TGT: CAPÍTULO IV. El Conejo envía a un pequeño Bill
+-- semantic findings (first 8)
+  [mistranslation/medium] D0000-S000010: The translation renders 'The Antipathies' as 'Los Antípodas'. While 'Antipodes' is the geographically correct term for people on the opposite side of the earth, the source text uses 'Antipathies' (a m
+  [mistranslation/medium] D0000-S000012: The translation 'se levantó de un salto' fails to capture the specific spatial result of the action 'jumped up on to her feet', which emphasizes the transition to a standing position.
+  [mistranslation/medium] D0000-S000015: The translation of 'dark hall' as 'oscuro pasillo' is a concrete error in spatial relationship. The source distinguishes between the 'small passage' (the destination) and the 'dark hall' (the current 
+  [mistranslation/medium] D0001-S000002: The translation '¡Qué más curioso y curioso!' is a literal translation of the comparative structure that fails to capture the coined, non-standard nature of 'Curiouser and curiouser!' in English. In S
+  [mistranslation/medium] D0001-S000003: The translation of 'directions' as 'direcciones' in this context is a lexical error. In the source, 'directions' refers to the delivery instructions/address written on the parcels (as evidenced by the
+  [glossary/medium] D0001-S000006: The translation fails to use the mandatory glossary term for 'little golden key'.
+  [mistranslation/medium] D0001-S000008: The translation omits the reflexive pronoun 'de ti misma' or similar, which is necessary to accurately render the specific target of the shame in 'ashamed of yourself'.
+  [omission/medium] D0001-S000013: The translation omits the word 'toys', reducing the phrase 'have next to no toys to play with' to 'tendré casi nada con qué jugar' (I will have almost nothing to play with). This removes the specific 
+  [mistranslation/low] D0001-S000013: The translation renders 'somebody else' as 'otra' (another [female]), which is grammatically correct for the character, but the source 'somebody else' is a general identity shift. While acceptable in 
+  [mistranslation/high] D0001-S000019: The translation is a complete hallucination. It replaces the entire source text—which consists of Alice's internal monologue about the mouse's ability to speak and her attempt to address it using Lati
+  [mistranslation/high] D0001-S000020: The translation completely replaces the source's factual content regarding the mouse's origin and Alice's French phrase with an invented dialogue about a cat named Dinah.
+  [omission/medium] D0002-S000015: The translation omits the dash at the end of the sentence, which indicates a cutoff in the source text before the following passage.
+  [glossary/medium] D0002-S000035: The translation uses 'Furia' for the character name 'Fury', which violates the approved glossary requiring 'Fury'.
+  [mistranslation/medium] D0003-S000006: The translation renders 'grow large' as 'crecer', which denotes general growth. The source specifically specifies 'grow large' to contrast with her current 'tiny' state, implying a return to a specifi
+-- consistency report
+  {"enabled": true, "document_count": 4, "segment_count": 145, "issue_count": 5, "repair_count": 4, "by_severity": {"medium": 4, "low": 1}, "documents_with_issues": {"item4": 2, "item6": 1, "item7": 2}}
+  FILE 0000-item4.consistency.json {"segment_id": "D0000-S000002", "category": "consistency", "severity": "medium", "message": "A question here has no opening ¿, but the book writes them (39 segments).", "suggested_fix": "Open the question with ¿.", "source": "consistency", "source_quote": "", "translation_quote": "Alicia comenzaba a sentirse muy cansada de estar sentada junto a su hermana, al borde del río, y de no tener nada que h…", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item4.consistency.json {"segment_id": "D0000-S000011", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Do cats eat bats?\" as \"¿Comen los gatos murciélagos?\", but this translation does not use it.", "suggested_fix": "Render \"Do cats eat bats?\" as \"¿Comen los gatos murciélagos?\".", "source": "consistency", "source_quote": "Do cats eat bats?", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0002-item6.consistency.json {"segment_id": "D0002-S000037", "category": "consistency", "severity": "medium", "message": "Repeated quoted line \"I beg your pardon\" is rendered \"Le pido disculpas\" here but \"¡Le pido disculpas!\" in D0002-S000007.", "suggested_fix": "Render it as in D0002-S000007: ¡Le pido disculpas!", "source": "consistency", "source_quote": "I beg your pardon", "translation_quote": "Le pido disculpas", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0003-item7.consistency.json {"segment_id": "D0003-S000005", "category": "consistency", "severity": "medium", "message": "An exclamation here has no opening ¡, but the book writes them (69 segments).", "suggested_fix": "Open the exclamation with ¡.", "source": "consistency", "source_quote": "", "translation_quote": "“Qué extraño parece”, dijo Alicia para sí misma, “tener que hacer recados para un conejo. Supongo que Dinah me enviará …", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0003-item7.consistency.json {"segment_id": "D0003-S000025", "category": "consistency", "severity": "medium", "message": "An exclamation here has no opening ¡, but the book writes them (69 segments).", "suggested_fix": "Open the exclamation with ¡.", "source": "consistency", "source_quote": "", "translation_quote": "Esperó un tiempo sin oír nada más: al fin, se oyó el rumor de pequeñas ruedas de carretilla, y el sonido de muchas voce…", "risk_tags": [], "quantity_mismatches": []}
+-- review queue and validations
+  queue: ['D0000-S000002', 'D0001-S000022', 'D0001-S000024', 'D0002-S000035', 'D0003-S000005']
+  D0000-S000002 SRC: Alice was beginning to get very tired of sitting by her sister on the bank, and of having nothing to do: once or twice she had peeped into the book her sister was reading, but it had no pictures or conversations in it, “and what is the use of a book,” thought Alice “without pictures or conversations
+  D0000-S000002 TGT: Alicia comenzaba a sentirse muy cansada de estar sentada junto a su hermana, al borde del río, y de no tener nada que hacer: una o dos veces había espiado el libro que su hermana estaba leyendo, pero no tenía ni dibujos ni diálogos, y «¿de qué sirve un libro?», pensó Alicia, «sin dibujos ni diálogos
+  D0001-S000022 SRC: “Well, perhaps not,” said Alice in a soothing tone: “don’t be angry about it. And yet I wish I could show you our cat Dinah: I think you’d take a fancy to cats if you could only see her. She is such a dear quiet thing,” Alice went on, half to herself, as she swam lazily about in the pool, “and she s
+  D0001-S000022 TGT: “¡No lo haré!”, dijo Alicia, con mucha prisa por cambiar el tema de la conversación. “¿Te gusta… te gustan… los perros?”. El ratón no respondió, así que Alicia continuó con entusiasmo: “Hay un perro pequeño muy bonito cerca de nuestra casa, me gustaría mostrártelo. Un pequeño terrier de ojos brillan
+  D0001-S000024 SRC: “I won’t indeed!” said Alice, in a great hurry to change the subject of conversation. “Are you—are you fond—of—of dogs?” The Mouse did not answer, so Alice went on eagerly: “There is such a nice little dog near our house I should like to show you! A little bright-eyed terrier, you know, with oh, suc
+  D0001-S000024 TGT: Ya era hora de irse, porque la piscina se estaba llenando de pájaros y animales que se habían caído en ella: había un pato y un dodo, un loro y un águila joven, y varias otras criaturas curiosas. Alicia lideró el camino, y toda la fiesta nadó hacia la orilla.
+  D0002-S000035 SRC: “Fury said to a mouse, That he met in the house, ‘Let us both go to law: I will prosecute you.—Come, I’ll take no denial; We must have a trial: For really this morning I’ve nothing to do.’ Said the mouse to the cur, ‘Such a trial, dear sir, With no jury or judge, would be wasting our breath.’ ‘I’ll 
+  D0002-S000035 TGT: “Fury le dijo a un ratón"}, {, que se encontró en la casa: ‘Vamos los dos a juicio: yo te demandaré a ti’. —Vamos, no aceptaré ninguna negación; debemos tener un juicio: porque, en verdad, esta mañana no tengo nada que hacer’. El ratón le dijo al perro: ‘Un juicio así, querido señor, sin jurado ni j
+  D0003-S000005 SRC: “How queer it seems,” Alice said to herself, “to be going messages for a rabbit! I suppose Dinah’ll be sending me on messages next!” And she began fancying the sort of thing that would happen: “‘Miss Alice! Come here directly, and get ready for your walk!’ ‘Coming in a minute, nurse! But I’ve got to
+  D0003-S000005 TGT: «¡Qué extraño parece!», dijo Alicia para sí misma, «tener que hacer recados para un conejo. Supongo que Dinah me enviará a hacer recados después!». Y comenzó a imaginar el tipo de cosas que podrían suceder: “‘¡Señorita Alicia! ¡Venga aquí inmediatamente y prepárese para su paseo!’ «¡Ya voy, enfermer
+-- cost by stage (calls / min)
+  translate: 20 calls, 16.7 min, prompt 82060, output 35503
+  audit_translation: 41 calls, 6.0 min, prompt 49658, output 8698
+  repair_translation: 26 calls, 3.4 min, prompt 45210, output 4677
+  extract_glossary: 2 calls, 1.4 min, prompt 16014, output 6556
+  resolve_glossary: 2 calls, 1.2 min, prompt 4038, output 1564
+  repair_review: 4 calls, 0.9 min, prompt 9745, output 939
+  approve_glossary: 2 calls, 0.6 min, prompt 2910, output 1006
+  review_repaired: 5 calls, 0.4 min, prompt 15435, output 934
+  validate_repaired: 0 calls, 0.0 min, prompt 0, output 0

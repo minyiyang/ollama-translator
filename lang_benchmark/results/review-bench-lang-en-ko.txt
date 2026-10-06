@@ -1,0 +1,64 @@
+
+======== bench-lang-en-ko
+segments 145; longest D0000-S000011: source 980 chars, translation 569 chars
+  longest translation head: 아래로, 아래로, 아래로. 할 일이 없었으므로, 앨리스는 곧 다시 말을 시작했다. “디나는 오늘 밤 나를 많이 그리워하겠지, 아마도!” (디나는 고양이였다.) “차 시간에 그녀의 우유 접시를 기억해 주었으면 좋겠어. 디나, 내 사랑! 네가 여기 나와 함께 있으면 좋겠어! 공기에는 쥐가 없을 거야, 아마도, 하지만 박쥐를 잡을 수 있을 거야, 그리고 그것은 
+  longest translation tail: 중 어느 것도 답할 수 없었기 때문에, 어느 쪽으로 물어보든 큰 차이는 없었다. 그녀는 졸고 있다는 것을 느꼈고, 디나와 손을 잡고 걷고 있으며, 그녀에게 매우 진지하게 말하고 있다는 꿈을 꾸기 시작했다, “자, 디나, 진실을 말해: 너는 박쥐를 먹어 본 적이 있어?” 그때 갑자기, 퍽! 퍽! 그녀는 나뭇가지와 마른 잎 더미 위에 떨어졌고, 낙하는 끝났다.
+-- rule findings (all)
+  [untranslated/medium] D0000-S000011: possible untranslated English word: ever
+      SRC: Down, down, down. There was nothing else to do, so Alice soon began talking again. “Dinah’ll miss me very much to-night, I should think!” (Dinah was t
+      TGT: 아래로, 아래로, 아래로. 할 일이 없었으므로, 앨리스는 곧 다시 말을 시작했다. “디나는 오늘 밤 나를 많이 그리워하겠지, 아마도!” (디나는 고양이였다.) “차 시간에 그녀의 우유 접시를 기억해 주었으면 좋겠어. 디나, 내 사랑! 네가 여기 나와 함께 있으면 좋겠어
+  [untranslated/medium] D0000-S000015: possible untranslated English word: ever
+      SRC: Alice opened the door and found that it led into a small passage, not much larger than a rat-hole: she knelt down and looked along the passage into th
+      TGT: 앨리스는 문을 열었고, 그것이 작은 통로로 이어진다는 것을 발견했다. 그 통로는 쥐 구멍보다 크지 않았다. 그녀는 무릎을 꿇고 통로를 따라 들여다보았다. 그곳은 당신이 본 적 있는 가장 아름다운 정원이었다. 그녀는 어두운 홀에서 벗어나 그 밝은 꽃밭 사이와 그 시원한 
+  [untranslated/medium] D0000-S000021: possible untranslated English word: ever
+      SRC: And so it was indeed: she was now only ten inches high, and her face brightened up at the thought that she was now the right size for going through th
+      TGT: 그리고 그것은 사실이었다: 그녀는 이제 10인치밖에 되지 않았고, 그녀의 얼굴은 그 작은 문을 통해 그 아름다운 정원으로 들어갈 수 있는 적절한 크기라는 생각에 밝아졌다. 그러나, 먼저, 그녀는 몇 분을 기다렸고, 그녀가 더 이상 줄어드는지 보았다: 그녀는 이것에 대해
+  [untranslated/medium] D0001-S000016: possible untranslated English word: splash
+      SRC: As she said these words her foot slipped, and in another moment, splash! she was up to her chin in salt water. Her first idea was that she had somehow
+      TGT: 그녀가 이 말을 하면서, 그녀의 발이 미끄러졌고, 다음 순간, 바스락! 그녀는 소금물에 턱까지 잠겼다. 그녀의 첫 번째 생각은 그녀가 어째서 바다에 빠졌다는 것이었다, “그리고 그 경우 나는 철도로 돌아갈 수 있어,” 그녀는 자기 자신에게 말했다. (앨리스는 그녀의 인
+  [untranslated/medium] D0003-S000035: possible untranslated English word: herself
+      SRC: So she swallowed one of the cakes, and was delighted to find that she began shrinking directly. As soon as she was small enough to get through the doo
+      TGT: 그래서 그녀는 케이크 중 하나를 삼켰고, 곧바로 작아지기 시작하는 것을 발견하여 기뻐했다. 그녀가 문으로 나갈 수 있을 만큼 작아지자, 그녀는 집 밖으로 달려나갔고, 밖에서 기다리고 있는 작은 동물들과 새들의 무리를 발견했다. 가엾은 작은 도마뱀, 빌은 가운데에 있었고
+  [ai_style/low] D0003-S000037: formulaic model-like phrase detected: 의심할 여지 없이
+      SRC: It sounded an excellent plan, no doubt, and very neatly and simply arranged; the only difficulty was, that she had not the smallest idea how to set ab
+      TGT: 그것은 의심할 여지 없이 훌륭한 계획처럼 들렸고, 매우 깔끔하고 간단하게 배열되어 있었다; 유일한 어려움은, 그녀가 어떻게着手해야 할지 전혀 감이 잡히지 않았다는 것이었고; 그녀가 나무들 사이에서 불안하게 두리번거리고 있을 때, 그녀의 머리 바로 위에서 작은 날카로운 
+-- semantic findings (first 8)
+  [mistranslation/high] D0000-S000004: The translation contains a non-Korean word ('막赶上했다'), which is a mixture of Korean and Chinese characters (赶上 - to catch up/be in time), resulting in broken target-language prose.
+  [mistranslation/medium] D0000-S000009: The translation '소리쳤다' (shouted/screamed) is too strong for the source 'said aloud'. The source indicates she spoke out loud to herself, not that she shouted.
+  [mistranslation/high] D0000-S000011: The translation fails to translate the English word 'ever' into Korean, leaving it in Latin script, which is not a coined term or a fictional name.
+  [mistranslation/high] D0000-S000014: The translation uses the Chinese character '注意' (attention/notice) instead of Korean script, which is a concrete target-language defect (untranslated/foreign script intrusion).
+  [mistranslation/medium] D0000-S000015: The translation fails to render the English word 'ever' into Korean, leaving the English word in the target text, which is a concrete prose defect.
+  [mistranslation/high] D0001-S000004: The term 'Esq.' (Esquire) is a formal title for a man, used here satirically as part of the address. Translating it as '귀부인' (Lady/Madam) is a gender reversal and a factual error.
+  [mistranslation/medium] D0001-S000008: The translation '갤런 단위의 눈물을 흘려서' (shedding tears in units of gallons) is a literal, formulaic translation of the idiom 'shedding gallons of tears'. In Korean, this sounds like a technical measurement 
+  [mistranslation/medium] D0001-S000009: The phrase 'in a great hurry' is translated as '큰 서둘러', which is grammatically incorrect in Korean. '큰' (big/great) cannot modify the adverbial form '서둘러'.
+  [mistranslation/high] D0001-S000011: The translation renders 'I’ll try if I know all the things I used to know' as '내가 알고 있는 모든 것을 알고 있는지 시험해 보자', which creates a tautology ('test if I know the things I know'). The source refers to past 
+  [mistranslation/medium] D0001-S000013: The source 'lessons to learn' refers to academic study or schooling, but the translation '숙제를 배워야 해' (learn homework) is a concrete error. One does so 'do' or 'complete' homework, but 'learn lessons'.
+  [mistranslation/medium] D0001-S000016: The translation '어떻게 바다에 빠졌다는 것이었다' incorrectly renders 'somehow' as 'how' (interrogative/manner) rather than 'in some way' (modal/manner). In this context, 'somehow' indicates that she is unsure of t
+  [mistranslation/medium] D0002-S000015: The translation renders 'adjourn' as '정회시키고' (to suspend/pause), which implies a temporary break. In the context of a formal motion ('I move that...'), 'adjourn' typically means to officially end the 
+  [mistranslation/medium] D0003-S000006: The translation renders 'white kid gloves' as '하얀 양피 장갑' (white parchment/sheepskin gloves). In the context of clothing, 'kid' specifically refers to young goat skin, which is a distinct luxury materi
+  [mistranslation/medium] D0003-S000014: The translation renders 'the Rabbit' as '그' (he/him), which is a gendered pronoun not present in the source. While common in some contexts, the source uses 'it' to refer to the Rabbit, maintaining a n
+  [mistranslation/medium] D0003-S000025: The phrase 'don’t be particular' is mistranslated as '세심하게 하지 마' (do not be meticulous/detailed), which fails to capture the idiomatic meaning of 'don't be fussy' or 'don't be too choosy' in this cont
+  [mistranslation/high] D0003-S000035: The translation fails to translate the English pronoun 'herself' into the target language, leaving the source word in the text.
+  [mistranslation/medium] D0003-S000037: The phrase 'had not the smallest idea' is translated literally as '가장 작은 아이디어도 없었다', which is a calque of the English idiom. In Korean, this is unnatural and fails to convey the meaning of 'having no 
+-- consistency report
+  {"enabled": true, "document_count": 4, "segment_count": 145, "issue_count": 0, "repair_count": 0, "by_severity": {}, "documents_with_issues": {}}
+-- review queue and validations
+  queue: ['D0000-S000004', 'D0001-S000008', 'D0001-S000016', 'D0003-S000037']
+  D0000-S000004 SRC: There was nothing so very remarkable in that; nor did Alice think it so very much out of the way to hear the Rabbit say to itself, “Oh dear! Oh dear! I shall be late!” (when she thought it over afterwards, it occurred to her that she ought to have wondered at this, but at the time it all seemed quit
+  D0000-S000004 TGT: 그것은 매우 특별할 것이 없었다. 흰 토끼가 자기 자신에게 “아이고! 아이고! 늦겠어!”라고 말하는 소리를 듣는 것도 매우 이상할 일은 아니었다. (사후에 생각해보니, 그때 놀랐어야 했다는 생각이 들었지만, 당시는 모든 것이 너무나 자연스러웠다.) 그러나 흰 토끼가 실제로 베스트 포켓에서 시계를 꺼내 보고, 서둘러 달려가자, 앨리스는 벌떡 일어섰다. 그녀의 머릿속에 번개처럼 스쳐 지나간 생각은, 베스트 포켓이 있는 토끼, 혹은 그 안에서 꺼내는 시계를 가진 토끼를 본 적이 없다는 것이었다. 호기심에 불타오른 그녀는 들판을 가로질러 
+  D0001-S000008 SRC: “You ought to be ashamed of yourself,” said Alice, “a great girl like you,” (she might well say this), “to go on crying in this way! Stop this moment, I tell you!” But she went on all the same, shedding gallons of tears, until there was a large pool all round her, about four inches deep and reaching
+  D0001-S000008 TGT: “당신은 부끄러워해야 해,” 앨리스가 말했다, “이렇게 큰 소녀가,”(그녀는 이 말을 잘 할 수 있었다), “이렇게 계속 울다니! 지금 당장 멈춰, 내가 말해!” 하지만 그녀는 여전히 울었고, 눈물을 쏟아내어, 그녀 주위에 약 4인치 깊이의 큰 연못이 생겼고, 홀의 절반까지 도달했다.
+  D0001-S000016 SRC: As she said these words her foot slipped, and in another moment, splash! she was up to her chin in salt water. Her first idea was that she had somehow fallen into the sea, “and in that case I can go back by railway,” she said to herself. (Alice had been to the seaside once in her life, and had come 
+  D0001-S000016 TGT: 그녀가 이 말을 하면서, 그녀의 발이 미끄러졌고, 다음 순간, 바스락! 그녀는 소금물에 턱까지 잠겼다. 그녀의 첫 번째 생각은 그녀가 어째서 바다에 빠졌다는 것이었다, “그리고 그 경우 나는 철도로 돌아갈 수 있어,” 그녀는 자기 자신에게 말했다. (앨리스는 그녀의 인생에서 한 번 바다에 갔었고, 일반적인 결론에 도달했다, 영국 해안 어디를 가든 바다에 많은 목욕 기계가 있고, 일부 아이들이 나무 삽으로 모래를 파고, 그리고 숙박 시설의 줄, 그리고 그 뒤에 철도 역이 있다는 것을.) 하지만, 그녀는 곧 그녀가 9피트 키였을 때 울
+  D0003-S000037 SRC: It sounded an excellent plan, no doubt, and very neatly and simply arranged; the only difficulty was, that she had not the smallest idea how to set about it; and while she was peering about anxiously among the trees, a little sharp bark just over her head made her look up in a great hurry.
+  D0003-S000037 TGT: 그것은 의심할 여지 없이 훌륭한 계획처럼 들렸고, 매우 깔끔하고 간단하게 배열되어 있었다; 유일한 어려움은, 그녀가 어떻게着手해야 할지 전혀 감이 잡히지 않았다는 것이었고; 그녀가 나무들 사이에서 불안하게 두리번거리고 있을 때, 그녀의 머리 바로 위에서 작은 날카로운 짖음 소리가 그녀를 급하게 올려다보게 했다.
+-- cost by stage (calls / min)
+  audit_translation: 36 calls, 7.6 min, prompt 46474, output 11847
+  translate: 8 calls, 4.2 min, prompt 28412, output 18099
+  extract_glossary: 2 calls, 1.3 min, prompt 15974, output 5879
+  repair_translation: 23 calls, 1.1 min, prompt 42002, output 3329
+  repair_review: 8 calls, 0.6 min, prompt 15783, output 1615
+  resolve_glossary: 1 calls, 0.5 min, prompt 3031, output 1949
+  review_repaired: 6 calls, 0.4 min, prompt 20524, output 1324
+  validate_repaired: 3 calls, 0.3 min, prompt 7456, output 432
+  approve_glossary: 2 calls, 0.3 min, prompt 2942, output 1847

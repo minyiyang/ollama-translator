@@ -1,0 +1,98 @@
+
+======== bench-lang-es-zh
+segments 88; longest D0000-S000085: source 3044 chars, translation 856 chars
+  longest translation head: 这位可怜的女性为了在这个巨大的角色中表现出色，不得不经历艰难的时刻！她通常向巴巴里塔倾诉。“看，女儿，有些月份我感到如此绝望，不知道该怎么办。上帝保佑我，否则……你不知道给七个女儿穿衣服是什么感觉。男孩们，用我给他们整理的父亲旧衣服，勉强过得去。但女孩们！……还有现在的时尚和这种假设！……你看到那块蓝色羊毛了吗？不够，我不得不再买十码。我不想说鞋子的事！感谢上帝，在家里，如果谁穿的不是麻布拖鞋，我
+  longest translation tail: 。这种母亲监视的粗重劳动，加上展示和通风样品的劳动，看是否有顾客或换句话说，丈夫出现。必须推销商品，这位伟大的女性，女儿商人，别无选择，只能打扮并带着她的商品参加朋友们的聚会，因为如果不这样做，女孩们会摆出一副让人无法忍受的脸色。星期天集体散步也是惯例，女孩们打扮得非常好，带着四匹看似不像马的马，妈妈戴着让她无法使用手指的手套，戴着让她手过度温暖的手套，以及她的好开士米。虽然不老，但看起来像老了。
+-- rule findings (all)
+  [glossary/medium] D0000-S000009: approved glossary term was not preserved: 圣克鲁斯
+      SRC: Tenía Juanito entonces veinticuatro años. Le conocí un día en casa de Federico Cimarra en un almuerzo que este dio a sus amigos. Se me ha olvidado la 
+      TGT: 胡安尼托当时二十四岁。有一天我在费德里科·西马拉家的一次午餐会上认识了他，那是西马拉为朋友举办的。我忘了确切日期；但应该是1869年左右，因为我记得人们谈论了很多关于菲格罗拉、分摊税以及拆除圣克鲁斯教堂塔楼的事。多尼奥·巴尔多梅罗的儿子非常英俊，而且非常讨人喜欢，属于那种在征服人心之前先以形象推荐自
+  [glossary/low] D0000-S000015: approved glossary term was not preserved: 教会
+      SRC: Presentose en aquellos días al simpático joven la coyuntura de hacer su primer viaje a París, adonde iban Villalonga y Federico Ruiz comisionados por 
+      TGT: 那些日子里，这位讨人喜欢的年轻人迎来了第一次去巴黎旅行的机会，维亚隆加和费德里科·鲁伊斯受政府委托前往，一个购买农业机械，另一个购买天文仪器。多尼奥·巴尔多梅罗认为孩子去旅行很好，让他见见世面；巴巴里塔没有反对，尽管她儿子在法国首都会遇到比马德里更猛烈的风暴这一想法让她很痛苦。不见面的痛苦加上害怕那
+  [untranslated/medium] D0000-S000026: possible untranslated Spanish word: patencures
+      SRC: En el reinado de D. Baldomero I, o sea desde los orígenes hasta 1848, la casa trabajó más en géneros del país que en los extranjeros. Escaray y Pradol
+      TGT: 在多尼奥·巴尔多梅罗一世统治期间，即从起源到1848年，店铺更多经营国产货物而非外国货物。埃斯卡赖和普拉多伦戈供应布料，布里韦加供应抹布，安特奎拉供应羊毛手帕。在那个统治的末期，店铺开始经营外国货物，1849年的关税改革推动多尼奥·巴尔多梅罗二世从事更大的企业。他不仅与贝哈尔和阿尔科伊的工厂签订合同
+  [mistranslation/high] D0000-S000027: numeric content differs from source: In the source, the linen is described as "lienzos gallegos" (Galician linens), but the translation adds
+      SRC: En las contratas de vestuario para el Ejército y Milicia Nacional, ni Santa Cruz, ni Arnaiz, ni tampoco Bringas daban la cara. Aparecía como contratis
+      TGT: 在为军队和国家民兵的服装合同中，圣克鲁斯、阿尔奈斯，甚至布林加斯都不出面。出现了一个叫阿尔贝特的承包商，比利时出身，最初以不幸的方式引入外国布料。这个阿尔贝特是非常适合这种情况的人，活跃，清醒，交易可靠，即使没有书面合同。他是卡萨尔雷东达在士兵加利西亚亚麻布宝贵合同中的高效助手。四十年前士兵的白色裤
+  [glossary/medium] D0000-S000034: approved glossary term was not preserved: 巴巴里塔
+      SRC: Nació Barbarita Arnaiz en la calle de Postas, esquina al callejón de San Cristóbal, en uno de aquellos oprimidos edificios que parecen estuches o casa
+      TGT: 巴巴里塔·阿尔奈斯出生在邮政街，圣克里斯托瓦尔小巷的拐角，在那些被挤压的建筑中，它们看起来像盒子或娃娃屋。天花板可以用手抓住；楼梯必须嘴里念着信条爬上去，房间似乎是为了预谋某种犯罪而设计的。有些住所，从厨房进入。其他有倾斜的地板，在所有地方都能听到邻居的呼吸。在一些地方可以看到简陋的砖拱支撑楼梯结构
+  [glossary/medium] D0000-S000035: approved glossary term was not preserved: 巴巴里塔
+      SRC: Creció Bárbara en una atmósfera saturada de olor de sándalo, y las fragancias orientales, juntamente con los vivos colores de la pañolería chinesca, d
+      TGT: 巴巴拉在弥漫着檀香气息的氛围中长大，东方的芬芳，连同中国手帕业那鲜艳的色彩，为她的童年印象增添了强烈的韵味。正如人们记得家中至亲之人那样，店铺里那两个身着满大人服饰的真人大小的人体模型，始终在巴巴里塔的记忆中鲜活地存在着，带着甜蜜的余韵，她的双眼正是在那里学会了观看。当她在保姆怀中时，最先吸引她初生
+  [glossary/medium] D0000-S000037: approved glossary term was not preserved: 巴巴里塔
+      SRC: Las facultades de Barbarita se desarrollaron asociadas a la contemplación de estas cosas, y entre las primeras conquistas de sus sentidos, ninguna tan
+      TGT: 巴巴里塔的能力与这些事物的观察相关联，在她感官的最初征服中，没有比那些用明亮捻线刺绣的花朵的印象更确定的，它们如此新鲜，似乎露珠凝结在上面。在销售繁忙的日子，当店铺里有很多女士，店员在柜台上展开数百条手帕时，昏暗的店铺像一个花园。巴巴里塔相信可以一把把摘花，做花束或花环，填满篮子并装饰头发。她相信可
+  [glossary/medium] D0000-S000038: approved glossary term was not preserved: 巴巴里塔
+      SRC: Más adelante pudo la niña apreciar la belleza y variedad de los abanicos que había en la casa, y que eran una de las principales riquezas de ella. Que
+      TGT: 后来女孩能够欣赏家里扇子的美丽和多样性，它们是家中主要的财富之一。当她看到妈妈的手指从香盒中取出它们并打开它们时，她惊呆了，像那些经营这种商品的人知道如何打开它们，也就是说，以一种快速的随意动作，不损坏它们，并向公众展示衣服的轻盈和扇骨的柔和颤动。巴巴拉打开每只眼睛像小牛的眼睛，当妈妈坐在柜台上，给
+  [glossary/medium] D0000-S000039: approved glossary term was not preserved: 巴巴里塔
+      SRC: Ocuparon más adelante el primer lugar en el tierno corazón de la hija de D. Bonifacio Arnaiz y en sus sueños inocentes, otras preciosidades que la mam
+      TGT: 后来，多尼奥·博尼法西奥·阿尔奈斯的女儿心中和她天真梦想中的首要位置，被其他珍贵物品占据，妈妈偶尔在警告不要触摸后展示给她；象牙雕刻的物品，应该是天使在天堂娱乐的玩具。它们像多层塔，或张开帆和两侧许多桨的小船；也有小盒子，手套和珠宝盒，纽扣和非常漂亮的国际象棋套装。由于妈妈拿和存放它们的尊重，巴巴里
+  [glossary/low] D0000-S000053: approved glossary term was not preserved: 教会
+      SRC: Pasaba por la honestidad misma, iba a misa todos los días que lo mandaba la Iglesia, rezaba el rosario con la familia, trabajaba diez horas diarias o 
+      TGT: 他以正直著称，每天去教堂做弥撒，与家人一起念玫瑰经，每天在办公桌前工作十小时或更长时间，从不抬头，也不花父母给他的钱。尽管有这些罕见的品质，巴巴里塔如果偶尔在街上、阿尔奈斯商店或家里遇到他（这种情况很少发生），她看他的兴趣就像看一袋煤或一捆织物一样。因此，当她的母亲在某个预定的日子从圣克鲁斯教堂回来
+  [glossary/medium] D0000-S000065: approved glossary term was not preserved: 胡安尼托
+      SRC: Felizmente para Juanito, estaba allí su madre, en quien se equilibraban maravillosamente el corazón y la inteligencia. Sabía coger las disciplinas cua
+      TGT: 对胡安尼托来说，幸运的是他的母亲在那里，她的心与智完美平衡。她知道何时该施加管教，也知道何时该宽容。她从未想过强迫一个去大学并进入萨尔梅隆讲堂的男孩念玫瑰经，但她没有免除他履行最基本的宗教义务。那个年轻人很清楚，如果他逃掉周日的弥撒，下午就不会去剧院，如果他在六月没有取得好成绩，就没有零花钱，没有斗
+  [glossary/low] D0000-S000071: approved glossary term was not preserved: 比利时工业
+      SRC: Las comunicaciones rápidas nos trajeron mensajeros de la potente industria belga, francesa e inglesa, que necesitaban mercados. Todavía no era moda ir
+      TGT: 快速通讯给我们带来了强大的比利时、法国和英国工业的信使，他们需要市场。去非洲寻找市场还不是时尚，他们来这里寻找，用玻璃珠交换金块；也就是说，用羊毛、克里顿和梅里诺斯交换现金或艺术品。其他信使掠夺我们的教堂和宫殿，带走祭披和祭坛布的历史锦缎，带刺绣和应用的提花和天鹅绒，以及西班牙工业的其他丰富样品。同
+  [glossary/low] D0000-S000073: approved glossary term was not preserved: 手帕业
+      SRC: El establecimiento de Gumersindo Arnaiz se vio amenazado de ruina, porque las tres o cuatro casas cuya especialidad era como una herencia o traspaso d
+      TGT: 古梅辛多·阿尔奈斯的商店面临破产的威胁，因为那三或四家专门经营如同菲律宾公司遗产或转让的商店，无法继续垄断手帕和其他中国艺术。马德里被以低于多尼奥·博尼法西奥·阿尔奈斯发票价格的商品淹没，必须以某种方式实现。为了补偿烧焦的损失，迫切需要策划另一项业务，寻找新的道路，正是在这里，古梅辛多的妻子伊莎贝尔
+  [untranslated/medium] D0000-S000077: possible untranslated Spanish word: madapolanes
+      SRC: La perspicaz mujer vio el porvenir, oyó hablar del gran proyecto de Bravo Murillo, como de una cosa que ella había sentido en su alma. Por fin Madrid,
+      TGT: 这位敏锐的女性看到了未来，听到了布拉沃·穆里略的大计划，仿佛那是她灵魂中感受到的事物。终于，马德里在几年内将在街道和广场上拥有分布的水流，并养成至少洗脸和洗手的习惯。洗了这些部位后，随后会洗其他部位。这个当时的未来马德里，在她眼中呈现出所有阶层穿着干净衬衫的愿景，女性已习惯每天换装，以及绅士们本身就
+  [mistranslation/high] D0000-S000082: numeric content differs from source: In the SOURCE, the range 'desde el 38 al 60' refers to years (1838 to 1860), whereas the TRANSLATION ad
+      SRC: He dicho que eran nueve. Falta consignar que de estas nueve cifras, siete correspondían al sexo femenino. ¡Vaya una plaga que le había caído al bueno 
+      TGT: 我说有九个。需要记录的是，在这九个数字中，七个是女性。这对可怜的古梅辛多来说真是一场灾难！七个女孩该怎么办？当她们成为女人时，需要一支军队来照顾她们。那么如何把她们都嫁得好？从哪里找到七个好丈夫？古梅辛多每当被问及此事，总是开玩笑，相信他的妻子在任何事情上都有好运气。“你们看——他说——她如何从石头
+  [glossary/low] D0000-S000086: approved glossary term was not preserved: 斗篷小贩
+      SRC: Dios, al fin, apreciando los méritos de aquella heroína, que ni un punto se apartaba de su puesto en el combate social, echó una mirada de benevolenci
+      TGT: 上帝，终于，考虑到这位女英雄的功绩，她从未偏离社会战斗中的位置，投下仁慈的目光，然后祝福了样品。第一个结婚的女孩是第二个，名叫坎德拉里亚，诚实地说，那场婚姻并不太辉煌。新郎是个好小伙子，是阿帕里西寡妇衬衫店的店员。他叫佩佩·萨马尼戈，除了工作意愿和已证明的诚实外，没有其他财富。他的姓氏在小型商业招牌
+-- semantic findings (first 8)
+  [omission/medium] D0000-S000006: The translation omits the closing parenthesis for the parenthetical remark regarding the lack of popularity of experimental studies and specific scientists.
+  [mistranslation/medium] D0000-S000010: The translation renders 'estaba loca con su hijo' as '为她的儿子发狂', which in Chinese typically implies a state of madness, insanity, or extreme anger/distress. In this context, the Spanish 'estar loco con
+  [mistranslation/medium] D0000-S000011: The translation renders 'hábitos de servidumbre' as '奴役习惯' (habits of slavery/servitude), which is a concrete error in this social context. In the context of 19th/early 20th century Spanish social cus
+  [mistranslation/medium] D0000-S000016: The translation renders 'la civilización... es mucho cuento' as '文明... 是很大的故事', which is a literal translation of 'cuento' (story). In this context, 'ser mucho cuento' is an idiomatic expression meani
+  [mistranslation/medium] D0000-S000028: The translation renders 'el escritorio' as '办公室' (office/room), but in this context, it refers to the physical desk or the administrative function of the desk/clerk, contrasting with the 'tradiciones'
+  [mistranslation/medium] D0000-S000032: The phrase 'de patente' is a Spanish idiom meaning 'certified', 'undisputed', or 'patent' (as in obvious/official). The translation omits this qualifier, rendering only '特鲁希略' (Trujillos), which loses
+  [mistranslation/medium] D0000-S000034: The translation renders 'Barbarita' as '巴巴拉' (Bárbara), omitting the diminutive suffix '-ita'. While the subsequent context uses 'Bárbara', the specific name in this segment is 'Barbarita'.
+  [mistranslation/medium] D0000-S000035: The translation renders 'acento poderoso' as '强大的音调' (powerful tone/pitch), which is a literal translation of the musical sense of 'acento/tono'. In this literary context, 'dar acento' means to emphas
+  [mistranslation/high] D0000-S000038: The translation incorrectly attributes the ownership of the 'wealth' to the fans themselves rather than to the house/family.
+  [mistranslation/medium] D0000-S000040: The translation renders 'olían a hierro' as '带着铁锈味' (smelling of rust), but the source specifies the smell of iron/metal, not specifically oxidation (rust). In the context of the child's imaginative w
+  [mistranslation/medium] D0000-S000055: The translation renders 'sonaba a cencerrada' as '听起来像是一阵嘈杂声' (sounds like a noise/clatter). In this context, 'cencerrada' refers to the monotonous, repetitive, or jarring sound of a cowbell, used met
+  [mistranslation/medium] D0000-S000057: The translation renders 'fue soltando las castañas' literally as '吐露了栗子' (spat out chestnuts). In this context, 'soltar la castaña' is a metaphorical extension of the previous chestnut shell imagery, 
+  [mistranslation/medium] D0000-S000060: The translation renders 'la Vicaría' as '副主教厅' (Assistant Bishop's Hall/Office). In the context of 19th-century Spanish ecclesiastical administration, 'la Vicaría' refers to the Vicarage or the admini
+  [mistranslation/medium] D0000-S000064: The translation renders 'sin mimo' as '没有溺爱' (without spoiling/pampering). In this context, 'mimo' refers to affection, tenderness, or cuddling. While '溺爱' (spoiling) is a result of too much 'mimo', t
+  [mistranslation/medium] D0000-S000065: The translation renders 'el corazón y la inteligencia' as '心智和智力'. In Spanish, 'corazón' (heart) in this context refers to emotional warmth, empathy, or affection, contrasting with 'inteligencia' (int
+  [mistranslation/medium] D0000-S000066: The translation renders 'puntos oscuros' (obscure/difficult points) as '黑暗点' (dark points/spots), which is a literal translation of 'dark' rather than the figurative meaning of 'obscure' or 'unclear' 
+  [mistranslation/medium] D0000-S000069: The translation renders 'conquistas' as '征服' (conquests/victories), which is too literal. In the context of 'progreso' (progress), it refers to 'achievements' or 'advancements'.
+-- consistency report
+  {"enabled": true, "document_count": 1, "segment_count": 88, "issue_count": 0, "repair_count": 0, "by_severity": {}, "documents_with_issues": {}}
+-- review queue and validations
+  queue: ['D0000-S000006', 'D0000-S000016', 'D0000-S000038', 'D0000-S000064', 'D0000-S000066', 'D0000-S000069']
+  D0000-S000006 SRC: Cuando el niño estudiaba los últimos años de su carrera, verificose en él uno de esos cambiazos críticos que tan comunes son en la edad juvenil. De travieso y alborotado volviose tan juiciosillo, que al mismo Zalamero daba quince y raya. Entrole la comezón de cumplir religiosamente sus deberes escol
+  D0000-S000006 TGT: 当孩子攻读学位的最后几年时，他经历了一次青年时期常见的剧烈转变。从顽皮好动变得极其审慎，甚至让萨拉梅罗都自叹不如。他产生了严格履行学业义务的热忱，甚至通过无限制的阅读和与朋友间的辩论及雄辩练习来自我提升。他不仅准时上课，笔记详尽，还坐在第一排，以专注的神情凝视教授，目不转睛，仿佛凝视恋人，并以点头表示赞同，仿佛在说：“我也知道这些，甚至更多。”下课后，他是那些拦住教授询问文本中晦涩之处或解决疑惑的人之一。通过这些疑问，他们表现出狂热的用功。在大学之外，科学的热潮让他心神不宁。那时，那些正在汲取知识乳汁的博学之士去雅典娜神庙还不是惯例。胡安尼托与其他年轻人聚集在特列里亚家的孩子（古斯塔维托）家中
+  D0000-S000016 SRC: Cuando comunicaba sus temores a D. Baldomero, este se echaba a reír y le decía: «El chico es de buena índole. Déjale que se divierta y que la corra. Los jóvenes del día necesitan despabilarse y ver mucho mundo. No son estos tiempos como los míos, en que no la corría ningún chico del comercio, y nos 
+  D0000-S000016 TGT: 当她向多尼奥·巴尔多梅罗表达她的恐惧时，他大笑并说：“孩子本性善良。让他娱乐，让他放纵。现在的年轻人需要清醒和见很多世面。这些时代不像我的时代，那时商人的孩子都不放纵，他们把我们所有人都握在手中直到我们结婚。那些与现在如此不同的习俗！文明，女儿，不过是虚张声势罢了。今天哪个父亲会因为一个二十岁的儿子在工作日穿新靴子而打他两记耳光？或者你今天怎么敢建议这些年轻人中的一个与家人一起念玫瑰经？今天年轻人享有娱乐的自由和主动性，这是古人没有的。别以为，别以为因此他们更差。如果你逼我，我会说孩子不像那时那样胆小是好事。我记得我还是个小鸡的时候。天哪，我多乏味！我已经有二十五岁了，除了祝您愉快，我不知道对
+  D0000-S000038 SRC: Más adelante pudo la niña apreciar la belleza y variedad de los abanicos que había en la casa, y que eran una de las principales riquezas de ella. Quedábase pasmada cuando veía los dedos de su mamá sacándolos de las perfumadas cajas y abriéndolos como saben abrirlos los que comercian en este artícul
+  D0000-S000038 TGT: 后来女孩能够欣赏家里扇子的美丽和多样性，它们是家中主要的财富之一。当她看到妈妈的手指从香盒中取出它们并打开它们时，她惊呆了，像那些经营这种商品的人知道如何打开它们，也就是说，以一种快速的随意动作，不损坏它们，并向公众展示衣服的轻盈和扇骨的柔和颤动。巴巴拉打开每只眼睛像小牛的眼睛，当妈妈坐在柜台上，给她看扇子但不让她触摸时；她着迷地凝视着那些可爱的形象，它们不像人，而是巴巴里塔，脸圆滑如玫瑰叶，他们都微笑和愚蠢，但非常漂亮，就像那些四面敞开的房子和那些看起来像罗勒小灌木的树……想想树竟然是茶，这些扭曲的小叶子，其汁液用于肚子痛……！
+  D0000-S000064 SRC: Criáronle con regalo y exquisitos cuidados, pero sin mimo. D. Baldomero no tenía carácter para poner un freno a su estrepitoso cariño paternal, ni para meterse en severidades de educación y formar al chico como le formaron a él. Si su mujer lo permitiera, habría llevado Santa Cruz su indulgencia has
+  D0000-S000064 TGT: 他们以慷慨和细致的照顾抚养他，但没有温情。多尼奥·巴尔多梅罗没有性格来限制他喧闹的父爱，也没有性格来介入教育的严厉，像他父亲那样塑造男孩。如果他的妻子允许，圣克鲁斯会宽容到允许孩子随心所欲。为什么他由多尼奥·巴尔多梅罗一世如此严格地教育，却对儿子如此温柔？教育进化的效果，与政治进化平行！圣克鲁斯非常记得他父亲的纪律严酷，他施加的惩罚，以及他让他遭受的剥夺。一年中的每个晚上，他都被迫与家里的雇员一起念玫瑰经；直到二十五岁，他从未独自散步，总是与上述雇员一起；剧院只在复活节那天品尝，每年给他做一套新衣服，只在周日穿。他们让他从早上九点到晚上八点在办公桌或仓库工作，他必须用于一切，无论是移动货物还是
+  D0000-S000066 SRC: Mientras estudió la segunda enseñanza en el colegio de Masarnau, donde estaba a media pensión, su mamá le repasaba las lecciones todas las noches, se las metía en el cerebro a puñados y a empujones, como se mete la lana en un cojín. Ved por dónde aquella señora se convirtió en sibila, intérprete de 
+  D0000-S000066 TGT: 当他在马萨瑙学院学习中等教育时，他是半寄宿生，他的妈妈每天晚上复习他的功课，把知识塞进他的脑子里，像把羊毛塞进枕头一样。看，那位女士变成了女先知，所有人类知识的解释者，因为她为男孩解释书中的晦涩之处，并澄清他所有的疑问，无论上帝如何让她理解。为了表明多尼奥·巴芭拉百科全书式智慧的程度，受母爱激励，只需说她也翻译拉丁文主题，尽管她一生中从未知道这种语言的一点点。确实是自由翻译，更确切地说，自由派，几乎煽动性。但费德鲁和西塞罗不会不高兴，如果他们在老师肩膀上方听到，老师从学生知道的一点点中获得了巨大的好处。她也培养他的记忆力，卸下无用的负担，并让他清楚地看到基本算术问题，利用鹰嘴豆或豆子，因为否则
+  D0000-S000069 SRC: Aún no se conocían el sello de correo, ni los sobres ni otras conquistas del citado progreso. Pero ya los dependientes habían empezado a sacudirse las cadenas; ya no eran aquellos parias del tiempo de D. Baldomero I, a quienes no se permitía salir sino los domingos y en comunidad, y cuyo vestido se 
+  D0000-S000069 TGT: 邮票、信封以及上述进步的其他成就尚未为人所知。但雇员们已经开始摆脱枷锁；他们不再是多尼奥·巴尔多梅罗一世时代的贱民，那时他们只被允许在周日集体外出，他们的衣服由单一模式制作，以便他们像学生或囚犯一样统一。他们被允许参加维利亚埃尔莫萨或蜡烛舞会，根据每个人的喜好。但在让他们每晚念玫瑰经的虔诚本能上没有变化。这直到最近转移到Los Chicos的时代才进入历史。只要多尼奥·巴尔多梅罗是家主，这家店在本质上就没有偏离父亲将其安装在其上的钻石轴，父亲可以被称为多尼奥·巴尔多梅罗大帝。为了让进步在那位非凡人物的作品上留下印记，他的肖像由多尼奥·维森特·洛佩斯绘制，我们满意地在他的显赫后代的大厅里欣赏，整
+-- cost by stage (calls / min)
+  audit_translation: 57 calls, 18.9 min, prompt 127481, output 18730
+  translate: 4 calls, 6.3 min, prompt 39264, output 19314
+  extract_glossary: 3 calls, 3.8 min, prompt 27471, output 18962
+  resolve_glossary: 1 calls, 2.0 min, prompt 11097, output 9903
+  repair_translation: 26 calls, 1.6 min, prompt 87145, output 2877
+  approve_glossary: 3 calls, 1.3 min, prompt 9058, output 5601
+  repair_review: 8 calls, 1.1 min, prompt 31911, output 2849
+  review_repaired: 13 calls, 0.7 min, prompt 47918, output 1665
+  validate_repaired: 2 calls, 0.4 min, prompt 16390, output 526

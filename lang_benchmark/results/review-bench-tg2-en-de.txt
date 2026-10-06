@@ -1,0 +1,44 @@
+
+======== bench-tg2-en-de
+segments 145; longest D0000-S000011: source 980 chars, translation 1145 chars
+  longest translation head: Runter, runter, runter. Es gab nichts anderes zu tun, also begann Alice bald wieder zu sprechen. „Dinah wird mich heute Abend sehr vermissen, das glaube ich!“ (Dinah war die Katze.) „Ich hoffe, sie we
+  longest translation tail: sehr ernst sagte: „Nun, Dinah, sag mir die Wahrheit: hast du jemals eine Fledermaus gegessen?“, als plötzlich, bumm! bumm! fiel sie auf einen Haufen Stöcke und trockenes Laub, und der Fall war vorbei.
+-- rule findings (all)
+  [mistranslation/high] D0001-S000006: numeric content differs from source: The quantity 'more than nine feet high' (value: more than, unit: feet, subject: she) in SOURCE is trans
+      SRC: Just then her head struck against the roof of the hall: in fact she was now more than nine feet high, and she at once took up the little golden key an
+      TGT: In diesem Moment stieß ihr Kopf gegen das Dach des Saals: Tatsächlich war sie jetzt mehr als neun Fuß groß, und sie nahm sofort den kleinen goldenen S
+  [mistranslation/high] D0001-S000008: numeric content differs from source: The depth of the pool is changed from 'four inches' (SOURCE) to 'etwa zehn Zentimeter' (TRANSLATION). W
+      SRC: “You ought to be ashamed of yourself,” said Alice, “a great girl like you,” (she might well say this), “to go on crying in this way! Stop this moment,
+      TGT: „Du solltest dich schämen“, sagte Alice, „ein so großes Mädchen wie du“ (das konnte sie wohl sagen), „so zu weinen! Hör sofort auf, sage ich dir!“ Abe
+  [glossary/medium] D0001-S000020: approved glossary term was not preserved: Wilhelm der Eroberer
+      SRC: “Perhaps it doesn’t understand English,” thought Alice; “I daresay it’s a French mouse, come over with William the Conqueror.” (For, with all her know
+      TGT: „Vielleicht versteht sie kein Englisch“, dachte Alice. „Ich vermute, es ist eine französische Maus, die mit Wilhelm der Eroberer gekommen ist.“ (Denn 
+  [glossary/medium] D0003-S000001: approved glossary term was not preserved: Bill
+      SRC: CHAPTER IV. The Rabbit Sends in a Little Bill
+      TGT: Kapitel IV. Der Hase schickt den kleinen Bill.
+-- semantic findings (first 8)
+  [mistranslation/high] D0000-S000010: The translation renders 'right through' as 'gerade durch'. In this context, 'right' is an intensifier meaning 'completely' or 'all the way', whereas 'gerade' in German typically denotes 'just now' (te
+  [mistranslation/medium] D0000-S000011: The translation 'rumpf! rumpf!' is an incorrect rendering of the onomatopoeic 'thump! thump!'. While 'rumpf' exists in some dialects, the standard German onomatopoeia for a heavy fall or dull thud is 
+  [mistranslation/medium] D0000-S000012: The translation 'es wird spät!' fails to capture the intensity of the source 'how late it’s getting!', omitting the exclamatory degree of lateness.
+  [mistranslation/high] D0000-S000015: The translation omits the preposition 'into' (in/hinein) when describing the action of looking along the passage, resulting in ungrammatical and incomplete prose in German.
+  [mistranslation/high] D0000-S000021: The translation converts 'ten inches' to 'dreißig Zentimeter' (30 cm). Ten inches is approximately 25.4 cm; 30 cm is a factual error in quantity.
+  [mistranslation/high] D0001-S000011: The translation changes the meaning of the subject's state. The source 'I must have been changed for Mabel' indicates a transformation/substitution (being replaced by Mabel), whereas the translation '
+  [mistranslation/medium] D0001-S000024: The translation uses the neuter article 'Ein' for 'Terrier', but the noun 'Terrier' is masculine in German. This creates a grammatical gender mismatch.
+  [mistranslation/medium] D0003-S000039: The phrase 'Wissend kaum' is an unnatural, non-idiomatic word order in German that mimics the English 'Hardly knowing' too literally, resulting in awkward prose.
+-- consistency report
+  {"enabled": true, "document_count": 4, "segment_count": 145, "issue_count": 1, "repair_count": 1, "by_severity": {"medium": 1}, "documents_with_issues": {"item7": 1}}
+  FILE 0003-item7.consistency.json {"segment_id": "D0003-S000011", "category": "consistency", "severity": "medium", "message": "An English closing quotation mark ” is used here, but the book uses „ “ (113 segments).", "suggested_fix": "Close the quotation with “.", "source": "consistency", "source_quote": "", "translation_quote": "„Aber dann“, dachte Alice, „werde ich niemals älter als jetzt sein? Das wäre in gewisser Weise ein Trost – niemals eine…", "risk_tags": [], "quantity_mismatches": []}
+-- review queue and validations
+  queue: ['D0000-S000021']
+  D0000-S000021 SRC: And so it was indeed: she was now only ten inches high, and her face brightened up at the thought that she was now the right size for going through the little door into that lovely garden. First, however, she waited for a few minutes to see if she was going to shrink any further: she felt a little n
+  D0000-S000021 TGT: Und so war es in der Tat: Sie war jetzt nur noch zehn Zoll groß, und ihr Gesicht hellte sich auf bei dem Gedanken, dass sie jetzt die richtige Größe hatte, um durch die kleine Tür in diesen schönen Garten zu gehen. Zuerst wartete sie jedoch ein paar Minuten, um zu sehen, ob sie noch weiter schrumpfe
+-- cost by stage (calls / min)
+  translate: 19 calls, 12.5 min, prompt 60941, output 29876
+  audit_translation: 36 calls, 6.0 min, prompt 44840, output 8336
+  extract_glossary: 2 calls, 1.5 min, prompt 16018, output 6384
+  repair_translation: 12 calls, 1.1 min, prompt 23670, output 1010
+  resolve_glossary: 1 calls, 0.6 min, prompt 3206, output 2520
+  review_repaired: 5 calls, 0.5 min, prompt 13851, output 733
+  repair_review: 3 calls, 0.4 min, prompt 6849, output 667
+  validate_repaired: 1 calls, 0.4 min, prompt 1777, output 80
+  approve_glossary: 2 calls, 0.3 min, prompt 3198, output 1879

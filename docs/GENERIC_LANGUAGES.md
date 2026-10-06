@@ -466,8 +466,8 @@ What changed:
   - the French and Japanese conventions;
   - style-sheet wording, elision, and the same-script untranslated check.
   `en>fr` joins the end-to-end runs. Backend 1,134, frontend 91.
-- **Benchmarks** (`runs/bench/run-language-benchmarks.ps1`, results in
-  `runs/bench/language-results.md`):
+- **Benchmarks** (`lang_benchmark/run-benchmarks.ps1`, results in
+  `lang_benchmark/results/language-results.md`):
 
   | Run | Book | Pair |
   |---|---|---|
@@ -486,7 +486,7 @@ What changed:
 
 **Phase 5 benchmark results (2026-10-02).** Unattended runs with qwen3.8 for
 translation and gemma4 for the audit; details in
-`runs/bench/language-results.md`.
+`lang_benchmark/results/language-results.md`.
 
 | Run | Time | Review queue | Outcome |
 |---|---|---|---|
@@ -573,8 +573,8 @@ German replaced Russian (section 5).
     mostly inside words, hence `--join ""`.
   - `scripts/create_epub_section_subset.py` keeps the chapters between two
     headings of one spine document.
-  - Runs in `runs/bench/run-phase6-benchmarks.ps1`, results to
-    `runs/bench/phase6-results.md`:
+  - Runs with `lang_benchmark/run-benchmarks.ps1`, results in
+    `lang_benchmark/results/phase6-results.md`:
 
   | Run | Book | Pair |
   |---|---|---|
@@ -592,8 +592,8 @@ German replaced Russian (section 5).
   would test the model on Middle Korean rather than the Korean profile.
 
 **Phase 6 benchmark results (2026-10-03).** Unattended runs, same models as
-phase 5; details in `runs/bench/phase6-results.md` and one
-`runs/bench/review-<job>.txt` per run (`inspect_languages.py`).
+phase 5; details in `lang_benchmark/results/phase6-results.md` and one
+`review-<job>.txt` per run beside it (`inspect_runs.py`).
 
 | Run | Time | Review queue | Outcome |
 |---|---|---|---|
@@ -657,7 +657,8 @@ Left as is:
 eight pairs without Chinese were run again with `translation.model:
 translategemma:27b` (new setting: the translate stage only), `gemma4:31b` as
 primary and repair model, and qwen3.8 as fallback. Details in
-`runs/bench/translategemma-results.md` and `translategemma-compare.txt`.
+`lang_benchmark/results/translategemma-results.md` and
+`translategemma-compare.txt`.
 
 - **Prose.** On reading the samples, better than qwen3.8 in every target:
   idiomatic German and Spanish, natural Japanese, Korean without Chinese
@@ -683,7 +684,7 @@ primary and repair model, and qwen3.8 as fallback. Details in
   glossary entry in each chunk, and the book ran without a glossary.
   Extraction now asks again when an answer names three or more characters and
   no entry.
-- **Second-round configs** (`runs/bench/tg-*.yaml`): translategemma
+- **Second-round configs** (`lang_benchmark/configs/tg-*.yaml`): translategemma
   translating in chunks of 8,000 prompt tokens, no fallback harmonization,
   qwen3.8 for the glossary, gemma4:31b for repair.
 - **Second round** (de>en, en>ko, es>en; `translategemma2-compare.txt`). No
@@ -739,7 +740,8 @@ itself guarantees or cannot do.
   (45,000 characters), Die Verwandlung part I (39,000), La Chasse au météore
   chapters I–III (65,000), Fortunata y Jacinta part one I–II (92,000), 羅生門
   (7,000) and 운수 좋은 날 (10,000). The one-line figures for every run are
-  in `runs/bench/capability-summary.txt` (`summary_all.py`).
+  in `lang_benchmark/results/capability-summary.txt` (`summarize.py` writes
+  the same line for any run).
 - **One excerpt per pair, literary prose only.** No technical, legal, or
   modern conversational text was run.
 - **No reference scoring.** The ratings below come from reading samples of
@@ -777,6 +779,26 @@ anything:
 | `de>zh`, `es>zh` | qwen3.8 | B | 13 / 36 min | 1 of 31 / 6 of 88 | 2 / 17 (0 / 1) | Understandable and flat; long sentences cut short, idioms literal (吐露了栗子). "halb sieben" became 七点半. |
 | `ko>zh` | qwen3.8 | B− | 41 min | 0 of 103 | 7 (2) | Readable, with errors of meaning in period idiom. |
 | `en>ko` | translategemma | C+ | 40 min | 4 of 145 | 17 (10) | Better than qwen3.8 (C: Chinese words in the Korean, wrong sound words), but still mistranslates plain sentences ("sister" as "younger sister") and overuses 그녀. |
+| `zh>es` | translategemma | B+ | 38 min | 10 of 163 | 16 (7) | Fuller sentences than qwen3.8 (B), which is complete and literal. One clean run (7.7). |
+| `zh>fr` | qwen3.8 | B | 20 min | 16 of 163 | 26 (7) | Complete and literal, tenses mixed. translategemma is smoother and shortens. |
+| `zh>de` | translategemma | B | 73 min* | 13 of 163 | 58 (14)* | Better German than qwen3.8 (B−), but it shortens and misreads now and then. One clean run (7.7). |
+| `zh>ja` | translategemma | B, not unattended | 79 min* | 2 of 163 | 42 (22)* | Natural Japanese. A wrong passage passed every check for four rounds; a reader of Japanese must compare each passage with the Chinese. qwen3.8 is C: Chinese clauses left in the Japanese. |
+
+**Reading the times and counts.** The rows marked * were run after the audit
+model began reading every prose segment of a pair other than en/zh (7.7,
+fixes 5 and 6); the others before, when it read only the segments a rule
+flagged, long ones, and ones with numbers, at most 50 a chapter. For those:
+
+- **Times are low.** The audit was the largest part already; with every
+  segment read it roughly doubles a run. The two Chinese-source pairs that ran
+  both ways went from 46 to 73 minutes (`zh>de`) and from 45 to 79 (`zh>ja`).
+- **"Semantic findings" are counts over the segments shown**, not over the
+  text, and a run with many short lines of dialogue was the least examined. A
+  rerun would report more findings and send more segments to review.
+- **The ratings stand**: they rest on reading the passages.
+
+The four Chinese-source rows are for 阿Q正传, a harder text than the others
+(7.7).
 
 A pair not listed is untested. For a language with a profile (section 2.4)
 the checks run; for any other language most of them are skipped (section
@@ -799,14 +821,17 @@ and so on) were not run through the pipeline.
 | For | `translation.model` | `ollama.model` (glossary) | Fallback | Audit / repair | Other settings |
 |---|---|---|---|---|---|
 | `en>zh`, `zh>en` | (primary) | qwen3.8 | — | gemma4:31b / qwen3.8 | The shipped defaults; prose rewrite on. |
-| Any other pair into Chinese | (primary) | qwen3.8 | — | gemma4:31b / qwen3.8 | Prose rewrite stays off. Expect B. |
+| Any other pair into Chinese (`ja`, `ko`, `de`, `es` tested) | (primary) | qwen3.8 | — | gemma4:31b / qwen3.8 | Prose rewrite stays off. Expect B. |
 | French, German, Spanish to or from English | translategemma:27b | qwen3.8 | qwen3.8 | gemma4:31b / gemma4:31b | `max_prompt_tokens: 8000`, `harmonize_fallback_with_primary: false`. |
 | `en>ja` | translategemma:27b, or qwen3.8 for a stiffer, safer text | qwen3.8 | qwen3.8 | gemma4:31b / gemma4:31b | As above. A reviewer who reads Japanese. |
 | `en>ko` | translategemma:27b | qwen3.8 | qwen3.8 | gemma4:31b / gemma4:31b | As above. Only with a translator to rework it. |
+| `zh>es`, `zh>de` | translategemma:27b | qwen3.8 | qwen3.8 | gemma4:31b / gemma4:31b | As the row for French, German, Spanish. |
+| `zh>fr` | (primary) | qwen3.8 | — | gemma4:31b / qwen3.8 | translategemma shortens here. |
+| `zh>ja` | translategemma:27b | qwen3.8 | qwen3.8 | gemma4:31b / gemma4:31b | As above. Only with a reader of Japanese checking each passage. |
 | A pair between two languages other than English and Chinese | untested | | | | Try one chapter first (section 2.8). |
 
-The comparison configs in `runs/bench/tg-*.yaml` are rows three to five
-written out.
+The configs in `lang_benchmark/configs/tg-*.yaml` are the translategemma
+rows written out, and `qwen-*.yaml` the others.
 
 With translategemma, part of the book is the fallback model's wording: the
 passages it could not return in a valid form. In the last round that was
@@ -873,9 +898,11 @@ Left to the models, and so only as good as they are:
   and, in German, common nouns; the screen in phase 6 removes the plain cases
   only. Unattended approval is for benchmarks; a real book wants the human
   review the default config requires.
-- **Cost.** With translategemma a 45,000-character excerpt takes 23 to 43
-  minutes against 16 to 60 with qwen3.8; the audit is the larger part either
-  way.
+- **Cost.** Measured before the audit model read every segment, a
+  45,000-character excerpt took 23 to 43 minutes with translategemma against
+  16 to 60 with qwen3.8. With every segment read, expect about twice that for
+  a pair other than en/zh: the audit is most of a run (41 to 47 of 77 to 82
+  minutes on 阿Q正传 into Japanese). en/zh is unchanged.
 - **The evidence is thin** by design of a benchmark: one excerpt, one run,
   one reader per pair. A second book in a pair may move its rating a step.
 
@@ -884,8 +911,8 @@ Left to the models, and so only as good as they are:
 Added 2026-10-04. 阿Q正传 chapters 1–5 (Lu Xun, 1921–22; 10,900 characters,
 163 segments; text from Chinese Wikisource) into French, German, Spanish, and
 Japanese, each with both translators: eight runs, `bench-zhsrc-*`, figures in
-`runs/bench/zh-source-summary.txt`, side-by-side passages in
-`runs/bench/zhsrc-samples-*.txt`. The text is hard: 1920s vernacular, irony,
+`lang_benchmark/results/zh-source-summary.txt`, side-by-side passages in
+`zhsrc-samples-*.txt` beside it. The text is hard: 1920s vernacular, irony,
 and classical quotation. The ratings are for hard Chinese, not for a
 present-day novel.
 
@@ -1099,7 +1126,8 @@ run is that paragraph translated and one segment left for review.
 
 **A sweep instead of another round (2026-10-05).** Five rounds each found
 one more gap. Rather than a sixth, every failed validation in the 45 saved
-runs was tallied (`runs/bench/failures-all.txt`), the code was searched for
+runs was tallied (`lang_benchmark/results/failures-all.txt`), the code was
+searched for
 the kinds of gap already met, and the path that failed last was simulated.
 
 What the tally showed, on the repair side:
@@ -1140,3 +1168,50 @@ which is the price of a rule that reads terms and not meaning.
 Not provable without a run: what the models write. The rules above are
 checked against saved output and by 1,204 tests; whether translategemma's
 next draft holds something none of them sees is not knowable from here.
+
+**Runs after the sweep (2026-10-05, `bench-r1-*`, run with
+`lang_benchmark/run-benchmarks.ps1`).**
+
+| Run | Time | Review queue | Against |
+|---|---|---|---|
+| `en>zh` Alice II, VIII, IX, qwen3.8 | 11 min | 1 of 191 | The run before the language work (`bench-alice-3ch-baseline`): 14 min, 0. The same 15 segments read by the audit model, 7 and 8 findings, 7 segments repaired in each, no rule finding in either. No regression. The one segment in review is the audit model's: it reported a quotation left open that the source leaves open too, and repair closed it with a straight mark. |
+| `zh>ja` 阿Q正传, translategemma | 74 min | 1 of 163 | Round five: 79 min, 2. All six passages the rules named as another passage's were translated again and are right, the paragraph of classical quotation among them (rule 9 held). Refusals of repairs for the glossary: 4, from 8. |
+| `en>ko` Alice 1–4, translategemma | 109 min (audit 84) | 2 of 145 | Round three: 40 min, 4. The audit model read 143 segments, not about 40: 56 findings, 14 high; 48 segments repaired, 21 before. Refusals of repairs for the glossary: none, from 12 (rule 10 held). |
+
+Two things these runs showed, both fixed since:
+
+14. **Feedback repair still ran on the primary model.** Rule 11 had changed
+    the stage's label and checkpoint hash, not the call. The call now uses
+    the repair model when one is set; a test reads the model from the call.
+15. **A translation far from the usual length.** In the Korean run a
+    paragraph of nine sentences came back as one sentence, the opening of a
+    passage two further on. Nothing named it: it repeats no translation in
+    full, the fixed token ratio of the en/zh length check does not fit
+    Korean, and the audit model read it and passed it. For pairs other than
+    en/zh, a translation under 0.4 or over 2.5 of the usual length for its
+    source, the usual being the median of the passages at hand, now fails
+    the translation contract and is a high finding in the audit, and repair
+    translates it again. On 32 saved runs it names that paragraph, the other
+    passages already known to be wrong, and nothing in any qwen3.8 run.
+
+The audit model's misses are the lesson of these rounds. It was shown, and
+passed, a paragraph replaced by another, twice in different books. It is a
+second reading worth having, and not one to rest on: what the rules can
+check (place, length, script, terms, numbers) they must.
+
+The Korean run also puts a number on the cost of reading every segment:
+audit 84 minutes of 109, with one segment a call as the benchmark configs
+have it (`semantic_max_candidates_per_batch: 1`). The default is 50 a call.
+
+**Confirming run (2026-10-05, `bench-r2-tg-en-ko`).** `en>ko` again with
+rules 14 and 15: 92 min (audit 67), 2 of 145 for review.
+
+- The length rule failed two passages at translate time and the shift rule
+  four; they were retried or went to the fallback model. The first draft then
+  held no passage out of place, of unusual length, or untranslated, and the
+  paragraph that came back as one sentence in the run before came back whole.
+  The audit raised no finding against a whole translation.
+- All ten feedback repairs ran on gemma4:31b.
+- The two segments in review are ordinary ones: "half an hour or so" written
+  as about an hour, which the number rule found, and a line the repair
+  verifier did not settle.

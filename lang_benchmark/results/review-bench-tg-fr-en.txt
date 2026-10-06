@@ -1,0 +1,563 @@
+
+======== bench-tg-fr-en
+segments 340; longest D0002-S000011: source 1332 chars, translation 1345 chars
+  longest translation head: Jenny, his eldest daughter, promised to follow in her mother’s footsteps, to walk in the same way on the path of life. Obviously,  Francis Gordon, Jenny Hudelson’s future husband, was destined to beco
+  longest translation tail:  one day come to him. But let us leave aside these prospects of inheritance. It is not about the future, but about the present, which brings together all the conditions for the most perfect happiness.
+-- rule findings (all)
+  [glossary/medium] D0000-S000042: approved glossary term was not preserved: John Proth
+      SRC: Maintenant—ce fut l’avis général—il n’y avait plus à douter que cet inconnu eût affaire à Mr John Proth. A la manière dont il venait de formuler sa qu
+      TGT: Now—it was the general opinion—there was no longer any doubt that this stranger had business with Mr. John Proth. From the way he had just phrased his
+  [glossary/medium] D0000-S000042: approved glossary term was not preserved: Seth Stanfort
+      SRC: Maintenant—ce fut l’avis général—il n’y avait plus à douter que cet inconnu eût affaire à Mr John Proth. A la manière dont il venait de formuler sa qu
+      TGT: Now—it was the general opinion—there was no longer any doubt that this stranger had business with Mr. John Proth. From the way he had just phrased his
+  [glossary/low] D0000-S000042: approved glossary term was not preserved: Mr.
+      SRC: Maintenant—ce fut l’avis général—il n’y avait plus à douter que cet inconnu eût affaire à Mr John Proth. A la manière dont il venait de formuler sa qu
+      TGT: Now—it was the general opinion—there was no longer any doubt that this stranger had business with Mr. John Proth. From the way he had just phrased his
+  [addition/medium] D0000-S000045: translation/source token ratio is unusually high: 13.12
+      SRC: LA MAISON DU JUGE JOHN PROTH.
+      TGT: THE HOUSE OF JUDGE JOHN PROTH.
+  [glossary/medium] D0000-S000047: approved glossary term was not preserved: Whaston News
+      SRC: John Proth jouissait d’une certaine aisance. S’il remplissait ces fonctions de juge, c’était par goût, et il ne songeait point à monter à de plus haut
+      TGT: John Proth enjoyed a certain ease. If he fulfilled these functions of judge, it was by taste, and he did not think of rising to higher jurisdictions. 
+  [glossary/medium] D0000-S000048: approved glossary term was not preserved: John Proth
+      SRC: Ce caractère tracé en quelques lignes, le portrait de Mr John Proth étant placé dans son vrai cadre, on comprendra que ledit juge ne fût pas autrement
+      TGT: With this character sketched in a few lines, and the portrait of Mr. John Proth placed in its proper frame, it will be understood why the said judge w
+  [glossary/medium] D0000-S000048: approved glossary term was not preserved: Kate
+      SRC: Ce caractère tracé en quelques lignes, le portrait de Mr John Proth étant placé dans son vrai cadre, on comprendra que ledit juge ne fût pas autrement
+      TGT: With this character sketched in a few lines, and the portrait of Mr. John Proth placed in its proper frame, it will be understood why the said judge w
+  [omission/medium] D0000-S000048: translation/source token ratio is unusually low: 0.18
+      SRC: Ce caractère tracé en quelques lignes, le portrait de Mr John Proth étant placé dans son vrai cadre, on comprendra que ledit juge ne fût pas autrement
+      TGT: With this character sketched in a few lines, and the portrait of Mr. John Proth placed in its proper frame, it will be understood why the said judge w
+  [glossary/low] D0000-S000048: approved glossary term was not preserved: Mr.
+      SRC: Ce caractère tracé en quelques lignes, le portrait de Mr John Proth étant placé dans son vrai cadre, on comprendra que ledit juge ne fût pas autrement
+      TGT: With this character sketched in a few lines, and the portrait of Mr. John Proth placed in its proper frame, it will be understood why the said judge w
+  [glossary/medium] D0000-S000049: approved glossary term was not preserved: John Proth
+      SRC: Mr John Proth, lui, ne se fût pas pardonné ces curiosités, ces indiscrétions, excusables chez sa servante, puis parce qu’elle appartenait au sexe fémi
+      TGT: Mr. John Proth, for his part, would not have forgiven himself such curiosities, such indiscretions, which were excusable in his servant, and moreover 
+  [omission/medium] D0000-S000049: translation/source token ratio is unusually low: 0.16
+      SRC: Mr John Proth, lui, ne se fût pas pardonné ces curiosités, ces indiscrétions, excusables chez sa servante, puis parce qu’elle appartenait au sexe fémi
+      TGT: Mr. John Proth, for his part, would not have forgiven himself such curiosities, such indiscretions, which were excusable in his servant, and moreover 
+  [glossary/low] D0000-S000049: approved glossary term was not preserved: Mr.
+      SRC: Mr John Proth, lui, ne se fût pas pardonné ces curiosités, ces indiscrétions, excusables chez sa servante, puis parce qu’elle appartenait au sexe fémi
+      TGT: Mr. John Proth, for his part, would not have forgiven himself such curiosities, such indiscretions, which were excusable in his servant, and moreover 
+  [addition/medium] D0000-S000050: translation/source token ratio is unusually high: 4.71
+      SRC: Les curieux ne l’imitèrent point et restèrent en observation.
+      TGT: The curious did not follow his example and remained on watch.
+  [glossary/medium] D0000-S000051: approved glossary term was not preserved: Exeter Street
+      SRC: Cependant, le cavalier s’était avancé jusqu’à l’extrémité d’Exeter street, qui dominait le côté ouest de la ville. Parvenu au faubourg de Wilcox, que 
+      TGT: Meanwhile, the rider had advanced to the end of Exeter Street, which overlooked the western side of the town. Having reached the Wilcox Suburb, to whi
+  [glossary/medium] D0000-S000051: approved glossary term was not preserved: Potomac
+      SRC: Cependant, le cavalier s’était avancé jusqu’à l’extrémité d’Exeter street, qui dominait le côté ouest de la ville. Parvenu au faubourg de Wilcox, que 
+      TGT: Meanwhile, the rider had advanced to the end of Exeter Street, which overlooked the western side of the town. Having reached the Wilcox Suburb, to whi
+  [glossary/medium] D0000-S000051: approved glossary term was not preserved: Steel
+      SRC: Cependant, le cavalier s’était avancé jusqu’à l’extrémité d’Exeter street, qui dominait le côté ouest de la ville. Parvenu au faubourg de Wilcox, que 
+      TGT: Meanwhile, the rider had advanced to the end of Exeter Street, which overlooked the western side of the town. Having reached the Wilcox Suburb, to whi
+  [glossary/medium] D0000-S000051: approved glossary term was not preserved: Whaston
+      SRC: Cependant, le cavalier s’était avancé jusqu’à l’extrémité d’Exeter street, qui dominait le côté ouest de la ville. Parvenu au faubourg de Wilcox, que 
+      TGT: Meanwhile, the rider had advanced to the end of Exeter Street, which overlooked the western side of the town. Having reached the Wilcox Suburb, to whi
+  [glossary/medium] D0000-S000051: approved glossary term was not preserved: Wilcox Suburb
+      SRC: Cependant, le cavalier s’était avancé jusqu’à l’extrémité d’Exeter street, qui dominait le côté ouest de la ville. Parvenu au faubourg de Wilcox, que 
+      TGT: Meanwhile, the rider had advanced to the end of Exeter Street, which overlooked the western side of the town. Having reached the Wilcox Suburb, to whi
+  [glossary/medium] D0000-S000052: approved glossary term was not preserved: Exeter Street
+      SRC: Dix minutes s’écoulèrent, puis le cavalier, reprenant au petit pas Exeter street, se dirigea pour la cinquième fois vers la place.
+      TGT: Ten minutes passed, then the rider, returning at a slow walk up Exeter Street, headed toward the square for the fifth time.
+  [glossary/medium] D0000-S000053: approved glossary term was not preserved: Brial
+      SRC: «Après tout, se répétait-il, non sans consulter sa montre, il n’y a pas encore de retard... Ce n’est que pour dix heures sept, et il est à peine neuf 
+      TGT: “After all,” he repeated to himself, not without consulting his watch, “there is no delay yet... It is only for seven minutes past ten, and it is bare
+  [glossary/medium] D0000-S000053: approved glossary term was not preserved: Steel
+      SRC: «Après tout, se répétait-il, non sans consulter sa montre, il n’y a pas encore de retard... Ce n’est que pour dix heures sept, et il est à peine neuf 
+      TGT: “After all,” he repeated to himself, not without consulting his watch, “there is no delay yet... It is only for seven minutes past ten, and it is bare
+  [glossary/medium] D0000-S000053: approved glossary term was not preserved: Whaston
+      SRC: «Après tout, se répétait-il, non sans consulter sa montre, il n’y a pas encore de retard... Ce n’est que pour dix heures sept, et il est à peine neuf 
+      TGT: “After all,” he repeated to himself, not without consulting his watch, “there is no delay yet... It is only for seven minutes past ten, and it is bare
+  [omission/medium] D0000-S000053: translation/source token ratio is unusually low: 0.13
+      SRC: «Après tout, se répétait-il, non sans consulter sa montre, il n’y a pas encore de retard... Ce n’est que pour dix heures sept, et il est à peine neuf 
+      TGT: “After all,” he repeated to himself, not without consulting his watch, “there is no delay yet... It is only for seven minutes past ten, and it is bare
+  [glossary/medium] D0000-S000054: approved glossary term was not preserved: Exeter Street
+      SRC: Ce monologue se poursuivit tout le temps que l’étranger redescendit Exeter street, et il ne prit fin qu’au moment où les sabots du cheval frappèrent d
+      TGT: This monologue continued the entire time the stranger rode back down Exeter Street, and it only came to an end the moment the horse's hooves struck th
+  [omission/medium] D0000-S000055: translation/source token ratio is unusually low: 0.15
+      SRC: Décidément, ceux qui avaient parié pour le retour de l’étranger gagnaient leur pari. Aussi, lorsque celui-ci passa le long des hôtels, lui firent-ils 
+      TGT: Decidedly, those who had bet on the stranger's return won their wager. Thus, as he passed along the hotels, they gave him a welcoming face, while the 
+  [glossary/low] D0000-S000056: approved glossary term was not preserved: municipal clock
+      SRC: Dix heures sonnèrent enfin à l’horloge municipale. Son cheval arrêté, l’étranger compta les dix coups et s’assura que l’horloge marchait en parfait ac
+      TGT: “And I greet Mr. Seth Stanfort,” replied Arcadia Walker, inclining her head gracefully.
+  [mistranslation/high] D0000-S000057: numeric content differs from source: SOURCE quantity: value 'sept', unit 'minutes', subject 'l’heure du rendez-vous'; TRANSLATION: no quanti
+      SRC: Il ne s’en fallait plus que de sept minutes pour que l’heure du rendez-vous fût atteinte, puis aussitôt dépassée.
+      TGT: Only seven minutes remained before the hour of the appointment was reached, and then immediately passed.
+  [glossary/medium] D0000-S000058: approved glossary term was not preserved: Exeter Street
+      SRC: Seth Stanfort revint à l’entrée d’Exeter street. Visiblement, ni sa monture ni lui ne pouvaient se tenir au repos.
+      TGT: Seth Stanfort returned to the entrance of Exeter Street. Clearly, neither he nor his mount could remain at rest.
+  [glossary/medium] D0000-S000058: approved glossary term was not preserved: Seth Stanfort
+      SRC: Seth Stanfort revint à l’entrée d’Exeter street. Visiblement, ni sa monture ni lui ne pouvaient se tenir au repos.
+      TGT: Seth Stanfort returned to the entrance of Exeter Street. Clearly, neither he nor his mount could remain at rest.
+  [omission/medium] D0000-S000060: translation/source token ratio is unusually low: 0.17
+      SRC: Or, ce n’était point aux piétons que notre cavalier avait affaire. Il ne les voyait même pas. Son plus intime ami eût passé à pied près de lui, qu’il 
+      TGT: Yet it was not with pedestrians that our rider had business. He did not even see them. His closest friend could have passed by him on foot, and he wou
+  [glossary/medium] D0000-S000061: approved glossary term was not preserved: Exeter Street
+      SRC: Mais arriverait-elle à l’heure dite?.. Il ne s’en fallait plus que de trois minutes, juste le temps nécessaire pour descendre Exeter street, et aucun 
+      TGT: But would she arrive at the appointed hour?.. Only three minutes remained, just the time needed to descend Exeter Street, and no vehicle appeared at t
+  [glossary/medium] D0000-S000062: approved glossary term was not preserved: Exeter Street
+      SRC: Seth Stanfort lança un dernier coup d’œil dans Exeter street. Ce fut un vif éclair qui jaillit de sa prunelle, tandis qu’il murmurait sur un ton d’iné
+      TGT: Seth Stanfort cast a final glance down Exeter Street. A sharp flash flared in his eyes as he murmured in a tone of unshakable resolve:
+  [glossary/medium] D0000-S000062: approved glossary term was not preserved: Seth Stanfort
+      SRC: Seth Stanfort lança un dernier coup d’œil dans Exeter street. Ce fut un vif éclair qui jaillit de sa prunelle, tandis qu’il murmurait sur un ton d’iné
+      TGT: Seth Stanfort cast a final glance down Exeter Street. A sharp flash flared in his eyes as he murmured in a tone of unshakable resolve:
+  [glossary/medium] D0000-S000065: approved glossary term was not preserved: Seth Stanfort
+      SRC: Seth Stanfort reconnut celle qu’il attendait. Son visage redevint impassible. Il ne prononça pas une seule parole, ne fit pas un geste. Après avoir ra
+      TGT: Seth Stanfort recognized the woman he had been expecting. His face became impassive once more. He did not utter a single word, nor make a gesture. Aft
+  [glossary/medium] D0000-S000069: approved glossary term was not preserved: Arcadia Walker
+      SRC: «Je salue miss Arcadia Walker...
+      TGT: “I greet Miss Arcadia Walker...
+  [glossary/medium] D0000-S000070: approved glossary term was not preserved: Seth Stanfort
+      SRC: —Et moi Mr Seth Stanfort,» répondit Arcadia Walker, en s’inclinant d’un mouvement gracieux.
+      TGT: “And I am Mr. Seth Stanfort,” replied Arcadia Walker, bowing with a graceful movement.
+  [glossary/low] D0000-S000070: approved glossary term was not preserved: Mr.
+      SRC: —Et moi Mr Seth Stanfort,» répondit Arcadia Walker, en s’inclinant d’un mouvement gracieux.
+      TGT: “And I am Mr. Seth Stanfort,” replied Arcadia Walker, bowing with a graceful movement.
+  [addition/medium] D0000-S000072: translation/source token ratio is unusually high: 7.15
+      SRC: On peut nous en croire, les indigènes ne perdaient pas de vue ce couple qui leur était absolument inconnu. Et ils disaient entre eux:
+      TGT: Believe us, the locals did not lose sight of this couple who were absolutely unknown to them. And they said among themselves:
+  [untranslated/medium] D0000-S000072: possible untranslated French passage: je ne sais quoi
+      SRC: On peut nous en croire, les indigènes ne perdaient pas de vue ce couple qui leur était absolument inconnu. Et ils disaient entre eux:
+      TGT: Believe us, the locals did not lose sight of this couple who were absolutely unknown to them. And they said among themselves:
+  [addition/medium] D0000-S000073: translation/source token ratio is unusually high: 7.56
+      SRC: «S’ils sont venus pour un procès, il est à désirer que ce procès s’arrange au profit de tous deux.
+      TGT: «If they have come for a trial, it is to be hoped that this trial is settled to the benefit of them both.
+  [addition/medium] D0000-S000074: translation/source token ratio is unusually high: 6.79
+      SRC: —Il s’arrangera, ou Mr Proth ne serait pas l’habile homme qu’il est!
+      TGT: —It will be settled, or Mr. Proth would not be the clever man that he is!
+  [addition/medium] D0000-S000075: translation/source token ratio is unusually high: 6.72
+      SRC: —Et si ni l’un ni l’autre ne sont mariés, le mieux serait que «cela finît par un mariage!»
+      TGT: —And if neither of them is married, the best thing would be for «it to end in a marriage!»
+  [addition/medium] D0000-S000076: translation/source token ratio is unusually high: 7.12
+      SRC: Ainsi allaient les langues, ainsi s’échangeaient les propos.
+      TGT: So went the gossip, so the talk was exchanged.
+  [glossary/medium] D0000-S000078: approved glossary term was not preserved: John Proth
+      SRC: Seth Stanfort se préparait à descendre de cheval pour frapper à la porte de Mr John Proth, lorsque cette porte s’ouvrit.
+      TGT: Seth Stanfort was preparing to dismount his horse to knock at the door of Mr. John Proth, when that door opened.
+  [glossary/low] D0000-S000078: approved glossary term was not preserved: Mr.
+      SRC: Seth Stanfort se préparait à descendre de cheval pour frapper à la porte de Mr John Proth, lorsque cette porte s’ouvrit.
+      TGT: Seth Stanfort was preparing to dismount his horse to knock at the door of Mr. John Proth, when that door opened.
+  [glossary/medium] D0000-S000079: approved glossary term was not preserved: John Proth
+      SRC: Mr John Proth apparut sur le seuil, et la vieille servante Kate, cette fois, se montra derrière lui.
+      TGT: Mr. John Proth appeared on the threshold, and the old servant Kate, this time, showed herself behind him.
+  [glossary/medium] D0000-S000079: approved glossary term was not preserved: Kate
+      SRC: Mr John Proth apparut sur le seuil, et la vieille servante Kate, cette fois, se montra derrière lui.
+      TGT: Mr. John Proth appeared on the threshold, and the old servant Kate, this time, showed herself behind him.
+  [omission/medium] D0000-S000080: translation/source token ratio is unusually low: 0.20
+      SRC: Ils avaient entendu un piétinement de chevaux devant la maison et, celui-là quittant son jardin, celle-ci quittant sa cuisine, voulut savoir ce qui se
+      TGT: They had heard the stamping of horses in front of the house and, he leaving his garden, she leaving her kitchen, wished to know what was happening.
+  [glossary/medium] D0000-S000081: approved glossary term was not preserved: Seth Stanfort
+      SRC: Seth Stanfort resta donc en selle, et, s’adressant au magistrat:
+      TGT: Seth Stanfort remained in his saddle, and, addressing the magistrate:
+  [glossary/medium] D0000-S000082: approved glossary term was not preserved: Boston
+      SRC: «Monsieur le juge John Proth, dit-il, je suis Mr Seth Stanfort, de Boston, Massachusetts.
+      TGT: “Judge John Proth,” he said, “I am Mr. Seth Stanfort, from Boston, Massachusetts.
+  [glossary/medium] D0000-S000082: approved glossary term was not preserved: John Proth
+      SRC: «Monsieur le juge John Proth, dit-il, je suis Mr Seth Stanfort, de Boston, Massachusetts.
+      TGT: “Judge John Proth,” he said, “I am Mr. Seth Stanfort, from Boston, Massachusetts.
+  [glossary/medium] D0000-S000082: approved glossary term was not preserved: Massachusetts
+      SRC: «Monsieur le juge John Proth, dit-il, je suis Mr Seth Stanfort, de Boston, Massachusetts.
+      TGT: “Judge John Proth,” he said, “I am Mr. Seth Stanfort, from Boston, Massachusetts.
+  [glossary/medium] D0000-S000082: approved glossary term was not preserved: Seth Stanfort
+      SRC: «Monsieur le juge John Proth, dit-il, je suis Mr Seth Stanfort, de Boston, Massachusetts.
+      TGT: “Judge John Proth,” he said, “I am Mr. Seth Stanfort, from Boston, Massachusetts.
+  [glossary/low] D0000-S000082: approved glossary term was not preserved: Mr.
+      SRC: «Monsieur le juge John Proth, dit-il, je suis Mr Seth Stanfort, de Boston, Massachusetts.
+      TGT: “Judge John Proth,” he said, “I am Mr. Seth Stanfort, from Boston, Massachusetts.
+  [glossary/medium] D0000-S000083: approved glossary term was not preserved: Seth Stanfort
+      SRC: —Très heureux de faire votre connaissance, Mr Seth Stanfort!
+      TGT: “Very pleased to make your acquaintance, Mr. Seth Stanfort!”
+  [glossary/medium] D0000-S000084: approved glossary term was not preserved: Arcadia Walker
+      SRC: —Et voici miss Arcadia Walker, de Trenton, New-Jersey.
+      TGT: “And here is Miss Arcadia Walker, from Trenton, New Jersey.”
+  [glossary/medium] D0000-S000084: approved glossary term was not preserved: New Jersey
+      SRC: —Et voici miss Arcadia Walker, de Trenton, New-Jersey.
+      TGT: “And here is Miss Arcadia Walker, from Trenton, New Jersey.”
+  [glossary/medium] D0000-S000084: approved glossary term was not preserved: Trenton
+      SRC: —Et voici miss Arcadia Walker, de Trenton, New-Jersey.
+      TGT: “And here is Miss Arcadia Walker, from Trenton, New Jersey.”
+  [untranslated/medium] D0000-S000087: possible untranslated French passage: je ne sais quoi
+      SRC: Miss Arcadia Walker étant une charmante personne, on nous saura gré d’en donner un rapide crayon. Son âge, vingt-quatre ans; ses yeux, d’un bleu pâle;
+      TGT: Miss Arcadia Walker being a charming person, we shall be grateful for a quick sketch of her. Her age, twenty-four years; her eyes, of a pale blue; her
+  [glossary/medium] D0000-S000088: approved glossary term was not preserved: Arcadia Walker
+      SRC: Miss Arcadia Walker, originaire du New-Jersey, n’ayant plus que des parents éloignés, libre de ses actions, indépendante par sa fortune, douée de l’es
+      TGT: Miss Arcadia Walker, a native of New Jersey, having no more than distant relatives, free in her actions, independent through her fortune, and endowed 
+  [glossary/medium] D0000-S000088: approved glossary term was not preserved: Berlin
+      SRC: Miss Arcadia Walker, originaire du New-Jersey, n’ayant plus que des parents éloignés, libre de ses actions, indépendante par sa fortune, douée de l’es
+      TGT: Miss Arcadia Walker, a native of New Jersey, having no more than distant relatives, free in her actions, independent through her fortune, and endowed 
+  [glossary/medium] D0000-S000088: approved glossary term was not preserved: London
+      SRC: Miss Arcadia Walker, originaire du New-Jersey, n’ayant plus que des parents éloignés, libre de ses actions, indépendante par sa fortune, douée de l’es
+      TGT: Miss Arcadia Walker, a native of New Jersey, having no more than distant relatives, free in her actions, independent through her fortune, and endowed 
+  [glossary/medium] D0000-S000088: approved glossary term was not preserved: New Jersey
+      SRC: Miss Arcadia Walker, originaire du New-Jersey, n’ayant plus que des parents éloignés, libre de ses actions, indépendante par sa fortune, douée de l’es
+      TGT: Miss Arcadia Walker, a native of New Jersey, having no more than distant relatives, free in her actions, independent through her fortune, and endowed 
+  [glossary/medium] D0000-S000088: approved glossary term was not preserved: Rome
+      SRC: Miss Arcadia Walker, originaire du New-Jersey, n’ayant plus que des parents éloignés, libre de ses actions, indépendante par sa fortune, douée de l’es
+      TGT: Miss Arcadia Walker, a native of New Jersey, having no more than distant relatives, free in her actions, independent through her fortune, and endowed 
+  [glossary/medium] D0000-S000088: approved glossary term was not preserved: Vienna
+      SRC: Miss Arcadia Walker, originaire du New-Jersey, n’ayant plus que des parents éloignés, libre de ses actions, indépendante par sa fortune, douée de l’es
+      TGT: Miss Arcadia Walker, a native of New Jersey, having no more than distant relatives, free in her actions, independent through her fortune, and endowed 
+  [omission/medium] D0000-S000088: translation/source token ratio is unusually low: 0.10
+      SRC: Miss Arcadia Walker, originaire du New-Jersey, n’ayant plus que des parents éloignés, libre de ses actions, indépendante par sa fortune, douée de l’es
+      TGT: Miss Arcadia Walker, a native of New Jersey, having no more than distant relatives, free in her actions, independent through her fortune, and endowed 
+  [glossary/low] D0000-S000088: approved glossary term was not preserved: Paris
+      SRC: Miss Arcadia Walker, originaire du New-Jersey, n’ayant plus que des parents éloignés, libre de ses actions, indépendante par sa fortune, douée de l’es
+      TGT: Miss Arcadia Walker, a native of New Jersey, having no more than distant relatives, free in her actions, independent through her fortune, and endowed 
+  [glossary/medium] D0000-S000089: approved glossary term was not preserved: Arcadia Walker
+      SRC: Ce qui vient d’être dit de miss Arcadia Walker se fût appliqué symétriquement—c’est le mot juste—à Mr Seth Stanfort. Libre aussi, riche aussi, aimant 
+      TGT: What had just been said of Miss Arcadia Walker applied symmetrically—that is the precise word—to Mr. Seth Stanfort. Also free, also wealthy, and also 
+  [glossary/medium] D0000-S000089: approved glossary term was not preserved: Boston
+      SRC: Ce qui vient d’être dit de miss Arcadia Walker se fût appliqué symétriquement—c’est le mot juste—à Mr Seth Stanfort. Libre aussi, riche aussi, aimant 
+      TGT: What had just been said of Miss Arcadia Walker applied symmetrically—that is the precise word—to Mr. Seth Stanfort. Also free, also wealthy, and also 
+  [omission/medium] D0000-S000089: translation/source token ratio is unusually low: 0.09
+      SRC: Ce qui vient d’être dit de miss Arcadia Walker se fût appliqué symétriquement—c’est le mot juste—à Mr Seth Stanfort. Libre aussi, riche aussi, aimant 
+      TGT: What had just been said of Miss Arcadia Walker applied symmetrically—that is the precise word—to Mr. Seth Stanfort. Also free, also wealthy, and also 
+  [glossary/low] D0000-S000089: approved glossary term was not preserved: Old Continent
+      SRC: Ce qui vient d’être dit de miss Arcadia Walker se fût appliqué symétriquement—c’est le mot juste—à Mr Seth Stanfort. Libre aussi, riche aussi, aimant 
+      TGT: What had just been said of Miss Arcadia Walker applied symmetrically—that is the precise word—to Mr. Seth Stanfort. Also free, also wealthy, and also 
+  [glossary/low] D0000-S000089: approved glossary term was not preserved: Yankees
+      SRC: Ce qui vient d’être dit de miss Arcadia Walker se fût appliqué symétriquement—c’est le mot juste—à Mr Seth Stanfort. Libre aussi, riche aussi, aimant 
+      TGT: What had just been said of Miss Arcadia Walker applied symmetrically—that is the precise word—to Mr. Seth Stanfort. Also free, also wealthy, and also 
+  [glossary/medium] D0000-S000090: approved glossary term was not preserved: Arcadia Walker
+      SRC: Les mêmes goûts avaient peu à peu rapproché ces deux êtres jeunes et vaillants, que les curieux et surtout les curieuses de la place estimaient si bie
+      TGT: The same tastes had gradually brought these two young and spirited beings closer, whom the curious—and especially the curious women—of the town consid
+  [glossary/medium] D0000-S000090: approved glossary term was not preserved: Seth Stanfort
+      SRC: Les mêmes goûts avaient peu à peu rapproché ces deux êtres jeunes et vaillants, que les curieux et surtout les curieuses de la place estimaient si bie
+      TGT: The same tastes had gradually brought these two young and spirited beings closer, whom the curious—and especially the curious women—of the town consid
+  [omission/medium] D0000-S000090: translation/source token ratio is unusually low: 0.12
+      SRC: Les mêmes goûts avaient peu à peu rapproché ces deux êtres jeunes et vaillants, que les curieux et surtout les curieuses de la place estimaient si bie
+      TGT: The same tastes had gradually brought these two young and spirited beings closer, whom the curious—and especially the curious women—of the town consid
+  [glossary/low] D0000-S000090: approved glossary term was not preserved: Mr.
+      SRC: Les mêmes goûts avaient peu à peu rapproché ces deux êtres jeunes et vaillants, que les curieux et surtout les curieuses de la place estimaient si bie
+      TGT: The same tastes had gradually brought these two young and spirited beings closer, whom the curious—and especially the curious women—of the town consid
+  [mistranslation/high] D0000-S000091: numeric content differs from source: The translation contains no quantity-bearing facts, whereas the source contains specific temporal quant
+      SRC: Non! ce n’était point un procès, une discussion, le règlement de quelque affaire, qui amenait Seth Stanfort et miss Arcadia Walker devant le juge de c
+      TGT: No! it was not a trial, a dispute, or the settlement of some business that brought Seth Stanfort and Miss Arcadia Walker before the judge of this town
+  [glossary/medium] D0000-S000091: approved glossary term was not preserved: Arcadia Walker
+      SRC: Non! ce n’était point un procès, une discussion, le règlement de quelque affaire, qui amenait Seth Stanfort et miss Arcadia Walker devant le juge de c
+      TGT: No! it was not a trial, a dispute, or the settlement of some business that brought Seth Stanfort and Miss Arcadia Walker before the judge of this town
+  [glossary/medium] D0000-S000091: approved glossary term was not preserved: Massachusetts
+      SRC: Non! ce n’était point un procès, une discussion, le règlement de quelque affaire, qui amenait Seth Stanfort et miss Arcadia Walker devant le juge de c
+      TGT: No! it was not a trial, a dispute, or the settlement of some business that brought Seth Stanfort and Miss Arcadia Walker before the judge of this town
+  [glossary/medium] D0000-S000091: approved glossary term was not preserved: New Jersey
+      SRC: Non! ce n’était point un procès, une discussion, le règlement de quelque affaire, qui amenait Seth Stanfort et miss Arcadia Walker devant le juge de c
+      TGT: No! it was not a trial, a dispute, or the settlement of some business that brought Seth Stanfort and Miss Arcadia Walker before the judge of this town
+  [glossary/medium] D0000-S000091: approved glossary term was not preserved: Seth Stanfort
+      SRC: Non! ce n’était point un procès, une discussion, le règlement de quelque affaire, qui amenait Seth Stanfort et miss Arcadia Walker devant le juge de c
+      TGT: No! it was not a trial, a dispute, or the settlement of some business that brought Seth Stanfort and Miss Arcadia Walker before the judge of this town
+  [glossary/medium] D0000-S000091: approved glossary term was not preserved: Whaston
+      SRC: Non! ce n’était point un procès, une discussion, le règlement de quelque affaire, qui amenait Seth Stanfort et miss Arcadia Walker devant le juge de c
+      TGT: No! it was not a trial, a dispute, or the settlement of some business that brought Seth Stanfort and Miss Arcadia Walker before the judge of this town
+  [omission/medium] D0000-S000091: translation/source token ratio is unusually low: 0.07
+      SRC: Non! ce n’était point un procès, une discussion, le règlement de quelque affaire, qui amenait Seth Stanfort et miss Arcadia Walker devant le juge de c
+      TGT: No! it was not a trial, a dispute, or the settlement of some business that brought Seth Stanfort and Miss Arcadia Walker before the judge of this town
+  [glossary/medium] D0000-S000092: approved glossary term was not preserved: Arcadia Walker
+      SRC: La présentation de Mr Seth Stanfort et de miss Arcadia Walker au juge ayant été faite ainsi qu’il vient d’être rapporté, Mr John Proth n’eut plus qu’à
+      TGT: The presentation of Mr. Seth Stanfort and Miss Arcadia Walker to the judge having been made as has just been recounted, Mr. John Proth had only to ask
+  [glossary/medium] D0000-S000092: approved glossary term was not preserved: John Proth
+      SRC: La présentation de Mr Seth Stanfort et de miss Arcadia Walker au juge ayant été faite ainsi qu’il vient d’être rapporté, Mr John Proth n’eut plus qu’à
+      TGT: The presentation of Mr. Seth Stanfort and Miss Arcadia Walker to the judge having been made as has just been recounted, Mr. John Proth had only to ask
+  [glossary/medium] D0000-S000092: approved glossary term was not preserved: Seth Stanfort
+      SRC: La présentation de Mr Seth Stanfort et de miss Arcadia Walker au juge ayant été faite ainsi qu’il vient d’être rapporté, Mr John Proth n’eut plus qu’à
+      TGT: The presentation of Mr. Seth Stanfort and Miss Arcadia Walker to the judge having been made as has just been recounted, Mr. John Proth had only to ask
+  [glossary/low] D0000-S000092: approved glossary term was not preserved: Mr.
+      SRC: La présentation de Mr Seth Stanfort et de miss Arcadia Walker au juge ayant été faite ainsi qu’il vient d’être rapporté, Mr John Proth n’eut plus qu’à
+      TGT: The presentation of Mr. Seth Stanfort and Miss Arcadia Walker to the judge having been made as has just been recounted, Mr. John Proth had only to ask
+  [glossary/medium] D0000-S000093: approved glossary term was not preserved: Arcadia Walker
+      SRC: —Seth Stanfort désire devenir le mari de miss Arcadia Walker, répondit l’un.
+      TGT: “Seth Stanfort wishes to become the husband of Miss Arcadia Walker,” replied one of them.
+  [glossary/medium] D0000-S000093: approved glossary term was not preserved: Seth Stanfort
+      SRC: —Seth Stanfort désire devenir le mari de miss Arcadia Walker, répondit l’un.
+      TGT: “Seth Stanfort wishes to become the husband of Miss Arcadia Walker,” replied one of them.
+  [glossary/medium] D0000-S000094: approved glossary term was not preserved: Arcadia Walker
+      SRC: —Et miss Arcadia Walker désire devenir la femme de Mr Seth Stanfort, ajouta l’autre.
+      TGT: “And Miss Arcadia Walker desires to become the wife of Mr. Seth Stanfort,” added the other.
+  [glossary/medium] D0000-S000094: approved glossary term was not preserved: Seth Stanfort
+      SRC: —Et miss Arcadia Walker désire devenir la femme de Mr Seth Stanfort, ajouta l’autre.
+      TGT: “And Miss Arcadia Walker desires to become the wife of Mr. Seth Stanfort,” added the other.
+  [glossary/medium] D0000-S000096: approved glossary term was not preserved: Arcadia Walker
+      SRC: —Je suis à votre disposition, Mr Stanfort, et à la vôtre, miss Arcadia Walker.
+      TGT: “I am at your disposal, Mr. Stanfort, and at yours, Miss Arcadia Walker.”
+  [glossary/low] D0000-S000096: approved glossary term was not preserved: Mr.
+      SRC: —Je suis à votre disposition, Mr Stanfort, et à la vôtre, miss Arcadia Walker.
+      TGT: “I am at your disposal, Mr. Stanfort, and at yours, Miss Arcadia Walker.”
+  [glossary/medium] D0000-S000098: approved glossary term was not preserved: John Proth
+      SRC: —Quand vous conviendra-t-il qu’il soit procédé à ce mariage? reprit Mr John Proth.
+      TGT: “When will it suit you for this marriage to take place?” Mr. John Proth resumed.
+  [glossary/low] D0000-S000098: approved glossary term was not preserved: Mr.
+      SRC: —Quand vous conviendra-t-il qu’il soit procédé à ce mariage? reprit Mr John Proth.
+      TGT: “When will it suit you for this marriage to take place?” Mr. John Proth resumed.
+  [glossary/medium] D0000-S000099: approved glossary term was not preserved: Seth Stanfort
+      SRC: —Immédiatement... si vous êtes libre, répondit Seth Stanfort.
+      TGT: “Immediately... if you are free,” replied Seth Stanfort.
+  [glossary/medium] D0000-S000100: approved glossary term was not preserved: Arcadia Walker
+      SRC: —Car nous quitterons Whaston dès que je serai Mrs Stanfort, déclara miss Arcadia Walker.
+      TGT: “For we shall leave Whaston as soon as I am Mrs. Stanfort,” declared Miss Arcadia Walker.
+  [glossary/medium] D0000-S000100: approved glossary term was not preserved: Whaston
+      SRC: —Car nous quitterons Whaston dès que je serai Mrs Stanfort, déclara miss Arcadia Walker.
+      TGT: “For we shall leave Whaston as soon as I am Mrs. Stanfort,” declared Miss Arcadia Walker.
+  [glossary/low] D0000-S000100: approved glossary term was not preserved: Mrs.
+      SRC: —Car nous quitterons Whaston dès que je serai Mrs Stanfort, déclara miss Arcadia Walker.
+      TGT: “For we shall leave Whaston as soon as I am Mrs. Stanfort,” declared Miss Arcadia Walker.
+  [duplication/high] D0000-S000101: translation duplicates a different source segment: D0000-S000060
+      SRC: Mr John Proth indiqua, par son attitude, combien lui, et toute la cité avec lui, regrettaient de ne pouvoir garder plus longtemps dans les murs de Wha
+      TGT: Mr. John Proth indicated, by his demeanor, how much he, and the entire town with him, regretted that they could not keep this charming couple, who cur
+  [glossary/medium] D0000-S000101: approved glossary term was not preserved: John Proth
+      SRC: Mr John Proth indiqua, par son attitude, combien lui, et toute la cité avec lui, regrettaient de ne pouvoir garder plus longtemps dans les murs de Wha
+      TGT: Mr. John Proth indicated, by his demeanor, how much he, and the entire town with him, regretted that they could not keep this charming couple, who cur
+  [glossary/medium] D0000-S000101: approved glossary term was not preserved: Whaston
+      SRC: Mr John Proth indiqua, par son attitude, combien lui, et toute la cité avec lui, regrettaient de ne pouvoir garder plus longtemps dans les murs de Wha
+      TGT: Mr. John Proth indicated, by his demeanor, how much he, and the entire town with him, regretted that they could not keep this charming couple, who cur
+  [omission/medium] D0000-S000101: translation/source token ratio is unusually low: 0.19
+      SRC: Mr John Proth indiqua, par son attitude, combien lui, et toute la cité avec lui, regrettaient de ne pouvoir garder plus longtemps dans les murs de Wha
+      TGT: Mr. John Proth indicated, by his demeanor, how much he, and the entire town with him, regretted that they could not keep this charming couple, who cur
+  [duplication/high] D0000-S000103: translation duplicates a different source segment: D0000-S000062
+      SRC: —Je suis entièrement à vos ordres, en reculant de quelques pas, afin de dégager la porte.
+      TGT: “I am entirely at your service,” she said, stepping back a few paces to clear the doorway.
+  [duplication/high] D0000-S000104: translation duplicates a different source segment: D0000-S000063
+      SRC: Mais Mr Seth Stanfort l’arrêta du geste.
+      TGT: But Mr. Seth Stanfort stopped him with a gesture.
+  [glossary/low] D0000-S000104: approved glossary term was not preserved: Mr.
+      SRC: Mais Mr Seth Stanfort l’arrêta du geste.
+      TGT: But Mr. Seth Stanfort stopped him with a gesture.
+  [glossary/medium] D0000-S000106: approved glossary term was not preserved: John Proth
+      SRC: Mr John Proth réfléchit un instant.
+      TGT: Mr. John Proth reflected for a moment.
+  [omission/medium] D0000-S000107: translation/source token ratio is unusually low: 0.14
+      SRC: —Aucunement, affirma-t-il. On peut se marier à cheval aussi bien qu’à pied.
+      TGT: “Not at all,” he affirmed. “One can marry on horseback as well as on foot.”
+  [glossary/medium] D0000-S000109: approved glossary term was not preserved: John Proth
+      SRC: —Une seule question, reprit Mr John Proth. Toutes les formalités imposées par la loi sont-elles remplies?
+      TGT: “One single question,” Mr. John Proth resumed. “Have all the formalities required by law been fulfilled?”
+  [omission/medium] D0000-S000109: translation/source token ratio is unusually low: 0.11
+      SRC: —Une seule question, reprit Mr John Proth. Toutes les formalités imposées par la loi sont-elles remplies?
+      TGT: “One single question,” Mr. John Proth resumed. “Have all the formalities required by law been fulfilled?”
+  [glossary/low] D0000-S000109: approved glossary term was not preserved: Mr.
+      SRC: —Une seule question, reprit Mr John Proth. Toutes les formalités imposées par la loi sont-elles remplies?
+      TGT: “One single question,” Mr. John Proth resumed. “Have all the formalities required by law been fulfilled?”
+  [glossary/medium] D0000-S000110: approved glossary term was not preserved: Seth Stanfort
+      SRC: —Elles le sont, répondit Seth Stanfort.
+      TGT: “They have,” replied Seth Stanfort.
+  [glossary/medium] D0000-S000112: approved glossary term was not preserved: John Proth
+      SRC: Mr John Proth prit les papiers, mit sur son nez des lunettes à monture d’or, et lut attentivement ces pièces régulièrement légalisées et revêtues du t
+      TGT: Mr. John Proth took the papers, placed gold-rimmed glasses on his nose, and attentively read these documents, which were duly legalized and bore the o
+  [glossary/low] D0000-S000112: approved glossary term was not preserved: Mr.
+      SRC: Mr John Proth prit les papiers, mit sur son nez des lunettes à monture d’or, et lut attentivement ces pièces régulièrement légalisées et revêtues du t
+      TGT: Mr. John Proth took the papers, placed gold-rimmed glasses on his nose, and attentively read these documents, which were duly legalized and bore the o
+  [glossary/low] D0000-S000113: approved glossary term was not preserved: marriage certificate
+      SRC: —Ces papiers sont en règle, dit-il, et je suis prêt à vous délivrer le certificat de mariage.
+      TGT: Then each of them presented the judge with a five-dollar bill.
+  [omission/medium] D0000-S000114: translation/source token ratio is unusually low: 0.12
+      SRC: Qu’on ne soit pas étonné si les curieux, dont le nombre s’était accru, se pressaient autour du couple, comme autant de témoins d’une union célébrée da
+      TGT: One should not be surprised if the curious, whose numbers had grown, pressed around the couple, like so many witnesses to a union celebrated under con
+  [glossary/medium] D0000-S000115: approved glossary term was not preserved: John Proth
+      SRC: Mr John Proth remonta alors les premières marches de son perron, et, d’une voix qui fut entendue de tous, il dit:
+      TGT: Mr. John Proth then ascended the first steps of his porch, and, in a voice heard by all, he said:
+  [glossary/low] D0000-S000115: approved glossary term was not preserved: Mr.
+      SRC: Mr John Proth remonta alors les premières marches de son perron, et, d’une voix qui fut entendue de tous, il dit:
+      TGT: Mr. John Proth then ascended the first steps of his porch, and, in a voice heard by all, he said:
+  [glossary/medium] D0000-S000116: approved glossary term was not preserved: Arcadia Walker
+      SRC: —Mr Seth Stanfort, vous consentez à prendre pour femme miss Arcadia Walker?
+      TGT: “Mr. Seth Stanfort, do you consent to take Miss Arcadia Walker as your wife?”
+  [glossary/medium] D0000-S000116: approved glossary term was not preserved: Seth Stanfort
+      SRC: —Mr Seth Stanfort, vous consentez à prendre pour femme miss Arcadia Walker?
+      TGT: “Mr. Seth Stanfort, do you consent to take Miss Arcadia Walker as your wife?”
+  [glossary/low] D0000-S000116: approved glossary term was not preserved: Mr.
+      SRC: —Mr Seth Stanfort, vous consentez à prendre pour femme miss Arcadia Walker?
+      TGT: “Mr. Seth Stanfort, do you consent to take Miss Arcadia Walker as your wife?”
+  [addition/medium] D0000-S000117: translation/source token ratio is unusually high: 14.00
+      SRC: —Oui.
+      TGT: “Yes.”
+  [glossary/medium] D0000-S000118: approved glossary term was not preserved: Arcadia Walker
+      SRC: —Miss Arcadia Walker, vous consentez à prendre pour mari Mr Seth Stanfort?
+      TGT: “Miss Arcadia Walker, do you consent to take Mr. Seth Stanfort as your husband?”
+  [glossary/medium] D0000-S000118: approved glossary term was not preserved: Seth Stanfort
+      SRC: —Miss Arcadia Walker, vous consentez à prendre pour mari Mr Seth Stanfort?
+      TGT: “Miss Arcadia Walker, do you consent to take Mr. Seth Stanfort as your husband?”
+  [addition/medium] D0000-S000119: translation/source token ratio is unusually high: 13.50
+      SRC: —Oui.
+      TGT: —Yes.
+  [glossary/medium] D0000-S000121: approved glossary term was not preserved: Arcadia Walker
+      SRC: —Au nom de la loi, Mr Seth Stanfort, de Boston, et miss Arcadia Walker, de Trenton, je vous déclare unis par le mariage.
+      TGT: —In the name of the law, Mr. Seth Stanfort, of Boston, and Miss Arcadia Walker, of Trenton, I pronounce you married.
+  [glossary/medium] D0000-S000121: approved glossary term was not preserved: Boston
+      SRC: —Au nom de la loi, Mr Seth Stanfort, de Boston, et miss Arcadia Walker, de Trenton, je vous déclare unis par le mariage.
+      TGT: —In the name of the law, Mr. Seth Stanfort, of Boston, and Miss Arcadia Walker, of Trenton, I pronounce you married.
+  [glossary/medium] D0000-S000121: approved glossary term was not preserved: Seth Stanfort
+      SRC: —Au nom de la loi, Mr Seth Stanfort, de Boston, et miss Arcadia Walker, de Trenton, je vous déclare unis par le mariage.
+      TGT: —In the name of the law, Mr. Seth Stanfort, of Boston, and Miss Arcadia Walker, of Trenton, I pronounce you married.
+  [glossary/medium] D0000-S000121: approved glossary term was not preserved: Trenton
+      SRC: —Au nom de la loi, Mr Seth Stanfort, de Boston, et miss Arcadia Walker, de Trenton, je vous déclare unis par le mariage.
+      TGT: —In the name of the law, Mr. Seth Stanfort, of Boston, and Miss Arcadia Walker, of Trenton, I pronounce you married.
+  [duplication/high] D0000-S000122: translation duplicates a different source segment: D0000-S000058
+      SRC: Les deux époux se rapprochèrent et se prirent la main, comme pour sceller l’acte qu’ils venaient d’accomplir.
+      TGT: The two spouses drew closer and took each other's hand, as if to seal the act they had just performed.
+  [duplication/high] D0000-S000123: translation duplicates a different source segment: D0000-S000100
+      SRC: Puis chacun d’eux présenta au juge un billet de cinq cents dollars.
+      TGT: Then each of them presented a five-hundred-dollar bill to the judge.
+  [mistranslation/high] D0000-S000123: numeric content differs from source: The source contains a specific quantity ('un billet de cinq cents dollars') measuring a monetary value,
+      SRC: Puis chacun d’eux présenta au juge un billet de cinq cents dollars.
+      TGT: Then each of them presented a five-hundred-dollar bill to the judge.
+  [duplication/high] D0000-S000124: translation duplicates a different source segment: D0000-S000060
+      SRC: —Pour honoraires, dit Mr Seth Stanfort.
+      TGT: “As fees,” said Mr. Seth Stanfort.
+  [glossary/medium] D0000-S000124: approved glossary term was not preserved: Seth Stanfort
+      SRC: —Pour honoraires, dit Mr Seth Stanfort.
+      TGT: “As fees,” said Mr. Seth Stanfort.
+  [duplication/high] D0000-S000125: translation duplicates a different source segment: D0000-S000061
+      SRC: —Pour les pauvres,» dit Mrs Arcadia Stanfort.
+      TGT: “For the poor,” said Mrs. Arcadia Stanfort.
+  [glossary/low] D0000-S000125: approved glossary term was not preserved: Mrs.
+      SRC: —Pour les pauvres,» dit Mrs Arcadia Stanfort.
+      TGT: “For the poor,” said Mrs. Arcadia Stanfort.
+  [duplication/high] D0000-S000127: translation duplicates a different source segment: D0000-S000105
+      SRC: «Ah bien!... Ah bien!... fit Kate, paralysée à ce point par la surprise, qu’elle en était exceptionnellement restée dix minutes sans parler.
+      TGT: “Well now!... Well now!...” said Kate, so paralyzed by surprise that she had exceptionally remained ten minutes without speaking.
+  [mistranslation/high] D0000-S000127: numeric content differs from source: The translation completely omits the quantity-bearing fact from the source: 'dix minutes sans parler' (
+      SRC: «Ah bien!... Ah bien!... fit Kate, paralysée à ce point par la surprise, qu’elle en était exceptionnellement restée dix minutes sans parler.
+      TGT: “Well now!... Well now!...” said Kate, so paralyzed by surprise that she had exceptionally remained ten minutes without speaking.
+  [glossary/medium] D0000-S000127: approved glossary term was not preserved: Kate
+      SRC: «Ah bien!... Ah bien!... fit Kate, paralysée à ce point par la surprise, qu’elle en était exceptionnellement restée dix minutes sans parler.
+      TGT: “Well now!... Well now!...” said Kate, so paralyzed by surprise that she had exceptionally remained ten minutes without speaking.
+  [duplication/high] D0000-S000128: translation duplicates a different source segment: D0000-S000106
+      SRC: —Qu’est-ce à dire, Kate? interrogea Mr John Proth.
+      TGT: “What is the meaning of this, Kate?” asked Mr. John Proth.
+  [glossary/medium] D0000-S000128: approved glossary term was not preserved: John Proth
+      SRC: —Qu’est-ce à dire, Kate? interrogea Mr John Proth.
+      TGT: “What is the meaning of this, Kate?” asked Mr. John Proth.
+  [glossary/medium] D0000-S000128: approved glossary term was not preserved: Kate
+      SRC: —Qu’est-ce à dire, Kate? interrogea Mr John Proth.
+      TGT: “What is the meaning of this, Kate?” asked Mr. John Proth.
+  [glossary/medium] D0000-S000129: approved glossary term was not preserved: Kate
+      SRC: La vieille Kate lâcha le coin de son tablier qu’elle tordait depuis un instant comme un cordier de profession.
+      TGT: Old Kate let go of the corner of her apron, which she had been twisting for a moment like a professional rope-maker.
+  [omission/medium] D0000-S000129: translation/source token ratio is unusually low: 0.10
+      SRC: La vieille Kate lâcha le coin de son tablier qu’elle tordait depuis un instant comme un cordier de profession.
+      TGT: Old Kate let go of the corner of her apron, which she had been twisting for a moment like a professional rope-maker.
+  [duplication/high] D0000-S000130: translation duplicates a different source segment: D0000-S000108
+      SRC: —M’est avis, dit-elle, qu’ils sont fous, ces gens-là, monsieur le juge.
+      TGT: “I reckon,” she said, “that those people are mad, Mr. Judge.”
+  [glossary/medium] D0000-S000131: approved glossary term was not preserved: John Proth
+      SRC: —Sans doute, vénérable Kate, sans doute, approuva Mr John Proth en saisissant de nouveau son pacifique arrosoir. Mais quoi d’étonnant à cela?.. Ceux q
+      TGT: “No doubt, venerable Kate, no doubt,” Mr. John Proth agreed, grasping his peaceful watering can once more. “But what is so surprising in that? Are tho
+  [glossary/medium] D0000-S000131: approved glossary term was not preserved: Kate
+      SRC: —Sans doute, vénérable Kate, sans doute, approuva Mr John Proth en saisissant de nouveau son pacifique arrosoir. Mais quoi d’étonnant à cela?.. Ceux q
+      TGT: “No doubt, venerable Kate, no doubt,” Mr. John Proth agreed, grasping his peaceful watering can once more. “But what is so surprising in that? Are tho
+  [omission/medium] D0000-S000131: translation/source token ratio is unusually low: 0.06
+      SRC: —Sans doute, vénérable Kate, sans doute, approuva Mr John Proth en saisissant de nouveau son pacifique arrosoir. Mais quoi d’étonnant à cela?.. Ceux q
+      TGT: “No doubt, venerable Kate, no doubt,” Mr. John Proth agreed, grasping his peaceful watering can once more. “But what is so surprising in that? Are tho
+  [glossary/low] D0000-S000131: approved glossary term was not preserved: Mr.
+      SRC: —Sans doute, vénérable Kate, sans doute, approuva Mr John Proth en saisissant de nouveau son pacifique arrosoir. Mais quoi d’étonnant à cela?.. Ceux q
+      TGT: “No doubt, venerable Kate, no doubt,” Mr. John Proth agreed, grasping his peaceful watering can once more. “But what is so surprising in that? Are tho
+  [glossary/low] D0002-S000008: approved glossary term was not preserved: New World
+      SRC: Sans doute, il y avait bien une Mrs Flora Hudelson. Mais Mrs Flora Hudelson était une excellente femme, excellente mère, excellente ménagère, de natur
+      TGT: Undoubtedly, there was a Mrs. Flora Hudelson. But Mrs. Flora Hudelson was an excellent woman, an excellent mother, an excellent housekeeper, of a very
+  [glossary/low] D0002-S000013: approved glossary term was not preserved: papa's planets
+      SRC: Vous pouvez être sûrs qu’il y aura grande affluence à cette cérémonie nuptiale, car les deux familles jouissent d’une estime qui n’a d’égale que leur 
+      TGT: You can be sure that there will be a large crowd at this nuptial ceremony, because the two families enjoy an esteem that is equaled only by their hono
+  [glossary/medium] D0002-S000026: approved glossary term was not preserved: Loo
+      SRC: «Tiens! s’écria Loo, dès que le jeune homme eut franchi la porte du salon, voilà Mr Francis, l’éternel Mr Francis!.. Ma parole, on ne voit que lui ici
+      TGT: “Well! Loo exclaimed as soon as the young man crossed the threshold of the living room, here is Mr. Francis, the eternal Mr. Francis! My word, all we 
+  [mistranslation/high] D0002-S000047: numeric content differs from source: The quantity of words is changed. SOURCE: "dix paroles" (ten words); TRANSLATION: "two words".
+      SRC: —Non, soucieux... préoccupé... On ne peut pas en tirer dix paroles. Je ne sais ce qu’il peut avoir dans la tête.
+      TGT: “No, he is worried… preoccupied… One cannot get ten words out of him. I don’t know what he has on his mind.”
+-- semantic findings (first 8)
+  [mistranslation/high] D0000-S000045: The translation is a complete hallucination. The source is a short title/heading, whereas the translation provides a lengthy narrative paragraph about a crowd, Seth Stanfort, and Exeter Street that do
+  [untranslated/high] D0000-S000054: The translation fails to render the source text, replacing it with unrelated dialogue/action.
+  [mistranslation/high] D0000-S000060: The translation is a complete hallucination. The target text bears no relation to the source text, which describes the protagonist's focus on vehicles rather than pedestrians.
+  [mistranslation/high] D0000-S000061: The translation is a total failure of meaning.
+  [omission/high] D0000-S000073: The entire source sentence is omitted. There is no mention of the trial, the desire for a favorable outcome, or the two parties involved.
+  [untranslated/high] D0000-S000073: The translation introduces an entirely new narrative block (biography of Arcadia Walker) that is unsupported by the source text of this segment.
+  [untranslated/high] D0000-S000074: The translation provides an entirely different text (hallucinated or shifted from another part of the document) rather than translating the source quote.
+  [mistranslation/high] D0000-S000076: The translation fails to render the source's focus on social chatter/gossip.
+  [untranslated/high] D0000-S000076: The translation introduces a vast amount of unsupported information (dates, times, locations, and legal contexts) not present in the source segment.
+  [untranslated/high] D0000-S000089: The translation fails to render the source text, providing instead a sentence that does not correspond to the source.
+  [mistranslation/medium] D0001-S000011: The translation 'the party wall' for 'les murs mitoyens' is a literal translation of a legal/architectural term that creates a factual error in the context of legal representation. In this context, 'm
+  [omission/medium] D0001-S000031: The translation omits the descriptive adjective 'désolante' (desolate/dreary), which characterizes the opacity of the clouds.
+  [mistranslation/high] D0001-S000038: The translation 'What about those threats' introduces a question where none exists in the source.
+  [mistranslation/medium] D0002-S000015: The translation 'highly sensitive' for 'fort susceptible' is a mistranslation of the subject's state. In this context, 'susceptible' refers to being touchy, irritable, or easily offended, rather than 
+-- consistency report
+  {"enabled": true, "document_count": 3, "segment_count": 340, "issue_count": 65, "repair_count": 0, "by_severity": {"low": 65}, "documents_with_issues": {"item7": 58, "item9": 7}}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000042", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Mr John Proth\" as \"Mr. John Proth\", but this translation does not use it.", "suggested_fix": "Render \"Mr John Proth\" as \"Mr. John Proth\".", "source": "consistency", "source_quote": "Mr John Proth", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000048", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Mr John Proth\" as \"Mr. John Proth\", but this translation does not use it.", "suggested_fix": "Render \"Mr John Proth\" as \"Mr. John Proth\".", "source": "consistency", "source_quote": "Mr John Proth", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000049", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Mr John Proth\" as \"Mr. John Proth\", but this translation does not use it.", "suggested_fix": "Render \"Mr John Proth\" as \"Mr. John Proth\".", "source": "consistency", "source_quote": "Mr John Proth", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000051", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Exeter street\" as \"Exeter Street\", but this translation does not use it.", "suggested_fix": "Render \"Exeter street\" as \"Exeter Street\".", "source": "consistency", "source_quote": "Exeter street", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000051", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Whaston\" as \"Whaston\", but this translation does not use it.", "suggested_fix": "Render \"Whaston\" as \"Whaston\".", "source": "consistency", "source_quote": "Whaston", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000051", "category": "consistency", "severity": "low", "message": "The style sheet renders \"faubourg de Wilcox\" as \"Wilcox Suburb\", but this translation does not use it.", "suggested_fix": "Render \"faubourg de Wilcox\" as \"Wilcox Suburb\".", "source": "consistency", "source_quote": "faubourg de Wilcox", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000052", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Exeter street\" as \"Exeter Street\", but this translation does not use it.", "suggested_fix": "Render \"Exeter street\" as \"Exeter Street\".", "source": "consistency", "source_quote": "Exeter street", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000053", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Whaston\" as \"Whaston\", but this translation does not use it.", "suggested_fix": "Render \"Whaston\" as \"Whaston\".", "source": "consistency", "source_quote": "Whaston", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000053", "category": "consistency", "severity": "low", "message": "The style sheet renders \"dix heures sept\" as \"seven minutes past ten\", but this translation does not use it.", "suggested_fix": "Render \"dix heures sept\" as \"seven minutes past ten\".", "source": "consistency", "source_quote": "dix heures sept", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000054", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Exeter street\" as \"Exeter Street\", but this translation does not use it.", "suggested_fix": "Render \"Exeter street\" as \"Exeter Street\".", "source": "consistency", "source_quote": "Exeter street", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000058", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Exeter street\" as \"Exeter Street\", but this translation does not use it.", "suggested_fix": "Render \"Exeter street\" as \"Exeter Street\".", "source": "consistency", "source_quote": "Exeter street", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000061", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Exeter street\" as \"Exeter Street\", but this translation does not use it.", "suggested_fix": "Render \"Exeter street\" as \"Exeter Street\".", "source": "consistency", "source_quote": "Exeter street", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000062", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Exeter street\" as \"Exeter Street\", but this translation does not use it.", "suggested_fix": "Render \"Exeter street\" as \"Exeter Street\".", "source": "consistency", "source_quote": "Exeter street", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000063", "category": "consistency", "severity": "low", "message": "The style sheet renders \"dix heures sept\" as \"seven minutes past ten\", but this translation does not use it.", "suggested_fix": "Render \"dix heures sept\" as \"seven minutes past ten\".", "source": "consistency", "source_quote": "dix heures sept", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000069", "category": "consistency", "severity": "low", "message": "The style sheet renders \"miss Arcadia Walker\" as \"Miss Arcadia Walker\", but this translation does not use it.", "suggested_fix": "Render \"miss Arcadia Walker\" as \"Miss Arcadia Walker\".", "source": "consistency", "source_quote": "miss Arcadia Walker", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000070", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Mr Seth Stanfort\" as \"Mr. Seth Stanfort\", but this translation does not use it.", "suggested_fix": "Render \"Mr Seth Stanfort\" as \"Mr. Seth Stanfort\".", "source": "consistency", "source_quote": "Mr Seth Stanfort", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000071", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Au nom de la loi\" as \"In the name of the law\", but this translation does not use it.", "suggested_fix": "Render \"Au nom de la loi\" as \"In the name of the law\".", "source": "consistency", "source_quote": "Au nom de la loi", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000071", "category": "consistency", "severity": "low", "message": "The style sheet renders \"je vous déclare unis\" as \"I pronounce you married\", but this translation does not use it.", "suggested_fix": "Render \"je vous déclare unis\" as \"I pronounce you married\".", "source": "consistency", "source_quote": "je vous déclare unis", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000078", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Mr John Proth\" as \"Mr. John Proth\", but this translation does not use it.", "suggested_fix": "Render \"Mr John Proth\" as \"Mr. John Proth\".", "source": "consistency", "source_quote": "Mr John Proth", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000079", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Mr John Proth\" as \"Mr. John Proth\", but this translation does not use it.", "suggested_fix": "Render \"Mr John Proth\" as \"Mr. John Proth\".", "source": "consistency", "source_quote": "Mr John Proth", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000082", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Mr Seth Stanfort\" as \"Mr. Seth Stanfort\", but this translation does not use it.", "suggested_fix": "Render \"Mr Seth Stanfort\" as \"Mr. Seth Stanfort\".", "source": "consistency", "source_quote": "Mr Seth Stanfort", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000083", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Mr Seth Stanfort\" as \"Mr. Seth Stanfort\", but this translation does not use it.", "suggested_fix": "Render \"Mr Seth Stanfort\" as \"Mr. Seth Stanfort\".", "source": "consistency", "source_quote": "Mr Seth Stanfort", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000084", "category": "consistency", "severity": "low", "message": "The style sheet renders \"miss Arcadia Walker\" as \"Miss Arcadia Walker\", but this translation does not use it.", "suggested_fix": "Render \"miss Arcadia Walker\" as \"Miss Arcadia Walker\".", "source": "consistency", "source_quote": "miss Arcadia Walker", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000088", "category": "consistency", "severity": "low", "message": "The style sheet renders \"miss Arcadia Walker\" as \"Miss Arcadia Walker\", but this translation does not use it.", "suggested_fix": "Render \"miss Arcadia Walker\" as \"Miss Arcadia Walker\".", "source": "consistency", "source_quote": "miss Arcadia Walker", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000089", "category": "consistency", "severity": "low", "message": "The style sheet renders \"miss Arcadia Walker\" as \"Miss Arcadia Walker\", but this translation does not use it.", "suggested_fix": "Render \"miss Arcadia Walker\" as \"Miss Arcadia Walker\".", "source": "consistency", "source_quote": "miss Arcadia Walker", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000090", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Mr Seth Stanfort\" as \"Mr. Seth Stanfort\", but this translation does not use it.", "suggested_fix": "Render \"Mr Seth Stanfort\" as \"Mr. Seth Stanfort\".", "source": "consistency", "source_quote": "Mr Seth Stanfort", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000090", "category": "consistency", "severity": "low", "message": "The style sheet renders \"miss Arcadia Walker\" as \"Miss Arcadia Walker\", but this translation does not use it.", "suggested_fix": "Render \"miss Arcadia Walker\" as \"Miss Arcadia Walker\".", "source": "consistency", "source_quote": "miss Arcadia Walker", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000091", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Whaston\" as \"Whaston\", but this translation does not use it.", "suggested_fix": "Render \"Whaston\" as \"Whaston\".", "source": "consistency", "source_quote": "Whaston", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000091", "category": "consistency", "severity": "low", "message": "The style sheet renders \"dix heures sept\" as \"seven minutes past ten\", but this translation does not use it.", "suggested_fix": "Render \"dix heures sept\" as \"seven minutes past ten\".", "source": "consistency", "source_quote": "dix heures sept", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000091", "category": "consistency", "severity": "low", "message": "The style sheet renders \"miss Arcadia Walker\" as \"Miss Arcadia Walker\", but this translation does not use it.", "suggested_fix": "Render \"miss Arcadia Walker\" as \"Miss Arcadia Walker\".", "source": "consistency", "source_quote": "miss Arcadia Walker", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000092", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Mr John Proth\" as \"Mr. John Proth\", but this translation does not use it.", "suggested_fix": "Render \"Mr John Proth\" as \"Mr. John Proth\".", "source": "consistency", "source_quote": "Mr John Proth", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000092", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Mr Seth Stanfort\" as \"Mr. Seth Stanfort\", but this translation does not use it.", "suggested_fix": "Render \"Mr Seth Stanfort\" as \"Mr. Seth Stanfort\".", "source": "consistency", "source_quote": "Mr Seth Stanfort", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000092", "category": "consistency", "severity": "low", "message": "The style sheet renders \"miss Arcadia Walker\" as \"Miss Arcadia Walker\", but this translation does not use it.", "suggested_fix": "Render \"miss Arcadia Walker\" as \"Miss Arcadia Walker\".", "source": "consistency", "source_quote": "miss Arcadia Walker", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000093", "category": "consistency", "severity": "low", "message": "The style sheet renders \"miss Arcadia Walker\" as \"Miss Arcadia Walker\", but this translation does not use it.", "suggested_fix": "Render \"miss Arcadia Walker\" as \"Miss Arcadia Walker\".", "source": "consistency", "source_quote": "miss Arcadia Walker", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000094", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Mr Seth Stanfort\" as \"Mr. Seth Stanfort\", but this translation does not use it.", "suggested_fix": "Render \"Mr Seth Stanfort\" as \"Mr. Seth Stanfort\".", "source": "consistency", "source_quote": "Mr Seth Stanfort", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000094", "category": "consistency", "severity": "low", "message": "The style sheet renders \"miss Arcadia Walker\" as \"Miss Arcadia Walker\", but this translation does not use it.", "suggested_fix": "Render \"miss Arcadia Walker\" as \"Miss Arcadia Walker\".", "source": "consistency", "source_quote": "miss Arcadia Walker", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000096", "category": "consistency", "severity": "low", "message": "The style sheet renders \"miss Arcadia Walker\" as \"Miss Arcadia Walker\", but this translation does not use it.", "suggested_fix": "Render \"miss Arcadia Walker\" as \"Miss Arcadia Walker\".", "source": "consistency", "source_quote": "miss Arcadia Walker", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000098", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Mr John Proth\" as \"Mr. John Proth\", but this translation does not use it.", "suggested_fix": "Render \"Mr John Proth\" as \"Mr. John Proth\".", "source": "consistency", "source_quote": "Mr John Proth", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000100", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Whaston\" as \"Whaston\", but this translation does not use it.", "suggested_fix": "Render \"Whaston\" as \"Whaston\".", "source": "consistency", "source_quote": "Whaston", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000100", "category": "consistency", "severity": "low", "message": "The style sheet renders \"miss Arcadia Walker\" as \"Miss Arcadia Walker\", but this translation does not use it.", "suggested_fix": "Render \"miss Arcadia Walker\" as \"Miss Arcadia Walker\".", "source": "consistency", "source_quote": "miss Arcadia Walker", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000101", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Mr John Proth\" as \"Mr. John Proth\", but this translation does not use it.", "suggested_fix": "Render \"Mr John Proth\" as \"Mr. John Proth\".", "source": "consistency", "source_quote": "Mr John Proth", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000101", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Whaston\" as \"Whaston\", but this translation does not use it.", "suggested_fix": "Render \"Whaston\" as \"Whaston\".", "source": "consistency", "source_quote": "Whaston", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000104", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Mr Seth Stanfort\" as \"Mr. Seth Stanfort\", but this translation does not use it.", "suggested_fix": "Render \"Mr Seth Stanfort\" as \"Mr. Seth Stanfort\".", "source": "consistency", "source_quote": "Mr Seth Stanfort", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000106", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Mr John Proth\" as \"Mr. John Proth\", but this translation does not use it.", "suggested_fix": "Render \"Mr John Proth\" as \"Mr. John Proth\".", "source": "consistency", "source_quote": "Mr John Proth", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000109", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Mr John Proth\" as \"Mr. John Proth\", but this translation does not use it.", "suggested_fix": "Render \"Mr John Proth\" as \"Mr. John Proth\".", "source": "consistency", "source_quote": "Mr John Proth", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000112", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Mr John Proth\" as \"Mr. John Proth\", but this translation does not use it.", "suggested_fix": "Render \"Mr John Proth\" as \"Mr. John Proth\".", "source": "consistency", "source_quote": "Mr John Proth", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000115", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Mr John Proth\" as \"Mr. John Proth\", but this translation does not use it.", "suggested_fix": "Render \"Mr John Proth\" as \"Mr. John Proth\".", "source": "consistency", "source_quote": "Mr John Proth", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000116", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Mr Seth Stanfort\" as \"Mr. Seth Stanfort\", but this translation does not use it.", "suggested_fix": "Render \"Mr Seth Stanfort\" as \"Mr. Seth Stanfort\".", "source": "consistency", "source_quote": "Mr Seth Stanfort", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000116", "category": "consistency", "severity": "low", "message": "The style sheet renders \"miss Arcadia Walker\" as \"Miss Arcadia Walker\", but this translation does not use it.", "suggested_fix": "Render \"miss Arcadia Walker\" as \"Miss Arcadia Walker\".", "source": "consistency", "source_quote": "miss Arcadia Walker", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000118", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Mr Seth Stanfort\" as \"Mr. Seth Stanfort\", but this translation does not use it.", "suggested_fix": "Render \"Mr Seth Stanfort\" as \"Mr. Seth Stanfort\".", "source": "consistency", "source_quote": "Mr Seth Stanfort", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000118", "category": "consistency", "severity": "low", "message": "The style sheet renders \"miss Arcadia Walker\" as \"Miss Arcadia Walker\", but this translation does not use it.", "suggested_fix": "Render \"miss Arcadia Walker\" as \"Miss Arcadia Walker\".", "source": "consistency", "source_quote": "miss Arcadia Walker", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000121", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Au nom de la loi\" as \"In the name of the law\", but this translation does not use it.", "suggested_fix": "Render \"Au nom de la loi\" as \"In the name of the law\".", "source": "consistency", "source_quote": "Au nom de la loi", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000121", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Mr Seth Stanfort\" as \"Mr. Seth Stanfort\", but this translation does not use it.", "suggested_fix": "Render \"Mr Seth Stanfort\" as \"Mr. Seth Stanfort\".", "source": "consistency", "source_quote": "Mr Seth Stanfort", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000121", "category": "consistency", "severity": "low", "message": "The style sheet renders \"je vous déclare unis\" as \"I pronounce you married\", but this translation does not use it.", "suggested_fix": "Render \"je vous déclare unis\" as \"I pronounce you married\".", "source": "consistency", "source_quote": "je vous déclare unis", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000121", "category": "consistency", "severity": "low", "message": "The style sheet renders \"miss Arcadia Walker\" as \"Miss Arcadia Walker\", but this translation does not use it.", "suggested_fix": "Render \"miss Arcadia Walker\" as \"Miss Arcadia Walker\".", "source": "consistency", "source_quote": "miss Arcadia Walker", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000124", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Mr Seth Stanfort\" as \"Mr. Seth Stanfort\", but this translation does not use it.", "suggested_fix": "Render \"Mr Seth Stanfort\" as \"Mr. Seth Stanfort\".", "source": "consistency", "source_quote": "Mr Seth Stanfort", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000128", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Mr John Proth\" as \"Mr. John Proth\", but this translation does not use it.", "suggested_fix": "Render \"Mr John Proth\" as \"Mr. John Proth\".", "source": "consistency", "source_quote": "Mr John Proth", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-item7.consistency.json {"segment_id": "D0000-S000131", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Mr John Proth\" as \"Mr. John Proth\", but this translation does not use it.", "suggested_fix": "Render \"Mr John Proth\" as \"Mr. John Proth\".", "source": "consistency", "source_quote": "Mr John Proth", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0002-item9.consistency.json {"segment_id": "D0002-S000032", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Mon oncle\" as \"Uncle\", but this translation does not use it.", "suggested_fix": "Render \"Mon oncle\" as \"Uncle\".", "source": "consistency", "source_quote": "Mon oncle", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0002-item9.consistency.json {"segment_id": "D0002-S000036", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Mon oncle\" as \"Uncle\", but this translation does not use it.", "suggested_fix": "Render \"Mon oncle\" as \"Uncle\".", "source": "consistency", "source_quote": "Mon oncle", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0002-item9.consistency.json {"segment_id": "D0002-S000045", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Mon oncle\" as \"Uncle\", but this translation does not use it.", "suggested_fix": "Render \"Mon oncle\" as \"Uncle\".", "source": "consistency", "source_quote": "Mon oncle", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0002-item9.consistency.json {"segment_id": "D0002-S000050", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Mon oncle\" as \"Uncle\", but this translation does not use it.", "suggested_fix": "Render \"Mon oncle\" as \"Uncle\".", "source": "consistency", "source_quote": "Mon oncle", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0002-item9.consistency.json {"segment_id": "D0002-S000052", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Mon oncle\" as \"Uncle\", but this translation does not use it.", "suggested_fix": "Render \"Mon oncle\" as \"Uncle\".", "source": "consistency", "source_quote": "Mon oncle", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0002-item9.consistency.json {"segment_id": "D0002-S000060", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Mon oncle\" as \"Uncle\", but this translation does not use it.", "suggested_fix": "Render \"Mon oncle\" as \"Uncle\".", "source": "consistency", "source_quote": "Mon oncle", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0002-item9.consistency.json {"segment_id": "D0002-S000068", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Mon oncle\" as \"Uncle\", but this translation does not use it.", "suggested_fix": "Render \"Mon oncle\" as \"Uncle\".", "source": "consistency", "source_quote": "Mon oncle", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+-- review queue and validations
+  queue: ['D0000-S000118', 'D0000-S000121']
+  D0000-S000118 SRC: —Miss Arcadia Walker, vous consentez à prendre pour mari Mr Seth Stanfort?
+  D0000-S000118 TGT: “Miss Arcadia Walker, do you consent to take Mr. Seth Stanfort as your husband?”
+  D0000-S000121 SRC: —Au nom de la loi, Mr Seth Stanfort, de Boston, et miss Arcadia Walker, de Trenton, je vous déclare unis par le mariage.
+  D0000-S000121 TGT: —In the name of the law, Mr. Seth Stanfort, of Boston, and Miss Arcadia Walker, of Trenton, I pronounce you married.
+-- cost by stage (calls / min)
+  resolve_glossary: 1 calls, 48.2 min, prompt 5831, output 2018
+  translate: 18 calls, 36.7 min, prompt 126164, output 55261
+  approve_glossary: 2 calls, 13.3 min, prompt 4628, output 1478
+  audit_translation: 78 calls, 10.2 min, prompt 78508, output 15495
+  repair_translation: 75 calls, 7.9 min, prompt 97860, output 9934
+  extract_glossary: 3 calls, 1.8 min, prompt 27977, output 9198
+  repair_review: 6 calls, 0.6 min, prompt 8683, output 298
+  review_repaired: 4 calls, 0.5 min, prompt 11295, output 853
+  validate_repaired: 0 calls, 0.1 min, prompt 0, output 0

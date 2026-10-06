@@ -1,0 +1,66 @@
+tg misplaced in final: []
+
+-- D0000-S000003
+  SRC : 第一章 序
+  QWEN: Chapitre I Préface
+  TG  : Chapitre I Préface
+
+-- D0000-S000005 [qwen queue] [tg queue]
+  SRC : 然而要做这一篇速朽的文章，才下笔，便感到万分的困难了。第一是文章的名目。孔子曰：『名不正则言不顺。』这原是应该极注意的。传的名目很繁多：列传、自传、内传、外传、别传、家传、小传，……而可惜都不合。『列传』么，这一篇并非和许多阔人排在『正史』里；『自传』么，我又并非就是阿Q。说是『外传』，『内传』在那里呢？倘用『内传』，阿Q又决不是神仙。『别传』呢，阿Q实在未曾有大总统上谕宣付国史馆立『本传』——虽说英国正史上并无『博徒列传』，而文豪迭更司也做过博徒别传这一部书，但文豪则可，在我辈却不可的。其次是『家传』，则我既不知与阿Q是否同宗，也未曾受他子孙的拜托；或『小传』，则阿Q又更无别的『大传』了。总而言之，这一篇也便是『本传』，但从我的文章着想，因为文体卑下，是『引车卖浆者流』所用的话，所以不敢僭称，便从不入三教九流的小说家所谓『闲话休题言归正传』这一句套话里，取出『正传』两个字来，作为名目，即使与古人所撰书法正传的『正传』字面上很相
+  QWEN: Pourtant, à peine ai-je posé la plume pour rédiger cet article destiné à périr vite, que je ressens une difficulté extrême. D'abord, le titre de l'article. Confucius dit : « Si le nom n'est pas juste, la parole ne peut pas être fluide. » C'est là un point qu'il faut examiner avec la plus grande attention. Les titres de biographies sont nombreux : biographies collectives, autobiographies, biographies intérieures, biographies extérieures, biographies distinctes, biographies familiales, petites biographies, … mais malheureusement, aucune ne convient. « Biographies collectives » ? Cet article n'est pas classé parmi les grands personnage
+  TG  : Pourtant, à peine ai-je posé le pinceau pour rédiger cet article destiné à périr vite, que je ressens une difficulté extrême. D'abord, le titre. Confucius dit : « Si le nom n'est pas juste, la parole ne peut pas être fluide. » C'est là un point qu'il faut examiner avec la plus grande attention. Les titres de biographies sont nombreux : biographies collectives, autobiographies, biographies intérieures, biographies extérieures, biographies distinctes, biographies familiales, petites biographies, … mais malheureusement, aucun ne convient. « Biographies collectives » ? Cet article ne figure pas parmi les grands personnages dans les « Hi
+
+-- D0000-S000007
+  SRC : 『阿Q，你这浑小子！你说我是你的本家么？』
+  QWEN: « Ah Q, toi, ce petit bonhomme ! Tu dis que je suis de ta famille ? »
+  TG  : « Ah Q, toi, ce petit bonhomme ! Tu oses dire que je suis de ta famille ? »
+
+-- D0000-S000010
+  SRC : 阿Q不开口，想往后退了；赵太爷跳过去，给了他一个嘴巴。
+  QWEN: Ah Q ne répondit pas, voulant reculer ; le vieux maître Zhao bondit et lui donna une gifle.
+  TG  : Ah Q ne répondit pas, cherchant à reculer ; le vieux maître Zhao bondit et lui assena une gifle.
+
+-- D0000-S000018
+  SRC : 阿Q不独是姓名籍贯有些渺茫，连他先前的『行状』也渺茫。因为未庄的人们之于阿Q，只要他帮忙，只拿他玩笑，从来没有留心他的『行状』的。而阿Q自己也不说，独有和别人口角的时候，间或瞪着眼睛道：
+  QWEN: Ah Q n'est pas seulement vague quant à son nom et sa région d'origine, mais aussi ses « actes et sa vie » antérieurs sont vagues. Car les gens de Weizhuang, quant à Ah Q, ne demandent que son aide, ne font que se moquer de lui, et n'ont jamais prêté attention à ses « actes et sa vie ». Et Ah Q lui-même ne le dit pas, sauf quand il a une dispute avec quelqu'un, parfois il ouvre les yeux et dit :
+  TG  : Ah Q, non seulement son nom et sa patrie sont vagues, mais aussi ses « actes et sa vie » antérieurs. Car les gens de Weizhuang, envers Ah Q, ne font appel à lui que pour ses services, ne le traitent que de blague, et n'ont jamais prêté attention à ses « actes et sa vie ». Et Ah Q lui-même ne le dit pas, sauf lors de disputes, où parfois il ouvre les yeux et dit :
+
+-- D0000-S000020
+  SRC : 阿Q没有家，住在未庄的土谷祠里；也没有固定的职业，只给人家做短工，割麦便割麦，舂米便舂米，撑船便撑船。工作略长久时，他也或住在临时主人的家里，但一完就走了。所以，人们忙碌的时候，也还记起阿Q来，然而记起的是做工，并不是『行状』；一闲空，连阿Q都早忘却，更不必说『行状』了。只是有一回，有一个老头子颂扬说：『阿Q真能做！』这时阿Q赤着膊，懒洋洋的瘦伶仃的正在他面前，别人也摸不着这话是真心还是讥笑，然而阿Q很喜欢。
+  QWEN: Ah Q n'a pas de maison, il vit dans le temple de la Terre et du Grain à Weizhuang ; il n'a pas non plus d'occupation fixe, il fait seulement des travaux temporaires pour les gens, couper le blé quand on coupe le blé, piler le riz quand on pile le riz, ramer quand on rame. Quand le travail est un peu long, il vit parfois chez le maître temporaire, mais dès que c'est fini, il part. Donc, quand les gens sont occupés, ils se souviennent encore d'Ah Q, mais ce dont ils se souviennent, c'est du travail, pas de ses « actes et sa vie » ; dès qu'ils sont libres, ils oublient même Ah Q, sans parler de ses « actes et sa vie ». Mais un jour, un
+  TG  : Ah Q n'a pas de maison, il vit dans le temple de la Terre et du Grain à Weizhuang ; il n'a pas de métier fixe, il fait des travaux temporaires pour les gens, moissonne le blé, pile le riz, pousse le bateau. Quand le travail dure un peu, il vit parfois chez le maître temporaire, mais dès que c'est fini, il part. Ainsi, quand les gens sont occupés, ils se souviennent d'Ah Q, mais c'est pour le travail, pas pour ses « actes et sa vie » ; dès qu'ils sont oisifs, ils oublient même Ah Q, sans parler de ses « actes et sa vie ». Mais un jour, un vieil homme le loua en disant : « Ah Q est vraiment capable ! » À ce moment, Ah Q, torse nu, mai
+
+-- D0000-S000031
+  SRC : 『阿Q，这不是儿子打老子，是人打畜生。自己说，人打畜生！』
+  QWEN: « Ah Q, ce n'est pas un fils qui frappe son père, c'est un homme qui frappe une bête. Dis-le toi-même, un homme frappe une bête ! »
+  TG  : « Ah Q, ce n'est pas un fils qui frappe son père, c'est un homme qui frappe une bête. Dis-le toi-même, un homme frappe une bête ! »
+
+-- D0000-S000049 [qwen queue] [tg queue]
+  SRC : 他付过地保二百文酒钱，忿忿的躺下了，后来想：『现在的世界太不成话，儿子打老子……』于是忽而想到赵太爷的威风，而现在是他的儿子了，便自己也渐渐的得意起来，爬起身，唱着小孤孀上坟到酒店去。这时候，他又觉得赵太爷高人一等了。
+  QWEN: Après avoir payé au gardien du village deux cents pièces pour le vin, il s'allongea, empli de colère, puis songea : « Le monde d'aujourd'hui est trop absurde, un fils frappe son père... » Soudain, il pensa à la majesté du vieux maître Zhao, et comme c'était désormais son fils, il se sentit peu à peu triomphant. Il se leva, chantant « La jeune veuve va au cimetière », et se rendit à la taverne. À ce moment, il sentit de nouveau que le vieux maître Zhao était d'un rang supérieur.
+  TG  : Après avoir payé au gardien du village deux cents pièces pour le vin, il s'allongea furieux, puis pensa : « Le monde d'aujourd'hui est trop absurde, un fils frappe son père... » Puis, se souvenant de la majesté du vieux maître Zhao, qui était maintenant son fils, il commença à se sentir fier. Il se leva, chantant la jeune veuve allant au cimetière, et alla à l'auberge. À ce moment, il sentit à nouveau que le vieux maître Zhao était d'un rang supérieur.
+
+-- D0000-S000061
+  SRC : 阿Q以为他要逃了，抢进去就是一拳。这拳头还未达到身上，已经被他抓住了，只一拉，阿Q跄跄踉踉的跌进去，立刻又被王胡扭住了辫子，要撞到墙上照例去碰头。
+  QWEN: Ah Q a pensé qu'il allait fuir, il a bondi et a donné un coup de poing. Ce coup de poing n'avait pas encore atteint le corps, qu'il a été attrapé, d'un seul tirage, Ah Q a trébuché et est tombé, puis Wang Hu a attrapé sa natte, voulant le faire frapper la tête contre le mur comme d'habitude.
+  TG  : Ah Q pensa qu'il allait s'enfuir, alors il se précipita pour le frapper. Avant que son poing ne l'atteigne, Wang Hu l'attrapa et le tira. Ah Q trébucha et tomba, et Wang Hu lui tordit la tête, le faisant cogner contre le mur, comme à l'accoutumée.
+
+-- D0000-S000093
+  SRC : 阿Q的耳朵里又听到这句话。他想：不错，应该有一个女人，断子绝孙便没有人供一碗饭，……应该有一个女人。夫『不孝有三无后为大』，而『若敖之鬼馁而』，也是一件人生的大哀，所以他那思想，其实是样样合于圣经贤传的，只可惜后来有些『不能收其放心』了。
+  QWEN: Les oreilles d'Ah Q ont entendu à nouveau cette phrase. Il a pensé : C'est vrai, il devrait y avoir une femme, sans descendance, personne ne lui offrirait un bol de riz, ... il devrait y avoir une femme. « Il y a trois formes de manque de piété, la plus grande est de n'avoir pas de postérité », et « Les fantômes de Ru'ao sont affamés », c'est aussi une grande tristesse de la vie, donc sa pensée était en fait conforme aux saintes écritures et aux sages, malheureusement, plus tard, il a eu un peu de « faiblesse ».
+  TG  : Ah Q se souvint de cette phrase. Il pensa : « Oui, il devrait y avoir une femme, sinon, qui lui fournirait à manger ? » Ses pensées étaient en accord avec les enseignements des sages et des saints. Malheureusement, il y avait un petit problème qui le préoccupait.
+
+-- D0000-S000113
+  SRC : 『阿呀！』吴妈楞了一息，突然发抖，大叫着往外跑，且跑且嚷，似乎后来带哭了。
+  QWEN: « Ah ! » La servante Wu a été stupéfaite un instant, soudain elle a tremblé, a crié et a couru dehors, en courant et en criant, semblant pleurer plus tard.
+  TG  : « Oh ! » la servante Wu resta stupéfaite un instant, puis se mit soudain à trembler et s'enfuit à l'extérieur en hurlant, et sembla finir par éclater en sanglots.
+
+-- D0000-S000138
+  SRC : 阿Q忍不下去了，他只好到老主顾的家里去探问，——但独不许踏进赵府的门槛，——然而情形也异样：一定走出一个男人来，现了十分烦厌的相貌，像回复乞丐一般的摇手道：——
+  QWEN: Ah Q ne pouvait plus supporter, il a dû aller demander aux maisons de ses clients réguliers, — mais il n'avait pas le droit de franchir le seuil de la maison Zhao, — mais la situation était étrange : un homme sortait toujours, avec un air très agacé, comme s'il répondait à un mendiant, il secouait la main et disait : —
+  TG  : Ah Q ne pouvait plus le supporter, alors il décida d’aller chez ses anciens employeurs pour se renseigner, mais il ne pouvait pas mettre les pieds dans la maison Zhao. Cependant, la situation était la même : dès qu’il voyait un homme, celui-ci affichait une expression de dégoût et lui disait, comme s’il s’agissait d’un mendiant :
+
+-- D0000-S000151
+  SRC : 这一场『龙虎斗』似乎并无胜败，也不知道看的人可满足，都没有发什么议论，而阿Q却仍然没有人来叫他做短工。
+  QWEN: Ce « combat du dragon et du tigre » n'a pas connu de vainqueur ni de vaincu, on ne sait pas si les spectateurs étaient satisfaits, ils n'ont pas fait de commentaires, et Ah Q n'a toujours pas été appelé pour faire des travaux temporaires.
+  TG  : Cette « bataille du dragon et du tigre » ne sembla avoir aucun vainqueur, et on ne savait pas si les spectateurs étaient satisfaits, mais personne ne vint plus demander à Ah Q de faire des petits boulots.

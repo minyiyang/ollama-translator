@@ -1,0 +1,360 @@
+
+======== bench-r1-tg-zh-ja
+segments 163; longest D0000-S000013: source 489 chars, translation 709 chars
+  longest translation head: 第三に、私は阿Qの名前がどのように書かれているのかも知らない。彼が生きていた頃、人々は彼を阿Queiと呼んでいたが、彼が死んでからは、誰も彼を阿Queiと呼ばなくなった。そのため、『著之竹帛』に書くことはないだろう。もし『著之竹帛』に書くとしたら、これは最初のことになる。だから、最初にこの難関に直面する。私は注意深く考えた。阿Quei、阿桂、それとも阿貴だろうか。もし彼が月亭と名乗っていたり、8月
+  longest translation tail: 。記録には、阿Queiという名前の人物はいないという。それが本当にないのか、それとも調べなかったのかはわからない。しかし、他に方法はない。注音記号が普及していないので、私はやむを得ず、西洋で一般的なスペルに従って、彼の名前を阿Queiと書き、略して阿Qとすることにした。これは『新青年』に従うことになり、私も少し申し訳なく思っている。しかし、茂才先生も知らないのだから、他にどうすればいいのだろうか。
+-- rule findings (all)
+  [glossary/low] D0000-S000004: approved glossary term was not preserved: 正伝
+      SRC: 我要给阿Q做正传，已经不止一两年了。但一面要做，一面又往回想，这足见我不是一个『立言』的人，因为从来不朽之笔，须传不朽之人，于是人以文传，文以人传——究竟谁靠谁传，渐渐的不甚了然起来，而终于归结到传阿Q，仿佛思想里有鬼似的。
+      TGT: 私は阿Qの伝記を書こうと、もう一年以上も前から考えてきた。しかし、書き始めようとすると、また考え直してしまう。これは、私が「立言」をする人間ではないことを示している。なぜなら、不朽の筆は、不朽の人を伝えるべきであり、人は文章によって伝えられ、文章は人によって伝えられるからだ。結局、誰が誰を伝えるのか
+  [glossary/low] D0000-S000005: approved glossary term was not preserved: 名不正則言不顺
+      SRC: 然而要做这一篇速朽的文章，才下笔，便感到万分的困难了。第一是文章的名目。孔子曰：『名不正则言不顺。』这原是应该极注意的。传的名目很繁多：列传、自传、内传、外传、别传、家传、小传，……而可惜都不合。『列传』么，这一篇并非和许多阔人排在『正史』里；『自传』么，我又并非就是阿Q。说是『外传』，『内传』在那
+      TGT: しかし、この速朽するような文章を書こうとすると、すぐに多くの困難に直面する。まず、文章の題名だ。孔子は「名不正則言不順」と言った。これは、非常に注意すべきことだ。伝記には、列伝、自伝、内伝、外伝、別伝、家伝、小伝など、さまざまな種類がある。しかし、残念ながら、どれも阿Qには当てはまらない。『列伝』は
+  [glossary/low] D0000-S000005: approved glossary term was not preserved: 閑話休題言帰正伝
+      SRC: 然而要做这一篇速朽的文章，才下笔，便感到万分的困难了。第一是文章的名目。孔子曰：『名不正则言不顺。』这原是应该极注意的。传的名目很繁多：列传、自传、内传、外传、别传、家传、小传，……而可惜都不合。『列传』么，这一篇并非和许多阔人排在『正史』里；『自传』么，我又并非就是阿Q。说是『外传』，『内传』在那
+      TGT: しかし、この速朽するような文章を書こうとすると、すぐに多くの困難に直面する。まず、文章の題名だ。孔子は「名不正則言不順」と言った。これは、非常に注意すべきことだ。伝記には、列伝、自伝、内伝、外伝、別伝、家伝、小伝など、さまざまな種類がある。しかし、残念ながら、どれも阿Qには当てはまらない。『列伝』は
+  [glossary/low] D0000-S000006: approved glossary term was not preserved: 黄酒
+      SRC: 第二，立传的通例，开首大抵该是『某，字某，某地人也』，而我并不知道阿Q姓什么。有一回，他似乎是姓赵，但第二日便模糊了。那是赵太爷的儿子进了秀才的时候，锣声铛铛的报到村里来，阿Q正喝了两碗黄酒，便手舞足蹈的说，这于他也很光采，因为他和赵太爷原来是本家，细细的排起来他还比秀才长三辈呢。其时几个旁听人倒也
+      TGT: 第二に、伝記を書く際の一般的な形式は、冒頭に「〇〇、字〇〇、〇〇の出身」と書くことだ。しかし、私は阿Qの姓が何であるかわからない。ある時、彼は趙姓のようだったが、次の日には曖昧になってしまった。それは、趙太爺の息子が秀才になった時、村に太鼓の音が響き渡り、阿Qは酒を二杯飲んで、手足を振り回しながら言
+  [glossary/low] D0000-S000012: approved glossary term was not preserved: 酒銭
+      SRC: 阿Q并没有抗辩他确凿姓赵，只用手摸着左颊，和地保退出去了；外面又被地保训斥了一番，谢了地保二百文酒钱。知道的人都说阿Q太荒唐，自己去招打；他大约未必姓赵，即使真姓赵，有赵太爷在这里，也不该如此胡说的。此后便再没有人提起他的氏族来，所以我终于不知道阿Q究竟什么姓。
+      TGT: 阿Qは、自分が本当に趙姓であることを否定しなかった。ただ、左の頬をさすりながら、地保と一緒にそこから出て行った。外に出ると、地保からさらに叱責を受け、二百文の酒代を渡された。人々は、阿Qがあまりにも無分別で、自分から殴られるようにしたのだと言った。彼は、もしかしたら趙姓ではないかもしれない。もし本当
+  [glossary/low] D0000-S000013: approved glossary term was not preserved: 文
+      SRC: 第三，我又不知道阿Q的名字是怎么写的。他活着的时候，人都叫他阿Quei，死了以后，便没有一个人再叫阿Quei了，那里还会有『著之竹帛』的事。若论『著之竹帛』，这篇文章要算第一次，所以先遇着了这第一个难关。我曾经仔细想：阿Quei，阿桂还是阿贵呢？倘使他号叫月亭，或者在八月间做过生日，那一定是阿桂了；
+      TGT: 第三に、私は阿Qの名前がどのように書かれているのかも知らない。彼が生きていた頃、人々は彼を阿Queiと呼んでいたが、彼が死んでからは、誰も彼を阿Queiと呼ばなくなった。そのため、『著之竹帛』に書くことはないだろう。もし『著之竹帛』に書くとしたら、これは最初のことになる。だから、最初にこの難関に直面
+  [glossary/low] D0000-S000020: approved glossary term was not preserved: 忘却
+      SRC: 阿Q没有家，住在未庄的土谷祠里；也没有固定的职业，只给人家做短工，割麦便割麦，舂米便舂米，撑船便撑船。工作略长久时，他也或住在临时主人的家里，但一完就走了。所以，人们忙碌的时候，也还记起阿Q来，然而记起的是做工，并不是『行状』；一闲空，连阿Q都早忘却，更不必说『行状』了。只是有一回，有一个老头子颂扬
+      TGT: 阿Qには家がなく、未庄の土谷祠に住んでいる。また、彼は固定された職業を持っておらず、ただ人々の頼みごとに応じて、麦刈りをしたり、米を舂いたり、船を漕いだりする。しばらくの間、彼は一時的に雇い主の家で暮らすこともあるが、終わるとすぐに去ってしまう。そのため、人々が忙しい時には、彼を思い出すこともあるが
+  [glossary/low] D0000-S000020: approved glossary term was not preserved: 短工
+      SRC: 阿Q没有家，住在未庄的土谷祠里；也没有固定的职业，只给人家做短工，割麦便割麦，舂米便舂米，撑船便撑船。工作略长久时，他也或住在临时主人的家里，但一完就走了。所以，人们忙碌的时候，也还记起阿Q来，然而记起的是做工，并不是『行状』；一闲空，连阿Q都早忘却，更不必说『行状』了。只是有一回，有一个老头子颂扬
+      TGT: 阿Qには家がなく、未庄の土谷祠に住んでいる。また、彼は固定された職業を持っておらず、ただ人々の頼みごとに応じて、麦刈りをしたり、米を舂いたり、船を漕いだりする。しばらくの間、彼は一時的に雇い主の家で暮らすこともあるが、終わるとすぐに去ってしまう。そのため、人々が忙しい時には、彼を思い出すこともあるが
+  [mistranslation/high] D0000-S000021: numeric content differs from source: In the source, the length of the onion leaf is '半寸长' (half a cun), which is approximately 1.67 cm (base
+      SRC: 阿Q又很自尊，所有未庄的居民，全不在他眼睛里，甚而至于对于两位『文童』也有以为不值一笑的神情。夫文童者，将来恐怕要变秀才者也；赵太爷、钱太爷大受居民的尊敬，除有钱之外，就因为都是文童的爹爹，而阿Q在情神上独不表格外的崇奉，他想：我的儿子会阔得多啦！加以进了几回城，阿Q自然更自负，然而他又很鄙薄城里人
+      TGT: 阿Qは非常に自尊心が強く、未庄の住民は誰も彼の眼中にないばかりか、二人の『文童』に対してさえ、笑う価値もないという態度を取っていた。文童とは、将来おそらく秀才になるであろう者たちのことだ。趙太爺と銭太爺が住民から多大なる尊敬を受けているのは、金を持っていること以外に、二人とも文童の父親であるからだが
+  [glossary/low] D0000-S000022: approved glossary term was not preserved: 癩癬の跡
+      SRC: 阿Q『先前阔』，见识高，而且『真能做』，本来几乎是一个『完人』了，但可惜他体质上还有一些缺点，最恼人的是在他头皮上，颇有几处不知于何时的癞疮疤。这虽然也在他身上，而看阿Q的意思，倒也似乎以为不足贵的，因为他讳说『癞』以及一切近于『赖』的音，后来推而广之，『光』也讳，『亮』也讳，再后来，连『灯』『烛』
+      TGT: 阿Qは「以前は裕福だった」と主張し、見識があり、また「本当に仕事ができる」ので、ほとんど「完人」だった。しかし、残念ながら、彼の体にはいくつかの欠点があり、最も悩ましいのは、彼の頭皮にある、いつ頃のものかわからない癩頭瘡だ。これは彼の体の一部ではあるが、阿Qの意図するところでは、それほど重要ではない
+  [glossary/low] D0000-S000028: approved glossary term was not preserved: 文
+      SRC: 『你还不配……』这时候，又仿佛在他头上的是一种高尚的光荣的癞头疮，并非平常的癞头疮了；但上文说过，阿Q是有见识的，他立刻知道和『犯忌』有点抵触，便不再往底下说。
+      TGT: 「お前は、まだふさわしくない……」その時、彼の頭にあるものは、高尚で栄光ある癩頭瘡であり、普通の癩頭瘡ではないように思われた。しかし、前述したように、阿Qは見識がある。彼は、それが「犯忌」と少し矛盾していることに気づき、それ以上の言葉を言わなかった。
+  [glossary/low] D0000-S000042: approved glossary term was not preserved: 天門
+      SRC: 『天门两块！』
+      TGT: 「天門に二枚！」
+  [glossary/low] D0000-S000044: approved glossary term was not preserved: 洋銭
+      SRC: 很白很亮的一堆洋钱！而且是他的——现在不见了！说是算被儿子拿去了罢，总还是忽忽不乐；说自己是虫豸罢，也还是忽忽不乐：他这回才有些感到失败的苦痛了。
+      TGT: 白く光り輝く一抱えの洋銭！しかもそれは自分のものだった――それが今、消えてしまった！息子に持っていかれたと思えば、どうしてもうっとうしく気分が晴れない。自分は虫豸なのだと思えば、やはりうっとうしく気分が晴れない。彼は今になって、ようやく敗北の苦痛を感じ始めていた。
+  [glossary/low] D0000-S000044: approved glossary term was not preserved: 虫豸
+      SRC: 很白很亮的一堆洋钱！而且是他的——现在不见了！说是算被儿子拿去了罢，总还是忽忽不乐；说自己是虫豸罢，也还是忽忽不乐：他这回才有些感到失败的苦痛了。
+      TGT: 白く光り輝く一抱えの洋銭！しかもそれは自分のものだった――それが今、消えてしまった！息子に持っていかれたと思えば、どうしてもうっとうしく気分が晴れない。自分は虫豸なのだと思えば、やはりうっとうしく気分が晴れない。彼は今になって、ようやく敗北の苦痛を感じ始めていた。
+  [duplication/high] D0000-S000045: translation closely matches that of a different source segment: D0000-S000050
+      SRC: 但他立刻转败为胜了。他擎起右手，用力的在自己脸上连打了两个嘴巴，热刺刺的有些痛；打完之后，便心平气和起来，似乎打的是自己，被打的是别一个自己，不久也就仿佛是自己打了别个一般，——虽然还有些热刺刺，——心满意足的得胜的躺下了。
+      TGT: だが、彼はすぐに形勢を逆転させた。右手を高く掲げると、自分の頬を思い切り二回ひっぱたいた。熱いし、少々痛い。だが打ち終えると、心は穏やかになった。まるで自分がある自分を打ったのであり、打たれたのは別の自分であるかのように。そして間もなく、あたかも自分が他人を打ったかのような心地になった。――まだ頬に
+  [duplication/high] D0000-S000050: translation closely matches that of a different source segment: D0000-S000045
+      SRC: 说也奇怪，从此之后，果然大家也仿佛格外尊敬他。这在阿Q，或者以为因为他是赵太爷的父亲，而其实也不然。未庄通例，倘如阿七打阿八，或者李四打张三，向来本不算一件事，必须与一位名人如赵太爷者相关，这才载上他们的口碑。一上口碑，则打的既有名，被打的也就托庇有了名。至于错在阿Q，那自然是不必说。所以者何？就因
+      TGT: 奇妙なことに、それ以来、人々は本当に彼を格別に敬うようになった。阿Qは、自分が趙太爺の父親だからだろうと考えたが、実際はそうではなかった。未庄の常として、阿七が阿八を殴ろうが、李四が張三を殴ろうが、もともと大した事柄とは見なされない。だが、趙太爺のような名士が関わって初めて、彼らのことは口コミに載る
+  [glossary/medium] D0000-S000050: approved glossary term was not preserved: 孔廟
+      SRC: 说也奇怪，从此之后，果然大家也仿佛格外尊敬他。这在阿Q，或者以为因为他是赵太爷的父亲，而其实也不然。未庄通例，倘如阿七打阿八，或者李四打张三，向来本不算一件事，必须与一位名人如赵太爷者相关，这才载上他们的口碑。一上口碑，则打的既有名，被打的也就托庇有了名。至于错在阿Q，那自然是不必说。所以者何？就因
+      TGT: 奇妙なことに、それ以来、人々は本当に彼を格別に敬うようになった。阿Qは、自分が趙太爺の父親だからだろうと考えたが、実際はそうではなかった。未庄の常として、阿七が阿八を殴ろうが、李四が張三を殴ろうが、もともと大した事柄とは見なされない。だが、趙太爺のような名士が関わって初めて、彼らのことは口コミに載る
+  [glossary/low] D0000-S000050: approved glossary term was not preserved: 先儒
+      SRC: 说也奇怪，从此之后，果然大家也仿佛格外尊敬他。这在阿Q，或者以为因为他是赵太爷的父亲，而其实也不然。未庄通例，倘如阿七打阿八，或者李四打张三，向来本不算一件事，必须与一位名人如赵太爷者相关，这才载上他们的口碑。一上口碑，则打的既有名，被打的也就托庇有了名。至于错在阿Q，那自然是不必说。所以者何？就因
+      TGT: 奇妙なことに、それ以来、人々は本当に彼を格別に敬うようになった。阿Qは、自分が趙太爺の父親だからだろうと考えたが、実際はそうではなかった。未庄の常として、阿七が阿八を殴ろうが、李四が張三を殴ろうが、もともと大した事柄とは見なされない。だが、趙太爺のような名士が関わって初めて、彼らのことは口コミに載る
+  [glossary/low] D0000-S000050: approved glossary term was not preserved: 口碑
+      SRC: 说也奇怪，从此之后，果然大家也仿佛格外尊敬他。这在阿Q，或者以为因为他是赵太爷的父亲，而其实也不然。未庄通例，倘如阿七打阿八，或者李四打张三，向来本不算一件事，必须与一位名人如赵太爷者相关，这才载上他们的口碑。一上口碑，则打的既有名，被打的也就托庇有了名。至于错在阿Q，那自然是不必说。所以者何？就因
+      TGT: 奇妙なことに、それ以来、人々は本当に彼を格別に敬うようになった。阿Qは、自分が趙太爺の父親だからだろうと考えたが、実際はそうではなかった。未庄の常として、阿七が阿八を殴ろうが、李四が張三を殴ろうが、もともと大した事柄とは見なされない。だが、趙太爺のような名士が関わって初めて、彼らのことは口コミに載る
+  [glossary/low] D0000-S000050: approved glossary term was not preserved: 太牢
+      SRC: 说也奇怪，从此之后，果然大家也仿佛格外尊敬他。这在阿Q，或者以为因为他是赵太爷的父亲，而其实也不然。未庄通例，倘如阿七打阿八，或者李四打张三，向来本不算一件事，必须与一位名人如赵太爷者相关，这才载上他们的口碑。一上口碑，则打的既有名，被打的也就托庇有了名。至于错在阿Q，那自然是不必说。所以者何？就因
+      TGT: 奇妙なことに、それ以来、人々は本当に彼を格別に敬うようになった。阿Qは、自分が趙太爺の父親だからだろうと考えたが、実際はそうではなかった。未庄の常として、阿七が阿八を殴ろうが、李四が張三を殴ろうが、もともと大した事柄とは見なされない。だが、趙太爺のような名士が関わって初めて、彼らのことは口コミに載る
+  [glossary/low] D0000-S000050: approved glossary term was not preserved: 本家
+      SRC: 说也奇怪，从此之后，果然大家也仿佛格外尊敬他。这在阿Q，或者以为因为他是赵太爷的父亲，而其实也不然。未庄通例，倘如阿七打阿八，或者李四打张三，向来本不算一件事，必须与一位名人如赵太爷者相关，这才载上他们的口碑。一上口碑，则打的既有名，被打的也就托庇有了名。至于错在阿Q，那自然是不必说。所以者何？就因
+      TGT: 奇妙なことに、それ以来、人々は本当に彼を格別に敬うようになった。阿Qは、自分が趙太爺の父親だからだろうと考えたが、実際はそうではなかった。未庄の常として、阿七が阿八を殴ろうが、李四が張三を殴ろうが、もともと大した事柄とは見なされない。だが、趙太爺のような名士が関わって初めて、彼らのことは口コミに載る
+  [glossary/low] D0000-S000050: approved glossary term was not preserved: 畜生
+      SRC: 说也奇怪，从此之后，果然大家也仿佛格外尊敬他。这在阿Q，或者以为因为他是赵太爷的父亲，而其实也不然。未庄通例，倘如阿七打阿八，或者李四打张三，向来本不算一件事，必须与一位名人如赵太爷者相关，这才载上他们的口碑。一上口碑，则打的既有名，被打的也就托庇有了名。至于错在阿Q，那自然是不必说。所以者何？就因
+      TGT: 奇妙なことに、それ以来、人々は本当に彼を格別に敬うようになった。阿Qは、自分が趙太爺の父親だからだろうと考えたが、実際はそうではなかった。未庄の常として、阿七が阿八を殴ろうが、李四が張三を殴ろうが、もともと大した事柄とは見なされない。だが、趙太爺のような名士が関わって初めて、彼らのことは口コミに載る
+  [glossary/low] D0000-S000050: approved glossary term was not preserved: 聖人
+      SRC: 说也奇怪，从此之后，果然大家也仿佛格外尊敬他。这在阿Q，或者以为因为他是赵太爷的父亲，而其实也不然。未庄通例，倘如阿七打阿八，或者李四打张三，向来本不算一件事，必须与一位名人如赵太爷者相关，这才载上他们的口碑。一上口碑，则打的既有名，被打的也就托庇有了名。至于错在阿Q，那自然是不必说。所以者何？就因
+      TGT: 奇妙なことに、それ以来、人々は本当に彼を格別に敬うようになった。阿Qは、自分が趙太爺の父親だからだろうと考えたが、実際はそうではなかった。未庄の常として、阿七が阿八を殴ろうが、李四が張三を殴ろうが、もともと大した事柄とは見なされない。だが、趙太爺のような名士が関わって初めて、彼らのことは口コミに載る
+  [glossary/low] D0000-S000053: approved glossary term was not preserved: 破れた中綿入りコート
+      SRC: 阿Q也脱下破夹袄来，翻检了一回，不知道因为新洗呢还是因为粗心，许多工夫，只捉到三四个。他看那王胡，却是一个又一个，两个又三个，只放在嘴里毕毕剥剥的响。
+      TGT: 彼は隣に座った。もし他の人々であれば、阿Qは簡単に座ることはなかっただろう。しかし、王胡の隣であれば、何を恐れる必要があるだろうか。正直に言うと、彼がそこに座ることを許したこと自体が、彼に対する一種の優遇だった。
+  [addition/medium] D0000-S000055: translation/source token ratio is unusually high: 5.56
+      SRC: 他癞疮疤块块通红了，将衣服摔在地上，吐一口唾沫，说：
+      TGT: 彼の癩癬の跡は一つ一つ真っ赤に腫れ上がり、服を地面に投げ捨て、唾を吐き出して言った：
+  [glossary/low] D0000-S000055: approved glossary term was not preserved: 癩癬の跡
+      SRC: 他癞疮疤块块通红了，将衣服摔在地上，吐一口唾沫，说：
+      TGT: 彼の癩癬の跡は一つ一つ真っ赤に腫れ上がり、服を地面に投げ捨て、唾を吐き出して言った：
+  [addition/medium] D0000-S000056: translation/source token ratio is unusually high: 7.00
+      SRC: 『这毛虫！』
+      TGT: 「この毛虫め！」
+  [glossary/low] D0000-S000064: approved glossary term was not preserved: 頬髭
+      SRC: 在阿Q的记忆上，这大约要算是生平第一件的屈辱，因为王胡以络腮胡子的缺点，向来只被他奚落，从没有奚落他，更不必说动手了。而他现在竟动手，很意外，难道真如市上所说，皇帝已经停了考，不要秀才和举人了，因此赵家减了威风。因此他们也便小觑了他么？
+      TGT: 阿Qの記憶の中で、これは彼がこれまで受けた屈辱の中で最も深刻なものだった。なぜなら、王胡は、これまで彼を罵倒したことはなく、ましてや手を出したこともなかったからだ。そして今、彼は手を出した。もしかしたら、それは、街で言われているように、皇帝が科挙を停止し、秀才や挙人ではなくなったため、趙家の威厳が低
+  [glossary/medium] D0000-S000066: approved glossary term was not preserved: 東洋
+      SRC: 远远的走来了一个人，他的对头又到了。这也是阿Q最厌恶的一个人，就是钱太爷的大儿子。他先前跑上城里去进洋学堂，不知怎么又跑到东洋去了，半年之后他回到家里来，腿也直了，辫子也不见了，他的母亲大哭了十几场，他的老婆跳了三回井。后来，他的母亲到处说，『这辫子是被坏人灌醉了酒翦去的。本来可以做大官，现在只好等
+      TGT: 遠くから、一人の男が近づいてきた。それは、彼の宿敵だった。阿Qが最も嫌う人物の一人、銭太爺の息子だった。彼は以前、都へ行って洋学堂に入り、どういう風の吹き付けか東洋へまで行き、半年後に家に帰ってきた。彼の足はまっすぐになり、辮髪もなくなっていた。彼の母親は、何日も泣き、彼の妻は、井戸に三度飛び込んだ
+  [glossary/low] D0000-S000066: approved glossary term was not preserved: 仮洋鬼子
+      SRC: 远远的走来了一个人，他的对头又到了。这也是阿Q最厌恶的一个人，就是钱太爷的大儿子。他先前跑上城里去进洋学堂，不知怎么又跑到东洋去了，半年之后他回到家里来，腿也直了，辫子也不见了，他的母亲大哭了十几场，他的老婆跳了三回井。后来，他的母亲到处说，『这辫子是被坏人灌醉了酒翦去的。本来可以做大官，现在只好等
+      TGT: 遠くから、一人の男が近づいてきた。それは、彼の宿敵だった。阿Qが最も嫌う人物の一人、銭太爺の息子だった。彼は以前、都へ行って洋学堂に入り、どういう風の吹き付けか東洋へまで行き、半年後に家に帰ってきた。彼の足はまっすぐになり、辮髪もなくなっていた。彼の母親は、何日も泣き、彼の妻は、井戸に三度飛び込んだ
+  [glossary/low] D0000-S000066: approved glossary term was not preserved: 裏で外国に通じる者
+      SRC: 远远的走来了一个人，他的对头又到了。这也是阿Q最厌恶的一个人，就是钱太爷的大儿子。他先前跑上城里去进洋学堂，不知怎么又跑到东洋去了，半年之后他回到家里来，腿也直了，辫子也不见了，他的母亲大哭了十几场，他的老婆跳了三回井。后来，他的母亲到处说，『这辫子是被坏人灌醉了酒翦去的。本来可以做大官，现在只好等
+      TGT: 遠くから、一人の男が近づいてきた。それは、彼の宿敵だった。阿Qが最も嫌う人物の一人、銭太爺の息子だった。彼は以前、都へ行って洋学堂に入り、どういう風の吹き付けか東洋へまで行き、半年後に家に帰ってきた。彼の足はまっすぐになり、辮髪もなくなっていた。彼の母親は、何日も泣き、彼の妻は、井戸に三度飛び込んだ
+  [glossary/low] D0000-S000067: approved glossary term was not preserved: 偽りの髪結い
+      SRC: 阿Q尤其『深恶而痛绝之』的，是他的一条假辫子。辫子而至于假，就是没有了做人的资格；他的老婆不跳第四回井，也不是好女人。
+      TGT: 阿Qが特に「深く悪み痛絶す」のは、彼の偽りの辮髪だった。辮髪をなくしたということは、人間としての資格を失ったということだ。彼の妻が四度目に井戸に飛び込まなければ、彼女もまともな人間ではない。
+  [glossary/low] D0000-S000068: approved glossary term was not preserved: 仮洋鬼子
+      SRC: 这『假洋鬼子』近来了。
+      TGT: その「仮洋鬼子」が近づいてきた。
+  [glossary/low] D0000-S000073: approved glossary term was not preserved: 忘却
+      SRC: 在阿Q的记忆上，这大约要算是生平第二件的屈辱。幸而拍拍的响了之后。于他倒似乎完结了一件事，反而觉得轻松些，而且『忘却』这一件祖传的宝贝也发生了效力，他慢慢的走，将到酒店门口，早已有些高兴了。
+      TGT: 阿Qの記憶の中で、これは彼がこれまで受けた屈辱の中で二番目に深刻なものだった。幸いなことに、棍棒がゴン！ゴン！と音を立てた後、彼は、何らかの目的を達成したように感じ、むしろ楽になった。そして、彼が持っていた「祖伝の宝物」も、その効果を発揮し始めた。彼はゆっくりと歩き始め、やがて、酒場にたどり着き、す
+  [glossary/low] D0000-S000075: approved glossary term was not preserved: 晦気
+      SRC: 『我不知道我今天为什么这样晦气，原来就因为见了你！』他想。
+      TGT: 「私は、なぜ今日、こんなに晦気なのか。それは、お前を見たからだ！」彼は心の中で思った。
+  [addition/medium] D0000-S000077: translation/source token ratio is unusually high: 16.00
+      SRC: 『咳，开！』
+      TGT: 「どけ、失せろ！」
+  [addition/medium] D0000-S000079: translation/source token ratio is unusually high: 4.80
+      SRC: 『秃儿！快回去，和尚等着你……』
+      TGT: 『坊主め！早く戻れ、和尚が待っているぞ……』
+  [addition/medium] D0000-S000092: translation/source token ratio is unusually high: 10.00
+      SRC: 『断子绝孙的阿Q！』
+      TGT: 『断子絶孫の阿Q！』
+  [glossary/medium] D0000-S000092: approved glossary term was not preserved: 阿Q
+      SRC: 『断子绝孙的阿Q！』
+      TGT: 『断子絶孫の阿Q！』
+  [glossary/low] D0000-S000092: approved glossary term was not preserved: 断子絶孫
+      SRC: 『断子绝孙的阿Q！』
+      TGT: 『断子絶孫の阿Q！』
+  [mistranslation/high] D0000-S000093: translation may be another passage's, or leaves most of this one out: it has 1 of the 6 approved terms in this passage
+      SRC: 阿Q的耳朵里又听到这句话。他想：不错，应该有一个女人，断子绝孙便没有人供一碗饭，……应该有一个女人。夫『不孝有三无后为大』，而『若敖之鬼馁而』，也是一件人生的大哀，所以他那思想，其实是样样合于圣经贤传的，只可惜后来有些『不能收其放心』了。
+      TGT: 阿Qの耳に再びその言葉が飛び込んできた。彼は考えた。なるほど、女というものが一人いなければならない。断子絶孫になれば、飯の一杯を供えてくれる者さえいなくなる。……やはり女が必要だ。そもそも『不孝に三あり、後無きが最も大なり』というし、『若敖の鬼飢えたり』というのもまた人生の大きな悲劇である。ゆえに彼
+  [glossary/low] D0000-S000093: approved glossary term was not preserved: 不孝に三あり、後無きが最も大なり
+      SRC: 阿Q的耳朵里又听到这句话。他想：不错，应该有一个女人，断子绝孙便没有人供一碗饭，……应该有一个女人。夫『不孝有三无后为大』，而『若敖之鬼馁而』，也是一件人生的大哀，所以他那思想，其实是样样合于圣经贤传的，只可惜后来有些『不能收其放心』了。
+      TGT: 阿Qの耳に再びその言葉が飛び込んできた。彼は考えた。なるほど、女というものが一人いなければならない。断子絶孫になれば、飯の一杯を供えてくれる者さえいなくなる。……やはり女が必要だ。そもそも『不孝に三あり、後無きが最も大なり』というし、『若敖の鬼飢えたり』というのもまた人生の大きな悲劇である。ゆえに彼
+  [glossary/low] D0000-S000093: approved glossary term was not preserved: 放心を収むる能わず
+      SRC: 阿Q的耳朵里又听到这句话。他想：不错，应该有一个女人，断子绝孙便没有人供一碗饭，……应该有一个女人。夫『不孝有三无后为大』，而『若敖之鬼馁而』，也是一件人生的大哀，所以他那思想，其实是样样合于圣经贤传的，只可惜后来有些『不能收其放心』了。
+      TGT: 阿Qの耳に再びその言葉が飛び込んできた。彼は考えた。なるほど、女というものが一人いなければならない。断子絶孫になれば、飯の一杯を供えてくれる者さえいなくなる。……やはり女が必要だ。そもそも『不孝に三あり、後無きが最も大なり』というし、『若敖の鬼飢えたり』というのもまた人生の大きな悲劇である。ゆえに彼
+  [glossary/low] D0000-S000093: approved glossary term was not preserved: 断子絶孫
+      SRC: 阿Q的耳朵里又听到这句话。他想：不错，应该有一个女人，断子绝孙便没有人供一碗饭，……应该有一个女人。夫『不孝有三无后为大』，而『若敖之鬼馁而』，也是一件人生的大哀，所以他那思想，其实是样样合于圣经贤传的，只可惜后来有些『不能收其放心』了。
+      TGT: 阿Qの耳に再びその言葉が飛び込んできた。彼は考えた。なるほど、女というものが一人いなければならない。断子絶孫になれば、飯の一杯を供えてくれる者さえいなくなる。……やはり女が必要だ。そもそも『不孝に三あり、後無きが最も大なり』というし、『若敖の鬼飢えたり』というのもまた人生の大きな悲劇である。ゆえに彼
+  [glossary/low] D0000-S000093: approved glossary term was not preserved: 聖経賢伝
+      SRC: 阿Q的耳朵里又听到这句话。他想：不错，应该有一个女人，断子绝孙便没有人供一碗饭，……应该有一个女人。夫『不孝有三无后为大』，而『若敖之鬼馁而』，也是一件人生的大哀，所以他那思想，其实是样样合于圣经贤传的，只可惜后来有些『不能收其放心』了。
+      TGT: 阿Qの耳に再びその言葉が飛び込んできた。彼は考えた。なるほど、女というものが一人いなければならない。断子絶孫になれば、飯の一杯を供えてくれる者さえいなくなる。……やはり女が必要だ。そもそも『不孝に三あり、後無きが最も大なり』というし、『若敖の鬼飢えたり』というのもまた人生の大きな悲劇である。ゆえに彼
+  [glossary/low] D0000-S000093: approved glossary term was not preserved: 若敖の鬼飢えたり
+      SRC: 阿Q的耳朵里又听到这句话。他想：不错，应该有一个女人，断子绝孙便没有人供一碗饭，……应该有一个女人。夫『不孝有三无后为大』，而『若敖之鬼馁而』，也是一件人生的大哀，所以他那思想，其实是样样合于圣经贤传的，只可惜后来有些『不能收其放心』了。
+      TGT: 阿Qの耳に再びその言葉が飛び込んできた。彼は考えた。なるほど、女というものが一人いなければならない。断子絶孫になれば、飯の一杯を供えてくれる者さえいなくなる。……やはり女が必要だ。そもそも『不孝に三あり、後無きが最も大なり』というし、『若敖の鬼飢えたり』というのもまた人生の大きな悲劇である。ゆえに彼
+  [addition/medium] D0000-S000094: translation/source token ratio is unusually high: 6.42
+      SRC: 『女人，女人！……』他想：
+      TGT: 「女、女……！」彼は思った。
+  [glossary/medium] D0000-S000096: approved glossary term was not preserved: 阿Q
+      SRC: 我们不能知道这晚上阿Q在什么时候才打鼾。但大约他从此总觉得指头有些滑腻，所以他从此总有些飘飘然；『女……』他想：
+      TGT: その夜、阿Qがいつ頃からいびきをかき始めたのかは分からない。だが、おそらく彼はそれ以来、指先がどこかぬるぬるとした感覚を覚えたのだろう。だからこそ、彼はそれからずっと、どこか浮ついた心地でいた。『女……』と彼は思った。
+  [mistranslation/high] D0000-S000098: translation may be another passage's, or leaves most of this one out: it has 0 of the 5 approved terms in this passage
+      SRC: 中国的男人，本来大半都可以做圣贤，可惜全被女人毁掉了。商是妲己闹亡的；周是褒姒弄坏的；秦……虽然史无明文，我们也假定他因为女人，大约未必十分错；而董卓可是的确给貂蝉害死了。
+      TGT: 中国の男というものは、本来なら大半が聖賢になれたはずなのだが、あいにくことごとく女に台無しにされてしまった。商は妲己が滅ぼし、周は褒姒が壊した。秦は……史書に明文こそないが、女のせいだったと考えても、おそらく大外れではないだろう。そして董卓に至っては、実に貂蝉に害されて死んだのである。
+  [glossary/medium] D0000-S000098: approved glossary term was not preserved: 妲己
+      SRC: 中国的男人，本来大半都可以做圣贤，可惜全被女人毁掉了。商是妲己闹亡的；周是褒姒弄坏的；秦……虽然史无明文，我们也假定他因为女人，大约未必十分错；而董卓可是的确给貂蝉害死了。
+      TGT: 中国の男というものは、本来なら大半が聖賢になれたはずなのだが、あいにくことごとく女に台無しにされてしまった。商は妲己が滅ぼし、周は褒姒が壊した。秦は……史書に明文こそないが、女のせいだったと考えても、おそらく大外れではないだろう。そして董卓に至っては、実に貂蝉に害されて死んだのである。
+  [glossary/medium] D0000-S000098: approved glossary term was not preserved: 董卓
+      SRC: 中国的男人，本来大半都可以做圣贤，可惜全被女人毁掉了。商是妲己闹亡的；周是褒姒弄坏的；秦……虽然史无明文，我们也假定他因为女人，大约未必十分错；而董卓可是的确给貂蝉害死了。
+      TGT: 中国の男というものは、本来なら大半が聖賢になれたはずなのだが、あいにくことごとく女に台無しにされてしまった。商は妲己が滅ぼし、周は褒姒が壊した。秦は……史書に明文こそないが、女のせいだったと考えても、おそらく大外れではないだろう。そして董卓に至っては、実に貂蝉に害されて死んだのである。
+  [glossary/medium] D0000-S000098: approved glossary term was not preserved: 褒姒
+      SRC: 中国的男人，本来大半都可以做圣贤，可惜全被女人毁掉了。商是妲己闹亡的；周是褒姒弄坏的；秦……虽然史无明文，我们也假定他因为女人，大约未必十分错；而董卓可是的确给貂蝉害死了。
+      TGT: 中国の男というものは、本来なら大半が聖賢になれたはずなのだが、あいにくことごとく女に台無しにされてしまった。商は妲己が滅ぼし、周は褒姒が壊した。秦は……史書に明文こそないが、女のせいだったと考えても、おそらく大外れではないだろう。そして董卓に至っては、実に貂蝉に害されて死んだのである。
+  [glossary/medium] D0000-S000098: approved glossary term was not preserved: 貂蝉
+      SRC: 中国的男人，本来大半都可以做圣贤，可惜全被女人毁掉了。商是妲己闹亡的；周是褒姒弄坏的；秦……虽然史无明文，我们也假定他因为女人，大约未必十分错；而董卓可是的确给貂蝉害死了。
+      TGT: 中国の男というものは、本来なら大半が聖賢になれたはずなのだが、あいにくことごとく女に台無しにされてしまった。商は妲己が滅ぼし、周は褒姒が壊した。秦は……史書に明文こそないが、女のせいだったと考えても、おそらく大外れではないだろう。そして董卓に至っては、実に貂蝉に害されて死んだのである。
+  [omission/medium] D0000-S000098: translation/source token ratio is unusually low: 0.17
+      SRC: 中国的男人，本来大半都可以做圣贤，可惜全被女人毁掉了。商是妲己闹亡的；周是褒姒弄坏的；秦……虽然史无明文，我们也假定他因为女人，大约未必十分错；而董卓可是的确给貂蝉害死了。
+      TGT: 中国の男というものは、本来なら大半が聖賢になれたはずなのだが、あいにくことごとく女に台無しにされてしまった。商は妲己が滅ぼし、周は褒姒が壊した。秦は……史書に明文こそないが、女のせいだったと考えても、おそらく大外れではないだろう。そして董卓に至っては、実に貂蝉に害されて死んだのである。
+  [glossary/low] D0000-S000098: approved glossary term was not preserved: 文
+      SRC: 中国的男人，本来大半都可以做圣贤，可惜全被女人毁掉了。商是妲己闹亡的；周是褒姒弄坏的；秦……虽然史无明文，我们也假定他因为女人，大约未必十分错；而董卓可是的确给貂蝉害死了。
+      TGT: 中国の男というものは、本来なら大半が聖賢になれたはずなのだが、あいにくことごとく女に台無しにされてしまった。商は妲己が滅ぼし、周は褒姒が壊した。秦は……史書に明文こそないが、女のせいだったと考えても、おそらく大外れではないだろう。そして董卓に至っては、実に貂蝉に害されて死んだのである。
+  [mistranslation/high] D0000-S000099: translation may be another passage's, or leaves most of this one out: it has 0 of the 6 approved terms in this passage
+      SRC: 阿Q本来也是正人，我们虽然不知道他曾蒙什么明师指授过，但他对于『男女之大防』却历来非常严；也很有排斥异端——如小尼姑及假洋鬼子之类——的正气。他的学说是：凡尼姑，一定与和尚私通，一个女人在外面走，一定想引诱野男人；一男一女在那里讲话，一定要有勾当了。为惩治他们起见，所以他往往怒目而视，或者大声说几句
+      TGT: 阿Qももとは正義の人間であった。どのような名師に教えを請うたかは分からぬが、彼は『男女の大防』に関しては常に極めて厳格であり、また小尼姑や仮洋鬼子といった類いの異端を排斥する正義感にも満ちていた。彼の持論によれば、尼僧というものは必ず僧侶と密通しているものであり、女が外を歩いていれば必ず野良男を誘惑
+  [glossary/medium] D0000-S000099: approved glossary term was not preserved: 小尼姑
+      SRC: 阿Q本来也是正人，我们虽然不知道他曾蒙什么明师指授过，但他对于『男女之大防』却历来非常严；也很有排斥异端——如小尼姑及假洋鬼子之类——的正气。他的学说是：凡尼姑，一定与和尚私通，一个女人在外面走，一定想引诱野男人；一男一女在那里讲话，一定要有勾当了。为惩治他们起见，所以他往往怒目而视，或者大声说几句
+      TGT: 阿Qももとは正義の人間であった。どのような名師に教えを請うたかは分からぬが、彼は『男女の大防』に関しては常に極めて厳格であり、また小尼姑や仮洋鬼子といった類いの異端を排斥する正義感にも満ちていた。彼の持論によれば、尼僧というものは必ず僧侶と密通しているものであり、女が外を歩いていれば必ず野良男を誘惑
+  [glossary/medium] D0000-S000099: approved glossary term was not preserved: 阿Q
+      SRC: 阿Q本来也是正人，我们虽然不知道他曾蒙什么明师指授过，但他对于『男女之大防』却历来非常严；也很有排斥异端——如小尼姑及假洋鬼子之类——的正气。他的学说是：凡尼姑，一定与和尚私通，一个女人在外面走，一定想引诱野男人；一男一女在那里讲话，一定要有勾当了。为惩治他们起见，所以他往往怒目而视，或者大声说几句
+      TGT: 阿Qももとは正義の人間であった。どのような名師に教えを請うたかは分からぬが、彼は『男女の大防』に関しては常に極めて厳格であり、また小尼姑や仮洋鬼子といった類いの異端を排斥する正義感にも満ちていた。彼の持論によれば、尼僧というものは必ず僧侶と密通しているものであり、女が外を歩いていれば必ず野良男を誘惑
+  [omission/medium] D0000-S000099: translation/source token ratio is unusually low: 0.12
+      SRC: 阿Q本来也是正人，我们虽然不知道他曾蒙什么明师指授过，但他对于『男女之大防』却历来非常严；也很有排斥异端——如小尼姑及假洋鬼子之类——的正气。他的学说是：凡尼姑，一定与和尚私通，一个女人在外面走，一定想引诱野男人；一男一女在那里讲话，一定要有勾当了。为惩治他们起见，所以他往往怒目而视，或者大声说几句
+      TGT: 阿Qももとは正義の人間であった。どのような名師に教えを請うたかは分からぬが、彼は『男女の大防』に関しては常に極めて厳格であり、また小尼姑や仮洋鬼子といった類いの異端を排斥する正義感にも満ちていた。彼の持論によれば、尼僧というものは必ず僧侶と密通しているものであり、女が外を歩いていれば必ず野良男を誘惑
+  [glossary/low] D0000-S000099: approved glossary term was not preserved: 仮洋鬼子
+      SRC: 阿Q本来也是正人，我们虽然不知道他曾蒙什么明师指授过，但他对于『男女之大防』却历来非常严；也很有排斥异端——如小尼姑及假洋鬼子之类——的正气。他的学说是：凡尼姑，一定与和尚私通，一个女人在外面走，一定想引诱野男人；一男一女在那里讲话，一定要有勾当了。为惩治他们起见，所以他往往怒目而视，或者大声说几句
+      TGT: 阿Qももとは正義の人間であった。どのような名師に教えを請うたかは分からぬが、彼は『男女の大防』に関しては常に極めて厳格であり、また小尼姑や仮洋鬼子といった類いの異端を排斥する正義感にも満ちていた。彼の持論によれば、尼僧というものは必ず僧侶と密通しているものであり、女が外を歩いていれば必ず野良男を誘惑
+  [glossary/low] D0000-S000099: approved glossary term was not preserved: 男女の大防
+      SRC: 阿Q本来也是正人，我们虽然不知道他曾蒙什么明师指授过，但他对于『男女之大防』却历来非常严；也很有排斥异端——如小尼姑及假洋鬼子之类——的正气。他的学说是：凡尼姑，一定与和尚私通，一个女人在外面走，一定想引诱野男人；一男一女在那里讲话，一定要有勾当了。为惩治他们起见，所以他往往怒目而视，或者大声说几句
+      TGT: 阿Qももとは正義の人間であった。どのような名師に教えを請うたかは分からぬが、彼は『男女の大防』に関しては常に極めて厳格であり、また小尼姑や仮洋鬼子といった類いの異端を排斥する正義感にも満ちていた。彼の持論によれば、尼僧というものは必ず僧侶と密通しているものであり、女が外を歩いていれば必ず野良男を誘惑
+  [glossary/low] D0000-S000099: approved glossary term was not preserved: 異端
+      SRC: 阿Q本来也是正人，我们虽然不知道他曾蒙什么明师指授过，但他对于『男女之大防』却历来非常严；也很有排斥异端——如小尼姑及假洋鬼子之类——的正气。他的学说是：凡尼姑，一定与和尚私通，一个女人在外面走，一定想引诱野男人；一男一女在那里讲话，一定要有勾当了。为惩治他们起见，所以他往往怒目而视，或者大声说几句
+      TGT: 阿Qももとは正義の人間であった。どのような名師に教えを請うたかは分からぬが、彼は『男女の大防』に関しては常に極めて厳格であり、また小尼姑や仮洋鬼子といった類いの異端を排斥する正義感にも満ちていた。彼の持論によれば、尼僧というものは必ず僧侶と密通しているものであり、女が外を歩いていれば必ず野良男を誘惑
+  [glossary/low] D0000-S000099: approved glossary term was not preserved: 誅心
+      SRC: 阿Q本来也是正人，我们虽然不知道他曾蒙什么明师指授过，但他对于『男女之大防』却历来非常严；也很有排斥异端——如小尼姑及假洋鬼子之类——的正气。他的学说是：凡尼姑，一定与和尚私通，一个女人在外面走，一定想引诱野男人；一男一女在那里讲话，一定要有勾当了。为惩治他们起见，所以他往往怒目而视，或者大声说几句
+      TGT: 阿Qももとは正義の人間であった。どのような名師に教えを請うたかは分からぬが、彼は『男女の大防』に関しては常に極めて厳格であり、また小尼姑や仮洋鬼子といった類いの異端を排斥する正義感にも満ちていた。彼の持論によれば、尼僧というものは必ず僧侶と密通しているものであり、女が外を歩いていれば必ず野良男を誘惑
+  [duplication/high] D0000-S000100: adjacent translated sentence is duplicated beyond source repetition
+      SRC: 谁知道他将到『而立』之年，竟被小尼姑害得飘飘然了。这飘飘然的精神，在礼教上是不应该有的，——所以女人真可恶，假使小尼姑的脸上不滑腻，阿Q便不至于被蛊，又假使小尼姑的脸上盖一层布，阿Q便也不至于被蛊了，——他五六年前，曾在戏台下的人丛中拧过一个女人的大腿，但因为隔一层裤，所以此后并不飘飘然，——而小尼
+      TGT: ところが、彼が『而立』の年に近づいた頃、あろうことか小尼姑に惑わされ、心ここにあらずとなってしまった。このような浮ついた精神は、礼教に照らせばあってはならぬことである。――ゆえに女とは実に憎いものだ。もし小尼姑の顔が滑らかでなかったなら、阿Qが魅了されることはなかっただろうし、また、もし小尼姑の顔に
+  [glossary/medium] D0000-S000100: approved glossary term was not preserved: 小尼姑
+      SRC: 谁知道他将到『而立』之年，竟被小尼姑害得飘飘然了。这飘飘然的精神，在礼教上是不应该有的，——所以女人真可恶，假使小尼姑的脸上不滑腻，阿Q便不至于被蛊，又假使小尼姑的脸上盖一层布，阿Q便也不至于被蛊了，——他五六年前，曾在戏台下的人丛中拧过一个女人的大腿，但因为隔一层裤，所以此后并不飘飘然，——而小尼
+      TGT: ところが、彼が『而立』の年に近づいた頃、あろうことか小尼姑に惑わされ、心ここにあらずとなってしまった。このような浮ついた精神は、礼教に照らせばあってはならぬことである。――ゆえに女とは実に憎いものだ。もし小尼姑の顔が滑らかでなかったなら、阿Qが魅了されることはなかっただろうし、また、もし小尼姑の顔に
+  [glossary/low] D0000-S000100: approved glossary term was not preserved: 異端
+      SRC: 谁知道他将到『而立』之年，竟被小尼姑害得飘飘然了。这飘飘然的精神，在礼教上是不应该有的，——所以女人真可恶，假使小尼姑的脸上不滑腻，阿Q便不至于被蛊，又假使小尼姑的脸上盖一层布，阿Q便也不至于被蛊了，——他五六年前，曾在戏台下的人丛中拧过一个女人的大腿，但因为隔一层裤，所以此后并不飘飘然，——而小尼
+      TGT: ところが、彼が『而立』の年に近づいた頃、あろうことか小尼姑に惑わされ、心ここにあらずとなってしまった。このような浮ついた精神は、礼教に照らせばあってはならぬことである。――ゆえに女とは実に憎いものだ。もし小尼姑の顔が滑らかでなかったなら、阿Qが魅了されることはなかっただろうし、また、もし小尼姑の顔に
+  [glossary/medium] D0000-S000101: approved glossary term was not preserved: 阿Q
+      SRC: 『女……』阿Q想。
+      TGT: 『女……』と阿Qは思った。
+  [glossary/medium] D0000-S000103: approved glossary term was not preserved: 趙太爺
+      SRC: 这一天，阿Q在赵太爷家里舂了一天米，吃过晚饭，便坐在厨房里吸旱烟。倘在别家，吃过晚饭本可以回去的了，但赵府上晚饭早，虽说定例不准掌灯，一吃完便睡觉，然而偶然也有一些例外：其一、是赵太爷未进秀才的时候，准其点灯读文章；其二、便是阿Q来做短工的时候，准其点灯舂米。因为这一条例外，所以阿Q在动手舂米之前，
+      TGT: ある日のこと、阿Qは趙太爺の家で一日中米を突き、夕食を済ませると、台所に座って乾煙草を吸っていた。他の家であれば、夕食後にはもう帰ってもいいはずだが、趙府の夕食は早く、定例では灯明を禁じ、食べ終えたらすぐに寝ることになっている。しかし、たまに例外がある。一つは、趙太爺が秀才になる前、灯明を点けて文章
+  [glossary/low] D0000-S000103: approved glossary term was not preserved: 文
+      SRC: 这一天，阿Q在赵太爷家里舂了一天米，吃过晚饭，便坐在厨房里吸旱烟。倘在别家，吃过晚饭本可以回去的了，但赵府上晚饭早，虽说定例不准掌灯，一吃完便睡觉，然而偶然也有一些例外：其一、是赵太爷未进秀才的时候，准其点灯读文章；其二、便是阿Q来做短工的时候，准其点灯舂米。因为这一条例外，所以阿Q在动手舂米之前，
+      TGT: ある日のこと、阿Qは趙太爺の家で一日中米を突き、夕食を済ませると、台所に座って乾煙草を吸っていた。他の家であれば、夕食後にはもう帰ってもいいはずだが、趙府の夕食は早く、定例では灯明を禁じ、食べ終えたらすぐに寝ることになっている。しかし、たまに例外がある。一つは、趙太爺が秀才になる前、灯明を点けて文章
+  [glossary/low] D0000-S000103: approved glossary term was not preserved: 短工
+      SRC: 这一天，阿Q在赵太爷家里舂了一天米，吃过晚饭，便坐在厨房里吸旱烟。倘在别家，吃过晚饭本可以回去的了，但赵府上晚饭早，虽说定例不准掌灯，一吃完便睡觉，然而偶然也有一些例外：其一、是赵太爷未进秀才的时候，准其点灯读文章；其二、便是阿Q来做短工的时候，准其点灯舂米。因为这一条例外，所以阿Q在动手舂米之前，
+      TGT: ある日のこと、阿Qは趙太爺の家で一日中米を突き、夕食を済ませると、台所に座って乾煙草を吸っていた。他の家であれば、夕食後にはもう帰ってもいいはずだが、趙府の夕食は早く、定例では灯明を禁じ、食べ終えたらすぐに寝ることになっている。しかし、たまに例外がある。一つは、趙太爺が秀才になる前、灯明を点けて文章
+  [glossary/low] D0000-S000103: approved glossary term was not preserved: 秀才
+      SRC: 这一天，阿Q在赵太爷家里舂了一天米，吃过晚饭，便坐在厨房里吸旱烟。倘在别家，吃过晚饭本可以回去的了，但赵府上晚饭早，虽说定例不准掌灯，一吃完便睡觉，然而偶然也有一些例外：其一、是赵太爷未进秀才的时候，准其点灯读文章；其二、便是阿Q来做短工的时候，准其点灯舂米。因为这一条例外，所以阿Q在动手舂米之前，
+      TGT: ある日のこと、阿Qは趙太爺の家で一日中米を突き、夕食を済ませると、台所に座って乾煙草を吸っていた。他の家であれば、夕食後にはもう帰ってもいいはずだが、趙府の夕食は早く、定例では灯明を禁じ、食べ終えたらすぐに寝ることになっている。しかし、たまに例外がある。一つは、趙太爺が秀才になる前、灯明を点けて文章
+  [glossary/medium] D0000-S000104: approved glossary term was not preserved: 趙太爺
+      SRC: 吴妈，是赵太爷家里唯一的女仆，洗完了碗碟，也就在长凳上坐下了，而且和阿Q谈闲天：
+      TGT: 呉媽は、趙太爺の家で唯一の女中であり、皿洗いを終えると長椅子に腰を下ろし、阿Qと世間話を始めた。
+  [glossary/medium] D0000-S000104: approved glossary term was not preserved: 阿Q
+      SRC: 吴妈，是赵太爷家里唯一的女仆，洗完了碗碟，也就在长凳上坐下了，而且和阿Q谈闲天：
+      TGT: 呉媽は、趙太爺の家で唯一の女中であり、皿洗いを終えると長椅子に腰を下ろし、阿Qと世間話を始めた。
+  [glossary/medium] D0000-S000106: approved glossary term was not preserved: 阿Q
+      SRC: 『女人……吴妈……这小孤孀……』阿Q想。
+      TGT: 『女だ……呉媽……この独身女め……』阿Qは思った。
+  [glossary/medium] D0000-S000107: approved glossary term was not preserved: 少奶奶
+      SRC: 『我们的少奶奶是八月里要生孩子了……』
+      TGT: 「うちの少奶奶は、八月に子供を産む予定なのです……」
+  [addition/medium] D0000-S000108: translation/source token ratio is unusually high: 7.75
+      SRC: 『女人……』阿Q想。
+      TGT: 「女……」と阿Qは思った。
+  [glossary/medium] D0000-S000108: approved glossary term was not preserved: 阿Q
+      SRC: 『女人……』阿Q想。
+      TGT: 「女……」と阿Qは思った。
+  [addition/medium] D0000-S000109: translation/source token ratio is unusually high: 4.27
+      SRC: 阿Q放下烟管，站了起来。
+      TGT: 阿Qは煙管を置き、立ち上がった。
+  [glossary/medium] D0000-S000109: approved glossary term was not preserved: 阿Q
+      SRC: 阿Q放下烟管，站了起来。
+      TGT: 阿Qは煙管を置き、立ち上がった。
+  [glossary/medium] D0000-S000110: approved glossary term was not preserved: 呉媽
+      SRC: 『我们的少奶奶……』吴妈还唠叨说。
+      TGT: 「私たちの少奶奶は……」と呉媽はさらにぶつぶつと言った。
+  [glossary/medium] D0000-S000110: approved glossary term was not preserved: 少奶奶
+      SRC: 『我们的少奶奶……』吴妈还唠叨说。
+      TGT: 「私たちの少奶奶は……」と呉媽はさらにぶつぶつと言った。
+  [addition/medium] D0000-S000112: translation/source token ratio is unusually high: 5.00
+      SRC: 一刹时中很寂然。
+      TGT: 一時はしり、しんと静まりかえった。
+  [glossary/medium] D0000-S000113: approved glossary term was not preserved: 呉媽
+      SRC: 『阿呀！』吴妈楞了一息，突然发抖，大叫着往外跑，且跑且嚷，似乎后来带哭了。
+      TGT: 「ああ！」呉媽は一瞬呆然としたが、突然震えだし、大声を上げて外へ走り出した。走りながら叫び続け、ついには泣き出したようであった。
+  [glossary/medium] D0000-S000114: approved glossary term was not preserved: 阿Q
+      SRC: 阿Q对了墙壁跪着也发楞，于是两手扶着空板凳，慢慢的站起来，仿佛觉得有些糟。他这时确也有些忐忑了，慌张的将烟管插在裤带上，就想去舂米。蓬的一声，头上着了很粗的一下，他急忙回转身去，那秀才便拿了一枝大竹杠站在他面前。
+      TGT: 阿Qは壁に向かって跪いたまま呆然としていたが、やがて両手で空の椅子を支えに、ゆっくりと立ち上がった。どうも状況が悪そうだと感じた。この時、彼は確かにいくらか不安になり、慌てて煙管を帯に差し込むと、米を舂こうとした。その時、ポンと大きな音がして、頭に激しく一撃を受けた。彼が急いで振り返ると、そこには秀
+  [glossary/low] D0000-S000114: approved glossary term was not preserved: 大竹杠
+      SRC: 阿Q对了墙壁跪着也发楞，于是两手扶着空板凳，慢慢的站起来，仿佛觉得有些糟。他这时确也有些忐忑了，慌张的将烟管插在裤带上，就想去舂米。蓬的一声，头上着了很粗的一下，他急忙回转身去，那秀才便拿了一枝大竹杠站在他面前。
+      TGT: 阿Qは壁に向かって跪いたまま呆然としていたが、やがて両手で空の椅子を支えに、ゆっくりと立ち上がった。どうも状況が悪そうだと感じた。この時、彼は確かにいくらか不安になり、慌てて煙管を帯に差し込むと、米を舂こうとした。その時、ポンと大きな音がして、頭に激しく一撃を受けた。彼が急いで振り返ると、そこには秀
+  [glossary/low] D0000-S000114: approved glossary term was not preserved: 秀才
+      SRC: 阿Q对了墙壁跪着也发楞，于是两手扶着空板凳，慢慢的站起来，仿佛觉得有些糟。他这时确也有些忐忑了，慌张的将烟管插在裤带上，就想去舂米。蓬的一声，头上着了很粗的一下，他急忙回转身去，那秀才便拿了一枝大竹杠站在他面前。
+      TGT: 阿Qは壁に向かって跪いたまま呆然としていたが、やがて両手で空の椅子を支えに、ゆっくりと立ち上がった。どうも状況が悪そうだと感じた。この時、彼は確かにいくらか不安になり、慌てて煙管を帯に差し込むと、米を舂こうとした。その時、ポンと大きな音がして、頭に激しく一撃を受けた。彼が急いで振り返ると、そこには秀
+  [glossary/low] D0000-S000117: approved glossary term was not preserved: 秀才
+      SRC: 『忘八蛋！』秀才在后面用了官话这样骂。
+      TGT: 小尼姑は、阿Qの言葉を聞き、涙を流した。彼女は、阿Qを許した。
+  [mistranslation/high] D0000-S000119: translation may be another passage's, or leaves most of this one out: it has 1 of the 7 approved terms in this passage
+      SRC: 脱下衣服的时候，他听得外面很热闹，阿Q生平本来最爱看热闹，便即寻声走出去了。寻声渐渐的寻到赵太爷的内院里，虽然在昏黄中，却辨得出许多人，赵府一家连两日不吃饭的太太也在内，还有间壁的邹七嫂，真正本家的赵白眼，赵司晨。
+      TGT: 服を脱いでいると、外がにぎやかなのが聞こえてきた。阿Qはもともと人騒動を見るのが何より好きだったので、すぐに音の方へ歩き出した。音を辿っていくうちに、いつの間にか趙太爺の内庭まで来ていた。薄暗い中ではあったが、大勢の人がいるのが分かった。趙府の一家で、二日も食事をしていない奥様もいれば、隣家の鄒七嫂
+  [glossary/medium] D0000-S000119: approved glossary term was not preserved: 趙司晨
+      SRC: 脱下衣服的时候，他听得外面很热闹，阿Q生平本来最爱看热闹，便即寻声走出去了。寻声渐渐的寻到赵太爷的内院里，虽然在昏黄中，却辨得出许多人，赵府一家连两日不吃饭的太太也在内，还有间壁的邹七嫂，真正本家的赵白眼，赵司晨。
+      TGT: 服を脱いでいると、外がにぎやかなのが聞こえてきた。阿Qはもともと人騒動を見るのが何より好きだったので、すぐに音の方へ歩き出した。音を辿っていくうちに、いつの間にか趙太爺の内庭まで来ていた。薄暗い中ではあったが、大勢の人がいるのが分かった。趙府の一家で、二日も食事をしていない奥様もいれば、隣家の鄒七嫂
+  [glossary/medium] D0000-S000119: approved glossary term was not preserved: 趙太爺
+      SRC: 脱下衣服的时候，他听得外面很热闹，阿Q生平本来最爱看热闹，便即寻声走出去了。寻声渐渐的寻到赵太爷的内院里，虽然在昏黄中，却辨得出许多人，赵府一家连两日不吃饭的太太也在内，还有间壁的邹七嫂，真正本家的赵白眼，赵司晨。
+      TGT: 服を脱いでいると、外がにぎやかなのが聞こえてきた。阿Qはもともと人騒動を見るのが何より好きだったので、すぐに音の方へ歩き出した。音を辿っていくうちに、いつの間にか趙太爺の内庭まで来ていた。薄暗い中ではあったが、大勢の人がいるのが分かった。趙府の一家で、二日も食事をしていない奥様もいれば、隣家の鄒七嫂
+  [glossary/medium] D0000-S000119: approved glossary term was not preserved: 趙府
+      SRC: 脱下衣服的时候，他听得外面很热闹，阿Q生平本来最爱看热闹，便即寻声走出去了。寻声渐渐的寻到赵太爷的内院里，虽然在昏黄中，却辨得出许多人，赵府一家连两日不吃饭的太太也在内，还有间壁的邹七嫂，真正本家的赵白眼，赵司晨。
+      TGT: 服を脱いでいると、外がにぎやかなのが聞こえてきた。阿Qはもともと人騒動を見るのが何より好きだったので、すぐに音の方へ歩き出した。音を辿っていくうちに、いつの間にか趙太爺の内庭まで来ていた。薄暗い中ではあったが、大勢の人がいるのが分かった。趙府の一家で、二日も食事をしていない奥様もいれば、隣家の鄒七嫂
+  [glossary/medium] D0000-S000119: approved glossary term was not preserved: 趙白眼
+      SRC: 脱下衣服的时候，他听得外面很热闹，阿Q生平本来最爱看热闹，便即寻声走出去了。寻声渐渐的寻到赵太爷的内院里，虽然在昏黄中，却辨得出许多人，赵府一家连两日不吃饭的太太也在内，还有间壁的邹七嫂，真正本家的赵白眼，赵司晨。
+      TGT: 服を脱いでいると、外がにぎやかなのが聞こえてきた。阿Qはもともと人騒動を見るのが何より好きだったので、すぐに音の方へ歩き出した。音を辿っていくうちに、いつの間にか趙太爺の内庭まで来ていた。薄暗い中ではあったが、大勢の人がいるのが分かった。趙府の一家で、二日も食事をしていない奥様もいれば、隣家の鄒七嫂
+  [glossary/medium] D0000-S000119: approved glossary term was not preserved: 鄒七嫂
+      SRC: 脱下衣服的时候，他听得外面很热闹，阿Q生平本来最爱看热闹，便即寻声走出去了。寻声渐渐的寻到赵太爷的内院里，虽然在昏黄中，却辨得出许多人，赵府一家连两日不吃饭的太太也在内，还有间壁的邹七嫂，真正本家的赵白眼，赵司晨。
+      TGT: 服を脱いでいると、外がにぎやかなのが聞こえてきた。阿Qはもともと人騒動を見るのが何より好きだったので、すぐに音の方へ歩き出した。音を辿っていくうちに、いつの間にか趙太爺の内庭まで来ていた。薄暗い中ではあったが、大勢の人がいるのが分かった。趙府の一家で、二日も食事をしていない奥様もいれば、隣家の鄒七嫂
+  [glossary/low] D0000-S000119: approved glossary term was not preserved: 本家
+      SRC: 脱下衣服的时候，他听得外面很热闹，阿Q生平本来最爱看热闹，便即寻声走出去了。寻声渐渐的寻到赵太爷的内院里，虽然在昏黄中，却辨得出许多人，赵府一家连两日不吃饭的太太也在内，还有间壁的邹七嫂，真正本家的赵白眼，赵司晨。
+      TGT: 服を脱いでいると、外がにぎやかなのが聞こえてきた。阿Qはもともと人騒動を見るのが何より好きだったので、すぐに音の方へ歩き出した。音を辿っていくうちに、いつの間にか趙太爺の内庭まで来ていた。薄暗い中ではあったが、大勢の人がいるのが分かった。趙府の一家で、二日も食事をしていない奥様もいれば、隣家の鄒七嫂
+  [glossary/medium] D0000-S000120: approved glossary term was not preserved: 少奶奶
+      SRC: 少奶奶正拖着吴妈走出下房来，一面说：
+      TGT: 少奶奶が呉媽を引き連れて下房から出てくるところであり、同時にこう言っていた。
+  [glossary/medium] D0000-S000122: approved glossary term was not preserved: 鄒七嫂
+      SRC: 『谁不知道你正经，……短见是万万寻不得的。』邹七嫂也从旁说：
+      TGT: 「あんたが真面目なのは誰もが知っているわ。……短慮なことだけは、絶対に避けなきゃならない」鄒七嫂も傍から口を添えた。
+  [glossary/medium] D0000-S000123: approved glossary term was not preserved: 呉媽
+      SRC: 吴妈只是哭，夹些话，却不甚听得分明。
+      TGT: 呉媽はただ泣き叫び、言葉を挟んではいたが、はっきりとは聞き取れなかった。
+  [glossary/low] D0000-S000156: approved glossary term was not preserved: 草芥と見る
+      SRC: 阿Q仿佛文童落第似的觉得很冤屈，他慢慢走近园门去，忽而非常惊喜了，这分明是一畦老萝卜。他于是蹲下便拔，而门口突然伸出一个很圆的头来，又即缩回去了，这分明是小尼姑。小尼姑之流是阿Q本来视若草芥的，但世事须『退一步想』，所以他便赶紧拔起四个萝卜，拧下青叶，兜在大襟里。然而老尼姑已经出来了！
+      TGT: 阿Qはまるで文童の落第のように非常に不運を感じ、ゆっくりと園門に近づいた。突然、非常に驚き喜んだ。これは明らかに一畝の大根だった。彼はそこでしゃがみ込み、抜こうとしたが、門口に突然非常に丸い頭が伸び出て、すぐに引っ込めた。これは明らかに小尼姑だった。小尼姑のような者は、阿Qは本来草芥と見ていたが、世
+  [glossary/low] D0000-S000161: approved glossary term was not preserved: 人和
+      SRC: 阿Q没有说完话，拔步便跑；追来的是一匹很肥大的黑狗。这本来在前门的，不知怎的到后园来了。黑狗哼而且追，已经要咬着阿Q的腿，幸而从衣兜里落下一个萝卜来，那狗给一吓，略略一停，阿Q已经爬上桑树，跨到土墙，连人和萝卜都滚出墙外面了。只剩着黑狗还在对着桑树嗥，老尼姑念着佛。
+      TGT: 阿Qは言葉を終える前に、足を踏み出して走った。追ってきたのは、非常に肥えた黒犬だった。これは本来前門にいたが、どうして後園に来たのか分からない。黒犬は唸りながら追いかけて、すでに阿Qの足を噛もうとしていたが、幸いにも衣襟から一つの大根が落ち、その犬は少し驚いて、少し止まり、阿Qはすでに桑の木に登り、
+-- semantic findings (first 8)
+  [mistranslation/high] D0000-S000007: The translation fails to capture the specific direction of the kinship claim. Source: '你说我是你的本家么？' (You said I am your kinsman?). Translation: 'お前が私の本家だと言ったのか？' (You said you are my kinsman?).
+  [mistranslation/medium] D0000-S000009: The translation 'お前がそんなことを言うとは！' (That you would say such a thing!) fails to capture the specific meaning of '胡说' (to talk nonsense/lie). The source is an accusation of lying or speaking recklessly, w
+  [mistranslation/medium] D0000-S000011: The translation of '你怎么会姓赵' as 'ありえない' (impossible/unthinkable) shifts the meaning from a question of 'how' or 'by what means' the subject could possibly possess the surname to a flat denial of possib
+  [mistranslation/medium] D0000-S000015: The translation '無理に解釈する必要がない' (no need to interpret forcibly) fails to capture the specific meaning of '附会假借' in this context. '附会' refers to forced alignment or concocting a justification, and '假借' 
+  [omission/medium] D0000-S000019: The translation omits the source's dash (——), which indicates a sudden break or shift in thought/emphasis before the comparison. The instructions state that a source phrase cut off by a dash is not an
+  [mistranslation/high] D0000-S000029: The translation renders the action as a mutual fight ('殴り合い'), whereas the source describes a one-sided provocation leading to a beating.
+  [mistranslation/medium] D0000-S000033: The source '打' in this context refers to the act of hitting/beating as a proposal or a question of 'Shall we beat...?', whereas '殴る' as a plain present tense verb in the translation '虫豸を殴る' functions 
+  [mistranslation/medium] D0000-S000034: The translation renders '就近什么地方' (some nearby place) as '近所のどこかで' (somewhere in the neighborhood). In this context, '就近' refers to the immediate vicinity of the current spot rather than a general resi
+  [mistranslation/high] D0000-S000040: The translation of '失败' as '破産' is a concrete error in factual state.
+  [mistranslation/high] D0000-S000042: The source quote 『天门两块！』 refers to a bet of two coins on 'Tianmen'. The translation provides a chapter title.
+  [mistranslation/high] D0000-S000042: The translation fails to render the quantity '两块' (two pieces/coins).
+  [mistranslation/high] D0000-S000042: The translation fails to render the subject '天门' (天門).
+  [mistranslation/high] D0000-S000042: The translation is a complete failure of meaning. Suggested fix: Translate the bet as '「天門に二枚！」' or similar.
+  [mistranslation/high] D0000-S000042: The translation is a total hallucination/placeholder and does not reflect the source meaning.
+  [mistranslation/high] D0000-S000044: The translation is a complete hallucination. It describes a sequence of events involving a village head (地保), payment for alcohol, and a relationship with Zhao Taiye, none of which exist in the source
+  [mistranslation/high] D0000-S000051: The translation converts a state of social status/satisfaction ('得意', meaning proud, smug, or enjoying a period of success/influence) into a state of domestic happiness/well-being ('幸せに暮らした', meaning 
+  [omission/high] D0000-S000052: The translation omits the final three sentences of the segment, which describe Ah Q sitting down next to Wang Hu and his internal justification for doing so.
+  [mistranslation/high] D0000-S000058: The translation misidentifies the subject and nature of the 'beating' (打惯的闲人们). The source refers to 'idle people whom [Ah Q] is used to being beaten by' (or who are used to fighting), whereas the tra
+  [mistranslation/high] D0000-S000064: The translation omits the specific causal relationship regarding the 'beard' (络腮胡子). The source states that Ah Q used to ridicule Wang Hu for his beard, but Wang Hu never reciprocated. The translation
+  [mistranslation/medium] D0000-S000065: The translation '立ち尽くした' (stood still/frozen) implies a state of being paralyzed or remaining in place, whereas the source '站着' describes the simple physical state of standing. While '呆然' captures '无可
+  [glossary/high] D0000-S000068: The translation fails to use the mandatory glossary rendering for '假洋鬼子'.
+  [mistranslation/medium] D0000-S000071: The translation fails to render the specific nuance of '分辩' (fēnbiàn), which implies arguing one's case, explaining oneself to clear a misunderstanding, or pleading. The current translation '言った' (sai
+  [glossary/medium] D0000-S000075: The translation uses '不運' instead of the mandatory glossary term '晦気' for the source '晦气'.
+  [mistranslation/medium] D0000-S000078: The source '全不睬' (completely ignored/paid no attention to) is translated as '全くとぼけ' (completely played dumb/feigned ignorance), which incorrectly attributes a deceptive intent to the subject rather th
+  [mistranslation/high] D0000-S000082: The source verb '动' (dòng) in this context refers to the act of touching or moving someone/something, but the translation '触れる' (fureru) in Japanese often implies a light touch or contact. More critic
+  [mistranslation/high] D0000-S000089: The translation renders '没有这样乏' (not this tired/bored/weary) as 'そうして疲弊することはなく' (not exhausted/depleted in that way). In this context, '乏' refers to the psychological weariness or the 'burden' of the 
+  [mistranslation/medium] D0000-S000090: The translation renders the source '看哪，他飘飘然的似乎要飞去了！' as '看哪，他飄々として飛んでいくかのようだった！'. The source is an exclamation of a current state; the translation is a retrospective narrative statement.
+  [mistranslation/high] D0000-S000092: The translation is a total failure of fidelity; it does not translate the source text at all.
+  [untranslated/high] D0000-S000095: The translation omits the first part of the source fragment regarding the monk.
+  [mistranslation/high] D0000-S000105: The translation is a complete hallucination. The source text describes the mistress not eating for two days because the master wants to buy a concubine/small wife, whereas the translation discusses so
+  [untranslated/high] D0000-S000123: The translation fails to render any part of the source text.
+  [mistranslation/high] D0000-S000126: The translation '調子に乗って' (to get carried away/cocky) fails to capture the meaning of '调戏' (to tease/flirt with/harass), which in this context refers to a specific action of misconduct toward the serva
+  [mistranslation/medium] D0000-S000136: The translation '他の人に倣って隠れ' (hid following other people) fails to capture the specific nuance of '乱钻' (scurrying/darting about frantically), which implies a chaotic or hurried movement rather than mer
+  [mistranslation/medium] D0000-S000137: The translation '文句を言われればそれでいい' (if I am complained to, that is fine) incorrectly renders '噜苏一通也就算了'. The source '噜苏' refers to the old man's rambling or tedious manner of speaking, not the act of the
+  [mistranslation/medium] D0000-S000138: The translation renders '探问' (to inquire/ask around) as '尋ねに行かなければならなかった' (had to go and visit/ask), but fails to capture the specific nuance of '探问' in this context, which is to inquire about the ava
+  [mistranslation/medium] D0000-S000146: The translation renders '好了，好了' as 'よし、よし', which in Japanese typically functions as a soothing phrase used by a superior to a child or a subordinate (similar to 'there, there'). In this context, the 
+  [mistranslation/medium] D0000-S000151: The translation '誰も特に議論しなかった' (nobody specifically discussed/argued) is a mistranslation of '都没有发什么议论'. In this context, '议论' refers to comments, remarks, or gossip regarding the fight, rather than a 
+  [mistranslation/medium] D0000-S000152: The translation '大金' (large sum of money) is an unsupported addition of magnitude. The source '一注钱' refers to a sum/amount of money without specifying it as a 'large' amount; in the context of 阿Q's po
+  [mistranslation/low] D0000-S000152: The translation '四周' is a literal transliteration of the Chinese characters for 'four directions/surroundings' and is not natural Japanese prose in this context. It should be rendered as a natural Jap
+  [mistranslation/medium] D0000-S000153: The translation renders '走过了' as '通り過ぎた' (passed by), which describes the physical movement past the locations. However, in this context, '走过了' indicates that he continued walking past them without st
+-- consistency report
+  {"enabled": true, "document_count": 1, "segment_count": 163, "issue_count": 0, "repair_count": 0, "by_severity": {}, "documents_with_issues": {}}
+-- review queue and validations
+  queue: ['D0000-S000064']
+  D0000-S000064 SRC: 在阿Q的记忆上，这大约要算是生平第一件的屈辱，因为王胡以络腮胡子的缺点，向来只被他奚落，从没有奚落他，更不必说动手了。而他现在竟动手，很意外，难道真如市上所说，皇帝已经停了考，不要秀才和举人了，因此赵家减了威风。因此他们也便小觑了他么？
+  D0000-S000064 TGT: 阿Qの記憶の中で、これは彼がこれまで受けた屈辱の中で最も深刻なものだった。なぜなら、王胡は、これまで彼を罵倒したことはなく、ましてや手を出したこともなかったからだ。そして今、彼は手を出した。もしかしたら、それは、街で言われているように、皇帝が科挙を停止し、秀才や挙人ではなくなったため、趙家の威厳が低下したからだろうか。そのため、彼らは阿Qを見下すようになったのだろうか。
+-- cost by stage (calls / min)
+  audit_translation: 162 calls, 39.4 min, prompt 168283, output 57385
+  translate: 10 calls, 19.9 min, prompt 56651, output 48414
+  repair_translation: 75 calls, 8.0 min, prompt 89420, output 10555
+  extract_glossary: 3 calls, 3.0 min, prompt 24829, output 16064
+  resolve_glossary: 1 calls, 1.5 min, prompt 10244, output 8649
+  review_repaired: 4 calls, 0.6 min, prompt 17813, output 2472
+  approve_glossary: 2 calls, 0.5 min, prompt 4680, output 1608
+  repair_review: 4 calls, 0.4 min, prompt 6605, output 506
+  validate_repaired: 1 calls, 0.3 min, prompt 1370, output 63

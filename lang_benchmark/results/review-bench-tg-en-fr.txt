@@ -1,0 +1,126 @@
+
+======== bench-tg-en-fr
+segments 145; longest D0000-S000011: source 980 chars, translation 1208 chars
+  longest translation head: En bas, en bas, en bas. Il n’y avait rien d’autre à faire, alors Alice se remit bientôt à parler. « Dinah va beaucoup me manquer ce soir, je pense ! » (Dinah était le chat.) « J’espère qu’ils se souvi
+  longest translation tail: it très sérieusement : « Maintenant, Dinah, dis-moi la vérité : as-tu déjà mangé une chauve-souris ? » quand, soudain, elle tomba sur un tas de branches et de feuilles mortes, et la chute était finie.
+-- rule findings (all)
+  [glossary/low] D0000-S000007: approved glossary term was not preserved: CONFITURE D'ORANGE
+      SRC: Either the well was very deep, or she fell very slowly, for she had plenty of time as she went down to look about her and to wonder what was going to 
+      TGT: Soit le puits était très profond, soit elle tombait très lentement, car elle eut amplement le temps, pendant sa descente, de regarder autour d’elle et
+  [mistranslation/high] D0001-S000008: numeric content differs from source: The quantity of tears is changed from 'gallons' (SOURCE) to 'litres' (TRANSLATION). While both are larg
+      SRC: “You ought to be ashamed of yourself,” said Alice, “a great girl like you,” (she might well say this), “to go on crying in this way! Stop this moment,
+      TGT: « Tu devrais avoir honte de toi », dit Alice, « une grande fille comme toi » (elle pouvait bien le dire), « à pleurer ainsi ! Arrête tout de suite, je
+  [mistranslation/high] D0001-S000014: numeric content differs from source: The source value 'two feet' (approx. 60.96 cm) is translated as 'soixante centimètres' (60 cm). While c
+      SRC: As she said this she looked down at her hands, and was surprised to see that she had put on one of the Rabbit’s little white kid gloves while she was 
+      TGT: Alors qu’elle disait cela, elle baissa les yeux sur ses mains et fut surprise de constater qu’elle avait enfilé l’un des petits gants de chevreau blan
+  [duplication/high] D0001-S000016: translation duplicates a different source segment: D0001-S000008
+      SRC: As she said these words her foot slipped, and in another moment, splash! she was up to her chin in salt water. Her first idea was that she had somehow
+      TGT: Tandis qu'elle prononçait ces mots, son pied glissa et, l'instant d'après, plouf ! elle se retrouva avec de l'eau salée jusqu'au menton. Sa première i
+  [glossary/low] D0001-S000016: approved glossary term was not preserved: étang de larmes
+      SRC: As she said these words her foot slipped, and in another moment, splash! she was up to her chin in salt water. Her first idea was that she had somehow
+      TGT: Tandis qu'elle prononçait ces mots, son pied glissa et, l'instant d'après, plouf ! elle se retrouva avec de l'eau salée jusqu'au menton. Sa première i
+  [glossary/medium] D0001-S000019: approved glossary term was not preserved: Alice
+      SRC: “Would it be of any use, now,” thought Alice, “to speak to this mouse? Everything is so out-of-the-way down here, that I should think very likely it c
+      TGT: « Serait-il utile, maintenant, » pensa Alice, « de parler à cette souris ? Tout est si inhabituel ici-bas que je pense qu'il est fort probable qu'elle
+  [glossary/low] D0001-S000019: approved glossary term was not preserved: Grammaire latine
+      SRC: “Would it be of any use, now,” thought Alice, “to speak to this mouse? Everything is so out-of-the-way down here, that I should think very likely it c
+      TGT: « Serait-il utile, maintenant, » pensa Alice, « de parler à cette souris ? Tout est si inhabituel ici-bas que je pense qu'il est fort probable qu'elle
+  [glossary/low] D0001-S000019: approved glossary term was not preserved: Souris
+      SRC: “Would it be of any use, now,” thought Alice, “to speak to this mouse? Everything is so out-of-the-way down here, that I should think very likely it c
+      TGT: « Serait-il utile, maintenant, » pensa Alice, « de parler à cette souris ? Tout est si inhabituel ici-bas que je pense qu'il est fort probable qu'elle
+  [glossary/medium] D0001-S000020: approved glossary term was not preserved: Alice
+      SRC: “Perhaps it doesn’t understand English,” thought Alice; “I daresay it’s a French mouse, come over with William the Conqueror.” (For, with all her know
+      TGT: « Peut-être qu'il ne comprend pas l'anglais », pensa Alice ; « je parie que c'est une souris française, venue avec Guillaume le Conquérant. » (Car, ma
+  [glossary/medium] D0001-S000020: approved glossary term was not preserved: Guillaume le Conquérant
+      SRC: “Perhaps it doesn’t understand English,” thought Alice; “I daresay it’s a French mouse, come over with William the Conqueror.” (For, with all her know
+      TGT: « Peut-être qu'il ne comprend pas l'anglais », pensa Alice ; « je parie que c'est une souris française, venue avec Guillaume le Conquérant. » (Car, ma
+  [glossary/low] D0001-S000020: approved glossary term was not preserved: Souris
+      SRC: “Perhaps it doesn’t understand English,” thought Alice; “I daresay it’s a French mouse, come over with William the Conqueror.” (For, with all her know
+      TGT: « Peut-être qu'il ne comprend pas l'anglais », pensa Alice ; « je parie que c'est une souris française, venue avec Guillaume le Conquérant. » (Car, ma
+  [glossary/low] D0001-S000020: approved glossary term was not preserved: livre de leçon de français
+      SRC: “Perhaps it doesn’t understand English,” thought Alice; “I daresay it’s a French mouse, come over with William the Conqueror.” (For, with all her know
+      TGT: « Peut-être qu'il ne comprend pas l'anglais », pensa Alice ; « je parie que c'est une souris française, venue avec Guillaume le Conquérant. » (Car, ma
+  [addition/medium] D0001-S000021: translation/source token ratio is unusually high: 7.26
+      SRC: “Not like cats!” cried the Mouse, in a shrill, passionate voice. “Would you like cats if you were me?”
+      TGT: « Pas aimer les chats ! » s'écria Souris, d'une voix aiguë et passionnée. « Aimeriez-vous les chats si vous étiez moi ? »
+  [glossary/low] D0001-S000021: approved glossary term was not preserved: Souris
+      SRC: “Not like cats!” cried the Mouse, in a shrill, passionate voice. “Would you like cats if you were me?”
+      TGT: « Pas aimer les chats ! » s'écria Souris, d'une voix aiguë et passionnée. « Aimeriez-vous les chats si vous étiez moi ? »
+  [glossary/medium] D0001-S000022: approved glossary term was not preserved: Alice
+      SRC: “Well, perhaps not,” said Alice in a soothing tone: “don’t be angry about it. And yet I wish I could show you our cat Dinah: I think you’d take a fanc
+      TGT: « Eh bien, peut-être pas », dit Alice d'un ton apaisant : « ne vous fâchez pas pour cela. Et pourtant, j'aimerais pouvoir vous montrer notre chatte Di
+  [glossary/medium] D0001-S000022: approved glossary term was not preserved: Dinah
+      SRC: “Well, perhaps not,” said Alice in a soothing tone: “don’t be angry about it. And yet I wish I could show you our cat Dinah: I think you’d take a fanc
+      TGT: « Eh bien, peut-être pas », dit Alice d'un ton apaisant : « ne vous fâchez pas pour cela. Et pourtant, j'aimerais pouvoir vous montrer notre chatte Di
+  [glossary/low] D0001-S000022: approved glossary term was not preserved: Souris
+      SRC: “Well, perhaps not,” said Alice in a soothing tone: “don’t be angry about it. And yet I wish I could show you our cat Dinah: I think you’d take a fanc
+      TGT: « Eh bien, peut-être pas », dit Alice d'un ton apaisant : « ne vous fâchez pas pour cela. Et pourtant, j'aimerais pouvoir vous montrer notre chatte Di
+  [duplication/high] D0001-S000024: translation duplicates a different source segment: D0001-S000008
+      SRC: “I won’t indeed!” said Alice, in a great hurry to change the subject of conversation. “Are you—are you fond—of—of dogs?” The Mouse did not answer, so 
+      TGT: « Tu devrais avoir honte de toi », dit Alice, « une grande fille comme toi » (elle pouvait bien le dire), « à pleurer ainsi ! Arrête tout de suite, je
+  [mistranslation/high] D0001-S000024: numeric content differs from source: The translation introduces several quantity-bearing facts not present in the source: a depth of "d'envi
+      SRC: “I won’t indeed!” said Alice, in a great hurry to change the subject of conversation. “Are you—are you fond—of—of dogs?” The Mouse did not answer, so 
+      TGT: « Tu devrais avoir honte de toi », dit Alice, « une grande fille comme toi » (elle pouvait bien le dire), « à pleurer ainsi ! Arrête tout de suite, je
+  [glossary/low] D0001-S000024: approved glossary term was not preserved: Souris
+      SRC: “I won’t indeed!” said Alice, in a great hurry to change the subject of conversation. “Are you—are you fond—of—of dogs?” The Mouse did not answer, so 
+      TGT: « Tu devrais avoir honte de toi », dit Alice, « une grande fille comme toi » (elle pouvait bien le dire), « à pleurer ainsi ! Arrête tout de suite, je
+  [duplication/high] D0001-S000025: translation duplicates a different source segment: D0001-S000009
+      SRC: So she called softly after it, “Mouse dear! Do come back again, and we won’t talk about cats or dogs either, if you don’t like them!” When the Mouse h
+      TGT: Elle l'appela donc doucement : « Cher Souris ! Revenez donc, et nous ne parlerons plus ni de chats ni de chiens, si vous ne les aimez pas ! » En enten
+  [glossary/low] D0001-S000025: approved glossary term was not preserved: Souris
+      SRC: So she called softly after it, “Mouse dear! Do come back again, and we won’t talk about cats or dogs either, if you don’t like them!” When the Mouse h
+      TGT: Elle l'appela donc doucement : « Cher Souris ! Revenez donc, et nous ne parlerons plus ni de chats ni de chiens, si vous ne les aimez pas ! » En enten
+  [duplication/high] D0001-S000026: translation duplicates a different source segment: D0001-S000018
+      SRC: It was high time to go, for the pool was getting quite crowded with the birds and animals that had fallen into it: there were a Duck and a Dodo, a Lor
+      TGT: Il était grand temps de partir, car la mare devenait fort encombrée d'oiseaux et d'animaux qui y étaient tombés : on y trouvait un Canard et un Dodo, 
+  [glossary/medium] D0001-S000026: approved glossary term was not preserved: Aiglon
+      SRC: It was high time to go, for the pool was getting quite crowded with the birds and animals that had fallen into it: there were a Duck and a Dodo, a Lor
+      TGT: Il était grand temps de partir, car la mare devenait fort encombrée d'oiseaux et d'animaux qui y étaient tombés : on y trouvait un Canard et un Dodo, 
+  [glossary/medium] D0001-S000026: approved glossary term was not preserved: Canard
+      SRC: It was high time to go, for the pool was getting quite crowded with the birds and animals that had fallen into it: there were a Duck and a Dodo, a Lor
+      TGT: Il était grand temps de partir, car la mare devenait fort encombrée d'oiseaux et d'animaux qui y étaient tombés : on y trouvait un Canard et un Dodo, 
+  [glossary/medium] D0001-S000026: approved glossary term was not preserved: Dodo
+      SRC: It was high time to go, for the pool was getting quite crowded with the birds and animals that had fallen into it: there were a Duck and a Dodo, a Lor
+      TGT: Il était grand temps de partir, car la mare devenait fort encombrée d'oiseaux et d'animaux qui y étaient tombés : on y trouvait un Canard et un Dodo, 
+  [glossary/medium] D0001-S000026: approved glossary term was not preserved: Lori
+      SRC: It was high time to go, for the pool was getting quite crowded with the birds and animals that had fallen into it: there were a Duck and a Dodo, a Lor
+      TGT: Il était grand temps de partir, car la mare devenait fort encombrée d'oiseaux et d'animaux qui y étaient tombés : on y trouvait un Canard et un Dodo, 
+  [glossary/medium] D0003-S000001: approved glossary term was not preserved: Bill
+      SRC: CHAPTER IV. The Rabbit Sends in a Little Bill
+      TGT: CHAPITRE IV. Le Lapin envoie le petit Bill
+  [glossary/low] D0003-S000043: approved glossary term was not preserved: chenille
+      SRC: She stretched herself up on tiptoe, and peeped over the edge of the mushroom, and her eyes immediately met those of a large blue caterpillar, that was
+      TGT: Elle se dressa sur la pointe des pieds et regarda par-dessus le bord du champignon, et ses yeux rencontrèrent immédiatement ceux d’une grande chenille
+-- semantic findings (first 8)
+  [structure/high] D0000-S000004: The translation contains a concrete grammatical error in the subject-verb agreement and pronoun usage. The phrase 'ni Alice ne trouvait-il' uses the masculine pronoun 'il' to refer to Alice, and the c
+  [mistranslation/medium] D0000-S000007: The translation 'blesser quelqu’un' (to injure someone) is a factual deviation from 'killing somebody'. The source specifies a lethal outcome, whereas the translation reduces it to a general injury.
+  [mistranslation/medium] D0001-S000014: Gender agreement error: 'gants' is a masculine noun in French, but the preceding adjective 'petites' is feminine.
+  [mistranslation/high] D0001-S000016: The translation introduces a measurement ('dix centimètres de profondeur') and a location ('la moitié du hall') that do not exist in the source text.
+  [mistranslation/high] D0001-S000016: The translation is a complete hallucination. It replaces the entire narrative of Alice slipping into salt water and reflecting on the English coast with a dialogue where Alice scolds herself for cryin
+  [omission/high] D0001-S000016: The entire parenthetical reflection regarding the English coast, bathing machines, and railway stations is omitted.
+  [glossary/medium] D0001-S000016: The translation uses 'grande mare' instead of the mandatory glossary term 'étang de larmes'.
+  [mistranslation/high] D0003-S000001: The translation fails to maintain the proper noun status of 'Bill', turning a person/character into an object (a message).
+  [glossary/high] D0003-S000043: The translation uses 'papillon' (butterfly) instead of the mandatory glossary term 'chenille' for 'caterpillar'.
+-- consistency report
+  {"enabled": true, "document_count": 4, "segment_count": 145, "issue_count": 7, "repair_count": 0, "by_severity": {"low": 7}, "documents_with_issues": {"item5": 5, "item6": 1, "item7": 1}}
+  FILE 0001-item5.consistency.json {"segment_id": "D0001-S000011", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Oh dear!\" as \"Ma parole !\", but this translation does not use it.", "suggested_fix": "Render \"Oh dear!\" as \"Ma parole !\".", "source": "consistency", "source_quote": "Oh dear!", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0001-item5.consistency.json {"segment_id": "D0001-S000013", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Oh dear!\" as \"Ma parole !\", but this translation does not use it.", "suggested_fix": "Render \"Oh dear!\" as \"Ma parole !\".", "source": "consistency", "source_quote": "Oh dear!", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0001-item5.consistency.json {"segment_id": "D0001-S000020", "category": "consistency", "severity": "low", "message": "The style sheet renders \"I beg your pardon!\" as \"Je vous prie de m'excuser !\", but this translation does not use it.", "suggested_fix": "Render \"I beg your pardon!\" as \"Je vous prie de m'excuser !\".", "source": "consistency", "source_quote": "I beg your pardon!", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0001-item5.consistency.json {"segment_id": "D0001-S000022", "category": "consistency", "severity": "low", "message": "The style sheet renders \"I beg your pardon!\" as \"Je vous prie de m'excuser !\", but this translation does not use it.", "suggested_fix": "Render \"I beg your pardon!\" as \"Je vous prie de m'excuser !\".", "source": "consistency", "source_quote": "I beg your pardon!", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0001-item5.consistency.json {"segment_id": "D0001-S000024", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Oh dear!\" as \"Ma parole !\", but this translation does not use it.", "suggested_fix": "Render \"Oh dear!\" as \"Ma parole !\".", "source": "consistency", "source_quote": "Oh dear!", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0002-item6.consistency.json {"segment_id": "D0002-S000007", "category": "consistency", "severity": "low", "message": "The style sheet renders \"I beg your pardon!\" as \"Je vous prie de m'excuser !\", but this translation does not use it.", "suggested_fix": "Render \"I beg your pardon!\" as \"Je vous prie de m'excuser !\".", "source": "consistency", "source_quote": "I beg your pardon!", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0003-item7.consistency.json {"segment_id": "D0003-S000041", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Oh dear!\" as \"Ma parole !\", but this translation does not use it.", "suggested_fix": "Render \"Oh dear!\" as \"Ma parole !\".", "source": "consistency", "source_quote": "Oh dear!", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+-- review queue and validations
+  queue: ['D0001-S000024']
+  D0001-S000024 SRC: “I won’t indeed!” said Alice, in a great hurry to change the subject of conversation. “Are you—are you fond—of—of dogs?” The Mouse did not answer, so Alice went on eagerly: “There is such a nice little dog near our house I should like to show you! A little bright-eyed terrier, you know, with oh, suc
+  D0001-S000024 TGT: « Tu devrais avoir honte de toi », dit Alice, « une grande fille comme toi » (elle pouvait bien le dire), « à pleurer ainsi ! Arrête tout de suite, je te le dis ! » Mais elle continua à pleurer, versant des litres de larmes, jusqu’à ce qu’il y ait une grande mare tout autour d’elle, d’environ dix ce
+-- cost by stage (calls / min)
+  translate: 21 calls, 17.9 min, prompt 80872, output 37600
+  audit_translation: 41 calls, 8.5 min, prompt 53705, output 10958
+  repair_translation: 17 calls, 3.4 min, prompt 31779, output 4557
+  extract_glossary: 2 calls, 1.4 min, prompt 16014, output 5953
+  resolve_glossary: 1 calls, 1.1 min, prompt 3708, output 1354
+  repair_review: 5 calls, 1.1 min, prompt 11852, output 1002
+  approve_glossary: 2 calls, 0.7 min, prompt 2563, output 964
+  review_repaired: 4 calls, 0.3 min, prompt 7895, output 606
+  validate_repaired: 2 calls, 0.3 min, prompt 2875, output 148

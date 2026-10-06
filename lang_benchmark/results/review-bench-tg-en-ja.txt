@@ -1,0 +1,134 @@
+
+======== bench-tg-en-ja
+segments 145; longest D0000-S000011: source 980 chars, translation 478 chars
+  longest translation head: 落ちる、落ちる、落ちる。他にすることがなかったので、アリスはすぐにまた話し始めた。「ダイナは今夜、私のことをとても寂しがるに違いないわ！」（ダイナは猫だった）。「お茶の時間に、彼女のミルクの皿を忘れずにいてくれるといいけれど。ダイナ、私の愛しい子！ あなたがここに一緒にいてくれたらいいのに。空にはネズミはいないと思うけれど、コウモリなら捕まえられるかもしれないわ。コウモリはネズミにとても似ているも
+  longest translation tail: きには「コウモリは猫を食べるの？」と言った。というのも、どちらの問いにも答えられない以上、どちらの言い方をしても大差なかったからだ。彼女は自分がうとうとしていると感じ、ちょうどダイナと手をつないで歩きながら、「ねえ、ダイナ、正直に言って。本当にコウモリを食べたことがあるの？」と真剣に話しかけている夢を見始めたときだった。突然、ドスン！ ドスン！ と、枯れ枝や乾いた葉の山の上に落ち、落下は終わった。
+-- rule findings (all)
+  [duplication/high] D0000-S000011: adjacent translated sentence is duplicated beyond source repetition
+      SRC: Down, down, down. There was nothing else to do, so Alice soon began talking again. “Dinah’ll miss me very much to-night, I should think!” (Dinah was t
+      TGT: 落ちる、落ちる、落ちる。他にすることがなかったので、アリスはすぐにまた話し始めた。「ダイナは今夜、私のことをとても寂しがるに違いないわ！」（ダイナは猫だった）。「お茶の時間に、彼女のミルクの皿を忘れずにいてくれるといいけれど。ダイナ、私の愛しい子！ あなたがここに一緒にいてくれたらいいのに。空にはネ
+  [glossary/medium] D0001-S000020: approved glossary term was not preserved: ウィリアム・ザ・コンクェラー
+      SRC: “Perhaps it doesn’t understand English,” thought Alice; “I daresay it’s a French mouse, come over with William the Conqueror.” (For, with all her know
+      TGT: 「たぶん、彼は英語を理解していないのだろう」とアリスは思った。「たぶん、彼はフランスのネズミで、ウィリアム・ザ・コンクェラーと一緒に来たのだろう。」（アリスは、歴史に関する知識が豊富だったが、何かことがいつ起こったのか、あまりはっきりとした考えを持っていなかった。）だから、彼女は再び言った。「私の猫
+  [untranslated/medium] D0001-S000020: possible untranslated English phrase: est ma chatte
+      SRC: “Perhaps it doesn’t understand English,” thought Alice; “I daresay it’s a French mouse, come over with William the Conqueror.” (For, with all her know
+      TGT: 「たぶん、彼は英語を理解していないのだろう」とアリスは思った。「たぶん、彼はフランスのネズミで、ウィリアム・ザ・コンクェラーと一緒に来たのだろう。」（アリスは、歴史に関する知識が豊富だったが、何かことがいつ起こったのか、あまりはっきりとした考えを持っていなかった。）だから、彼女は再び言った。「私の猫
+  [untranslated/medium] D0001-S000020: possible untranslated English word: chatte
+      SRC: “Perhaps it doesn’t understand English,” thought Alice; “I daresay it’s a French mouse, come over with William the Conqueror.” (For, with all her know
+      TGT: 「たぶん、彼は英語を理解していないのだろう」とアリスは思った。「たぶん、彼はフランスのネズミで、ウィリアム・ザ・コンクェラーと一緒に来たのだろう。」（アリスは、歴史に関する知識が豊富だったが、何かことがいつ起こったのか、あまりはっきりとした考えを持っていなかった。）だから、彼女は再び言った。「私の猫
+  [glossary/medium] D0002-S000005: approved glossary term was not preserved: ウィリアム・ザ・コンクェラー
+      SRC: “Ahem!” said the Mouse with an important air, “are you all ready? This is the driest thing I know. Silence all round, if you please! ‘William the Conq
+      TGT: 「ええと！」とネズミは、重要な様子で言った。「皆、準備はいいですか？これは私が知っている中で最も効果的な方法です。静かにしていてください。『教皇の支持を受けたウィリアム・ザ・コンクェラーは、指導者を必要としており、最近は専制と征服に慣れていたイングランド人によってすぐに服従させられた。マーシアとノ森
+  [glossary/medium] D0002-S000048: approved glossary term was not preserved: カナリア
+      SRC: This speech caused a remarkable sensation among the party. Some of the birds hurried off at once: one old Magpie began wrapping itself up very careful
+      TGT: この発言は、パーティーの中で注目を集めた。鳥たちは何羽か、すぐに飛び去った。年老いたカラスは、注意深く体を包み始め、「私は本当に家に帰らなければなりません。夜の空気は、私の喉に合わないのです」と言った。そして、カナリアは震える声で、自分の子供たちに「さあ、私の愛しい人たち、家に帰りましょう。もう、皆
+  [glossary/medium] D0003-S000001: approved glossary term was not preserved: ビル
+      SRC: CHAPTER IV. The Rabbit Sends in a Little Bill
+      TGT: 第四章 白ウサギが小さなビルを送り込む
+  [glossary/medium] D0003-S000019: approved glossary term was not preserved: パット
+      SRC: “Now tell me, Pat, what’s that in the window?”
+      TGT: 「さて、パット、窓の中に何があるのか教えてくれ。」
+  [mistranslation/high] D0003-S000028: numeric content differs from source: The translation contains entirely different content from the source. Source describes a sequence of aud
+      SRC: The first thing she heard was a general chorus of “There goes Bill!” then the Rabbit’s voice along—“Catch him, you by the hedge!” then silence, and th
+      TGT: まず聞こえてきたのは、「ビルが行ったぞ！」という大合唱だった。それからウサギの声が続き――「生け垣のそばの君、彼を捕まえろ！」。それから静寂が訪れ、次いでまた混乱した話し声が聞こえてきた。「頭を持ち上げろ――さあ、ブランデーを――喉を詰まらせるなよ――どうだった、君？ 何があったんだ？ 全部話してく
+  [glossary/medium] D0003-S000028: approved glossary term was not preserved: ビル
+      SRC: The first thing she heard was a general chorus of “There goes Bill!” then the Rabbit’s voice along—“Catch him, you by the hedge!” then silence, and th
+      TGT: まず聞こえてきたのは、「ビルが行ったぞ！」という大合唱だった。それからウサギの声が続き――「生け垣のそばの君、彼を捕まえろ！」。それから静寂が訪れ、次いでまた混乱した話し声が聞こえてきた。「頭を持ち上げろ――さあ、ブランデーを――喉を詰まらせるなよ――どうだった、君？ 何があったんだ？ 全部話してく
+  [glossary/medium] D0003-S000029: approved glossary term was not preserved: アリス
+      SRC: Last came a little feeble, squeaking voice, (“That’s Bill,” thought Alice,) “Well, I hardly know—No more, thank ye; I’m better now—but I’m a deal too 
+      TGT: 最後に、弱々しくキーキーと鳴くような小さな声が聞こえてきた（「あれがビルね」とアリスは思った）。「ええと、よく分かりません――もう結構です、ありがとうございます。もう大丈夫です。ただ、ひどく混乱していて、うまく説明できなくて――分かっているのは、何かがジャック・イン・ザ・ボックスみたいに襲いかかって
+  [glossary/medium] D0003-S000029: approved glossary term was not preserved: ビル
+      SRC: Last came a little feeble, squeaking voice, (“That’s Bill,” thought Alice,) “Well, I hardly know—No more, thank ye; I’m better now—but I’m a deal too 
+      TGT: 最後に、弱々しくキーキーと鳴くような小さな声が聞こえてきた（「あれがビルね」とアリスは思った）。「ええと、よく分かりません――もう結構です、ありがとうございます。もう大丈夫です。ただ、ひどく混乱していて、うまく説明できなくて――分かっているのは、何かがジャック・イン・ザ・ボックスみたいに襲いかかって
+  [glossary/low] D0003-S000029: approved glossary term was not preserved: ジャック・イン・ザ・ボックス
+      SRC: Last came a little feeble, squeaking voice, (“That’s Bill,” thought Alice,) “Well, I hardly know—No more, thank ye; I’m better now—but I’m a deal too 
+      TGT: 最後に、弱々しくキーキーと鳴くような小さな声が聞こえてきた（「あれがビルね」とアリスは思った）。「ええと、よく分かりません――もう結構です、ありがとうございます。もう大丈夫です。ただ、ひどく混乱していて、うまく説明できなくて――分かっているのは、何かがジャック・イン・ザ・ボックスみたいに襲いかかって
+  [addition/medium] D0003-S000030: translation/source token ratio is unusually high: 10.92
+      SRC: “So you did, old fellow!” said the others.
+      TGT: 「そうだったんだね、君！」と他の者たちが言った。
+  [addition/medium] D0003-S000031: translation/source token ratio is unusually high: 7.84
+      SRC: “We must burn the house down!” said the Rabbit’s voice; and Alice called out as loud as she could, “If you do, I’ll set Dinah at you!”
+      TGT: 彼女は、自分が何をすべきかほとんどわからずに、小さな棒を拾い、子犬に差し出した。すると、子犬は同時にすべての足で空中に飛び上がり、喜びの叫び声を上げ、棒に突進し、それをむさぼり食うふりをした。それからアリスは、大きなアザミの陰に隠れて、自分が踏みつぶされないようにした。そして、彼女が反対側に現れると
+  [glossary/medium] D0003-S000031: approved glossary term was not preserved: ダイナ
+      SRC: “We must burn the house down!” said the Rabbit’s voice; and Alice called out as loud as she could, “If you do, I’ll set Dinah at you!”
+      TGT: 彼女は、自分が何をすべきかほとんどわからずに、小さな棒を拾い、子犬に差し出した。すると、子犬は同時にすべての足で空中に飛び上がり、喜びの叫び声を上げ、棒に突進し、それをむさぼり食うふりをした。それからアリスは、大きなアザミの陰に隠れて、自分が踏みつぶされないようにした。そして、彼女が反対側に現れると
+  [glossary/medium] D0003-S000035: approved glossary term was not preserved: トカゲ
+      SRC: So she swallowed one of the cakes, and was delighted to find that she began shrinking directly. As soon as she was small enough to get through the doo
+      TGT: そこで彼女はケーキの一つを飲み込むと、すぐに体が縮み始めたことに大喜びした。ドアを通り抜けられるほど小さくなるとすぐに、彼女は家から外へ飛び出し、そこには小さな動物や鳥たちが大勢待ち構えているのに気づいた。かわいそうな小さなトカゲのビルが真ん中にいて、二匹のモルモットに支えられ、瓶から何かを与えられ
+  [glossary/medium] D0003-S000035: approved glossary term was not preserved: ビル
+      SRC: So she swallowed one of the cakes, and was delighted to find that she began shrinking directly. As soon as she was small enough to get through the doo
+      TGT: そこで彼女はケーキの一つを飲み込むと、すぐに体が縮み始めたことに大喜びした。ドアを通り抜けられるほど小さくなるとすぐに、彼女は家から外へ飛び出し、そこには小さな動物や鳥たちが大勢待ち構えているのに気づいた。かわいそうな小さなトカゲのビルが真ん中にいて、二匹のモルモットに支えられ、瓶から何かを与えられ
+  [duplication/high] D0003-S000036: translation duplicates a different source segment: D0003-S000013
+      SRC: “The first thing I’ve got to do,” said Alice to herself, as she wandered about in the wood, “is to grow to my right size again; and the second thing i
+      TGT: 「まずやらなきゃいけないのは」と、森の中をさまよいながらアリスは独り言を言った。「また元の大きさに戻ること。そして二つ目は、あの素敵な庭への道を見つけること。それが一番いい計画だと思うわ」
+  [glossary/medium] D0003-S000036: approved glossary term was not preserved: アリス
+      SRC: “The first thing I’ve got to do,” said Alice to herself, as she wandered about in the wood, “is to grow to my right size again; and the second thing i
+      TGT: 「まずやらなきゃいけないのは」と、森の中をさまよいながらアリスは独り言を言った。「また元の大きさに戻ること。そして二つ目は、あの素敵な庭への道を見つけること。それが一番いい計画だと思うわ」
+  [duplication/high] D0003-S000037: adjacent translated sentence is duplicated beyond source repetition
+      SRC: It sounded an excellent plan, no doubt, and very neatly and simply arranged; the only difficulty was, that she had not the smallest idea how to set ab
+      TGT: それは疑いようもなく素晴らしい計画であり、非常に簡潔かつ明快に整っていた。唯一の困難は、どうやってそれを実行すればよいのか、彼女にはさっぱり見当がつかないことであった。彼女が木々の間を不安げに覗き込んでいたとき、ちょうど頭上で鋭く短い吠え声が上がり、彼女は慌てて顔を上げた。
+  [duplication/high] D0003-S000037: translation duplicates a different source segment: D0003-S000014
+      SRC: It sounded an excellent plan, no doubt, and very neatly and simply arranged; the only difficulty was, that she had not the smallest idea how to set ab
+      TGT: それは疑いようもなく素晴らしい計画であり、非常に簡潔かつ明快に整っていた。唯一の困難は、どうやってそれを実行すればよいのか、彼女にはさっぱり見当がつかないことであった。彼女が木々の間を不安げに覗き込んでいたとき、ちょうど頭上で鋭く短い吠え声が上がり、彼女は慌てて顔を上げた。
+  [duplication/high] D0003-S000038: translation duplicates a different source segment: D0003-S000015
+      SRC: An enormous puppy was looking down at her with large round eyes, and feebly stretching out one paw, trying to touch her. “Poor little thing!” said Ali
+      TGT: すぐにウサギはドアにたどり着き、開けようとした。しかし、ドアは内側に開くので、アリスの肘が強く押し付けられていたため、その試みは失敗に終わった。アリスは、ウサギが自分に言い聞かせているのを聞いた。「では、回り込んで窓から入ろう。」
+  [duplication/high] D0003-S000040: translation duplicates a different source segment: D0003-S000017
+      SRC: This seemed to Alice a good opportunity for making her escape; so she set off at once, and ran till she was quite tired and out of breath, and till th
+      TGT: アリスには、これが逃げ出す絶好の機会に思えた。そこで彼女はすぐに走り出し、すっかり疲れ果てて息が切れるまで、そして子犬の吠える声が遠くでかすかに聞こえるまで走り続けた。
+  [glossary/medium] D0003-S000040: approved glossary term was not preserved: アリス
+      SRC: This seemed to Alice a good opportunity for making her escape; so she set off at once, and ran till she was quite tired and out of breath, and till th
+      TGT: アリスには、これが逃げ出す絶好の機会に思えた。そこで彼女はすぐに走り出し、すっかり疲れ果てて息が切れるまで、そして子犬の吠える声が遠くでかすかに聞こえるまで走り続けた。
+  [duplication/high] D0003-S000042: translation duplicates a different source segment: D0003-S000019
+      SRC: The great question certainly was, what? Alice looked all round her at the flowers and the blades of grass, but she did not see anything that looked li
+      TGT: 最大の問題は、果たして何（を食べるか）か、ということであった。アリスは周囲の花や草の葉を見渡したが、今の状況で食べるか飲むのに適していると思えるものは何も見当たらなかった。すぐ近くに、彼女とほぼ同じ高さの大きなキノコが生えていた。その下と両側、そして後ろを確認したとき、いっそ上のほうに何があるか見て
+  [glossary/medium] D0003-S000042: approved glossary term was not preserved: アリス
+      SRC: The great question certainly was, what? Alice looked all round her at the flowers and the blades of grass, but she did not see anything that looked li
+      TGT: 最大の問題は、果たして何（を食べるか）か、ということであった。アリスは周囲の花や草の葉を見渡したが、今の状況で食べるか飲むのに適していると思えるものは何も見当たらなかった。すぐ近くに、彼女とほぼ同じ高さの大きなキノコが生えていた。その下と両側、そして後ろを確認したとき、いっそ上のほうに何があるか見て
+  [omission/medium] D0003-S000042: translation/source token ratio is unusually low: 0.15
+      SRC: The great question certainly was, what? Alice looked all round her at the flowers and the blades of grass, but she did not see anything that looked li
+      TGT: 最大の問題は、果たして何（を食べるか）か、ということであった。アリスは周囲の花や草の葉を見渡したが、今の状況で食べるか飲むのに適していると思えるものは何も見当たらなかった。すぐ近くに、彼女とほぼ同じ高さの大きなキノコが生えていた。その下と両側、そして後ろを確認したとき、いっそ上のほうに何があるか見て
+  [duplication/high] D0003-S000043: translation duplicates a different source segment: D0003-S000020
+      SRC: She stretched herself up on tiptoe, and peeped over the edge of the mushroom, and her eyes immediately met those of a large blue caterpillar, that was
+      TGT: 彼女はつま先立ちに背を伸ばして、キノコの縁から中をのぞき込んだ。するとすぐに、大きな青い毛虫と目が合った。その毛虫はキノコの頂上に腕を組んで座り、静かに長い水タバコを吸いながら、彼女のことにも、あるいは他のどんなことにも、全く関心を示さなかった。
+  [glossary/low] D0003-S000043: approved glossary term was not preserved: 毛虫
+      SRC: She stretched herself up on tiptoe, and peeped over the edge of the mushroom, and her eyes immediately met those of a large blue caterpillar, that was
+      TGT: 彼女はつま先立ちに背を伸ばして、キノコの縁から中をのぞき込んだ。するとすぐに、大きな青い毛虫と目が合った。その毛虫はキノコの頂上に腕を組んで座り、静かに長い水タバコを吸いながら、彼女のことにも、あるいは他のどんなことにも、全く関心を示さなかった。
+-- semantic findings (first 8)
+  [mistranslation/high] D0000-S000004: Semantic audit could not produce a complete structured decision after 4 attempts; this segment requires conservative source-grounded repair and independent verification.
+  [mistranslation/medium] D0000-S000007: The translation renders 'cupboards' as '棚' (shelves), which creates a factual overlap with 'shelves' (also rendered as '棚') and fails to distinguish between open shelving and closed cupboards. Later i
+  [mistranslation/high] D0000-S000010: The translation renders 'fall right through the earth' as falling to the 'bottom' (真下) of the earth, whereas the source describes the motion of passing from one side to the other (through).
+  [mistranslation/medium] D0000-S000011: The translation renders 'miss me' as '寂しがっている' (feeling lonely/missing someone), but the source 'I should think!' indicates Alice's conjecture/opinion about the cat's state, not a question. The transl
+  [mistranslation/medium] D0000-S000015: The translation reverses the polarity of the size comparison. The source states the passage was 'not much larger than a rat-hole' (meaning it was nearly as small as one), but the translation 'ネズミの穴より少
+  [mistranslation/medium] D0000-S000017: The translation renders 'nice little histories' as '美しい小さな歴史' (beautiful small histories). In this context, 'histories' refers to stories or accounts of events, and 'nice' is a colloquialism for 'plea
+  [mistranslation/medium] D0000-S000021: The translation of 'you know' as 'あなたご存知のように' is a formulaic, literal translation. In this context, Alice is talking to herself ('said Alice to herself'), so 'you know' is a colloquial filler/discours
+  [structure/low] D0000-S000021: The sentence 'その小さなドアから、あの美しい庭園に入るのに、ちょうど良いサイズになったと、彼女の顔は明るくなった' is grammatically awkward in Japanese. The subject '彼女の顔' (her face) is paired with '明るくなった' (became bright), but the preceding clause '
+  [mistranslation/medium] D0001-S000002: The translation '一足ずつプレゼントしてあげましょう' is a mistranslation of 'a new pair of boots'.
+  [mistranslation/medium] D0001-S000003: The translation of 'directions' as '宛先' is a factual error regarding the object of the sentence. The source refers to the 'directions' (the written address/instructions), whereas '宛先' refers to the de
+  [omission/medium] D0001-S000011: The translation omits the phrase 'I'm sure' in the second instance, which establishes the speaker's level of certainty regarding Mabel.
+  [glossary/high] D0001-S000020: The translation uses 'ウィリアム征服王' instead of the mandatory glossary term 'ウィリアム・ザ・コンクェラー'.
+  [mistranslation/medium] D0001-S000024: The translation '少し明るい目をした' (slightly bright-eyed) mistranslates 'bright-eyed'. In this context, 'bright-eyed' refers to the vividness or alertness of the eyes, not the luminosity of the light reflect
+  [mistranslation/medium] D0003-S000025: The translation '言葉をつかみ出した' for 'made out the words' is a literal translation of 'catch/grab' rather than the intended meaning of 'discern' or 'understand' in this context, resulting in unnatural pros
+  [untranslated/high] D0003-S000038: The translation provides text that does not correspond to the source segment provided.
+  [untranslated/high] D0003-S000040: The translation provides text that does not correspond to the source provided in the segment.
+-- consistency report
+  {"enabled": true, "document_count": 4, "segment_count": 145, "issue_count": 2, "repair_count": 0, "by_severity": {"low": 2}, "documents_with_issues": {"item7": 2}}
+  FILE 0003-item7.consistency.json {"segment_id": "D0003-S000028", "category": "consistency", "severity": "low", "message": "The style sheet renders \"old fellow\" as \"君\", but this translation does not use it.", "suggested_fix": "Render \"old fellow\" as \"君\".", "source": "consistency", "source_quote": "old fellow", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0003-item7.consistency.json {"segment_id": "D0003-S000030", "category": "consistency", "severity": "low", "message": "The style sheet renders \"old fellow\" as \"君\", but this translation does not use it.", "suggested_fix": "Render \"old fellow\" as \"君\".", "source": "consistency", "source_quote": "old fellow", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+-- review queue and validations
+  queue: ['D0003-S000031', 'D0003-S000038']
+  D0003-S000031 SRC: “We must burn the house down!” said the Rabbit’s voice; and Alice called out as loud as she could, “If you do, I’ll set Dinah at you!”
+  D0003-S000031 TGT: 彼女は、自分が何をすべきかほとんどわからずに、小さな棒を拾い、子犬に差し出した。すると、子犬は同時にすべての足で空中に飛び上がり、喜びの叫び声を上げ、棒に突進し、それをむさぼり食うふりをした。それからアリスは、大きなアザミの陰に隠れて、自分が踏みつぶされないようにした。そして、彼女が反対側に現れると、子犬は再び棒に突進し、急いでそれを掴もうとして、頭からかかとまでひっくり返った。それからアリスは、それがカート馬との遊びに似ていると考え、いつでも踏みつぶされるのではないかと恐れて、再びアザミの周りを走った。それから、子犬は棒に対して、毎回少しずつ前進し、そして長い距離を後退し、その間ずっと、かす
+  D0003-S000038 SRC: An enormous puppy was looking down at her with large round eyes, and feebly stretching out one paw, trying to touch her. “Poor little thing!” said Alice, in a coaxing tone, and she tried hard to whistle to it; but she was terribly frightened all the time at the thought that it might be hungry, in wh
+  D0003-S000038 TGT: すぐにウサギはドアにたどり着き、開けようとした。しかし、ドアは内側に開くので、アリスの肘が強く押し付けられていたため、その試みは失敗に終わった。アリスは、ウサギが自分に言い聞かせているのを聞いた。「では、回り込んで窓から入ろう。」
+-- cost by stage (calls / min)
+  audit_translation: 51 calls, 26.6 min, prompt 63450, output 40645
+  translate: 29 calls, 21.0 min, prompt 116307, output 45601
+  repair_translation: 34 calls, 3.4 min, prompt 58618, output 5336
+  rescue_translation: 5 calls, 1.7 min, prompt 20047, output 5220
+  extract_glossary: 2 calls, 1.3 min, prompt 16036, output 5800
+  resolve_glossary: 1 calls, 1.2 min, prompt 3522, output 1427
+  repair_review: 6 calls, 1.1 min, prompt 13442, output 981
+  approve_glossary: 2 calls, 0.6 min, prompt 2344, output 916
+  review_repaired: 6 calls, 0.4 min, prompt 18522, output 1058
+  validate_repaired: 3 calls, 0.3 min, prompt 4692, output 333

@@ -1,0 +1,99 @@
+
+======== bench-r2-tg-en-ko
+segments 145; longest D0000-S000011: source 980 chars, translation 542 chars
+  longest translation head: 아래로, 아래로, 아래로. 달리 할 일이 없었기에 앨리스는 곧 다시 말을 하기 시작했다. “디나가 오늘 밤 나를 무척 그리워하겠지!” (디나는 고양이였다.) “티타임에 디나가 마실 우유 그릇을 잊지 않고 챙겨주면 좋겠는데. 사랑하는 디나! 네가 여기 나와 함께 있다면 얼마나 좋을까! 공중에는 쥐가 없을 것 같아 걱정이지만, 박쥐를 잡을 수도 있을 거야. 박
+  longest translation tail: 다. 어느 질문에도 답을 내릴 수 없었기에, 어느 쪽으로 말하든 별 상관이 없었기 때문이다. 그녀는 자신이 깜빡 잠이 든다고 느꼈고, 디나와 손을 잡고 걸으며 아주 진지하게 “자, 디나, 솔직하게 말해봐. 박쥐를 먹어본 적이 있니?”라고 말하는 꿈을 막 꾸기 시작했을 때, 갑자기 쿵! 쿵! 그녀는 나뭇가지와 마른 잎 더미 위로 떨어졌고, 추락은 끝이 났다.
+-- rule findings (all)
+  [glossary/low] D0001-S000016: approved glossary term was not preserved: 눈물 웅덩이
+      SRC: As she said these words her foot slipped, and in another moment, splash! she was up to her chin in salt water. Her first idea was that she had somehow
+      TGT: 그녀가 이 말을 하자 그녀의 발이 미끄러졌고, 잠시 후, 찰싹! 그녀는 턱밑까지 소금물에 잠겼다. 그녀의 첫 번째 생각은 자신이 어떻게 바다에 빠졌다는 것이었고, “그렇다면 나는 기차로 돌아갈 수 있어.” 그녀는 스스로에게 말했다. (앨리스는 한 번 해변에 가본 적이 
+  [untranslated/medium] D0001-S000017: text in a script neither language uses: 出路
+      SRC: “I wish I hadn’t cried so much!” said Alice, as she swam about, trying to find her way out. “I shall be punished for it now, I suppose, by being drown
+      TGT: “나는 그렇게 많이 울지 말았어야 했어!” 앨리스는 나갈 길을 찾으려고 헤엄치며 말했다. “이제 나는 아마도 내 눈물에 빠져 죽는 것으로 벌을 받을 거야! 그것은 분명히 기이한 일이야! 하지만, 오늘은 모든 것이 기이해.”
+  [mistranslation/high] D0002-S000020: numeric content differs from source: The source quantity 'half an hour or so' (approximate duration) is translated as '한 시간 정도' (approximate
+      SRC: First it marked out a race-course, in a sort of circle, (“the exact shape doesn’t matter,” it said,) and then all the party were placed along the cour
+      TGT: 먼저 원 모양으로 경주 코스를 표시했는데, (“정확한 모양은 중요하지 않다고” 그는 말했다.) 그런 다음 모든 사람들이 코스를 따라 여기저기에 배치되었다. “하나, 둘, 셋, 출발!”이라고 말하지 않고, 그들은 원하는 대로 달리기 시작했고, 원하는 대로 멈췄기 때문에 
+  [glossary/medium] D0003-S000001: approved glossary term was not preserved: 빌
+      SRC: CHAPTER IV. The Rabbit Sends in a Little Bill
+      TGT: 제4장. 토끼가 작은 빌을 보낸다.
+  [mistranslation/high] D0003-S000007: numeric content differs from source: The polarity of the quantity-bearing sentiment in the final clause is reversed. SOURCE: "I do wish I ha
+      SRC: It did so indeed, and much sooner than she had expected: before she had drunk half the bottle, she found her head pressing against the ceiling, and ha
+      TGT: 정말로 그렇게 되었고, 그녀가 예상했던 것보다 훨씬 빨리 일어났다. 병의 절반을 마시기도 전에 그녀는 머리가 천장에 닿는 것을 느꼈고, 목이 부러지지 않으려면 몸을 굽혀야만 했다. 그녀는 서둘러 병을 내려놓으며 혼잣말로 말했다. “이걸로 충분해. 더 이상 자라지 않았으
+  [mistranslation/high] D0003-S000014: numeric content differs from source: SOURCE: 'about a thousand times as large as the Rabbit' (approximation: 'about', value: 'thousand', com
+      SRC: “Mary Ann! Mary Ann!” said the voice. “Fetch me my gloves this moment!” Then came a little pattering of feet on the stairs. Alice knew it was the Rabb
+      TGT: “메리 앤! 메리 앤!” 그 목소리가 말했다. “장갑을 당장 가져와!” 그러자 계단에서 작은 발소리가 들렸다. 앨리스는 토끼가 자신을 찾으러 왔다는 것을 알고, 집 전체를 흔들 정도로 떨었다. 앨리스는 이제 토끼보다 약 천 배나 더 커졌고, 토끼를 두려워할 이유가 없다
+  [glossary/medium] D0003-S000019: approved glossary term was not preserved: 패트
+      SRC: “Now tell me, Pat, what’s that in the window?”
+      TGT: “자, 말해봐라, 패트, 창문에 있는 게 뭐지?”
+  [untranslated/medium] D0003-S000037: text in a script neither language uses: 着手
+      SRC: It sounded an excellent plan, no doubt, and very neatly and simply arranged; the only difficulty was, that she had not the smallest idea how to set ab
+      TGT: 그것은 분명 훌륭한 계획이었고, 아주 깔끔하고 간단하게 짜여 있었다. 유일한 어려움은, 어떻게 시작해야 할지 전혀 갈피를 잡지 못한다는 것이었다. 그리고 그녀가 나무들 사이를 불안하게 두리번거리고 있을 때, 바로 머리 위에서 날카로운 짖소리가 들려 그녀를 급하게 고개를
+  [glossary/low] D0003-S000043: approved glossary term was not preserved: 나방
+      SRC: She stretched herself up on tiptoe, and peeped over the edge of the mushroom, and her eyes immediately met those of a large blue caterpillar, that was
+      TGT: 그녀는 발끝으로 서서 버섯 가장자리 위를 들여다보았고, 그녀의 눈은 팔짱을 끼고 긴 물담배를 피우며 조용히 앉아 있는 큰 파란색 나방의 눈과 즉시 마주쳤고, 그녀나 다른 어떤 것에도 전혀 신경 쓰지 않았다.
+-- semantic findings (first 8)
+  [mistranslation/medium] D0000-S000006: The translation '자신을 멈추게 할 시간이 없었고' (had no time to make herself stop) fails to capture the specific nuance of 'stopping herself' in the context of a fall, which implies braking or arresting her desce
+  [mistranslation/medium] D0000-S000009: The translation swaps the order of 'Latitude' and 'Longitude'. The source lists Latitude first, then Longitude; the translation lists Longitude (경도) first, then Latitude (위도).
+  [omission/medium] D0000-S000009: The intensifier 'very' in 'not a very good opportunity' is omitted in the translation, which reduces the nuance of the source's qualification.
+  [mistranslation/medium] D0000-S000011: The translation renders 'tea-time' as '저녁 식사 시간' (dinner time), which is a factual error regarding the specific meal/time of day.
+  [mistranslation/medium] D0000-S000011: The translation renders 'the fall was over' as '낙차가 끝났다'. '낙차' refers to a vertical drop/head difference (often in hydraulics or geography), whereas the source refers to the event of falling.
+  [mistranslation/medium] D0000-S000017: The translation renders 'histories' as '역사' (history/chronicle), but in this context, 'histories' refers to 'stories' or 'tales' (narratives about children). Using '역사' in Korean creates a factual err
+  [mistranslation/medium] D0000-S000018: The translation renders 'cherry-tart' as '체리 파이' (cherry pie). While similar, a tart and a pie are distinct pastry types; '체리 타르트' is the precise equivalent.
+  [mistranslation/medium] D0000-S000021: The translation '이것이 계속되면 어떻게 될지 모르겠어' (I don't know what will happen if this continues) fails to capture the specific modality of 'might end' in the source, which refers to the potential result of th
+  [mistranslation/medium] D0000-S000024: The translation renders 'the words' (plural) as '단어' (singular), failing to reflect that the phrase 'EAT ME' consists of multiple words.
+  [mistranslation/medium] D0001-S000003: The translation converts a silent internal process ('planning to herself') into a spoken action ('계속 말했다' - continued to speak), which contradicts the subsequent 'she thought'.
+  [mistranslation/medium] D0001-S000004: The honorific title 'Esq.' (Esquire) is transliterated as '에스크' (the phonetic sound of the abbreviation), which fails to convey the intended meaning of a formal title used in an address. In this conte
+  [mistranslation/medium] D0001-S000009: The translation '무슨 일이 일어나고 있는지' (what is happening) incorrectly renders the specific action of seeing 'what was coming' (who/what was approaching).
+  [mistranslation/high] D0001-S000017: The translation uses the Hanja/Chinese characters '出路' (meaning 'way out' or 'exit') instead of natural Korean prose, which is a concrete target-language defect in a literary translation.
+  [mistranslation/high] D0001-S000021: The translation '고양이처럼 아니야!' is a literal word-for-word translation of 'Not like cats!' that fails to capture the meaning. In this context, the Mouse is reacting to Alice's previous statement ('I quit
+  [mistranslation/medium] D0002-S000002: The translation renders 'draggled feathers' as '헝클어진' (disheveled/tangled), which fails to capture the specific state of being wet and dirty/limp, as established by the context of the group being 'dri
+  [mistranslation/high] D0002-S000004: Semantic audit could not produce a complete structured decision after 4 attempts; this segment requires conservative source-grounded repair and independent verification.
+  [omission/high] D0002-S000019: The translation omits the phrase 'to explain it', which is the subject complement of the sentence.
+  [mistranslation/medium] D0002-S000019: Suggested fix for the dialogue: Change '왜냐하면' to a more natural interjection like '글쎄요' or '음', and restore the 'explain' component.
+  [mistranslation/medium] D0002-S000019: The translation of 'Why' as '왜냐하면' is a concrete error in dialogue pragmatics.
+  [omission/medium] D0002-S000023: The specific detail 'with one finger' is missing.
+  [omission/low] D0002-S000023: The specific group 'the whole party' is reduced to '모두'.
+  [omission/low] D0002-S000023: The temporal marker 'at once' is missing.
+  [mistranslation/medium] D0002-S000030: The translation renders 'absurd' as '어리석다고' (foolish/stupid), which describes a lack of intelligence. In this context, 'absurd' refers to the ridiculousness or illogical nature of the situation.
+  [mistranslation/medium] D0002-S000031: The translation '사탕을 삼키지 못하고' (could not swallow the candy) incorrectly renders 'choked'. In this context, 'choked' refers to the physical act of food getting stuck in the throat, which is distinct fr
+  [mistranslation/medium] D0002-S000032: The translation renders 'your history' as '자신의 이야기' (one's own story), which in this context is ambiguous or incorrectly refers back to Alice rather than the Mouse. Since Alice is addressing the Mouse
+  [mistranslation/medium] D0002-S000033: The translation incorrectly attributes the action of speaking to the act of turning toward Alice, whereas the source describes the Mouse turning and sighing as separate simultaneous actions accompanyi
+  [mistranslation/medium] D0002-S000039: The phrase 'make herself useful' is translated literally as '자신을 유용하게 만들', which in Korean sounds like she is trying to improve her own utility or value as a person, rather than the intended meaning o
+  [mistranslation/medium] D0002-S000041: The translation of 'poor Alice' as '가난한 앨리스' is a concrete factual error regarding the character's state.
+  [mistranslation/medium] D0002-S000041: The word 'poor' meaning 'unfortunate' is mistranslated as 'financially impoverished'.
+  [omission/low] D0002-S000041: The conversational filler 'you know' is missing.
+  [omission/low] D0002-S000041: The phrase 'you know' is omitted.
+  [omission/medium] D0002-S000043: The phrase 'come back' is omitted, removing the specific request for the Mouse to return to the group.
+  [omission/medium] D0002-S000045: The emphatic phrase 'I know I do!' is omitted, which serves to reinforce Alice's strong desire.
+  [mistranslation/medium] D0002-S000049: The translation of 'melancholy tone' is omitted, leaving only 'said to herself'.
+  [mistranslation/high] D0003-S000002: The translation mistranslates 'ferrets' as '여우' (foxes). Ferrets are distinct animals from foxes.
+  [mistranslation/high] D0003-S000004: Semantic audit could not produce a complete structured decision after 4 attempts; this segment requires conservative source-grounded repair and independent verification.
+  [untranslated/high] D0003-S000007: The translation introduces the name '앨리스' (Alice), which does not appear in the source segment.
+  [mistranslation/medium] D0003-S000009: The translation '더 이상 자라지 않았다' (did not grow anymore) fails to capture the specific modality of the source 'grew no larger'. While '자라지 않았다' implies a cessation of growth, 'no larger' specifically ref
+  [mistranslation/medium] D0003-S000012: The translation '수업을 배울 수 있어' (can learn lessons) is a redundant and awkward phrasing in Korean; one learns the content of a lesson, not the 'lesson' as a physical or abstract entity in this manner. M
+  [mistranslation/high] D0003-S000013: The translation '완전히 대화를 나누었다' (completely had a conversation) fails to capture the meaning of 'making quite a conversation of it altogether,' which refers to Alice talking to herself in a manner that
+-- consistency report
+  {"enabled": true, "document_count": 4, "segment_count": 145, "issue_count": 7, "repair_count": 0, "by_severity": {"low": 7}, "documents_with_issues": {"item5": 3, "item6": 1, "item7": 3}}
+  FILE 0001-item5.consistency.json {"segment_id": "D0001-S000011", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Oh dear!\" as \"아이고!\", but this translation does not use it.", "suggested_fix": "Render \"Oh dear!\" as \"아이고!\".", "source": "consistency", "source_quote": "Oh dear!", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0001-item5.consistency.json {"segment_id": "D0001-S000020", "category": "consistency", "severity": "low", "message": "The style sheet renders \"I beg your pardon!\" as \"실례를 용서해 주십시오!\", but this translation does not use it.", "suggested_fix": "Render \"I beg your pardon!\" as \"실례를 용서해 주십시오!\".", "source": "consistency", "source_quote": "I beg your pardon!", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0001-item5.consistency.json {"segment_id": "D0001-S000022", "category": "consistency", "severity": "low", "message": "The style sheet renders \"I beg your pardon!\" as \"실례를 용서해 주십시오!\", but this translation does not use it.", "suggested_fix": "Render \"I beg your pardon!\" as \"실례를 용서해 주십시오!\".", "source": "consistency", "source_quote": "I beg your pardon!", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0002-item6.consistency.json {"segment_id": "D0002-S000037", "category": "consistency", "severity": "low", "message": "Repeated quoted line \"I beg your pardon\" is rendered \"죄송합니다.\" here but \"실례를 용서해 주십시오!\" in D0002-S000007.", "suggested_fix": "Render it as in D0002-S000007: 실례를 용서해 주십시오!", "source": "consistency", "source_quote": "I beg your pardon", "translation_quote": "죄송합니다.", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0003-item7.consistency.json {"segment_id": "D0003-S000017", "category": "consistency", "severity": "low", "message": "The style sheet renders \"yer honour\" as \"명령하소서\", but this translation does not use it.", "suggested_fix": "Render \"yer honour\" as \"명령하소서\".", "source": "consistency", "source_quote": "yer honour", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0003-item7.consistency.json {"segment_id": "D0003-S000020", "category": "consistency", "severity": "low", "message": "The style sheet renders \"yer honour\" as \"명령하소서\", but this translation does not use it.", "suggested_fix": "Render \"yer honour\" as \"명령하소서\".", "source": "consistency", "source_quote": "yer honour", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0003-item7.consistency.json {"segment_id": "D0003-S000022", "category": "consistency", "severity": "low", "message": "The style sheet renders \"yer honour\" as \"명령하소서\", but this translation does not use it.", "suggested_fix": "Render \"yer honour\" as \"명령하소서\".", "source": "consistency", "source_quote": "yer honour", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+-- review queue and validations
+  queue: ['D0002-S000020', 'D0002-S000045']
+  D0002-S000020 SRC: First it marked out a race-course, in a sort of circle, (“the exact shape doesn’t matter,” it said,) and then all the party were placed along the course, here and there. There was no “One, two, three, and away,” but they began running when they liked, and left off when they liked, so that it was not
+  D0002-S000020 TGT: 먼저 원 모양으로 경주 코스를 표시했는데, (“정확한 모양은 중요하지 않다고” 그는 말했다.) 그런 다음 모든 사람들이 코스를 따라 여기저기에 배치되었다. “하나, 둘, 셋, 출발!”이라고 말하지 않고, 그들은 원하는 대로 달리기 시작했고, 원하는 대로 멈췄기 때문에 경기가 언제 끝났는지 알기 어려웠다. 그러나 그들이 한 시간 정도 달리고 완전히 마른 후, 도도새는 갑자기 “경기가 끝났습니다!”라고 외쳤고, 그들은 모두 도도새 주위로 모여 숨을 헐떡이며 “하지만 누가 이겼나요?”라고 물었다.
+  D0002-S000045 SRC: “I wish I had our Dinah here, I know I do!” said Alice aloud, addressing nobody in particular. “She’d soon fetch it back!”
+  D0002-S000045 TGT: “우리 디나가 여기 있었으면 좋겠어요, 정말이라니까요!” 앨리스는 아무에게도 말하지 않고 소리 내어 말했다. “그녀는 곧 그것을 되찾아올 거예요!”
+-- cost by stage (calls / min)
+  audit_translation: 161 calls, 66.7 min, prompt 190955, output 106293
+  translate: 21 calls, 15.1 min, prompt 78276, output 35032
+  repair_translation: 49 calls, 4.1 min, prompt 78875, output 5282
+  repair_review: 10 calls, 2.2 min, prompt 21623, output 1605
+  extract_glossary: 2 calls, 1.4 min, prompt 15974, output 5611
+  review_repaired: 11 calls, 0.8 min, prompt 40120, output 3561
+  resolve_glossary: 1 calls, 0.7 min, prompt 3532, output 3041
+  validate_repaired: 5 calls, 0.4 min, prompt 8849, output 518
+  approve_glossary: 2 calls, 0.3 min, prompt 2622, output 1557

@@ -1,0 +1,72 @@
+tg misplaced in final: [('D0000-S000092', 'D0000-S000096'), ('D0000-S000096', 'D0000-S000092')]
+  D0000-S000092 SRC 『断子绝孙的阿Q！』
+     FINAL No sabemos a qué hora A-Q se durmió esa noche. Pero probablemente, a partir de entonces, siempre sintió que sus dedos estaban un poco resbaladizos, y por eso si
+     FIRST No sabemos a qué hora A-Q se durmió esa noche. Pero probablemente, a partir de entonces, siempre sintió que sus dedos estaban un poco resbaladizos, y por eso si  (in queue: True)
+  D0000-S000096 SRC 我们不能知道这晚上阿Q在什么时候才打鼾。但大约他从此总觉得指头有些滑腻，所以他从此总有些飘飘然；『女……』他想：
+     FINAL No podemos saber en qué momento de aquella noche A-Q empezó a roncar. Pero, probablemente, desde entonces sintió que sus dedos estaban algo resbaladizos, por lo
+     FIRST «Mujer…», pensó A-Q.  (in queue: True)
+
+-- D0000-S000003
+  SRC : 第一章 序
+  QWEN: Capítulo I: Prólogo
+  TG  : Capítulo I: Prólogo
+
+-- D0000-S000005
+  SRC : 然而要做这一篇速朽的文章，才下笔，便感到万分的困难了。第一是文章的名目。孔子曰：『名不正则言不顺。』这原是应该极注意的。传的名目很繁多：列传、自传、内传、外传、别传、家传、小传，……而可惜都不合。『列传』么，这一篇并非和许多阔人排在『正史』里；『自传』么，我又并非就是阿Q。说是『外传』，『内传』在那里呢？倘用『内传』，阿Q又决不是神仙。『别传』呢，阿Q实在未曾有大总统上谕宣付国史馆立『本传』——虽说英国正史上并无『博徒列传』，而文豪迭更司也做过博徒别传这一部书，但文豪则可，在我辈却不可的。其次是『家传』，则我既不知与阿Q是否同宗，也未曾受他子孙的拜托；或『小传』，则阿Q又更无别的『大传』了。总而言之，这一篇也便是『本传』，但从我的文章着想，因为文体卑下，是『引车卖浆者流』所用的话，所以不敢僭称，便从不入三教九流的小说家所谓『闲话休题言归正传』这一句套话里，取出『正传』两个字来，作为名目，即使与古人所撰书法正传的『正传』字面上很相
+  QWEN: Y sin embargo, al emprender este artículo, destinado a la rápida descomposición, apenas toco la pluma cuando siento una dificultad inmensa. Primero está el título del artículo. Confucio dijo: «si los nombres no son correctos, las palabras no fluyen». Esto es algo que debería atenderse con extrema atención. Los títulos para las biografías son muy numerosos: biografías colectivas, autobiografía, biografía interna, biografía externa, biografía alternativa, biografía familiar, biografía breve, … y lamentablemente, ninguno encaja. ¿«Biografías colectivas»? Este artículo no está junto a muchos notables en la historia oficial. ¿«Autobiogra
+  TG  : Y sin embargo, al empezar a escribir este artículo, destinado a la rápida descomposición, sentí una dificultad inmensa. Primero, el título del artículo. Confucio dijo: «si los nombres no son correctos, las palabras no fluyen». Esto es algo que debe atenderse con extrema atención. Los títulos de las biografías son muy variados: biografías colectivas, autobiografía, biografía interna, biografía externa, biografía alternativa, biografía familiar, biografía breve, … y lamentablemente, ninguno encaja. ¿«Biografías colectivas»? Este artículo no está junto a muchos notables en la «historia oficial». ¿«Autobiografía»? Yo no soy A-Q. Si digo
+
+-- D0000-S000007
+  SRC : 『阿Q，你这浑小子！你说我是你的本家么？』
+  QWEN: «¡A-Q, muchacho insolente! ¿Dices que soy de tu misma familia?»
+  TG  : «¡A-Q, muchacho insolente! ¿Dices que soy de tu misma familia?»
+
+-- D0000-S000010
+  SRC : 阿Q不开口，想往后退了；赵太爷跳过去，给了他一个嘴巴。
+  QWEN: A-Q no dijo nada, intentó retroceder; el señor Zhao saltó y le dio una bofetada.
+  TG  : A-Q no dijo nada, intentó retroceder; el señor Zhao saltó hacia él y le dio una bofetada.
+
+-- D0000-S000018
+  SRC : 阿Q不独是姓名籍贯有些渺茫，连他先前的『行状』也渺茫。因为未庄的人们之于阿Q，只要他帮忙，只拿他玩笑，从来没有留心他的『行状』的。而阿Q自己也不说，独有和别人口角的时候，间或瞪着眼睛道：
+  QWEN: A-Q no solo tiene un nombre y origen vagos, sino que sus actos y hechos anteriores también son vagos. Porque la gente de Weizhuang, en cuanto a A-Q, solo le pide ayuda y se burla de él, nunca ha prestado atención a sus actos y hechos. Y A-Q mismo no lo dice, excepto cuando discute con otros, a veces entrecerrando los ojos y diciendo:
+  TG  : A-Q no solo tiene un nombre y origen vagos, sino que sus «actos y hechos» anteriores también son vagos. Porque la gente de Weizhuang, en cuanto a A-Q, solo le pide ayuda y se burla de él, nunca ha prestado atención a sus «actos y hechos». Y A-Q mismo no lo dice, excepto cuando discute con otros, a veces entrecerrando los ojos y diciendo:
+
+-- D0000-S000020
+  SRC : 阿Q没有家，住在未庄的土谷祠里；也没有固定的职业，只给人家做短工，割麦便割麦，舂米便舂米，撑船便撑船。工作略长久时，他也或住在临时主人的家里，但一完就走了。所以，人们忙碌的时候，也还记起阿Q来，然而记起的是做工，并不是『行状』；一闲空，连阿Q都早忘却，更不必说『行状』了。只是有一回，有一个老头子颂扬说：『阿Q真能做！』这时阿Q赤着膊，懒洋洋的瘦伶仃的正在他面前，别人也摸不着这话是真心还是讥笑，然而阿Q很喜欢。
+  QWEN: A-Q no tiene casa, vive en el Templo de la Tierra y el Granero de Weizhuang; tampoco tiene una ocupación fija, solo hace trabajos temporales para otros, siega trigo, pisa arroz, rema barcos. Cuando el trabajo dura un poco, a veces se aloja en la casa del dueño temporal, pero se va en cuanto termina. Por eso, cuando la gente está ocupada, aún se acuerda de A-Q, pero se acuerda del trabajo, no de sus actos y hechos; cuando está ociosa, incluso olvida a A-Q, y menos aún sus actos y hechos. Solo una vez, un anciano lo elogió diciendo: «¡A-Q es muy trabajador!». En ese momento, A-Q, con los brazos desnudos, perezoso y delgado, estaba fre
+  TG  : A-Q no tiene casa, vive en el Templo de la Tierra y el Granero de Weizhuang; tampoco tiene un trabajo fijo, solo hace trabajos temporales para otros, corta trigo cuando hay que cortar trigo, pisa arroz cuando hay que pisar arroz, rema cuando hay que remar. Cuando el trabajo dura un poco, a veces se aloja en la casa del dueño temporal, pero en cuanto termina, se va. Por eso, cuando la gente está ocupada, aún se acuerda de A-Q, pero se acuerda del trabajo, no de sus «actos y hechos»; cuando están ociosos, incluso a A-Q ya lo han olvidado, y menos aún sus «actos y hechos». Solo una vez, un anciano lo elogió diciendo: «¡A-Q realmente sa
+
+-- D0000-S000031
+  SRC : 『阿Q，这不是儿子打老子，是人打畜生。自己说，人打畜生！』
+  QWEN: «A-Q, esto no es un hijo golpeando a su padre, es un hombre golpeando a un animal. Dilo tú mismo: ¡un hombre golpeando a un animal!»
+  TG  : «A-Q, esto no es un hijo golpeando a su padre, es un hombre golpeando a un animal. Dilo tú mismo, ¡un hombre golpeando a un animal!»
+
+-- D0000-S000049 [qwen queue] [tg queue]
+  SRC : 他付过地保二百文酒钱，忿忿的躺下了，后来想：『现在的世界太不成话，儿子打老子……』于是忽而想到赵太爷的威风，而现在是他的儿子了，便自己也渐渐的得意起来，爬起身，唱着小孤孀上坟到酒店去。这时候，他又觉得赵太爷高人一等了。
+  QWEN: Después de pagar al alguacil doscientos wen de dinero para el vino, se acostó con resentimiento; luego pensó: «El mundo de hoy es demasiado absurdo, un hijo golpeando a su padre…». De repente, pensó en la autoridad del señor Zhao, y ahora era su hijo, y gradualmente se sintió orgulloso; se levantó, cantando la canción de la joven viuda que va a la tumba, y fue a la taberna. En ese momento, volvió a sentir que el señor Zhao era superior.
+  TG  : Después de pagar al alguacil doscientos wen de dinero para el vino, se acostó con resentimiento, y luego pensó: «El mundo de ahora no es como debería ser, un hijo golpeando a su padre…» Y de repente pensó en la autoridad del señor Zhao, y que ahora este era su hijo, y gradualmente se sintió orgulloso, se levantó, cantando «la joven viuda va a la tumba», y fue a la taberna. En ese momento, volvió a sentir que el señor Zhao era de una clase superior.
+
+-- D0000-S000061
+  SRC : 阿Q以为他要逃了，抢进去就是一拳。这拳头还未达到身上，已经被他抓住了，只一拉，阿Q跄跄踉踉的跌进去，立刻又被王胡扭住了辫子，要撞到墙上照例去碰头。
+  QWEN: A-Q pensó que iba a huir, y le dio un puñetazo. Antes de que el puñetazo llegara, Wang Hu lo agarró; con un tirón, A-Q tropezó y cayó, y luego Wang Hu le agarró el moño, intentando golpearlo contra la pared para que se diera un golpe en la cabeza, como de costumbre.
+  TG  : A-Q pensó que iba a huir, así que se abalanzó sobre él, pero antes de que su puño pudiera llegar, Wang Hu lo agarró, lo hizo tropezar y lo tiró al suelo. Inmediatamente, Wang Hu le agarró la trenza y lo empujó contra la pared, como siempre hacía.
+
+-- D0000-S000093
+  SRC : 阿Q的耳朵里又听到这句话。他想：不错，应该有一个女人，断子绝孙便没有人供一碗饭，……应该有一个女人。夫『不孝有三无后为大』，而『若敖之鬼馁而』，也是一件人生的大哀，所以他那思想，其实是样样合于圣经贤传的，只可惜后来有些『不能收其放心』了。
+  QWEN: A-Q escuchó de nuevo esta frase. Pensó: «Es cierto, debería tener una mujer; al cortar la descendencia, nadie le ofrecerá un plato de arroz… debería tener una mujer». «De las tres desobediencias, la mayor es no tener descendencia», y «el fantasma de Ru'ao tiene hambre» también es una gran tragedia de la vida, por lo que su pensamiento, en realidad, se ajusta a los clásicos sagrados y las transmisiones de los sabios; lamentablemente, luego tuvo algunos momentos de no poder contener su mente dispersa.
+  TG  : A-Q volvió a escuchar esas palabras en sus oídos. Pensó: «Cierto, debería haber una mujer; si uno corta la descendencia, no habrá nadie que le ofrezca un cuenco de arroz… debería haber una mujer». Pues «de las tres desobediencias, la mayor es no tener descendencia», y que «el fantasma de Ru'ao tiene hambre» es también una gran tragedia humana; por lo tanto, sus pensamientos concordaban, en realidad, en todo con los clásicos sagrados y las transmisiones de los sabios, aunque lamentablemente después hubo cierta incapacidad de no poder contener su mente dispersa.
+
+-- D0000-S000113
+  SRC : 『阿呀！』吴妈楞了一息，突然发抖，大叫着往外跑，且跑且嚷，似乎后来带哭了。
+  QWEN: «¡Ay!» La sirvienta Wu se quedó paralizada un momento, luego tembló, gritó y corrió hacia afuera, corriendo y gritando, y al final llorando.
+  TG  : «¡Ay!», la sirvienta Wu se quedó atónita por un instante, luego tembló y gritó mientras corría hacia afuera, llorando al mismo tiempo.
+
+-- D0000-S000138
+  SRC : 阿Q忍不下去了，他只好到老主顾的家里去探问，——但独不许踏进赵府的门槛，——然而情形也异样：一定走出一个男人来，现了十分烦厌的相貌，像回复乞丐一般的摇手道：——
+  QWEN: A-Q no podía soportarlo más; tuvo que ir a las casas de sus clientes habituales a preguntar —pero no podía cruzar el umbral de la residencia de los Zhao—, pero la situación era extraña: siempre salía un hombre, con una expresión muy molesta, como si respondiera a un mendigo, negando con la mano:
+  TG  : A-Q no pudo soportarlo más, así que decidió ir a casa de sus antiguos clientes para preguntar, pero no podía pisar el umbral de la residencia de los Zhao. Sin embargo, la situación era diferente: siempre había un hombre que salía, con una expresión de gran disgusto, como si estuviera echando a un mendigo, y decía: —
+
+-- D0000-S000151
+  SRC : 这一场『龙虎斗』似乎并无胜败，也不知道看的人可满足，都没有发什么议论，而阿Q却仍然没有人来叫他做短工。
+  QWEN: Esta «combate del dragón y el tigre» no tuvo vencedor ni vencido, no se sabía si los espectadores estaban satisfechos, ninguno hizo comentarios, y A-Q aún no tenía a nadie que lo llamara para hacer trabajos temporales.
+  TG  : Parecía que no hubo un ganador en esta «lucha del dragón y el tigre», y no se sabe si los espectadores estaban satisfechos, pero tampoco dijeron nada. A-Q siguió sin que nadie le pidiera que hiciera ningún trabajo ocasional.

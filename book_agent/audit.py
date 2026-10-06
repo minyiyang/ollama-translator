@@ -52,7 +52,7 @@ from .quantities import (
     compare_quantity_texts,
     contains_quantity_expression,
 )
-from .translation import TranslatedDocument, misplaced_passages, shifted_passages
+from .translation import TranslatedDocument, misplaced_passages, shifted_passages, unusual_length_passages
 
 
 class AuditCategory(str, Enum):
@@ -399,6 +399,25 @@ def audit_translated_document(
                 "the translations here appear shifted",
             )
         )
+
+    # Far shorter or longer than this document's translations usually are. The
+    # en/zh pairs keep their fixed token ratio (_audit_length).
+    if not translated.direction.legacy:
+        for segment_id, share in unusual_length_passages(
+            [
+                (item.segment_id, source_by_id[item.segment_id].processed_text, item.translated_text)
+                for item in translated.segments
+                if item.segment_id in source_by_id
+            ]
+        ):
+            issues.append(
+                _issue(
+                    segment_id,
+                    AuditCategory.OMISSION if share < 1 else AuditCategory.ADDITION,
+                    AuditSeverity.HIGH,
+                    f"translation length is far from usual here: {share} of the usual length for its source",
+                )
+            )
 
     if numeric_rulings:
         issues = apply_numeric_rulings(
@@ -1441,7 +1460,8 @@ WHOLE_TRANSLATION_WRONG = re.compile(
     r"|translation duplicates a different source segment"
     r"|translation closely matches that of a different source segment"
     r"|translation fits the source segment"
-    r"|translation may be another passage's)"
+    r"|translation may be another passage's"
+    r"|translation length is far from usual here)"
 )
 
 

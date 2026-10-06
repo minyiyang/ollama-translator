@@ -1,0 +1,48 @@
+
+======== bench-tg2-de-en
+segments 31; longest D0000-S000031: source 4388 chars, translation 4046 chars
+  longest translation head: “Mother, Mother,” said Gregor softly, looking up at  her. The Prokurist had completely slipped his mind for a moment; however, he couldn’t help but snap his jaws several times in the air at the sight 
+  longest translation tail: e ground—when his father gave him a truly redeeming, strong push from behind, and he flew, heavily bleeding, far into his room. The door was then slammed shut with the cane, and finally, it was quiet.
+-- rule findings (all)
+  [untranslated/medium] D0000-S000028: possible untranslated German passage: sagte Gregor, wohl wissend, dass er der Einzige war, der die Ruhe bewahrte,
+      SRC: »Nun,« sagte Gregor und war sich dessen wohl bewußt, daß er der einzige war, der die Ruhe bewahrt hatte, »ich werde mich gleich anziehen, die Kollekti
+      TGT: “Nun,” sagte Gregor, wohl wissend, dass er der Einzige war, der die Ruhe bewahrte, “ich werde mich gleich anziehen, die Kollektion zusammenpacken und 
+  [glossary/low] D0000-S000028: approved glossary term was not preserved: Sister
+      SRC: »Nun,« sagte Gregor und war sich dessen wohl bewußt, daß er der einzige war, der die Ruhe bewahrt hatte, »ich werde mich gleich anziehen, die Kollekti
+      TGT: “Nun,” sagte Gregor, wohl wissend, dass er der Einzige war, der die Ruhe bewahrte, “ich werde mich gleich anziehen, die Kollektion zusammenpacken und 
+  [glossary/medium] D0000-S000030: approved glossary term was not preserved: Mother
+      SRC: Gregor sah ein, daß er den Prokuristen in dieser Stimmung auf keinen Fall weggehen lassen dürfe, wenn dadurch seine Stellung im Geschäft nicht aufs äu
+      TGT: Gregor sah ein, dass er den Prokuristen in dieser Stimmung auf keinen Fall weggehen lassen dürfe, wenn dadurch seine Stellung im Geschäft nicht aufs ä
+  [untranslated/medium] D0000-S000030: possible untranslated German passage: Gregor sah ein, dass er den Prokuristen in dieser Stimmung auf keinen Fall weggehen lassen dürfe, wenn
+      SRC: Gregor sah ein, daß er den Prokuristen in dieser Stimmung auf keinen Fall weggehen lassen dürfe, wenn dadurch seine Stellung im Geschäft nicht aufs äu
+      TGT: Gregor sah ein, dass er den Prokuristen in dieser Stimmung auf keinen Fall weggehen lassen dürfe, wenn dadurch seine Stellung im Geschäft nicht aufs ä
+  [glossary/low] D0000-S000030: approved glossary term was not preserved: Sister
+      SRC: Gregor sah ein, daß er den Prokuristen in dieser Stimmung auf keinen Fall weggehen lassen dürfe, wenn dadurch seine Stellung im Geschäft nicht aufs äu
+      TGT: Gregor sah ein, dass er den Prokuristen in dieser Stimmung auf keinen Fall weggehen lassen dürfe, wenn dadurch seine Stellung im Geschäft nicht aufs ä
+-- semantic findings (first 8)
+  [mistranslation/medium] D0000-S000005: The translation 'business excitements' is a literal but unnatural rendering of 'geschäftlichen Aufregungen', which in this context refers to the stresses, pressures, or anxieties of business travel ra
+  [mistranslation/medium] D0000-S000006: The translation 'write down' for 'überschreiben' is a mistranslation of the business action. In this context, 'überschreiben' refers to transferring, copying, or formally recording orders into a ledge
+  [mistranslation/medium] D0000-S000010: The translation 'But further on it became difficult' mistranslates 'Aber weiterhin wurde es schwierig'. In this context, 'weiterhin' refers to the subsequent steps of the process (getting out of bed),
+  [omission/high] D0000-S000021: The translation omits the final request for the Prokurist to recommend Gregor to the Chef.
+  [mistranslation/medium] D0000-S000023: The translation 'Did you understand a single word?' fails to capture the restrictive modality of 'auch nur', which emphasizes 'even a single word' in a context of total incomprehensibility.
+  [mistranslation/medium] D0000-S000029: The translation renders 'mit aufgeworfenen Lippen' as 'his lips pursed'. 'Aufgeworfen' in this context describes lips that are upturned, curled, or lifted (often in a sneer or expression of disgust), 
+-- consistency report
+  {"enabled": true, "document_count": 1, "segment_count": 31, "issue_count": 2, "repair_count": 0, "by_severity": {"low": 2}, "documents_with_issues": {"pg-header": 2}}
+  FILE 0000-pg-header.consistency.json {"segment_id": "D0000-S000023", "category": "consistency", "severity": "low", "message": "The style sheet renders \"um Gottes willen\" as \"for God's sake\", but this translation does not use it.", "suggested_fix": "Render \"um Gottes willen\" as \"for God's sake\".", "source": "consistency", "source_quote": "um Gottes willen", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-pg-header.consistency.json {"segment_id": "D0000-S000030", "category": "consistency", "severity": "low", "message": "The style sheet renders \"um Gottes willen\" as \"for God's sake\", but this translation does not use it.", "suggested_fix": "Render \"um Gottes willen\" as \"for God's sake\".", "source": "consistency", "source_quote": "um Gottes willen", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+-- review queue and validations
+  queue: ['D0000-S000028', 'D0000-S000030']
+  D0000-S000028 SRC: »Nun,« sagte Gregor und war sich dessen wohl bewußt, daß er der einzige war, der die Ruhe bewahrt hatte, »ich werde mich gleich anziehen, die Kollektion zusammenpacken und wegfahren. Wollt ihr, wollt ihr  mich wegfahren lassen? Nun, Herr Prokurist, Sie sehen, ich bin nicht starrköpfig und ich arbeit
+  D0000-S000028 TGT: “Nun,” sagte Gregor, wohl wissend, dass er der Einzige war, der die Ruhe bewahrte, “ich werde mich gleich anziehen, die Kollektion zusammenpacken und wegfahren. Wollt ihr, wollt ihr  mich wegfahren lassen? Nun, Herr Prokurist, Sie sehen, ich bin nicht starrköpfig und ich arbeite gern; das Reisen ist
+  D0000-S000030 SRC: Gregor sah ein, daß er den Prokuristen in dieser Stimmung auf keinen Fall weggehen lassen dürfe, wenn dadurch seine Stellung im Geschäft nicht aufs äußerste gefährdet werden sollte. Die Eltern verstanden das alles nicht so gut; sie hatten sich in den langen Jahren die Überzeugung gebildet, daß Grego
+  D0000-S000030 TGT: Gregor sah ein, dass er den Prokuristen in dieser Stimmung auf keinen Fall weggehen lassen dürfe, wenn dadurch seine Stellung im Geschäft nicht aufs äußerste gefährdet werden sollte. Die Eltern verstanden das alles nicht so gut; sie hatten sich in den langen Jahren die Überzeugung gebildet, dass Gre
+-- cost by stage (calls / min)
+  repair_translation: 12 calls, 25.7 min, prompt 44283, output 2754
+  audit_translation: 25 calls, 23.5 min, prompt 62420, output 7648
+  translate: 6 calls, 9.7 min, prompt 30445, output 19033
+  extract_glossary: 3 calls, 1.3 min, prompt 21052, output 3844
+  repair_review: 4 calls, 0.8 min, prompt 18930, output 2054
+  resolve_glossary: 1 calls, 0.5 min, prompt 1665, output 1255
+  review_repaired: 3 calls, 0.4 min, prompt 13921, output 376
+  approve_glossary: 1 calls, 0.2 min, prompt 1332, output 787
+  validate_repaired: 0 calls, 0.0 min, prompt 0, output 0

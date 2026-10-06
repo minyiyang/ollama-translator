@@ -1183,7 +1183,7 @@ def _report_deferred_translation(
 
 
 # Contract failures that compare one passage with the others in its chunk.
-_PLACEMENT_CODES = {"repeated_passage", "shifted_passage"}
+_PLACEMENT_CODES = {"repeated_passage", "shifted_passage", "unusual_length"}
 
 
 def _retain_valid_translations(

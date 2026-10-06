@@ -1,0 +1,65 @@
+== zh>ja r1; queue ['D0000-S000064']
+whole-translation findings: [('D0000-S000045', 'translation closely matches that of a different source segment: D0000-S000050'), ('D0000-S000050', 'translation closely matches that of a different source segment: D0000-S000045'), ('D0000-S000093', "translation may be another passage's, or leaves most of this one out: it has 1 of the 6 ap"), ('D0000-S000098', "translation may be another passage's, or leaves most of this one out: it has 0 of the 5 ap"), ('D0000-S000099', "translation may be another passage's, or leaves most of this one out: it has 0 of the 6 ap"), ('D0000-S000119', "translation may be another passage's, or leaves most of this one out: it has 1 of the 7 ap")]
+0045  
+  SRC  : 但他立刻转败为胜了。他擎起右手，用力的在自己脸上连打了两个嘴巴，热刺刺的有些痛；打完之后，便心平气和起来，似乎打的是自己，被打的是别一个自己，不久也就仿佛是自己打了别个一般，——虽然还有些热刺刺，——心满意足的得胜的躺下了。 
+  FIRST: 奇妙なことに、それ以来、人々は、彼を以前よりもさらに尊敬するようになった。阿Qは、もしかしたら、自分が趙太爺の父親だからだと思った。しかし、実際には、そうではなかった。未庄の慣習では、もし阿七が阿八を殴ったり、李四が張三を殴ったりした場合、それは、通常、大した 
+  FINAL: だが、彼はすぐに形勢を逆転させた。右手を高く掲げると、自分の頬を思い切り二回ひっぱたいた。熱いし、少々痛い。だが打ち終えると、心は穏やかになった。まるで自分がある自分を打ったのであり、打たれたのは別の自分であるかのように。そして間もなく、あたかも自分が他人を打ったかのような心地になった。――まだ頬に熱い痛みは残っていたが――彼は満足げに、勝利者の気分で横になった。
+0050  
+  SRC  : 说也奇怪，从此之后，果然大家也仿佛格外尊敬他。这在阿Q，或者以为因为他是赵太爷的父亲，而其实也不然。未庄通例，倘如阿七打阿八，或者李四打张三，向来本不算一件事，必须与一位名人如赵太爷者相关，这才载上他们的口碑。一上口碑，则打的既有名，被打的也就托庇有了名。至于 
+  FIRST: 言うべき奇妙なことに、それからというもの、皆、彼をいっそう敬うようになった。阿Qは、それは彼が趙太爺の父親だからだろうと思ったが、実際はそうではなかった。未庄では、阿七が阿八を殴ったり、李四が張三を殴ったりすることは、普通のことではなかった。しかし、趙太爺のよ 
+  FINAL: 奇妙なことに、それ以来、人々は本当に彼を格別に敬うようになった。阿Qは、自分が趙太爺の父親だからだろうと考えたが、実際はそうではなかった。未庄の常として、阿七が阿八を殴ろうが、李四が張三を殴ろうが、もともと大した事柄とは見なされない。だが、趙太爺のような名士が関わって初めて、彼らのことは口コミに載る。一度口コミに載れば、殴った側が有名である以上、殴られた側もそのおかげで名が売れるというものだ。ましてや、間違いがあるのは阿Qの方なのだから、言うまでもない。なぜか。それは、趙太爺が間違えるはずがないからだ。しかし、彼が
+0064 QUEUED 
+  SRC  : 在阿Q的记忆上，这大约要算是生平第一件的屈辱，因为王胡以络腮胡子的缺点，向来只被他奚落，从没有奚落他，更不必说动手了。而他现在竟动手，很意外，难道真如市上所说，皇帝已经停了考，不要秀才和举人了，因此赵家减了威风。因此他们也便小觑了他么？ 
+  FIRST: 阿Qの記憶の中で、これは彼がこれまで受けた屈辱の中で最も深刻なものだった。なぜなら、王胡は、これまで彼を罵倒したことはなく、ましてや手を出したこともなかったからだ。そして今、彼は手を出した。もしかしたら、それは、街で言われているように、皇帝が科挙を停止し、秀才 
+  FINAL: 阿Qの記憶の中で、これは彼がこれまで受けた屈辱の中で最も深刻なものだった。なぜなら、王胡は、これまで彼を罵倒したことはなく、ましてや手を出したこともなかったからだ。そして今、彼は手を出した。もしかしたら、それは、街で言われているように、皇帝が科挙を停止し、秀才や挙人ではなくなったため、趙家の威厳が低下したからだろうか。そのため、彼らは阿Qを見下すようになったのだろうか。
+0093  
+  SRC  : 阿Q的耳朵里又听到这句话。他想：不错，应该有一个女人，断子绝孙便没有人供一碗饭，……应该有一个女人。夫『不孝有三无后为大』，而『若敖之鬼馁而』，也是一件人生的大哀，所以他那思想，其实是样样合于圣经贤传的，只可惜后来有些『不能收其放心』了。 
+  FIRST: その日、阿Qは、趙太爺の家で、一日中、米を舂いていた。夕食後、彼は、台所に座って、タバコを吸っていた。もし、他の家であれば、夕食後には、彼は家に帰ることができただろう。しかし、趙家では、夕食は早く、そして、通常、ランプは点けられない。しかし、例外もある。一つは 
+  FINAL: 阿Qの耳に再びその言葉が飛び込んできた。彼は考えた。なるほど、女というものが一人いなければならない。断子絶孫になれば、飯の一杯を供えてくれる者さえいなくなる。……やはり女が必要だ。そもそも『不孝に三あり、後無きが最も大なり』というし、『若敖の鬼飢えたり』というのもまた人生の大きな悲劇である。ゆえに彼の考えは、実はことごとく聖経賢伝に合致していた。ただ惜しむらくは、後になって少々『放心を収むる能わず』となったことである。
+0098  
+  SRC  : 中国的男人，本来大半都可以做圣贤，可惜全被女人毁掉了。商是妲己闹亡的；周是褒姒弄坏的；秦……虽然史无明文，我们也假定他因为女人，大约未必十分错；而董卓可是的确给貂蝉害死了。 
+  FIRST: 阿Qは、タバコを置き、立ち上がった。 
+  FINAL: 中国の男というものは、本来なら大半が聖賢になれたはずなのだが、あいにくことごとく女に台無しにされてしまった。商は妲己が滅ぼし、周は褒姒が壊した。秦は……史書に明文こそないが、女のせいだったと考えても、おそらく大外れではないだろう。そして董卓に至っては、実に貂蝉に害されて死んだのである。
+0099  
+  SRC  : 阿Q本来也是正人，我们虽然不知道他曾蒙什么明师指授过，但他对于『男女之大防』却历来非常严；也很有排斥异端——如小尼姑及假洋鬼子之类——的正气。他的学说是：凡尼姑，一定与和尚私通，一个女人在外面走，一定想引诱野男人；一男一女在那里讲话，一定要有勾当了。为惩治他们 
+  FIRST: 「私たちの少奶奶……」呉媽は、さらに話し続けた。 
+  FINAL: 阿Qももとは正義の人間であった。どのような名師に教えを請うたかは分からぬが、彼は『男女の大防』に関しては常に極めて厳格であり、また小尼姑や仮洋鬼子といった類いの異端を排斥する正義感にも満ちていた。彼の持論によれば、尼僧というものは必ず僧侶と密通しているものであり、女が外を歩いていれば必ず野良男を誘惑しようとしているのであり、男女が話し合っていれば必ず何か企みがあるということだ。彼らを懲らしめるため、彼はしばしば怒りに満ちた目で睨みつけ、あるいは『誅心』する言葉を大声で浴びせ、あるいは人目のない場所で、背後から小石を
+0119  
+  SRC  : 脱下衣服的时候，他听得外面很热闹，阿Q生平本来最爱看热闹，便即寻声走出去了。寻声渐渐的寻到赵太爷的内院里，虽然在昏黄中，却辨得出许多人，赵府一家连两日不吃饭的太太也在内，还有间壁的邹七嫂，真正本家的赵白眼，赵司晨。 
+  FIRST: 阿Qは、家に帰り、眠りについた。彼は、安らかに眠りについた。 
+  FINAL: 服を脱いでいると、外がにぎやかなのが聞こえてきた。阿Qはもともと人騒動を見るのが何より好きだったので、すぐに音の方へ歩き出した。音を辿っていくうちに、いつの間にか趙太爺の内庭まで来ていた。薄暗い中ではあったが、大勢の人がいるのが分かった。趙府の一家で、二日も食事をしていない奥様もいれば、隣家の鄒七嫂、そして本家の趙白眼に、趙司晨までいた。
+
+== en>ko r1; queue ['D0000-S000011', 'D0003-S000002']
+000-S000011 
+  SRC  : Down, down, down. There was nothing else to do, so Alice soon began talking again. “Dinah’ll miss me very much to-night, I should think!” (Dinah was the cat.) “I hope they’ll remember her saucer of mi 
+  FINAL: 아래로, 아래로, 아래로. 다른 할 일이 없었기 때문에 앨리스는 곧 다시 말하기 시작했다. “디나는 오늘 밤 나를 매우 그리워할 거야.” (디나는 고양이였다.) “나는 그들이 디나의 우유 그릇을 티타임에-  기억해 주기를 바란다. 디나, 내 사랑! 네가 여기 있었다면 좋았을 텐데! 공중에는 쥐가 없을까 봐 걱정되지만, 박쥐를 잡을 수도 있고, 박쥐는 쥐와 
+      semantic mistranslation medium The translation renders 'tea-time' as '저녁 식사 시간' (dinner time), which is a factual error regarding the specific meal/time of day.
+      semantic mistranslation medium The translation renders 'the fall was over' as '낙차가 끝났다'. '낙차' refers to a vertical drop/head difference (often in hydraulics or geography), whereas t
+003-S000002 
+  SRC  : It was the White Rabbit, trotting slowly back again, and looking anxiously about as it went, as if it had lost something; and she heard it muttering to itself “The Duchess! The Duchess! Oh my dear paw 
+  FINAL: 흰 토끼였다. 그는 느릿느릿 다시 돌아오며, 마치 무언가를 잃어버린 듯 불안한 눈으로 사방을 두리번거렸다. 앨리스는 그가 혼잣말하는 소리를 들었다. “공작부인! 공작부인! 아이고, 내 발톱이여! 아이고, 내 털과 수염이여! 페럿이 페럿인 것처럼 확실하게, 그녀는 나를 처형시켜 버릴 거야! 대체 어디서 놓아 버렸을까, 참으로 궁금하군?” 앨리스는 단번에 그가
+      semantic mistranslation high The translation mistranslates 'ferrets' as '여우' (foxes). Ferrets are distinct animals from foxes.
+-- D0000-S000003
+  SRC: So she was considering in her own mind (as well as she could, for the hot day made her feel very sleepy and stupid), whether the pleasure of making a daisy-chain would be worth the trouble of getting up and picking the daisies, when suddenly a White Rabbit wit
+  tg3: 그래서 앨리스는 마음속으로 생각했다(더운 날씨 때문에 앨리스는 매우 졸리고 어리석게 느껴졌지만), 데이지 꽃으로 목걸이를 만드는 즐거움이 데이지를 꺾으러 일어나서 하는 수고로움만큼 가치가 있을지. 그러자 갑자기 분홍색 눈을 가진 흰 토끼가 그녀 옆을 빠르게 지나갔다.
+  r1 : 그래서 앨리스는 마음속으로 생각했다(더운 날씨 때문에 앨리스는 매우 졸리고 어리석게 느껴졌지만), 데이지 꽃으로 목걸이를 만드는 즐거움이 데이지를 꺾으러 일어나서 하는 수고로움만큼 가치가 있을지. 그러자 갑자기 분홍색 눈을 가진 흰 토끼가 그녀 옆을 빠르게 지나갔다.
+-- D0000-S000010
+  SRC: Presently she began again. “I wonder if I shall fall right through the earth! How funny it’ll seem to come out among the people that walk with their heads downward! The Antipathies, I think—” (she was rather glad there was no one listening, this time, as it di
+  tg3: 잠시 후 그녀가 다시 말을 이었다. “지구를 뚫고 그대로 내려가는 건 아닐까? 머리를 아래로 향하고 걷는 사람들 사이로 모습을 드러내면 얼마나 재미있을까! 혐오,라고 생각하는데—” (이번에는 아무도 듣지 않는 것이 오히려 다행이라 생각했다. 그 말이 전혀 적절한 표현이 아니었기 때문이다) “—하지만 그 나라의 이름을 물어봐야겠지. 실례합니다, 이쪽은 뉴질랜드인가요, 아니면 호주인가요?” (그녀는 말하면서 절을 시도했다—공중을 낙하하면서 절을 하다니! 그걸 해낼 
+  r1 : 잠시 후 그녀가 다시 말을 이었다. “지구를 통째로 뚫고 내려가는 건 아닐까? 머리를 아래로 향하고 걷는 사람들 사이로 모습을 드러내면 얼마나 재미있을까! 혐오,라고 생각하는데—” (이번에는 아무도 듣지 않는 것이 오히려 다행이라 생각했다. 그 말이 전혀 적절한 표현이 아니었기 때문이다) “—하지만 그 나라의 이름을 물어봐야겠지. 실례합니다, 이쪽은 뉴질랜드인가요, 아니면 호주인가요?” (그녀는 말하면서 절을 시도했다—공중을 낙하하면서 절을 하다니! 그걸 해낼 
+-- D0001-S000014
+  SRC: As she said this she looked down at her hands, and was surprised to see that she had put on one of the Rabbit’s little white kid gloves while she was talking. “How can I have done that?” she thought. “I must be growing small again.” She got up and went to the 
+  tg3: 그녀가 이렇게 말하면서, 그녀는 손을 내려다보았고, 놀라서 토끼의 작은 흰 가죽 장갑 중 하나를 말하면서 끼고 있다는 것을 보았다. “나는 어떻게 그것을 할 수 있었지?” 그녀는 생각했다. “나는 다시 작아지고 있는 거야.” 그녀는 일어나서 테이블로 가서 자기 키를 재어 보았고, 거의 그녀가 추측할 수 있는 한, 그녀는 이제 약 2피트 키이고, 빠르게 작아지고 있다는 것을 발견했다: 그녀는 곧 이것이 그녀가 들고 있는 부채 때문이라는 것을 알아냈고, 완전히 사라
+  r1 : 그녀가 이 말을 하자 발이 미끄러졌고, 잠시 후, 찰싹! 그녀는 턱밑까지 소금물에 잠겼다.
+-- D0002-S000023
+  SRC: “Why, she, of course,” said the Dodo, pointing to Alice with one finger; and the whole party at once crowded round her, calling out in a confused way, “Prizes! Prizes!”
+  tg3: “물론 그녀이지.” 도도새가 앨리스를 가리키며 말했다. 그러자 모두 앨리스 주변으로 몰려들어 “상! 상!” 하고 혼란스럽게 외쳤다.
+  r1 : “물론 그녀이지.” 도도새가 손가락 하나로 앨리스를 가리키며 말했다. 그러자 모두 앨리스 주변으로 몰려들어 “상! 상!” 하고 혼란스럽게 외쳤다.
+-- D0003-S000009
+  SRC: Luckily for Alice, the little magic bottle had now had its full effect, and she grew no larger: still it was very uncomfortable, and, as there seemed to be no sort of chance of her ever getting out of the room again, no wonder she felt unhappy.
+  tg3: 다행히 앨리스에게는 마법의 작은 병이 효과를 완전히 발휘했고, 더 이상 자라지 않았다. 하지만 여전히 불편했고, 방에서 나갈 방법이 전혀 없는 것 같았기 때문에, 그녀가 불행하다고 느낀 것은 당연했다.
+  r1 : 다행히 앨리스에게는 마법의 작은 병이 효과를 완전히 발휘했고, 더는 커지지 않았다. 하지만 여전히 불편했고, 방에서 나갈 방법이 전혀 없는 것 같았기 때문에, 그녀가 불행하다고 느낀 것은 당연했다.
+-- D0003-S000037
+  SRC: It sounded an excellent plan, no doubt, and very neatly and simply arranged; the only difficulty was, that she had not the smallest idea how to set about it; and while she was peering about anxiously among the trees, a little sharp bark just over her head made
+  tg3: 그것은 의심할 여지 없이 훌륭한 계획이었고, 매우 깔끔하고 간단하게 정리되어 있었다. 유일한 어려움은, 어떻게 시작해야 할지 전혀 감이 잡히지 않는다는 것이었다. 그리고 그녀가 나무들 사이를 불안하게 두리번거리고 있을 때, 바로 머리 위에서 날카로운 짖소리가 들려와 그녀를 급하게 고개를 들게 했다.
+  r1 : 그것은 분명 훌륭한 계획이었고, 매우 깔끔하고 간단하게 정리되어 있었다. 유일한 어려움은, 어떻게 시작해야 할지 전혀 감이 잡히지 않는다는 것이었다. 그리고 그녀가 나무들 사이를 불안해하며 두리번거리고 있을 때, 바로 머리 위에서 날카로운 짖소리가 들려와 그녀를 급하게 고개를 들게 했다.
