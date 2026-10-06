@@ -283,6 +283,12 @@ Agreed 2026-10-02, after reading the plan against the code.
   and `startswith("en")`. `tests/test_language_golden.py` shows prompts,
   schemas, and stage hashes unchanged for both pairs. The full backend suite
   passes.
+  The stage hashes in the golden files are those of Windows, where they were
+  recorded, and are compared only there. The decompile manifest differs by
+  platform (a package's files are listed in the platform's path order, and
+  their media types come from the system's table), and every later stage
+  hashes what came before it. Prompts and schemas are compared everywhere.
+  CI runs both: Windows checks the hashes, Linux the rest.
 - One deliberate difference: a quotation kept from the source is no longer
   read as foreign Latin text when it contains rare Han characters (CJK
   Extension A, compatibility ideographs). Before, only the basic Han block
