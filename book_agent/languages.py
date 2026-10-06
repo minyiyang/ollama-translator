@@ -9,6 +9,7 @@ always has been, and "<source>><target>" ("en>ja") for any other pair.
 from __future__ import annotations
 
 import re
+import unicodedata
 from dataclasses import dataclass, field
 from functools import cached_property
 from typing import Any, ClassVar, Iterator, Sequence
@@ -121,7 +122,7 @@ class LanguageProfile:
     @cached_property
     def term_start(self) -> str:
         """Regex for what may precede a term in running text: not a letter of
-        the word before. A language whose script is not in SCRIPTS (Amharic) has
+        the word before. A language whose script is not in SCRIPTS (Tigre) has
         no character class of its own, so any letter or digit counts."""
         return f"(?<![{self.word_chars}])" if self.word_chars else r"(?<![^\W_])"
 
@@ -268,8 +269,20 @@ SCRIPTS: dict[str, str] = {
     "Arabic": "\u0620-\u064a\u0660-\u06ff\u0750-\u077f",
     "Devanagari": "\u0900-\u097f",
     "Bengali": "\u0980-\u09ff",
+    "Gurmukhi": "\u0a00-\u0a7f",
+    "Gujarati": "\u0a80-\u0aff",
+    "Tamil": "\u0b80-\u0bff",
+    "Telugu": "\u0c00-\u0c7f",
+    "Kannada": "\u0c80-\u0cff",
+    "Malayalam": "\u0d00-\u0d7f",
+    "Sinhala": "\u0d80-\u0dff",
     "Thai": "\u0e00-\u0e7f",
+    "Lao": "\u0e80-\u0eff",
+    "Tibetan": "\u0f00-\u0fff",
+    "Myanmar": "\u1000-\u109f",
     "Georgian": "\u10a0-\u10ff",
+    "Ethiopic": "\u1200-\u139f",
+    "Khmer": "\u1780-\u17ff",
     "Hangul": "\u1100-\u11ff\u3130-\u318f\uac00-\ud7af",
     "Hiragana": "\u3040-\u309f",
     "Katakana": "\u30a0-\u30ff",
@@ -282,14 +295,22 @@ _SCRIPT_SUBTAGS = {
     "Latn": ("Latin",), "Grek": ("Greek",), "Cyrl": ("Cyrillic",), "Armn": ("Armenian",),
     "Hebr": ("Hebrew",), "Arab": ("Arabic",), "Deva": ("Devanagari",), "Beng": ("Bengali",),
     "Thai": ("Thai",), "Geor": ("Georgian",), "Kore": ("Hangul", "Han"), "Hang": ("Hangul",),
+    "Guru": ("Gurmukhi",), "Gujr": ("Gujarati",), "Taml": ("Tamil",), "Telu": ("Telugu",),
+    "Knda": ("Kannada",), "Mlym": ("Malayalam",), "Sinh": ("Sinhala",), "Laoo": ("Lao",),
+    "Tibt": ("Tibetan",), "Mymr": ("Myanmar",), "Ethi": ("Ethiopic",), "Khmr": ("Khmer",),
     "Jpan": ("Han", "Hiragana", "Katakana"), "Hans": ("Han",), "Hant": ("Han",), "Hani": ("Han",),
 }
 # Languages written without spaces between words.
-_UNSPACED = {"ja", "zh", "th", "lo", "km", "my"}
+_UNSPACED = {"ja", "zh", "th", "lo", "km", "my", "bo"}
 
 # English name and default script of common languages.
 _LANGUAGES: dict[str, tuple[str, tuple[str, ...]]] = {
-    "af": ("Afrikaans", ("Latin",)), "ar": ("Arabic", ("Arabic",)), "be": ("Belarusian", ("Cyrillic",)),
+    "af": ("Afrikaans", ("Latin",)), "am": ("Amharic", ("Ethiopic",)), "ar": ("Arabic", ("Arabic",)),
+    "be": ("Belarusian", ("Cyrillic",)), "bo": ("Tibetan", ("Tibetan",)), "gu": ("Gujarati", ("Gujarati",)),
+    "km": ("Khmer", ("Khmer",)), "kn": ("Kannada", ("Kannada",)), "lo": ("Lao", ("Lao",)),
+    "ml": ("Malayalam", ("Malayalam",)), "my": ("Burmese", ("Myanmar",)), "pa": ("Punjabi", ("Gurmukhi",)),
+    "si": ("Sinhala", ("Sinhala",)), "ta": ("Tamil", ("Tamil",)), "te": ("Telugu", ("Telugu",)),
+    "ti": ("Tigrinya", ("Ethiopic",)),
     "bg": ("Bulgarian", ("Cyrillic",)), "bn": ("Bengali", ("Bengali",)), "ca": ("Catalan", ("Latin",)),
     "cs": ("Czech", ("Latin",)), "cy": ("Welsh", ("Latin",)), "da": ("Danish", ("Latin",)),
     "de": ("German", ("Latin",)), "el": ("Greek", ("Greek",)), "en": ("English", ("Latin",)),
@@ -959,6 +980,76 @@ def copied_source_run(source: str, text: str, direction: LanguagePair, approved=
     return ""
 
 
+# Where neither the script nor a list of function words tells the two
+# languages apart (English into Polish; any language into one whose script is
+# not known), the source passage itself does: a sentence of the translation
+# with this many words, nearly all of them words of the source passage, was
+# left as it was. Cognates and names do not fill a sentence.
+SOURCE_WORDS_MIN = 6
+SOURCE_WORDS_SHARE = 0.8
+_SENTENCE_END = re.compile(r"(?<=[.!?\u2026\u0964\u06d4;:])\s+|\n+")
+
+
+def _plain_words(text: str) -> list[tuple[str, bool]]:
+    """The words of `text`, case folded, without the punctuation around them,
+    each with whether it was written with a capital (a name, mostly)."""
+    words: list[tuple[str, bool]] = []
+    for raw in text.split():
+        start, end = 0, len(raw)
+        while start < end and not raw[start].isalpha():
+            start += 1
+        while end > start and not (raw[end - 1].isalpha() or unicodedata.category(raw[end - 1]).startswith("M")):
+            end -= 1
+        if start < end:
+            words.append((raw[start:end].casefold(), raw[start].isupper()))
+    return words
+
+
+def compares_source_words(direction: LanguagePair) -> bool:
+    """Whether left-over source text is looked for by its words: two spaced
+    languages, no script of the source's that the target lacks, and not a
+    list of function words for each."""
+    source_rules, target_rules = profile(direction.source_language), profile(direction.target_language)
+    return (
+        source_rules.spaced_words
+        and target_rules.spaced_words
+        and not scripts_disjoint(direction)
+        and not leftover_scripts(direction)
+        and not (source_rules.function_words and target_rules.function_words)
+    )
+
+
+def source_worded_passage(source: str, text: str, direction: LanguagePair, approved=(), whole: bool = False) -> str:
+    """A stretch of a translation written in the words of its source passage,
+    where `compares_source_words`; else "". It is a sentence nearly all of
+    whose words are the source's, or as many of the source's words in a row
+    (the translation changing language in the middle of a sentence). With
+    `whole`, the translation is taken as one passage: is it, all of it, still
+    the source? `approved` are glossary renderings, which do not count."""
+    if not compares_source_words(direction):
+        return ""
+    cased = profile(direction.source_language).cased
+    known = {word for word, _ in _plain_words(source)}
+    text = _without_terms(text, approved)
+    for passage in [text] if whole else _SENTENCE_END.split(text):
+        words = _plain_words(passage)
+        # Names stand in any translation as the source has them.
+        plain = [word for word, capital in words if not (cased and capital)]
+        if len(plain) >= SOURCE_WORDS_MIN and sum(word in known for word in plain) >= SOURCE_WORDS_SHARE * len(plain):
+            return passage.strip()[:120]
+        if whole:
+            continue
+        run: list[tuple[str, bool]] = []
+        for item in [*words, ("", False)]:
+            if item[0] in known:
+                run.append(item)
+                continue
+            if sum(not (cased and capital) for _, capital in run) >= SOURCE_WORDS_MIN:
+                return " ".join(word for word, _ in run)[:120]
+            run = []
+    return ""
+
+
 def glossary_pair(direction: LanguagePair) -> LanguagePair:
     """The pair a job's glossary is written in: its source and target sides.
 
@@ -1006,6 +1097,8 @@ def language_support(direction: LanguagePair) -> dict[str, Any]:
         and not (source.function_words and target.function_words)
         # Chinese and Japanese: a run copied from the source, or no kana, shows it.
         and not unspaced_shared
+        # Two spaced languages: a sentence in the source passage's own words shows it.
+        and not compares_source_words(direction)
     ):
         skip("left-over source words", "no script or function words tell the source from the target")
     if not (source.number_words and target.number_words):

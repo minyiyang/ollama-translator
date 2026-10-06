@@ -531,6 +531,10 @@ _LOCALIZED_DIGITS = re.compile(
 )
 
 
+# Digits grouped as English groups them: 1,000 and 12,345.6.
+_ENGLISH_GROUPED = re.compile(r"(?<![\d.,])\d{1,3}(?:,\d{3})+(?:\.\d+)?(?![\d]|[.,]\d)")
+
+
 def _as_plain_digits(match: re.Match[str]) -> str:
     """The number with a period for its decimal and no thousands marks, padded
     to the length it had so positions in the text stay where they were."""
@@ -842,6 +846,15 @@ def numeric_content_matches(
     """Require every source fact without hard-failing implied target additions."""
     source_language = direction.source_language if direction else None
     target_language = direction.target_language if direction else None
+    if target_language and profile(target_language).decimal_comma and _ENGLISH_GROUPED.search(target_text):
+        # A model often keeps the source's 1,000 in German, where it reads as
+        # one. That is a matter of separators, not a changed number: the
+        # thousands reading is accepted where it is what the source says.
+        regrouped = _ENGLISH_GROUPED.sub(
+            lambda match: match.group(0).replace(",", "").ljust(len(match.group(0))), target_text
+        )
+        if numeric_content_matches(source_text, regrouped, direction):
+            return True
     source = number_tokens(source_text, source_language)
     target = number_tokens(target_text, target_language)
     # Literary English commonly expresses a total ratio ("half again" = 1.5x),

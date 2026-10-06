@@ -105,11 +105,14 @@ export function NewJobDialog({ setup, series, onClose }: {
   // Defaults follow the source until the user edits them: book name -> config name -> job id.
   useEffect(() => {
     if (!source) return;
-    api<{ config: string; job_id: string }>(`/api/jobs/suggest?source=${encodeURIComponent(source)}`).then((s) => {
-      if (!configTouched && !seriesId) setConfigName(s.config);
-      setSuggestedId(seriesId ? `${seriesId}-${s.job_id}` : "");
-    });
-  }, [source, configTouched, seriesId]);
+    api<{ config: string; job_id: string }>(`/api/jobs/suggest?source=${encodeURIComponent(source)}`)
+      .then((s) => {
+        if (!configTouched && !seriesId) setConfigName(s.config);
+        setSuggestedId(seriesId ? `${seriesId}-${s.job_id}` : "");
+      })
+      // The names can still be typed by hand.
+      .catch((e: Error) => toast("bad", `No name could be suggested: ${e.message}`, 0));
+  }, [source, configTouched, seriesId, toast]);
   // Job ID: from the config name, or for a series book from the book (the config is shared).
   useEffect(() => {
     if (!jobTouched) setJobId(seriesId ? suggestedId : stem(configName));
@@ -221,13 +224,17 @@ export function NewJobDialog({ setup, series, onClose }: {
 
 export function JobsPage() {
   const [setup, setSetup] = useState<Setup | null>(null);
+  const [error, setError] = useState("");
   const [page, setPage] = useState(1);
   const [adding, setAdding] = useState(false);
 
-  const refresh = useCallback(() => api<Setup>("/api/setup").then(setSetup), []);
+  const refresh = useCallback(
+    () => api<Setup>("/api/setup").then((next) => { setSetup(next); setError(""); }).catch((e: Error) => setError(e.message)),
+    [],
+  );
   useEffect(() => {
     refresh();
-    const timer = window.setInterval(() => refresh().catch(() => {}), 10000);
+    const timer = window.setInterval(refresh, 10000);
     return () => window.clearInterval(timer);
   }, [refresh]);
 
@@ -240,7 +247,8 @@ export function JobsPage() {
     <Shell>
       <main className="page">
         <Card title="Jobs">
-          {!setup && <p className="meta">Loading…</p>}
+          {error && <div className="banner bad">{error}</div>}
+          {!setup && !error && <p className="meta">Loading…</p>}
           {setup && !jobs.length && <p className="meta">No jobs yet in <span className="mono">{setup.runs}</span>.</p>}
           {shown.length > 0 && <JobsTable jobs={shown} />}
           {jobs.length > 0 && (

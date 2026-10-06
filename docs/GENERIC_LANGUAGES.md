@@ -85,7 +85,7 @@ Each check declares what it needs. When the profile lacks it, the check is
 | Structure, markers, empty segments, duplication, mojibake | nothing | always runs |
 | Glossary compliance, repeated lines, style-sheet expressions | `spaced_words` (generic profile has it) | always runs |
 | Untranslated text | source and target scripts differ | same-script pairs (`en`→`de`): flag only a target identical to a long source; the semantic audit covers the rest |
-| Leftover source words | `script`, `spaced_words`; for a same-script pair, `function_words` on both sides | skipped (a same-script pair whose profiles lack function words) |
+| Leftover source words | `script`, `spaced_words`; for a same-script pair, `function_words` on both sides | two spaced languages: a sentence, or six words in a row, in the words of the source passage itself (`source_worded_passage`). Skipped only where one side is unspaced and neither rule applies |
 | Digits, percentages, identifiers | nothing | always runs |
 | Number words, clocks, fractions | `number_words` on both sides | sent to the quantity model (`numeric_adjudication`), which already rules on what the rules cannot |
 | Punctuation conventions | `quotes`, `dash` | skipped |
@@ -283,12 +283,14 @@ Agreed 2026-10-02, after reading the plan against the code.
   and `startswith("en")`. `tests/test_language_golden.py` shows prompts,
   schemas, and stage hashes unchanged for both pairs. The full backend suite
   passes.
-  The stage hashes in the golden files are those of Windows, where they were
-  recorded, and are compared only there. The decompile manifest differs by
-  platform (a package's files are listed in the platform's path order, and
-  their media types come from the system's table), and every later stage
-  hashes what came before it. Prompts and schemas are compared everywhere.
-  CI runs both: Windows checks the hashes, Linux the rest.
+  The stage hashes are the same on every platform and are compared on each.
+  They were not at first: the decompile manifest listed a package's files in
+  the platform's path order (Windows ignores case) and took the media type of
+  a file the package does not declare from the system's table (the registry,
+  `/etc/mime.types`), and every later stage hashes what came before it. The
+  manifest now orders files without regard to case (`archive_order`) and
+  asks Python's own table (`guess_media_type`); the hashes recorded on
+  Windows did not change, and Linux now gives the same ones.
 - One deliberate difference: a quotation kept from the source is no longer
   read as foreign Latin text when it contains rare Han characters (CJK
   Extension A, compatibility ideographs). Before, only the basic Han block
@@ -732,6 +734,18 @@ primary and repair model, and qwen3.8 as fallback. Details in
   source-language passage in any of them; en>fr, en>ja, and fr>en completed
   with an empty review queue. Section 7 rates every pair.
 
+- **A finding has a code.** Repair decided to translate a passage again, and
+  not edit it, by matching the wording of the audit's finding. A reworded or
+  translated message would have ended that without an error. The seven
+  findings concerned now carry `AuditIssue.code` (`no_target_text`,
+  `identical_to_source`, `duplicates_other_segment`, `matches_other_segment`,
+  `shifted_translation`, `wrong_passage_terms`, `unusual_length`) and repair
+  reads the code (`whole_translation_is_wrong`); the wording is read only
+  for an audit written before codes. The field is left out of stored
+  findings that have none and out of the schema the auditor model is sent,
+  so stage hashes and prompts are unchanged. Other findings have no code
+  yet: giving each one is the first step of translating the interface.
+
 ## 7. What the models and the pipeline can do
 
 Written 2026-10-04 from the benchmark runs of phases 5 and 6 and the model
@@ -891,7 +905,30 @@ Left to the models, and so only as good as they are:
   cannot make it so: they find misplaced and untranslated text, not a
   sentence that is fluent and wrong.
 - **Languages without a profile** run with the script check, digits, and the
-  semantic audit only (section 2.3). None was benchmarked.
+  semantic audit only (section 2.3). None was benchmarked with a model.
+  `tests/test_language_generic_tier.py` runs the model-free checks on sixteen
+  of them (Arabic, Persian, Hebrew, Hindi, Bengali, Thai, Khmer, Greek,
+  Georgian, Armenian, Amharic, Russian, Serbian, Vietnamese, Turkish,
+  Polish), each with English both ways and with Russian. What that sweep
+  changed:
+  - *Source text left in a same-script translation was not looked for* where
+    either language lacks a list of function words (English into Polish,
+    Turkish, Vietnamese). It is now found by the words of the source passage
+    itself: a sentence of six or more words, four in five of them the
+    source's, or six of the source's words in a row. Names (words written
+    with a capital) do not count. Over the 1,194 passages of seven en/de/fr/es
+    benchmark runs the rule fired twice, both times on a line of French or
+    German the English book quotes and the translation rightly keeps; such a
+    line is a medium finding to dismiss.
+  - *Twelve scripts were unknown* (Ethiopic, Khmer, Lao, Myanmar, Tibetan,
+    Tamil, Telugu, Kannada, Malayalam, Gujarati, Gurmukhi, Sinhala), so a
+    translation into Amharic or Khmer left in English passed. They and
+    their languages are in the table now. A language still outside it is
+    accepted, and the rule above covers it.
+  - Still a limit: a glossary term is matched as written. A language that
+    inflects names (Georgian ალისა, ალისამ; Russian, Polish, Turkish,
+    Finnish) needs each form as an alias, or a profile with its endings as
+    German and Korean have.
 - **Pairs between two languages other than English and Chinese** were not
   run, apart from the four into Chinese.
 - **Tuned for Chinese only:** the prose rewrite, the character section of the

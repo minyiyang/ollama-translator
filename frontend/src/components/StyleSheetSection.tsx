@@ -21,9 +21,14 @@ export function StyleSheetSection({
   needsReview = false,
   pronouns,
   addresses,
+  sourceLang = "en",
+  targetLang = "zh-CN",
   onChange,
   onReset,
 }: {
+  // BCP 47 tags of the book's languages, for the cells' lang attributes.
+  sourceLang?: string;
+  targetLang?: string;
   sheet: StyleSheet;
   editable: boolean;
   edited: boolean;
@@ -107,8 +112,8 @@ export function StyleSheetSection({
           <tbody>
             {sheet.expressions.map((item, index) => (
               <tr key={`${item.source}-${index}`}>
-                <td lang="en">{item.source}</td>
-                <td lang="zh-CN">
+                <td lang={sourceLang}>{item.source}</td>
+                <td lang={targetLang}>
                   {editable ? (
                     <input type="text" aria-label={`Rendering of ${item.source}`} value={item.rendering} onChange={(e) => setExpression(index, { rendering: e.target.value })} />
                   ) : item.rendering}

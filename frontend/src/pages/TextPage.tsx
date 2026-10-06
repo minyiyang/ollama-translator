@@ -10,6 +10,7 @@ import { Chip } from "../components/ui";
 import { ImportPreviewCard, LastImportCard } from "../components/XliffImport";
 import { diffChars } from "../lib/diff";
 import { xliffExportUrl } from "../lib/format";
+import { FALLBACK_PAIR, langAttr, pairCodes } from "../lib/languages";
 import { matchesTextQuery, matchesTextView, retainTextDocumentId, textRowClass, type TextView } from "../lib/text";
 import {
   CATEGORY_LABELS,
@@ -81,9 +82,9 @@ const STATE_CHIP: Record<Segment["state"], { kind: string; label: string } | nul
 /** The server takes request bodies up to 8 MiB; leave room for JSON escaping. */
 const MAX_IMPORT_BYTES = 7.5 * 1024 * 1024;
 
-function Diff({ before, after }: { before: string; after: string }) {
+function Diff({ before, after, lang }: { before: string; after: string; lang: string }) {
   return (
-    <div className="diff" lang="zh-CN">
+    <div className="diff" lang={lang}>
       {diffChars(before, after).map((part, i) =>
         part.kind === "same" ? <span key={i}>{part.text}</span> : part.kind === "del" ? <del key={i}>{part.text}</del> : <ins key={i}>{part.text}</ins>,
       )}
@@ -98,6 +99,12 @@ function Diff({ before, after }: { before: string; after: string }) {
  */
 export function TextPage() {
   const { jobId, info } = useJob();
+  // The job's own languages; an older server names only the direction, or nothing.
+  const [sourceLang, targetLang] = (
+    info?.languages
+      ? [info.languages.source.code, info.languages.target.code]
+      : pairCodes(info?.direction || FALLBACK_PAIR.pair)
+  ).map(langAttr);
   const started = info?.kind === "job";
   const toast = useToast();
   const confirm = useConfirm();
@@ -481,7 +488,7 @@ export function TextPage() {
         <div className="text-editor">
           <textarea
             className="editor"
-            lang="zh-CN"
+            lang={targetLang}
             spellCheck={false}
             autoFocus
             value={editText}
@@ -520,7 +527,7 @@ export function TextPage() {
           {editText !== segment.pipeline_text && (
             <>
               <div className="navhead" style={{ marginTop: 10 }}>Changes vs pipeline text</div>
-              <Diff before={segment.pipeline_text} after={editText} />
+              <Diff lang={targetLang} before={segment.pipeline_text} after={editText} />
             </>
           )}
           {needsOverride && (
@@ -555,7 +562,7 @@ export function TextPage() {
                   <Chip>{event.action}</Chip>
                   <span className="meta">{event.author} · {event.at}</span>
                 </div>
-                {event.text && <div className="text zh" lang="zh-CN">{event.text}</div>}
+                {event.text && <div className="text zh" lang={targetLang}>{event.text}</div>}
                 <div className="meta">{event.reason}</div>
                 {event.overrides.length > 0 && <div className="meta">Overrode: {event.overrides.join("; ")}</div>}
               </div>
@@ -587,13 +594,13 @@ export function TextPage() {
               A rerun changed this segment's translation after your edit. Choose which text to keep.
             </p>
             <div className="navhead">Your edit</div>
-            <div className="text zh" lang="zh-CN">{segment.text}</div>
+            <div className="text zh" lang={targetLang}>{segment.text}</div>
             <div className="navhead" style={{ marginTop: 10 }}>New pipeline text</div>
-            <div className="text zh" lang="zh-CN">{segment.pipeline_text}</div>
+            <div className="text zh" lang={targetLang}>{segment.pipeline_text}</div>
             {basedOn && basedOn !== segment.pipeline_text && (
               <>
                 <div className="navhead" style={{ marginTop: 10 }}>What changed (based-on text → new pipeline text)</div>
-                <Diff before={basedOn} after={segment.pipeline_text} />
+                <Diff lang={targetLang} before={basedOn} after={segment.pipeline_text} />
               </>
             )}
             <div className="row" style={{ marginTop: 12 }}>
@@ -631,14 +638,14 @@ export function TextPage() {
     return (
       <tr key={segment.segment_id} className={imports ? "import-will" : ""}>
         <td className="sid mono">{segment.segment_id}</td>
-        <td lang="en">
+        <td lang={sourceLang}>
           {segment.source}
           {item?.category === "source_differs" && item.imported_source && (
             <div className="meta">In the file: {item.imported_source}</div>
           )}
         </td>
-        <td lang="zh-CN">
-          {changed ? <Diff before={item.current_text ?? segment.text} after={item.imported_text ?? ""} /> : segment.text}
+        <td lang={targetLang}>
+          {changed ? <Diff lang={targetLang} before={item.current_text ?? segment.text} after={item.imported_text ?? ""} /> : segment.text}
         </td>
         <td>
           {!item ? (
@@ -793,8 +800,8 @@ export function TextPage() {
                           className={textRowClass(segment)}
                         >
                           <td className="sid mono">{segment.segment_id}</td>
-                          <td lang="en">{segment.source}</td>
-                          <td lang="zh-CN">
+                          <td lang={sourceLang}>{segment.source}</td>
+                          <td lang={targetLang}>
                             {outline.editable ? (
                               <div className="editable-text" onClick={() => startEdit(segment)} title="Click to edit">
                                 {segment.text}

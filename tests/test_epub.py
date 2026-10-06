@@ -292,3 +292,24 @@ class EpubExtractionTests:
             with pytest.raises(EpubError, match="missing"):
                 inspect_epub_package(extracted, sha256_file(epub))
 
+
+
+def test_files_are_ordered_and_typed_the_same_on_every_platform() -> None:
+    from book_agent.epub import archive_order, guess_media_type
+
+    names = ["mimetype", "OEBPS/content.opf", "META-INF/container.xml", "OEBPS/text/b.xhtml", "OEBPS/text/a.xhtml", "oebps.txt"]
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        for name in names:
+            (root / name).parent.mkdir(parents=True, exist_ok=True)
+            (root / name).write_bytes(b"")
+        files = [path for path in root.rglob("*") if path.is_file()]
+        ordered = [path.relative_to(root).as_posix() for path in sorted(files, key=lambda path: archive_order(path, root))]
+    # Without regard to case, which is how Windows orders paths: not `OEBPS` before `mimetype`.
+    assert ordered == [
+        "META-INF/container.xml", "mimetype", "OEBPS/content.opf", "OEBPS/text/a.xhtml", "OEBPS/text/b.xhtml", "oebps.txt",
+    ]
+    # Python's own table, not the registry's or /etc/mime.types': an .opf has no entry in it.
+    assert guess_media_type("container.xml") == "text/xml"
+    assert guess_media_type("content.opf") == guess_media_type("mimetype") == "application/octet-stream"
+    assert guess_media_type("cover.jpg") == "image/jpeg" and guess_media_type("styles.css") == "text/css"

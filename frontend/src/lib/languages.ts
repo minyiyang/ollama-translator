@@ -78,3 +78,38 @@ export function loadLanguages(pair = ""): Promise<LanguagesPayload> {
   }
   return request;
 }
+
+// Unicode scripts behind the ISO 15924 codes that name more than one.
+const SCRIPT_PARTS: Record<string, string[]> = {
+  Hans: ["Hani"],
+  Hant: ["Hani"],
+  Jpan: ["Hani", "Hira", "Kana"],
+  Kore: ["Hang", "Hani"],
+};
+
+/** The Unicode scripts a language is written in ("en" -> ["Latn"]); empty when unknown. */
+export function scriptsOf(code: string): string[] {
+  try {
+    const script = new Intl.Locale(code).maximize().script ?? "";
+    return SCRIPT_PARTS[script] ?? (script ? [script] : []);
+  } catch {
+    return []; // not a language code
+  }
+}
+
+/**
+ * Runs of two or more letters in a script the source language uses and the
+ * target does not: source text left untranslated. Empty for a pair that shares
+ * its script (en>de), where leftover source text cannot be told apart.
+ */
+export function leftoverSourceText(text: string, source: string, target: string): string[] {
+  const used = scriptsOf(target);
+  const foreign = scriptsOf(source).filter((script) => !used.includes(script));
+  if (!foreign.length || !used.length) return [];
+  try {
+    const run = new RegExp(`[${foreign.map((script) => `\\p{Script=${script}}`).join("")}]{2,}`, "gu");
+    return [...new Set(text.match(run) ?? [])];
+  } catch {
+    return []; // a script this browser's Unicode data does not know
+  }
+}

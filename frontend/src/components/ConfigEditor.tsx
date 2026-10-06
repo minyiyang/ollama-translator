@@ -24,8 +24,15 @@ type FieldError = { path: string; message: string };
 type Tab = "options" | "all" | "yaml";
 
 let schemaCache: Promise<SchemaSection[]> | null = null;
-const loadSchema = () =>
-  (schemaCache ??= api<{ sections: SchemaSection[] }>("/api/config/schema").then((s) => s.sections));
+function loadSchema() {
+  if (!schemaCache) {
+    const request = api<{ sections: SchemaSection[] }>("/api/config/schema").then((s) => s.sections);
+    // A failed load is not kept: the next editor asks again.
+    request.catch(() => { if (schemaCache === request) schemaCache = null; });
+    schemaCache = request;
+  }
+  return schemaCache;
+}
 
 /**
  * Edits one YAML config through a typed form or as raw text. The YAML text is
@@ -46,6 +53,8 @@ export function ConfigEditor({
   const [values, setValues] = useState<Values>({});
   const [syntaxError, setSyntaxError] = useState<SyntaxError_ | null>(null);
   const [parseFailure, setParseFailure] = useState("");
+  const [schemaFailure, setSchemaFailure] = useState("");
+  const [writeFailure, setWriteFailure] = useState("");
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [errors, setErrors] = useState<FieldError[]>([]);
   const [installed, setInstalled] = useState<string[] | null>(null);
@@ -55,7 +64,7 @@ export function ConfigEditor({
   const written = useRef<string | null>(null);
   const dumpSeq = useRef(0);
 
-  useEffect(() => { loadSchema().then(setSections); }, []);
+  useEffect(() => { loadSchema().then(setSections).catch((e: Error) => setSchemaFailure(e.message)); }, []);
 
   const fields = useMemo(() => new Map(sections.flatMap((s) => s.fields.map((f) => [f.path, f] as const))), [sections]);
 
@@ -105,13 +114,22 @@ export function ConfigEditor({
   const hidden = hiddenOptions(support);
 
   const commit = (next: Values) => {
+    const before = values;
     setValues(next);
     const seq = ++dumpSeq.current;
-    api<{ text: string }>("/api/config/dump", { values: next }).then((r) => {
-      if (seq !== dumpSeq.current) return;
-      written.current = r.text;
-      onTextChange(r.text);
-    });
+    api<{ text: string }>("/api/config/dump", { values: next })
+      .then((r) => {
+        if (seq !== dumpSeq.current) return;
+        setWriteFailure("");
+        written.current = r.text;
+        onTextChange(r.text);
+      })
+      // The YAML was not rewritten, so the form goes back to what the YAML says.
+      .catch((e: Error) => {
+        if (seq !== dumpSeq.current) return;
+        setValues(before);
+        setWriteFailure(e.message);
+      });
   };
   const change = (path: string, value: unknown) => commit(setPath(values, path, value));
   const reset = (path: string) => commit(unsetPath(values, path));
@@ -220,13 +238,13 @@ export function ConfigEditor({
           <span className="group-title">{title}</span>
           {invalid > 0 && <span className="chip bad">{invalid} invalid</span>}
           {modified > 0 && <span className="chip running">{modified} changed</span>}
-          <span className="meta">{paths.length} settings</span>
+          <span className="meta">{paths.length} setting{paths.length === 1 ? "" : "s"}</span>
         </button>
         {!closed && (
-          <div className="group-body">
+          <fieldset disabled={readOnly} className="plain-fieldset group-body">
             {help && <p className="meta">{help}</p>}
             {body}
-          </div>
+          </fieldset>
         )}
       </div>
     );
@@ -249,8 +267,14 @@ export function ConfigEditor({
           </button>
         ))}
       </div>
+      {schemaFailure && (
+        <div className="banner bad">Could not load the list of settings from the server: {schemaFailure}. Reload the page to try again.</div>
+      )}
       {parseFailure && (
         <div className="banner bad">Could not check the configuration with the server: {parseFailure}</div>
+      )}
+      {writeFailure && tab !== "yaml" && (
+        <div className="banner bad">The change was not written to the YAML, so it was undone: {writeFailure}</div>
       )}
       {syntaxError && tab !== "yaml" && (
         <div className="banner bad">
@@ -273,7 +297,7 @@ export function ConfigEditor({
             <button type="button" className="small" onClick={() => setAll(COMMON_GROUPS.map((g) => `opt:${g.title}`), false)}>Expand all</button>
             <button type="button" className="small" onClick={() => setAll(COMMON_GROUPS.map((g) => `opt:${g.title}`), true)}>Collapse all</button>
           </div>
-          <fieldset disabled={readOnly} className="plain-fieldset">
+          <>
             {COMMON_GROUPS.map((group) =>
               renderGroup(
                 `opt:${group.title}`,
@@ -290,7 +314,7 @@ export function ConfigEditor({
                 group.help,
               ),
             )}
-          </fieldset>
+          </>
         </>
       )}
 
@@ -318,7 +342,7 @@ export function ConfigEditor({
               ))}
             </div>
           </div>
-          <fieldset disabled={readOnly} className="plain-fieldset">
+          <>
           {sections.map((section) => {
             const shown = section.fields.filter(matches);
             if (!shown.length) return null;
@@ -331,7 +355,7 @@ export function ConfigEditor({
               `sec-${section.key}`,
             );
           })}
-          </fieldset>
+          </>
         </>
       )}
 

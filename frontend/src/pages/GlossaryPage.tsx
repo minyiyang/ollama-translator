@@ -441,6 +441,8 @@ export function GlossaryPage() {
             if (!style || !sheet) return null;
             return (
               <StyleSheetSection
+                sourceLang={sourceLang}
+                targetLang={targetLang}
                 sheet={sheet}
                 editable={editable}
                 edited={styleEdit !== null}

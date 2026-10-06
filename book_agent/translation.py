@@ -19,6 +19,7 @@ from .glossary import estimate_tokens, split_text_to_budget
 from .languages import (
     TranslationDirection,
     copied_source_run,
+    source_worded_passage,
     copy_is_untranslated,
     glossary_sides,
     lacks_target_script,
@@ -668,6 +669,13 @@ def validate_translation_output(
                 re.sub(r"</?I\d{3}>", "", translated),
                 direction,
                 approved_renderings,
+            )
+            or source_worded_passage(
+                re.sub(r"</?I\d{3}>", "", source),
+                re.sub(r"</?I\d{3}>", "", translated),
+                direction,
+                approved_renderings,
+                whole=True,
             )
         ):
             issues.append(

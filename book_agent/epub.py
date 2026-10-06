@@ -117,6 +117,25 @@ class EpubPackageManifest(BaseModel):
     resources: list[ResourceRecord]
 
 
+# Python's own table of file types. The module-level functions also read the
+# Windows registry or /etc/mime.types, so the same book would get a different
+# manifest, and different stage hashes, from one machine to the next.
+_MEDIA_TYPES = mimetypes.MimeTypes()
+
+
+def guess_media_type(name: str) -> str:
+    """The media type of a file the package does not declare one for."""
+    return _MEDIA_TYPES.guess_type(name)[0] or "application/octet-stream"
+
+
+def archive_order(path: Path, root: Path) -> tuple:
+    """Sort key for the files under `root`: by path without regard to case,
+    the same on every platform. Sorting the paths themselves ignores case on
+    Windows and not elsewhere (`mimetype` before or after `OEBPS`)."""
+    parts = path.relative_to(root).parts
+    return tuple(part.casefold() for part in parts), parts
+
+
 _BLOCK_TAGS = {
     "body", "main", "article", "section", "div", "aside", "header", "footer",
     "p", "h1", "h2", "h3", "h4", "h5", "h6", "li", "blockquote",
@@ -477,7 +496,7 @@ def inspect_epub_package(
                 ".html": "text/html",
                 ".htm": "text/html",
                 ".ncx": "application/x-dtbncx+xml",
-            }.get(suffix, mimetypes.guess_type(href)[0] or "application/octet-stream")
+            }.get(suffix, guess_media_type(href))
         archive_path, _ = resolve_package_href(opf_path, href)
         item = ManifestItem(
             item_id=item_id,
@@ -539,10 +558,10 @@ def inspect_epub_package(
     manifest_by_path = {item.archive_path: item for item in manifest_items}
     spine_paths = {item.archive_path for item in spine}
     resources: list[ResourceRecord] = []
-    for path in sorted(file for file in root.rglob("*") if file.is_file()):
+    for path in sorted((file for file in root.rglob("*") if file.is_file()), key=lambda file: archive_order(file, root)):
         archive_path = path.relative_to(root).as_posix()
         item = manifest_by_path.get(archive_path)
-        media_type = item.media_type if item else (mimetypes.guess_type(path.name)[0] or "application/octet-stream")
+        media_type = item.media_type if item else guess_media_type(path.name)
         resources.append(
             ResourceRecord(
                 archive_path=archive_path,

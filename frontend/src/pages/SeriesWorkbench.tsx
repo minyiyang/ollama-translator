@@ -268,7 +268,9 @@ export function WorkbenchTab({ seriesId, process, onChanged, onPublished }: {
   useEffect(() => setLimit(PAGE), [view, query]);
 
   const load = useCallback(() => {
-    api<View>(`/api/series/${encodeURIComponent(seriesId)}/workbench`).then(setData).catch((e) => setError((e as Error).message));
+    api<View>(`/api/series/${encodeURIComponent(seriesId)}/workbench`)
+      .then((view) => { setData(view); setError(""); })
+      .catch((e) => setError((e as Error).message));
   }, [seriesId]);
   useEffect(load, [load]);
 
@@ -329,7 +331,11 @@ export function WorkbenchTab({ seriesId, process, onChanged, onPublished }: {
         {list("added", p.added)}
         {list(`changed from ${data.latest}`, p.changed)}
         {list(`removed from ${data.latest}`, p.removed)}
-        {p.pending > 0 && <div className="banner warn">{p.pending} pending term{p.pending === 1 ? " is" : "s are"} left out and stay in their book glossaries.</div>}
+        {p.pending > 0 && (
+          <div className="banner warn">
+            {p.pending === 1 ? "1 pending term is left out and stays in its book glossary." : `${p.pending} pending terms are left out and stay in their book glossaries.`}
+          </div>
+        )}
         <p className="meta">
           Books at their glossary gate then review their glossary synchronized to {data.next_version}. Books pinned to an
           earlier version are not changed.
@@ -366,7 +372,7 @@ export function WorkbenchTab({ seriesId, process, onChanged, onPublished }: {
   const [sourceLang, targetLang] = pairCodes(pair.pair).map(langAttr);
   const needle = query.trim().toLowerCase();
   const shown = data.terms.filter((t) => matchesView(t, view) && (!needle
-    || t.source.toLowerCase().includes(needle) || t.target.includes(query.trim())));
+    || t.source.toLowerCase().includes(needle) || t.target.toLowerCase().includes(needle)));
 
   const sidebar = (
     <>
