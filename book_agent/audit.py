@@ -1158,9 +1158,10 @@ def _audit_language(
         run = re.search(f"[{chars}]{{4,}}", target)
         if run:
             issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.MEDIUM, f"possible untranslated {source_rules.short_name} text: {run.group(0)}"))
-    if lacks_target_script(_INLINE_MARKER.sub("", target), direction):
+    approved = [glossary_sides(entry, direction)[1] for entry in glossary]
+    if lacks_target_script(_INLINE_MARKER.sub("", target), direction, approved):
         issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.HIGH, f"translation contains no {target_rules.short_name} text"))
-    copied = copied_source_run(_INLINE_MARKER.sub("", source), _INLINE_MARKER.sub("", target), direction)
+    copied = copied_source_run(_INLINE_MARKER.sub("", source), _INLINE_MARKER.sub("", target), direction, approved)
     if copied and _normalize_prose(source) != _normalize_prose(target):
         issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.MEDIUM, f"possible untranslated {source_rules.short_name} text: {copied[:40]}"))
     if not direction.legacy:

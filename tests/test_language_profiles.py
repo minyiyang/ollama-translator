@@ -710,3 +710,86 @@ def test_a_translation_far_from_the_usual_length_is_found():
     # en/zh keeps its fixed token ratio in the audit and has no such contract failure.
     assert not [i for i in validate_translation_output(output, chunk, TranslationDirection.EN_TO_ZH)[1].issues if i.code == "unusual_length"]
     assert WHOLE_TRANSLATION_WRONG.match("translation length is far from usual here: 0.17 of the usual length for its source")
+
+
+
+def test_a_language_without_a_known_script_still_matches_whole_words():
+    from book_agent.preprocessing import ReplacementRule, _rule_pattern, _selection_pattern
+
+    amharic = profile("am")
+    assert amharic.word_chars == "" and amharic.spaced_words  # no script of its own in SCRIPTS
+    rule = ReplacementRule("ሀሎ", "Hello", "Hello", amharic.code)
+    assert _rule_pattern(rule).sub("Hello", "በጣም") == "በጣም"  # not between the letters of another word
+    assert _rule_pattern(rule).sub("Hello", "ሀሎ በጣም ሀሎ።") == "Hello በጣም Hello።"
+    assert _rule_pattern(rule).sub("Hello", "በሀሎም") == "በሀሎም"  # nor inside one
+    assert _selection_pattern("ሀሎ", amharic.code).search("በጣም") is None
+    assert _selection_pattern("ሀሎ", amharic.code).search("በጣም ሀሎ።")
+    # A profiled language keeps its own boundary.
+    assert profile("fr").term_start != amharic.term_start
+
+
+def test_digits_are_read_with_the_languages_separators():
+    from book_agent.config import AppConfig
+    from book_agent.content_policy import repair_preserves_numbers
+    from book_agent.repair import validate_repair_output
+
+    assert number_tokens("1,5 Liter", "de") == number_tokens("1.5 liters", "en")
+    assert number_tokens("1.000 Mann", "de") == number_tokens("1,000 men", "en")
+    assert number_tokens("2.000.000 Mark und 3,5 Prozent", "de") == number_tokens("2,000,000 marks and 3.5 percent", "en")
+    assert number_tokens("1,5 litre", "fr") == number_tokens("1,5 litros", "es") == number_tokens("1.5", "en")
+    assert number_tokens("1,000 men", "en") == number_tokens("1000", "en")  # English is read as before
+    en_de = LanguagePair("en>de")
+    assert numeric_content_matches("1.5 liters and 1,000 men", "1,5 Liter und 1.000 Mann", en_de)
+    assert not numeric_content_matches("1.5 liters", "15 Liter", en_de)
+    assert repair_preserves_numbers("1.5 liters", "1.5 Liter", "1,5 Liter", en_de)
+    config = AppConfig.model_validate({"translation": {"direction": "en>de"}})
+    _, validation = validate_repair_output(
+        "<S1>Er trank 1,5 Liter Wasser.</S1>", "He drank 1.5 liters of water.", "S1", "Er trank 1.5 Liter Wasser.", config
+    )
+    assert validation.passed, validation.issues
+
+
+def test_a_date_or_a_version_written_with_periods_is_not_a_number():
+    # These raised ValueError: three groups of digits are not one float.
+    assert number_tokens("am 12.03.1915", "de") == number_tokens("am 12.03.1915") == number_tokens("")
+    assert number_tokens("version 1.2.3 of it", "en") == number_tokens("")
+    assert numeric_content_matches("On 3.10.2024 he left with 2 bags.", "Am 3.10.2024 ging er mit 2 Taschen.", LanguagePair("en>de"))
+
+
+def test_a_term_the_glossary_keeps_as_written_is_not_untranslated_text():
+    from book_agent.languages import copied_source_run, lacks_target_script
+    from book_agent.translation import TranslationChunk, TranslationChunkPiece, validate_translation_output
+
+    zh_ja = LanguagePair("zh>ja")
+    institute = GlossaryEntry.for_pair({"source": "天文学研究所", "target": "天文学研究所", "category": "地名"}, zh_ja)
+    source, translated = "他在天文学研究所工作。", "彼は天文学研究所で働いている。"
+    assert copied_source_run(source, translated, zh_ja) == "天文学研究所"
+    assert copied_source_run(source, translated, zh_ja, ["天文学研究所"]) == ""
+    chunk = TranslationChunk(
+        chunk_id="c", document_id="d", document_order=0, estimated_source_tokens=0,
+        pieces=[TranslationChunkPiece(reference_id="S1", segment_id="S1", part_number=1, source_text=source)],
+    )
+    assert [i.code for i in validate_translation_output(f"<S1>{translated}</S1>", chunk, zh_ja)[1].issues] == ["untranslated_source_language"]
+    assert validate_translation_output(f"<S1>{translated}</S1>", chunk, zh_ja, [institute])[1].passed
+    issues = []
+    _audit_language("S1", source, translated, zh_ja, AuditConfig(), issues, [institute])
+    assert issues == []
+    # Source text beside the term is still found, and the term does not stand in for kana.
+    left = "彼は天文学研究所で、每天晚上观测星星。"
+    assert copied_source_run("他在天文学研究所每天晚上观测星星。", left, zh_ja, ["天文学研究所"]) == "每天晚上观测星星"
+    assert lacks_target_script("天文学研究所，每天晚上观测星星，从不休息。", zh_ja, ["天文学研究所"])
+
+
+def test_korean_native_numbers_are_read_written_together():
+    from book_agent.config import AppConfig
+    from book_agent.repair import validate_repair_output
+
+    assert parse_korean_native("스물두") == parse_korean_native("스물 두") == 22
+    assert parse_korean_native("서른다섯") == 35 and parse_korean_native("열") == 10
+    assert parse_korean_native("스물x") is None and parse_korean_native("") is None
+    assert list(korean_word_values("스물두 명이 왔다.")) == [22]
+    config = AppConfig.model_validate({"translation": {"direction": "en>ko"}})
+    _, validation = validate_repair_output(
+        "<S1>스물두 명이 왔다.</S1>", "Twenty-two people came.", "S1", "22명이 왔다.", config
+    )
+    assert validation.passed, validation.issues

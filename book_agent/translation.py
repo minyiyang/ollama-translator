@@ -619,6 +619,7 @@ def validate_translation_output(
             )
     issues: list[TranslationIssue] = [marker_issue] if marker_issue else []
     pieces_by_id = {piece.reference_id: piece for piece in chunk.pieces}
+    approved_renderings = [glossary_sides(entry, direction)[1] for entry in relevant_glossary or []]
     for reference_id, translated in translations.items():
         source = pieces_by_id[reference_id].source_text
         translated = _strip_unexpected_inline_markers(source, translated)
@@ -660,10 +661,13 @@ def validate_translation_output(
                 )
             )
         elif source_has_translatable and (
-            lacks_target_script(re.sub(r"</?I\d{3}>", "", translated), direction)
+            lacks_target_script(re.sub(r"</?I\d{3}>", "", translated), direction, approved_renderings)
             or reads_as_source(re.sub(r"</?I\d{3}>", "", translated), direction)
             or copied_source_run(
-                re.sub(r"</?I\d{3}>", "", source), re.sub(r"</?I\d{3}>", "", translated), direction
+                re.sub(r"</?I\d{3}>", "", source),
+                re.sub(r"</?I\d{3}>", "", translated),
+                direction,
+                approved_renderings,
             )
         ):
             issues.append(

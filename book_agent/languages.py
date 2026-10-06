@@ -95,6 +95,9 @@ class LanguageProfile:
     name_separator: str = ""
     # A sentence for the glossary extraction prompt about terms in this language.
     extraction_note: str = ""
+    # Digits are written 1.000,5 (a comma for the decimal, a period between
+    # thousands), not 1,000.5.
+    decimal_comma: bool = False
     # The number-word parser that reads this language: "english" and "chinese"
     # run on every text; "french" and "japanese" on text known to be in them
     # (number_words.py). Empty when no parser reads it.
@@ -116,10 +119,17 @@ class LanguageProfile:
         return " ".join(term.casefold().split()) if self.cased else term
 
     @cached_property
+    def term_start(self) -> str:
+        """Regex for what may precede a term in running text: not a letter of
+        the word before. A language whose script is not in SCRIPTS (Amharic) has
+        no character class of its own, so any letter or digit counts."""
+        return f"(?<![{self.word_chars}])" if self.word_chars else r"(?<![^\W_])"
+
+    @cached_property
     def term_end(self) -> str:
         """Regex for what may follow a term in running text: the end of the word,
         after any attached particles."""
-        boundary = f"(?![{self.word_chars}])"
+        boundary = f"(?![{self.word_chars}])" if self.word_chars else r"(?![^\W_])"
         if not self.attached_particles:
             return boundary
         particles = "|".join(sorted(map(re.escape, self.attached_particles), key=len, reverse=True))
@@ -426,6 +436,7 @@ PROFILES["fr"] = LanguageProfile(
         "vous", "ils", "elles", "mais", "ou", "sur", "au", "aux", "ce", "cette", "son", "sa",
         "ses", "mon", "ma", "mes", "c'est", "n'est", "j'ai", "plus", "très", "oui", "non",
     }),
+    decimal_comma=True,
     number_words="french",
     tier="profiled",
 )
@@ -541,6 +552,7 @@ PROFILES["es"] = LanguageProfile(
         "pero", "como", "más", "muy", "este", "esta", "ese", "esa", "yo", "tú", "usted", "mi",
         "me", "te", "he", "ha", "había", "sí", "también", "ya",
     }),
+    decimal_comma=True,
     number_words="spanish",
     tier="profiled",
 )
@@ -603,6 +615,7 @@ PROFILES["de"] = LanguageProfile(
         "German capitalizes every noun, so a capital letter does not mark a name: leave out "
         "ordinary nouns, family relations (Mutter, Vater) included."
     ),
+    decimal_comma=True,
     number_words="german",
     tier="profiled",
 )
@@ -896,9 +909,19 @@ def reads_as_source(text: str, direction: LanguagePair) -> bool:
 SHARED_SCRIPT_ONLY_MIN_CHARACTERS = 10
 
 
-def lacks_target_script(text: str, direction: LanguagePair) -> bool:
+def _without_terms(text: str, approved) -> str:
+    """`text` with each approved rendering replaced by a break: a term the
+    glossary says to write as the source does is not left-over source text."""
+    for term in sorted({term for term in approved if term}, key=len, reverse=True):
+        text = text.replace(term, " ")
+    return text
+
+
+def lacks_target_script(text: str, direction: LanguagePair, approved=()) -> bool:
     """Whether a translation has none of the scripts only the target is written
-    in (kana, for Chinese into Japanese) while long enough to need them."""
+    in (kana, for Chinese into Japanese) while long enough to need them.
+    `approved` are glossary renderings, which do not count."""
+    text = _without_terms(text, approved)
     source_scripts = profile(direction.source_language).scripts
     target_scripts = profile(direction.target_language).scripts
     own = [name for name in target_scripts if name not in source_scripts]
@@ -917,9 +940,12 @@ def lacks_target_script(text: str, direction: LanguagePair) -> bool:
 COPIED_RUN_MIN_CHARACTERS = 6
 
 
-def copied_source_run(source: str, text: str, direction: LanguagePair) -> str:
+def copied_source_run(source: str, text: str, direction: LanguagePair, approved=()) -> str:
     """A run of the shared script in a translation that stands in the source
-    as written, for a pair of unspaced languages sharing a script; else ""."""
+    as written, for a pair of unspaced languages sharing a script; else "".
+    `approved` are glossary renderings: a term kept as the glossary has it is
+    the translation, and a run is not carried across one."""
+    text = _without_terms(text, approved)
     source_rules, target_rules = profile(direction.source_language), profile(direction.target_language)
     shared = [name for name in source_rules.scripts if name in target_rules.scripts]
     if not shared or source_rules.spaced_words or target_rules.spaced_words:

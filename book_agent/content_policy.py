@@ -522,6 +522,24 @@ def _marker_split_view(text: str, visible: str) -> str:
     return view if len(view) == len(visible) else visible
 
 
+# Digits as German, Spanish, and French write them: 1.000 is a thousand and 1,5
+# is one and a half. Read as English, they would be 1 and 15. A date (12.03.1915)
+# is not grouped in threes and is left as it is.
+_LOCALIZED_DIGITS = re.compile(
+    r"(?<![\d.,])\d{1,3}(?:\.\d{3})+(?:,\d+)?(?![\d]|[.,]\d)"
+    r"|(?<![\d.,])\d+,\d+(?![\d]|[.,]\d)"
+)
+
+
+def _as_plain_digits(match: re.Match[str]) -> str:
+    """The number with a period for its decimal and no thousands marks, padded
+    to the length it had so positions in the text stay where they were."""
+    written = match.group(0)
+    whole, _, decimal = written.partition(",")
+    plain = whole.replace(".", "") + ("." + decimal if decimal else "")
+    return plain.ljust(len(written))
+
+
 def number_tokens(text: str, language: str | None = None) -> Counter[str]:
     """Return conservative, cross-language objective number facts.
 
@@ -534,6 +552,8 @@ def number_tokens(text: str, language: str | None = None) -> Counter[str]:
     visible = unicodedata.normalize("NFKC", _INLINE_MARKER.sub(" ", text)).strip()
     if parser == "japanese":
         visible = japanese_as_chinese_numerals(visible)
+    if language and profile(language).decimal_comma:
+        visible = _LOCALIZED_DIGITS.sub(_as_plain_digits, visible)
     countdown = _countdown_number_tokens(visible)
     if countdown:
         return countdown
@@ -981,7 +1001,7 @@ def _ordered_range_fact(start: int | float, end: int | float) -> str:
     return f"range:{_canonical_numeric_fact(start)}:{_canonical_numeric_fact(end)}"
 
 
-def _parse_arabic_match(match: re.Match[str]) -> int | float:
+def _parse_arabic_match(match: re.Match[str]) -> int | float | None:
     value = match.group(0)
     if (
         value.startswith(("-", "+"))
@@ -989,6 +1009,10 @@ def _parse_arabic_match(match: re.Match[str]) -> int | float:
         and _CJK.fullmatch(match.string[match.start() - 1])
     ):
         value = value[1:]
+    if value.replace(",", "").count(".") > 1:
+        # A date or a version (12.03.1915, 1.2.3) is not one number, and its
+        # parts are written in another order or as words in the other language.
+        return None
     return _parse_arabic_number(value)
 
 

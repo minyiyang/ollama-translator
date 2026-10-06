@@ -325,13 +325,22 @@ def parse_korean_sino(text: str) -> int | None:
     return total + section + digit
 
 
+_KO_NATIVE_PART = re.compile("|".join(sorted(_KO_NATIVE, key=len, reverse=True)))
+
+
 def parse_korean_native(text: str) -> int | None:
-    """Native Korean numerals before a counter ("스물 두" -> 22), or None."""
-    parts = re.split(r"\s+", text.strip())
-    values = [_KO_NATIVE.get(part) for part in parts]
-    if None in values:
-        return None
-    return sum(values)
+    """Native Korean numerals before a counter, written apart or together
+    ("스물 두" and "스물두" -> 22), or None."""
+    values: list[int] = []
+    for part in re.split(r"\s+", text.strip()):
+        position = 0
+        while position < len(part):
+            numeral = _KO_NATIVE_PART.match(part, position)
+            if numeral is None:
+                return None
+            values.append(_KO_NATIVE[numeral.group(0)])
+            position = numeral.end()
+    return sum(values) if values else None
 
 
 def korean_word_values(text: str) -> Iterator[int]:

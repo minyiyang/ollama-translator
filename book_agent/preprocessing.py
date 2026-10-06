@@ -295,7 +295,7 @@ def _rule_pattern(rule: ReplacementRule) -> re.Pattern[str]:
     language = profile(rule.source_language)
     if language.spaced_words:
         return re.compile(
-            rf"(?<![{language.word_chars}]){escaped}{language.term_end}",
+            rf"{language.term_start}{escaped}{language.term_end}",
             flags=re.IGNORECASE if language.cased else 0,
         )
     return re.compile(escaped)
@@ -328,7 +328,7 @@ def _selection_pattern(source: str, language: Language) -> re.Pattern[str]:
         else:
             term = escaped + (rules.plural_suffix if re.search(r"[^\W\d_]{3}$", source) else "")
         return re.compile(
-            rf"(?<![{rules.word_chars}]){term}{rules.term_end}",
+            rf"{rules.term_start}{term}{rules.term_end}",
             flags=0 if case_sensitive else re.IGNORECASE,
         )
     return re.compile(escaped)
