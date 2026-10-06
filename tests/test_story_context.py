@@ -142,7 +142,7 @@ def test_a_document_without_story_context_serializes_as_before():
 
     document = PreprocessedDocument(order=1, manifest_id="m", archive_path="a", source_sha256="x", segments=[])
     assert set(json.loads(document.model_dump_json())) == {
-        "order", "manifest_id", "archive_path", "source_sha256", "segments", "relevant_glossary",
+        "order", "manifest_id", "archive_path", "source_sha256", "segments", "glossary_pair", "relevant_glossary",
     }
 
 

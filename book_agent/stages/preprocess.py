@@ -6,11 +6,13 @@ from pathlib import Path
 
 from ..atomic_io import atomic_write_text
 from ..config import AppConfig
+from ..languages import glossary_pair
 from ..glossary import (
     GlossarySource,
     GlossarySourceKind,
     load_glossary_file,
     merge_prioritized_sources,
+    orient_glossary,
 )
 from ..hashing import hash_named_values, sha256_file, sha256_text
 from ..series_binding import bound_glossary_file, load_series_binding
@@ -200,6 +202,7 @@ def run_preprocessing_stage(
                     archive_path=source_document.archive_path,
                     source_sha256=source_document.source_sha256,
                     segments=processed_segments,
+                    glossary_pair=glossary.pair,
                     relevant_glossary=relevant,
                     relevant_style=(
                         select_relevant_style(style, original_text, max_entries=10_000)
@@ -235,8 +238,8 @@ def run_preprocessing_stage(
             )
             volume_active_terms.update(
                 (
-                    normalize_term(entry.english),
-                    normalize_term(entry.chinese),
+                    normalize_term(entry.source),
+                    normalize_term(entry.target),
                 )
                 for entry in document.relevant_glossary
             )
@@ -294,11 +297,12 @@ def _load_effective_glossary(
 ) -> tuple[GlossaryResult, dict[str, str]]:
     """Late-bind shared series terms while preserving approved book overrides."""
     approved = load_approved_glossary(workspace)
+    pair = glossary_pair(config.translation.direction)
     sources: list[GlossarySource] = []
     hashes: dict[str, str] = {}
     for index, path in enumerate(config.glossary.series_glossaries):
         resolved = Path(path).resolve()
-        series = load_glossary_file(resolved)
+        series = orient_glossary(load_glossary_file(resolved), pair)
         sources.append(
             GlossarySource(
                 name=f"series-{index:03d}-{resolved.name}",
@@ -318,7 +322,7 @@ def _load_effective_glossary(
             GlossarySource(
                 name=f"series-bound-{binding.series_id}-{binding.version}",
                 kind=GlossarySourceKind.SERIES,
-                entries=tuple(load_glossary_file(pinned).entries),
+                entries=tuple(orient_glossary(load_glossary_file(pinned), pair).entries),
             )
         )
         hashes["series_binding"] = f"{binding.series_id}:{binding.version}:{binding.sha256}"
@@ -329,7 +333,7 @@ def _load_effective_glossary(
             entries=tuple(approved.entries),
         )
     )
-    return GlossaryResult(entries=merge_prioritized_sources(sources)), hashes
+    return GlossaryResult(pair=pair, entries=merge_prioritized_sources(sources)), hashes
 
 
 def load_preprocessed_documents(workspace: JobWorkspace) -> list[PreprocessedDocument]:

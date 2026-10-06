@@ -9,9 +9,10 @@ from typing import Any
 
 from ..atomic_io import atomic_write_text
 from ..config import AppConfig
+from ..languages import glossary_language_names, glossary_pair
 from ..pipeline_state import WorkflowStage
-from ..schemas import GlossaryCategory, GlossaryResult
-from ..style_sheet import StyleSheet
+from ..schemas import GlossaryApprovalRecord, GlossaryCategory, GlossaryResult
+from ..style_sheet import StyleSheet, address_choices, check_style_choices, pronoun_choices
 from ..stages.decompile import load_decompile_manifest
 from ..state import connect_state, get_job_metadata, get_stage_status
 from ..workspace import JobWorkspace
@@ -42,8 +43,23 @@ def _evidence_text(workspace: JobWorkspace, ids: set[str]) -> dict[str, str]:
     }
 
 
+def _config(workspace: JobWorkspace) -> AppConfig | None:
+    try:
+        return AppConfig.model_validate_json(workspace.config_file.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+
+
+def _entries(data: Any) -> list[dict[str, Any]]:
+    """A stored glossary's entries with source/target sides (older files say english/chinese)."""
+    if not data:
+        return []
+    return GlossaryResult.model_validate(data).model_dump(mode="json")["entries"]
+
+
 def glossary_payload(workspace: JobWorkspace) -> dict[str, Any]:
     """Everything the glossary page needs, keyed on the approval stage state."""
+    config = _config(workspace)
     connection = connect_state(workspace.state_file)
     try:
         resolve = get_stage_status(connection, WorkflowStage.RESOLVE_GLOSSARY.value)
@@ -58,8 +74,9 @@ def glossary_payload(workspace: JobWorkspace) -> dict[str, Any]:
     finally:
         connection.close()
     approve_status = str(approve["status"]) if approve else "pending"
-    entries = (approved if approve_status == "completed" and approved else draft) or {"entries": []}
-    ids = {item for entry in entries["entries"] for item in entry.get("evidence", [])}
+    entries = _entries(approved if approve_status == "completed" and approved else draft)
+    ids = {item for entry in entries for item in entry.get("evidence", [])}
+    direction = config.translation.direction if config is not None else None
     return {
         "ready": bool(resolve and resolve["status"] == "completed" and draft),
         "approve_status": approve_status,
@@ -67,9 +84,14 @@ def glossary_payload(workspace: JobWorkspace) -> dict[str, Any]:
         "editable": approve_status in {"paused", "pending", "failed"} and bool(draft),
         # Metadata from an earlier approval outlives a reset gate; only report it when current.
         "review_mode": review_mode if approve_status == "completed" else "",
-        "entries": entries["entries"],
-        "draft_entries": (draft or {"entries": []})["entries"],
-        "approval_records": (report or {}).get("records", []),
+        "entries": entries,
+        "draft_entries": _entries(draft),
+        # The glossary's pair and the language of each side, for column labels.
+        "glossary_pair": glossary_language_names(glossary_pair(direction)) if direction else None,
+        "approval_records": [
+            GlossaryApprovalRecord.model_validate(record).model_dump(mode="json")
+            for record in (report or {}).get("records", [])
+        ],
         "approval_summary": {k: v for k, v in (report or {}).items() if k != "records"},
         "quality": quality or {},
         "evidence": _evidence_text(workspace, ids),
@@ -83,23 +105,23 @@ def glossary_payload(workspace: JobWorkspace) -> dict[str, Any]:
             "approved": style_approved if approve_status == "completed" else None,
             # "human": the gate waits for a person, so approving always sends the sheet.
             "review": _style_review(workspace),
-            "pronouns": ["他", "她", "它", "he", "she", "it"],
-            "addresses": ["你", "您"],
+            "pronouns": list(pronoun_choices(direction)) if direction else [],
+            "addresses": list(address_choices(direction)) if direction else [],
         },
     }
 
 
 def _style_review(workspace: JobWorkspace) -> str:
-    try:
-        config = AppConfig.model_validate_json(workspace.config_file.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return "human"
-    return config.consistency.style_sheet.review
+    config = _config(workspace)
+    return config.consistency.style_sheet.review if config is not None else "human"
 
 
 def write_reviewed_style_sheet(workspace: JobWorkspace, style: dict[str, Any]) -> Path:
     """Validate a reviewer's style-sheet edits and store them in the job."""
     sheet = StyleSheet.model_validate(style)
+    config = _config(workspace)
+    if config is not None:
+        check_style_choices(sheet, config.translation.direction)
     stamp = datetime.now().astimezone().strftime("%Y%m%dT%H%M%S")
     path = workspace.directory(f"{REVIEW_DIR}/style.reviewed-{stamp}.json")
     path.parent.mkdir(parents=True, exist_ok=True)
@@ -109,7 +131,9 @@ def write_reviewed_style_sheet(workspace: JobWorkspace, style: dict[str, Any]) -
 
 def write_reviewed_glossary(workspace: JobWorkspace, entries: list[dict[str, Any]]) -> Path:
     """Validate reviewer edits with the canonical schema and store them in the job."""
-    result = GlossaryResult.model_validate({"entries": entries})
+    config = _config(workspace)
+    pair = glossary_pair(config.translation.direction) if config is not None else None
+    result = GlossaryResult.model_validate({"pair": pair, "entries": entries})
     if not result.entries:
         raise ValueError("the reviewed glossary is empty; keep at least one entry")
     stamp = datetime.now().astimezone().strftime("%Y%m%dT%H%M%S")

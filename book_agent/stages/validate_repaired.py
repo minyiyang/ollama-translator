@@ -1133,6 +1133,12 @@ def _run_feedback_repair(
     context_bucket=None,
     usage_role="",
 ) -> SegmentRepair:
+    # A feedback repair rewrites a translation: without a model of its own it
+    # uses the repair model, not the primary one, which may be the weaker
+    # writer of the target language (qwen3.8 answered a Japanese target in
+    # Chinese).
+    if model is None and config.audit.repair_model:
+        model = config.audit.repair_model
     segment_id = previous_repair.segment_id
     if not usage_role:
         usage_role = (

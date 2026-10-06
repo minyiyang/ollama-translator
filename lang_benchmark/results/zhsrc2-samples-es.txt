@@ -1,0 +1,35 @@
+-- D0000-S000007
+  SRC: 『阿Q，你这浑小子！你说我是你的本家么？』
+  QWEN: «¡A-Q, muchacho insolente! ¿Dices que soy de tu misma familia?»
+  TG r1: «¡A-Q, muchacho insolente! ¿Dices que soy de tu misma familia?»
+  TG r2: «¡A-Q, mocoso! ¿Dices que soy tu pariente?»
+-- D0000-S000020
+  SRC: 阿Q没有家，住在未庄的土谷祠里；也没有固定的职业，只给人家做短工，割麦便割麦，舂米便舂米，撑船便撑船。工作略长久时，他也或住在临时主人的家里，但一完就走了。所以，人们忙碌的时候，也还记起阿Q来，然而记起的是做工，并不是『行状』；一闲空，连阿Q都早忘却，更不必说『行状』了。只是有一回，有一个老头子颂扬说：『阿Q真能做！』这时阿Q赤着膊，懒洋洋的瘦伶仃的正在他面前，别人也摸不着这话是真心还是讥笑，然而阿Q很喜欢。
+  QWEN: A-Q no tiene casa, vive en el Templo de la Tierra y el Granero de Weizhuang; tampoco tiene una ocupación fija, solo hace trabajos temporales para otros, siega trigo, pisa arroz, rema barcos. Cuando el trabajo dura un poco, a veces se aloja en la casa del dueño temporal, pero se va en cuanto termina. Por eso, cuando la gente está ocupada, aún se acuerda de A-Q, pero se acuerda del trabajo, no de sus actos y hechos; cu
+  TG r1: A-Q no tiene casa, vive en el Templo de la Tierra y el Granero de Weizhuang; tampoco tiene un trabajo fijo, solo hace trabajos temporales para otros, corta trigo cuando hay que cortar trigo, pisa arroz cuando hay que pisar arroz, rema cuando hay que remar. Cuando el trabajo dura un poco, a veces se aloja en la casa del dueño temporal, pero en cuanto termina, se va. Por eso, cuando la gente está ocupada, aún se acuerd
+  TG r2: A-Q no tiene casa y vive en el templo de la Tierra y el Granero de Weizhuang. Tampoco tiene una ocupación fija, solo hace trabajos ocasionales para la gente, corta trigo cuando hay que cortar trigo, muele arroz cuando hay que moler arroz, y rema cuando hay que remar. Cuando el trabajo dura un poco más, también vive en casa de sus empleadores, pero una vez terminado, se va. Por lo tanto, cuando la gente está ocupada, 
+-- D0000-S000034
+  SRC: 但虽然是虫豸，闲人也并不放，仍旧在就近什么地方给他碰了五六个响头，这才心满意足的得胜的走了，他以为阿Q这回可遭了瘟。然而不到十秒钟，阿Q也心满意足的得胜的走了，他觉得他是第一个能够自轻自贱的人，除了『自轻自贱』不算外，馀下的就是『第一个』。状元不也是『第一个』么？『你算是什么东西』呢！？
+  QWEN: Pero aunque fuera un insecto, los holgazanes no lo soltaban, y le hicieron golpear la cabeza cinco o seis veces en algún lugar cercano; solo entonces se fueron satisfecho y victorioso, creyendo que A-Q había tenido mala suerte. Pero en menos de diez segundos, A-Q también se fue satisfecho y victorioso; se sentía el primero en menospreciarse a sí mismo; excluyendo «menospreciarse a sí mismo», lo que quedaba era «el pr
+  TG r1: Pero aunque fuera un insecto, los holgazanes no lo soltaban, y seguían haciéndole dar cinco o seis golpes contra algo cercano, y solo entonces se fueron satisfechos y victoriosos, creyendo que A-Q esta vez había tenido mala suerte. Pero en menos de diez segundos, A-Q también se fue satisfecho y victorioso, sintiéndose el primero en poder «menospreciarse a sí mismo»; excepto por «menospreciarse a sí mismo», lo que que
+  TG r2: Pero aunque fuera un bicho, los holgazanes no lo soltaban; seguían haciéndole dar cinco o seis golpes de cabeza contra lo que hubiera cerca, y solo entonces se fueron satisfechos y victoriosos, creyendo que esta vez A-Q había sufrido una desgracia. Sin embargo, no pasaron diez segundos cuando A-Q también se fue satisfecho y victorioso. Se sentía el primero en ser capaz de menospreciarse a sí mismo; excluyendo «menosp
+-- D0000-S000082
+  SRC: 『和尚动得，我动不得？』他扭住伊的面颊。
+  QWEN: «Si puedo tocar al monje, ¿no puedo tocarte a ti?» Le agarró la mejilla.
+  TG r1: Después de esta pelea, A-Q olvidó a Wang Hu y al falso extranjero, y pareció haber resuelto todos sus problemas. Además, extrañamente, se sintió aún más relajado que después de los golpes, y parecía que iba a volar. flotaba como si fuera a volar
+  TG r2: «Si el monje puede hacerlo, ¿por qué no puedo yo?», dijo, agarrando su mejilla.
+-- D0000-S000093
+  SRC: 阿Q的耳朵里又听到这句话。他想：不错，应该有一个女人，断子绝孙便没有人供一碗饭，……应该有一个女人。夫『不孝有三无后为大』，而『若敖之鬼馁而』，也是一件人生的大哀，所以他那思想，其实是样样合于圣经贤传的，只可惜后来有些『不能收其放心』了。
+  QWEN: A-Q escuchó de nuevo esta frase. Pensó: «Es cierto, debería tener una mujer; al cortar la descendencia, nadie le ofrecerá un plato de arroz… debería tener una mujer». «De las tres desobediencias, la mayor es no tener descendencia», y «el fantasma de Ru'ao tiene hambre» también es una gran tragedia de la vida, por lo que su pensamiento, en realidad, se ajusta a los clásicos sagrados y las transmisiones de los sabios; 
+  TG r1: A-Q volvió a escuchar esas palabras en sus oídos. Pensó: «Cierto, debería haber una mujer; si uno corta la descendencia, no habrá nadie que le ofrezca un cuenco de arroz… debería haber una mujer». Pues «de las tres desobediencias, la mayor es no tener descendencia», y que «el fantasma de Ru'ao tiene hambre» es también una gran tragedia humana; por lo tanto, sus pensamientos concordaban, en realidad, en todo con los c
+  TG r2: A-Q escuchó de nuevo esta frase. Pensó: «Sí, debería haber una mujer, porque si no tengo descendencia, ¿quién me dará una ración de comida…? Debería haber una mujer». Después de todo, «de las tres desobediencias, la mayor es no tener descendencia», y «el fantasma de Ru'ao tiene hambre», lo cual también es una gran tristeza en la vida. Por lo tanto, sus pensamientos son en realidad consistentes con los clásicos sagrad
+-- D0000-S000107
+  SRC: 『我们的少奶奶是八月里要生孩子了……』
+  QWEN: «Nuestra joven señora va a dar a luz en agosto…»
+  TG r1: «¡Ay!», Wu-Ma se sobresaltó, gritó y salió corriendo, llorando.
+  TG r2: «Nuestra joven señora dará a luz en agosto…»,
+-- D0000-S000138
+  SRC: 阿Q忍不下去了，他只好到老主顾的家里去探问，——但独不许踏进赵府的门槛，——然而情形也异样：一定走出一个男人来，现了十分烦厌的相貌，像回复乞丐一般的摇手道：——
+  QWEN: A-Q no podía soportarlo más; tuvo que ir a las casas de sus clientes habituales a preguntar —pero no podía cruzar el umbral de la residencia de los Zhao—, pero la situación era extraña: siempre salía un hombre, con una expresión muy molesta, como si respondiera a un mendigo, negando con la mano:
+  TG r1: A-Q no pudo soportarlo más, así que decidió ir a casa de sus antiguos clientes para preguntar, pero no podía pisar el umbral de la residencia de los Zhao. Sin embargo, la situación era diferente: siempre había un hombre que salía, con una expresión de gran disgusto, como si estuviera echando a un mendigo, y decía: —
+  TG r2: A-Q no pudo soportarlo más, así que decidió ir a casa de sus antiguos clientes para preguntar, pero no podía pisar el umbral de la residencia de los Zhao. Sin embargo, la situación era diferente: siempre había un hombre que salía, con una expresión de gran disgusto, como si estuviera echando a un mendigo, y decía: —

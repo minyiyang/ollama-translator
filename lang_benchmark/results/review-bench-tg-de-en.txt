@@ -1,0 +1,187 @@
+
+======== bench-tg-de-en
+segments 31; longest D0000-S000031: source 4388 chars, translation 4226 chars
+  longest translation head: “Mother, Mother,” Gregor said softly and looked  up at her. For a moment the authorized signatory had completely slipped his mind; on the other hand, he could not resist snapping his jaws several time
+  longest translation tail: loor—then Father gave him from behind a now truly redeeming strong push, and he flew, bleeding heavily, far into his room. The door was then slammed shut with the stick, and then it was finally quiet.
+-- rule findings (all)
+  [glossary/medium] D0000-S000007: approved glossary term was not preserved: Father
+      SRC: Und er sah zur Weckuhr hinüber, die auf dem Kasten tickte. »Himmlischer Vater!« dachte er, Es war halb sieben Uhr, und die Zeiger gingen ruhig vorwärt
+      TGT: And he looked at the alarm clock, which was ticking on the chest of drawers. “Heavenly Father!” he thought. It was half past six, and the hands were m
+  [duplication/high] D0000-S000016: translation duplicates a different source segment: D0000-S000006
+      SRC: Schon war er so weit, daß er bei stärkerem Schaukeln kaum das Gleichgewicht noch erhielt, und sehr bald mußte er sich nun endgültig entscheiden, denn 
+      TGT: He slid back into his former position. “This early rising,” he thought, “makes one quite foolish. A man must have his sleep. Other traveling salesmen 
+  [glossary/medium] D0000-S000016: approved glossary term was not preserved: Gregor
+      SRC: Schon war er so weit, daß er bei stärkerem Schaukeln kaum das Gleichgewicht noch erhielt, und sehr bald mußte er sich nun endgültig entscheiden, denn 
+      TGT: He slid back into his former position. “This early rising,” he thought, “makes one quite foolish. A man must have his sleep. Other traveling salesmen 
+  [glossary/low] D0000-S000016: approved glossary term was not preserved: authorized signatory
+      SRC: Schon war er so weit, daß er bei stärkerem Schaukeln kaum das Gleichgewicht noch erhielt, und sehr bald mußte er sich nun endgültig entscheiden, denn 
+      TGT: He slid back into his former position. “This early rising,” he thought, “makes one quite foolish. A man must have his sleep. Other traveling salesmen 
+  [duplication/high] D0000-S000017: translation duplicates a different source segment: D0000-S000007
+      SRC: »Da drin ist etwas gefallen,« sagte der Prokurist im Nebenzimmer links. Gregor suchte sich vorzustellen, ob nicht auch einmal dem Prokuristen etwas Äh
+      TGT: “Something has fallen in there,” the authorized signatory said in the adjacent room on the left. Gregor tried to imagine whether something similar cou
+  [glossary/low] D0000-S000017: approved glossary term was not preserved: authorized signatory
+      SRC: »Da drin ist etwas gefallen,« sagte der Prokurist im Nebenzimmer links. Gregor suchte sich vorzustellen, ob nicht auch einmal dem Prokuristen etwas Äh
+      TGT: “Something has fallen in there,” the authorized signatory said in the adjacent room on the left. Gregor tried to imagine whether something similar cou
+  [duplication/high] D0000-S000018: translation duplicates a different source segment: D0000-S000008
+      SRC: »Gregor,« sagte nun der Vater aus dem Nebenzimmer links, »der Herr Prokurist ist gekommen und erkundigt sich, warum du nicht mit dem Frühzug weggefahr
+      TGT: As he thought all this in great haste, without being able to decide to get out of bed – just then the alarm clock struck half past seven – there was a
+  [glossary/low] D0000-S000018: approved glossary term was not preserved: authorized signatory
+      SRC: »Gregor,« sagte nun der Vater aus dem Nebenzimmer links, »der Herr Prokurist ist gekommen und erkundigt sich, warum du nicht mit dem Frühzug weggefahr
+      TGT: As he thought all this in great haste, without being able to decide to get out of bed – just then the alarm clock struck half past seven – there was a
+  [duplication/high] D0000-S000019: translation duplicates a different source segment: D0000-S000009
+      SRC: Warum ging denn die Schwester nicht zu den anderen? Sie war wohl erst jetzt aus dem Bett aufgestanden und hatte noch gar nicht angefangen sich anzuzie
+      TGT: Why didn't his sister go to the others? She had probably only just gotten out of bed and had not yet begun to dress. And why was she crying? Because h
+  [glossary/medium] D0000-S000019: approved glossary term was not preserved: Gregor
+      SRC: Warum ging denn die Schwester nicht zu den anderen? Sie war wohl erst jetzt aus dem Bett aufgestanden und hatte noch gar nicht angefangen sich anzuzie
+      TGT: Why didn't his sister go to the others? She had probably only just gotten out of bed and had not yet begun to dress. And why was she crying? Because h
+  [glossary/low] D0000-S000019: approved glossary term was not preserved: authorized signatory
+      SRC: Warum ging denn die Schwester nicht zu den anderen? Sie war wohl erst jetzt aus dem Bett aufgestanden und hatte noch gar nicht angefangen sich anzuzie
+      TGT: Why didn't his sister go to the others? She had probably only just gotten out of bed and had not yet begun to dress. And why was she crying? Because h
+  [duplication/high] D0000-S000020: translation duplicates a different source segment: D0000-S000010
+      SRC:  »Herr Samsa,« rief nun der Prokurist mit erhobener Stimme, »was ist denn los? Sie verbarrikadieren sich da in Ihrem Zimmer, antworten bloß mit ja und
+      TGT: “Mr. Samsa,” the authorized signatory now called out in a raised voice, “what is the matter? You barricade yourself there in your room, answer only wi
+  [mistranslation/high] D0000-S000020: numeric content differs from source: The translation is completely unrelated to the source text. The source discusses a conversation between
+      SRC:  »Herr Samsa,« rief nun der Prokurist mit erhobener Stimme, »was ist denn los? Sie verbarrikadieren sich da in Ihrem Zimmer, antworten bloß mit ja und
+      TGT: “Mr. Samsa,” the authorized signatory now called out in a raised voice, “what is the matter? You barricade yourself there in your room, answer only wi
+  [glossary/low] D0000-S000020: approved glossary term was not preserved: authorized signatory
+      SRC:  »Herr Samsa,« rief nun der Prokurist mit erhobener Stimme, »was ist denn los? Sie verbarrikadieren sich da in Ihrem Zimmer, antworten bloß mit ja und
+      TGT: “Mr. Samsa,” the authorized signatory now called out in a raised voice, “what is the matter? You barricade yourself there in your room, answer only wi
+  [glossary/medium] D0000-S000021: approved glossary term was not preserved: Gregor
+      SRC: »Aber Herr Prokurist,« rief Gregor außer sich und vergaß in der Aufregung alles andere, »ich mache ja sofort, augenblicklich auf. Ein leichtes Unwohls
+      TGT: “But Mr. Authorized Signatory,” Gregor cried, beside himself and forgetting everything else in his agitation, “I am opening up right now, this instant
+  [glossary/low] D0000-S000021: approved glossary term was not preserved: authorized signatory
+      SRC: »Aber Herr Prokurist,« rief Gregor außer sich und vergaß in der Aufregung alles andere, »ich mache ja sofort, augenblicklich auf. Ein leichtes Unwohls
+      TGT: “But Mr. Authorized Signatory,” Gregor cried, beside himself and forgetting everything else in his agitation, “I am opening up right now, this instant
+  [duplication/high] D0000-S000022: translation duplicates a different source segment: D0000-S000012
+      SRC: Und während Gregor dies alles hastig ausstieß und kaum wußte, was er sprach, hatte er sich leicht, wohl infolge der im Bett bereits erlangten Übung, d
+      TGT: And while Gregor hastily uttered all this, hardly knowing what he was saying, he had drawn near the chest—likely as a result of the practice he had al
+  [glossary/medium] D0000-S000022: approved glossary term was not preserved: Gregor
+      SRC: Und während Gregor dies alles hastig ausstieß und kaum wußte, was er sprach, hatte er sich leicht, wohl infolge der im Bett bereits erlangten Übung, d
+      TGT: And while Gregor hastily uttered all this, hardly knowing what he was saying, he had drawn near the chest—likely as a result of the practice he had al
+  [glossary/low] D0000-S000022: approved glossary term was not preserved: authorized signatory
+      SRC: Und während Gregor dies alles hastig ausstieß und kaum wußte, was er sprach, hatte er sich leicht, wohl infolge der im Bett bereits erlangten Übung, d
+      TGT: And while Gregor hastily uttered all this, hardly knowing what he was saying, he had drawn near the chest—likely as a result of the practice he had al
+  [duplication/high] D0000-S000023: translation duplicates a different source segment: D0000-S000013
+      SRC: »Haben Sie auch nur ein Wort verstanden?« fragte der Prokurist die Eltern, »er macht sich doch wohl nicht einen Narren aus uns?« »Um Gottes willen,« r
+      TGT: “Did you understand a single word?” the authorized signatory asked the parents, “he isn’t making a fool of us, is he?” “For God’s sake,” Mother cried,
+  [mistranslation/high] D0000-S000023: numeric content differs from source: SOURCE: "um acht Uhr" (at eight o'clock); TRANSLATION: "It’s seven o’clock" (at seven o'clock). The tim
+      SRC: »Haben Sie auch nur ein Wort verstanden?« fragte der Prokurist die Eltern, »er macht sich doch wohl nicht einen Narren aus uns?« »Um Gottes willen,« r
+      TGT: “Did you understand a single word?” the authorized signatory asked the parents, “he isn’t making a fool of us, is he?” “For God’s sake,” Mother cried,
+  [glossary/medium] D0000-S000023: approved glossary term was not preserved: Father
+      SRC: »Haben Sie auch nur ein Wort verstanden?« fragte der Prokurist die Eltern, »er macht sich doch wohl nicht einen Narren aus uns?« »Um Gottes willen,« r
+      TGT: “Did you understand a single word?” the authorized signatory asked the parents, “he isn’t making a fool of us, is he?” “For God’s sake,” Mother cried,
+  [glossary/medium] D0000-S000023: approved glossary term was not preserved: Gregor
+      SRC: »Haben Sie auch nur ein Wort verstanden?« fragte der Prokurist die Eltern, »er macht sich doch wohl nicht einen Narren aus uns?« »Um Gottes willen,« r
+      TGT: “Did you understand a single word?” the authorized signatory asked the parents, “he isn’t making a fool of us, is he?” “For God’s sake,” Mother cried,
+  [glossary/medium] D0000-S000023: approved glossary term was not preserved: Mother
+      SRC: »Haben Sie auch nur ein Wort verstanden?« fragte der Prokurist die Eltern, »er macht sich doch wohl nicht einen Narren aus uns?« »Um Gottes willen,« r
+      TGT: “Did you understand a single word?” the authorized signatory asked the parents, “he isn’t making a fool of us, is he?” “For God’s sake,” Mother cried,
+  [glossary/low] D0000-S000023: approved glossary term was not preserved: authorized signatory
+      SRC: »Haben Sie auch nur ein Wort verstanden?« fragte der Prokurist die Eltern, »er macht sich doch wohl nicht einen Narren aus uns?« »Um Gottes willen,« r
+      TGT: “Did you understand a single word?” the authorized signatory asked the parents, “he isn’t making a fool of us, is he?” “For God’s sake,” Mother cried,
+  [duplication/high] D0000-S000024: translation duplicates a different source segment: D0000-S000014
+      SRC: Gregor war aber viel ruhiger geworden. Man verstand zwar also seine Worte nicht mehr, trotzdem sie ihm genug klar, klarer als früher, vorgekommen ware
+      TGT: Gregor had, however, become much calmer. It was true that his words were no longer understood, even though they had seemed clear enough to him, cleare
+  [glossary/medium] D0000-S000024: approved glossary term was not preserved: Gregor
+      SRC: Gregor war aber viel ruhiger geworden. Man verstand zwar also seine Worte nicht mehr, trotzdem sie ihm genug klar, klarer als früher, vorgekommen ware
+      TGT: Gregor had, however, become much calmer. It was true that his words were no longer understood, even though they had seemed clear enough to him, cleare
+  [glossary/low] D0000-S000024: approved glossary term was not preserved: authorized signatory
+      SRC: Gregor war aber viel ruhiger geworden. Man verstand zwar also seine Worte nicht mehr, trotzdem sie ihm genug klar, klarer als früher, vorgekommen ware
+      TGT: Gregor had, however, become much calmer. It was true that his words were no longer understood, even though they had seemed clear enough to him, cleare
+  [glossary/medium] D0000-S000025: approved glossary term was not preserved: Mother
+      SRC: Gregor schob sich langsam mit dem Sessel zur Tür hin, ließ ihn dort los, warf sich gegen die Tür, hielt sich an ihr aufrecht – die Ballen seiner Beinc
+      TGT: Gregor pushed himself slowly toward the door using the armchair, let go of it there, threw himself against the door, and held himself upright against 
+  [glossary/low] D0000-S000025: approved glossary term was not preserved: authorized signatory
+      SRC: Gregor schob sich langsam mit dem Sessel zur Tür hin, ließ ihn dort los, warf sich gegen die Tür, hielt sich an ihr aufrecht – die Ballen seiner Beinc
+      TGT: Gregor pushed himself slowly toward the door using the armchair, let go of it there, threw himself against the door, and held himself upright against 
+  [duplication/high] D0000-S000026: translation duplicates a different source segment: D0000-S000006
+      SRC: Da er die Türe auf diese Weise öffnen mußte, war sie eigentlich schon recht weit geöffnet, und er selbst noch nicht zu sehen. Er mußte sich erst langs
+      TGT: Since he had to open the door in this manner, it was actually already quite wide open, yet he himself was not yet visible. He first had to turn slowly
+  [mistranslation/high] D0000-S000026: numeric content differs from source: The translation is a complete hallucination/mismatch; it does not translate the provided source text at
+      SRC: Da er die Türe auf diese Weise öffnen mußte, war sie eigentlich schon recht weit geöffnet, und er selbst noch nicht zu sehen. Er mußte sich erst langs
+      TGT: Since he had to open the door in this manner, it was actually already quite wide open, yet he himself was not yet visible. He first had to turn slowly
+  [glossary/medium] D0000-S000026: approved glossary term was not preserved: Father
+      SRC: Da er die Türe auf diese Weise öffnen mußte, war sie eigentlich schon recht weit geöffnet, und er selbst noch nicht zu sehen. Er mußte sich erst langs
+      TGT: Since he had to open the door in this manner, it was actually already quite wide open, yet he himself was not yet visible. He first had to turn slowly
+  [glossary/medium] D0000-S000026: approved glossary term was not preserved: Gregor
+      SRC: Da er die Türe auf diese Weise öffnen mußte, war sie eigentlich schon recht weit geöffnet, und er selbst noch nicht zu sehen. Er mußte sich erst langs
+      TGT: Since he had to open the door in this manner, it was actually already quite wide open, yet he himself was not yet visible. He first had to turn slowly
+  [glossary/medium] D0000-S000026: approved glossary term was not preserved: Mother
+      SRC: Da er die Türe auf diese Weise öffnen mußte, war sie eigentlich schon recht weit geöffnet, und er selbst noch nicht zu sehen. Er mußte sich erst langs
+      TGT: Since he had to open the door in this manner, it was actually already quite wide open, yet he himself was not yet visible. He first had to turn slowly
+  [glossary/low] D0000-S000026: approved glossary term was not preserved: authorized signatory
+      SRC: Da er die Türe auf diese Weise öffnen mußte, war sie eigentlich schon recht weit geöffnet, und er selbst noch nicht zu sehen. Er mußte sich erst langs
+      TGT: Since he had to open the door in this manner, it was actually already quite wide open, yet he himself was not yet visible. He first had to turn slowly
+  [glossary/medium] D0000-S000027: approved glossary term was not preserved: Father
+      SRC: Gregor trat nun gar nicht in das Zimmer, sondern lehnte sich von innen an den festgeriegelten Türflügel, so daß sein Leib nur zur Hälfte und darüber d
+      TGT: And he looked at the alarm clock, which was ticking on the chest of drawers. “Good Lord!” he thought. It was half past six, and the hands were moving 
+  [glossary/low] D0000-S000028: approved glossary term was not preserved: authorized signatory
+      SRC: »Nun,« sagte Gregor und war sich dessen wohl bewußt, daß er der einzige war, der die Ruhe bewahrt hatte, »ich werde mich gleich anziehen, die Kollekti
+      TGT: As he thought all this in great haste, without being able to decide to get out of bed – just then the alarm clock struck half past seven – there was a
+  [duplication/high] D0000-S000029: translation duplicates a different source segment: D0000-S000009
+      SRC: Aber der Prokurist hatte sich schon bei den ersten Worten Gregors abgewendet, und nur über die zuckende Schulter hinweg sah er mit aufgeworfenen Lippe
+      TGT: But the authorized signatory had already turned away at Gregor's first words, and only over his twitching shoulder did he look back at Gregor with cur
+  [glossary/medium] D0000-S000029: approved glossary term was not preserved: Gregor
+      SRC: Aber der Prokurist hatte sich schon bei den ersten Worten Gregors abgewendet, und nur über die zuckende Schulter hinweg sah er mit aufgeworfenen Lippe
+      TGT: But the authorized signatory had already turned away at Gregor's first words, and only over his twitching shoulder did he look back at Gregor with cur
+  [glossary/low] D0000-S000029: approved glossary term was not preserved: authorized signatory
+      SRC: Aber der Prokurist hatte sich schon bei den ersten Worten Gregors abgewendet, und nur über die zuckende Schulter hinweg sah er mit aufgeworfenen Lippe
+      TGT: But the authorized signatory had already turned away at Gregor's first words, and only over his twitching shoulder did he look back at Gregor with cur
+  [duplication/high] D0000-S000030: translation duplicates a different source segment: D0000-S000010
+      SRC: Gregor sah ein, daß er den Prokuristen in dieser Stimmung auf keinen Fall weggehen lassen dürfe, wenn dadurch seine Stellung im Geschäft nicht aufs äu
+      TGT: Throwing off the blanket was easy; he only had to puff himself up a little, and it fell off by itself. But everything else was difficult, especially b
+  [glossary/medium] D0000-S000030: approved glossary term was not preserved: Mother
+      SRC: Gregor sah ein, daß er den Prokuristen in dieser Stimmung auf keinen Fall weggehen lassen dürfe, wenn dadurch seine Stellung im Geschäft nicht aufs äu
+      TGT: Throwing off the blanket was easy; he only had to puff himself up a little, and it fell off by itself. But everything else was difficult, especially b
+  [glossary/low] D0000-S000030: approved glossary term was not preserved: authorized signatory
+      SRC: Gregor sah ein, daß er den Prokuristen in dieser Stimmung auf keinen Fall weggehen lassen dürfe, wenn dadurch seine Stellung im Geschäft nicht aufs äu
+      TGT: Throwing off the blanket was easy; he only had to puff himself up a little, and it fell off by itself. But everything else was difficult, especially b
+  [mistranslation/high] D0000-S000031: numeric content differs from source: The translation is a complete hallucination. The source text describes Gregor attempting to move backwa
+      SRC: »Mutter, Mutter,« sagte Gregor leise und sah zu  ihr hinauf. Der Prokurist war ihm für einen Augenblick ganz aus dem Sinn gekommen; dagegen konnte er 
+      TGT: “Mother, Mother,” Gregor said softly and looked  up at her. For a moment the authorized signatory had completely slipped his mind; on the other hand, 
+  [glossary/medium] D0000-S000031: approved glossary term was not preserved: Father
+      SRC: »Mutter, Mutter,« sagte Gregor leise und sah zu  ihr hinauf. Der Prokurist war ihm für einen Augenblick ganz aus dem Sinn gekommen; dagegen konnte er 
+      TGT: “Mother, Mother,” Gregor said softly and looked  up at her. For a moment the authorized signatory had completely slipped his mind; on the other hand, 
+  [glossary/medium] D0000-S000031: approved glossary term was not preserved: Gregor
+      SRC: »Mutter, Mutter,« sagte Gregor leise und sah zu  ihr hinauf. Der Prokurist war ihm für einen Augenblick ganz aus dem Sinn gekommen; dagegen konnte er 
+      TGT: “Mother, Mother,” Gregor said softly and looked  up at her. For a moment the authorized signatory had completely slipped his mind; on the other hand, 
+  [glossary/medium] D0000-S000031: approved glossary term was not preserved: Mother
+      SRC: »Mutter, Mutter,« sagte Gregor leise und sah zu  ihr hinauf. Der Prokurist war ihm für einen Augenblick ganz aus dem Sinn gekommen; dagegen konnte er 
+      TGT: “Mother, Mother,” Gregor said softly and looked  up at her. For a moment the authorized signatory had completely slipped his mind; on the other hand, 
+  [omission/medium] D0000-S000031: translation/source token ratio is unusually low: 0.11
+      SRC: »Mutter, Mutter,« sagte Gregor leise und sah zu  ihr hinauf. Der Prokurist war ihm für einen Augenblick ganz aus dem Sinn gekommen; dagegen konnte er 
+      TGT: “Mother, Mother,” Gregor said softly and looked  up at her. For a moment the authorized signatory had completely slipped his mind; on the other hand, 
+  [glossary/low] D0000-S000031: approved glossary term was not preserved: authorized signatory
+      SRC: »Mutter, Mutter,« sagte Gregor leise und sah zu  ihr hinauf. Der Prokurist war ihm für einen Augenblick ganz aus dem Sinn gekommen; dagegen konnte er 
+      TGT: “Mother, Mother,” Gregor said softly and looked  up at her. For a moment the authorized signatory had completely slipped his mind; on the other hand, 
+-- semantic findings (first 8)
+  [mistranslation/medium] D0000-S000005: The translation omits the distinction between the 'excitement/stress' of the road versus the 'actual business' at home, reducing it to a general comparison of 'worries'.
+-- consistency report
+  {"enabled": true, "document_count": 1, "segment_count": 31, "issue_count": 7, "repair_count": 0, "by_severity": {"low": 7}, "documents_with_issues": {"pg-header": 7}}
+  FILE 0000-pg-header.consistency.json {"segment_id": "D0000-S000014", "category": "consistency", "severity": "low", "message": "The style sheet renders \"das Geschäft\" as \"the firm\", but this translation does not use it.", "suggested_fix": "Render \"das Geschäft\" as \"the firm\".", "source": "consistency", "source_quote": "das Geschäft", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-pg-header.consistency.json {"segment_id": "D0000-S000016", "category": "consistency", "severity": "low", "message": "The style sheet renders \"das Geschäft\" as \"the firm\", but this translation does not use it.", "suggested_fix": "Render \"das Geschäft\" as \"the firm\".", "source": "consistency", "source_quote": "das Geschäft", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-pg-header.consistency.json {"segment_id": "D0000-S000018", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Herr Samsa\" as \"Mr. Samsa\", but this translation does not use it.", "suggested_fix": "Render \"Herr Samsa\" as \"Mr. Samsa\".", "source": "consistency", "source_quote": "Herr Samsa", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-pg-header.consistency.json {"segment_id": "D0000-S000018", "category": "consistency", "severity": "low", "message": "The style sheet renders \"das Geschäft\" as \"the firm\", but this translation does not use it.", "suggested_fix": "Render \"das Geschäft\" as \"the firm\".", "source": "consistency", "source_quote": "das Geschäft", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-pg-header.consistency.json {"segment_id": "D0000-S000020", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Herr Samsa\" as \"Mr. Samsa\", but this translation does not use it.", "suggested_fix": "Render \"Herr Samsa\" as \"Mr. Samsa\".", "source": "consistency", "source_quote": "Herr Samsa", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-pg-header.consistency.json {"segment_id": "D0000-S000023", "category": "consistency", "severity": "low", "message": "The style sheet renders \"um Gottes willen\" as \"for God's sake\", but this translation does not use it.", "suggested_fix": "Render \"um Gottes willen\" as \"for God's sake\".", "source": "consistency", "source_quote": "um Gottes willen", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-pg-header.consistency.json {"segment_id": "D0000-S000030", "category": "consistency", "severity": "low", "message": "The style sheet renders \"um Gottes willen\" as \"for God's sake\", but this translation does not use it.", "suggested_fix": "Render \"um Gottes willen\" as \"for God's sake\".", "source": "consistency", "source_quote": "um Gottes willen", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+-- review queue and validations
+  queue: ['D0000-S000016', 'D0000-S000018', 'D0000-S000027', 'D0000-S000030']
+  D0000-S000016 SRC: Schon war er so weit, daß er bei stärkerem Schaukeln kaum das Gleichgewicht noch erhielt, und sehr bald mußte er sich nun endgültig entscheiden, denn es war in fünf Minuten einviertel acht, – als es an der Wohnungstür läutete. »Das ist jemand aus dem Geschäft,« sagte er sich und erstarrte fast, währ
+  D0000-S000016 TGT: He slid back into his former position. “This early rising,” he thought, “makes one quite foolish. A man must have his sleep. Other traveling salesmen live like harem women. If, for example, I go back to the inn in the morning to rewrite the orders I have obtained, these gentlemen are just having bre
+  D0000-S000018 SRC: »Gregor,« sagte nun der Vater aus dem Nebenzimmer links, »der Herr Prokurist ist gekommen und erkundigt sich, warum du nicht mit dem Frühzug weggefahren bist. Wir wissen nicht, was wir ihm sagen sollen. Übrigens will er auch mit dir persönlich sprechen. Also bitte mach die Tür auf. Er wird die Unord
+  D0000-S000018 TGT: As he thought all this in great haste, without being able to decide to get out of bed – just then the alarm clock struck half past seven – there was a gentle knock on the door at the head of his bed. “Gregor,” it said – it was his mother – “it’s half past seven. Didn’t you want to leave?” The gentle
+  D0000-S000027 SRC: Gregor trat nun gar nicht in das Zimmer, sondern lehnte sich von innen an den festgeriegelten Türflügel, so daß sein Leib nur zur Hälfte und darüber der seitlich geneigte Kopf zu sehen war, mit dem er zu den anderen hinüberlugte. Es war inzwischen viel heller geworden; klar stand auf der anderen Str
+  D0000-S000027 TGT: And he looked at the alarm clock, which was ticking on the chest of drawers. “Good Lord!” he thought. It was half past six, and the hands were moving steadily forward; it was even almost three-quarters past. Hadn’t the alarm clock gone off? He could see from the bed that it was set to four o’clock; 
+  D0000-S000030 SRC: Gregor sah ein, daß er den Prokuristen in dieser Stimmung auf keinen Fall weggehen lassen dürfe, wenn dadurch seine Stellung im Geschäft nicht aufs äußerste gefährdet werden sollte. Die Eltern verstanden das alles nicht so gut; sie hatten sich in den langen Jahren die Überzeugung gebildet, daß Grego
+  D0000-S000030 TGT: Throwing off the blanket was easy; he only had to puff himself up a little, and it fell off by itself. But everything else was difficult, especially because he was so immensely wide. He would have needed arms and hands to get up; instead, however, he only had the many little legs, which were constan
+-- cost by stage (calls / min)
+  audit_translation: 29 calls, 13.9 min, prompt 62803, output 8422
+  repair_translation: 26 calls, 9.0 min, prompt 84845, output 13736
+  translate: 2 calls, 7.4 min, prompt 24538, output 13411
+  repair_review: 8 calls, 3.5 min, prompt 31822, output 3483
+  resolve_glossary: 1 calls, 2.6 min, prompt 582, output 126
+  approve_glossary: 1 calls, 1.8 min, prompt 1832, output 913
+  extract_glossary: 2 calls, 0.9 min, prompt 11345, output 1754
+  review_repaired: 2 calls, 0.3 min, prompt 5003, output 190
+  validate_repaired: 0 calls, 0.0 min, prompt 0, output 0

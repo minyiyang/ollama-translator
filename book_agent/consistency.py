@@ -26,21 +26,17 @@ from difflib import SequenceMatcher
 from typing import Collection, Iterable, Mapping, Sequence
 
 from .audit import AuditCategory, AuditIssue, AuditSeverity
+from .languages import DEFAULT_DIRECTION, UNSPACED_SCRIPT, profile
 from .style_sheet import StyleSheet, expression_pattern
 from .translation import TranslatedDocument
 
 CONSISTENCY_SOURCE = "consistency"
 
 _INLINE_MARKER = re.compile(r"</?I\d{3}>")
-_CJK = re.compile(r"[㐀-䶿一-鿿豈-﫿]")
 _QUOTE = re.compile(r"“([^”]*)”|「([^」]*)」")
 # Punctuation and spacing ignored when comparing two renderings of one line.
 _RENDERING_NOISE = re.compile(r"[\s，。！？、；：,.!?;:…—\-“”‘’「」『』\"'（）()]")
 _QUOTE_EDGES = " \t,.!?;:—-…"
-_SINGLE_DASH = re.compile(r"(?<!—)—(?!—)")
-_PAIRED_DASH = re.compile(r"——")
-_STRAIGHT_QUOTE = re.compile(r'"')
-_CURLY_QUOTE = re.compile(r"[“”]")
 
 
 @dataclass(frozen=True)
@@ -62,7 +58,7 @@ class ConsistencySettings:
     quoted_speech: bool = True
     conventions: bool = True
     close_variant_similarity: float = 0.6
-    target_language: str = "zh"
+    target_language: str = DEFAULT_DIRECTION.target_language.value
 
 
 def book_segments(
@@ -111,14 +107,14 @@ def rendering_key(text: str) -> str:
 # then") whose rendering depends on the question or the scene: listed, never
 # queued. Four-word refrains ("Off with his head!") still count.
 _SHORT_LINE_WORDS = 3
-_SHORT_LINE_CJK = 6
+_SHORT_LINE_CHARACTERS = 6  # in a script without spaces
 
 
 def is_short_line(source: str) -> bool:
     words = re.findall(r"[A-Za-z]+(?:['’][A-Za-z]+)?", source)
     if words:
         return len(words) <= _SHORT_LINE_WORDS
-    return len(_CJK.findall(source)) < _SHORT_LINE_CJK
+    return len(UNSPACED_SCRIPT.findall(source)) < _SHORT_LINE_CHARACTERS
 
 
 def _quotes(text: str) -> list[str]:
@@ -267,47 +263,50 @@ def repeated_line_issues(
     return issues
 
 
+def _kept_from_source(passage: str, source: str) -> bool:
+    """Whether a passage of the translation is words copied from the source: a
+    line the book quotes in a third language ("Où est ma chatte?") keeps its
+    own punctuation, not the target's."""
+    words = re.sub(r"^\W+|\W+$", "", passage)
+    return sum(character.isalpha() for character in words) >= 2 and words in source
+
+
 def convention_issues(
     segments: Sequence[BookSegment], settings: ConsistencySettings
 ) -> list[AuditIssue]:
-    """Punctuation that departs from the book's own majority convention (Chinese targets)."""
-    if settings.target_language != "zh":
+    """Punctuation that departs from the book's own majority convention (the target profile's rules)."""
+    rules = profile(settings.target_language)
+    if not rules.conventions:
         return []
-    chinese = [
-        (segment, visible_text(segment.target))
+    # Spacing is part of a convention (a no-break space before French ; : ! ?),
+    # so only ordinary whitespace is collapsed here.
+    def plain(text: str) -> str:
+        return re.sub(r"[ \t\r\n]+", " ", _INLINE_MARKER.sub("", text)).strip()
+
+    written = [
+        (segment, plain(segment.target))
         for segment in segments
-        if _CJK.search(segment.target)
+        if rules.script_pattern.search(segment.target)
     ]
-    paired = sum(1 for _, text in chinese if _PAIRED_DASH.search(text))
-    single = [(segment, text) for segment, text in chinese if _SINGLE_DASH.search(text)]
-    curly = sum(1 for _, text in chinese if _CURLY_QUOTE.search(text))
-    straight = [(segment, text) for segment, text in chinese if _STRAIGHT_QUOTE.search(text)]
     issues: list[AuditIssue] = []
-    if single and paired >= len(single):
-        for segment, text in single:
+    for rule in rules.conventions:
+        house, slip = re.compile(rule.house), re.compile(rule.slip)
+        following = sum(1 for _, text in written if house.search(text))
+        departures = [
+            (segment, text)
+            for segment, text in written
+            if any(not _kept_from_source(match.group(0), plain(segment.source)) for match in slip.finditer(text))
+            and not (rule.nested_ok and house.search(text))
+        ]
+        if not departures or following < len(departures):
+            continue
+        for segment, text in departures:
             issues.append(AuditIssue(
                 segment_id=segment.segment_id,
                 category=AuditCategory.CONSISTENCY,
                 severity=AuditSeverity.MEDIUM,
-                message=(
-                    f"A single dash — is used here, but the book uses the paired Chinese dash —— "
-                    f"({paired} segments)."
-                ),
-                suggested_fix="Replace the single dash — with ——.",
-                source=CONSISTENCY_SOURCE,
-                translation_quote=_clip(text, 120),
-            ))
-    if straight and curly >= len(straight):
-        for segment, text in straight:
-            issues.append(AuditIssue(
-                segment_id=segment.segment_id,
-                category=AuditCategory.CONSISTENCY,
-                severity=AuditSeverity.MEDIUM,
-                message=(
-                    f'A straight quotation mark " is used here, but the book uses “ ” '
-                    f"({curly} segments)."
-                ),
-                suggested_fix='Replace the straight quotation marks " with “ and ”.',
+                message=rule.message.format(count=following),
+                suggested_fix=rule.fix,
                 source=CONSISTENCY_SOURCE,
                 translation_quote=_clip(text, 120),
             ))

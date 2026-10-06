@@ -11,6 +11,7 @@ from collections import Counter
 from pydantic import BaseModel, ConfigDict, Field
 
 from .audit import (
+    WHOLE_TRANSLATION_WRONG,
     AuditCategory,
     AuditIssue,
     AuditSeverity,
@@ -18,6 +19,7 @@ from .audit import (
     audit_translated_document,
 )
 from .config import AppConfig
+from .languages import TUNED_PROFILES, glossary_pair, profile
 from .content_policy import (
     is_intentionally_preserved,
     repair_preserves_glossary,
@@ -144,13 +146,43 @@ class RepairedDocumentValidation(BaseModel):
     approval_segment_ids: list[str] = Field(default_factory=list)
 
 
+def _convention_replacement(issue: AuditIssue, target_language) -> tuple[str, str] | None:
+    """The one-character correction a book-level convention finding asks for, if its rule has one."""
+    if issue.source != "consistency" or target_language is None:
+        return None
+    for rule in profile(target_language).conventions:
+        if rule.replace and rule.fix == issue.suggested_fix:
+            return rule.replace
+    return None
+
+
+def apply_convention_replacements(text: str, issues: list[AuditIssue], target_language) -> str:
+    """Correct the convention slips these findings name that are one wrong
+    character (a German quotation closed with ” for “). A model asked to do it
+    often returns the same mark."""
+    for issue in issues:
+        replacement = _convention_replacement(issue, target_language)
+        if replacement:
+            text = text.replace(*replacement)
+    return text
+
+
 def apply_deterministic_repairs(
     text: str,
     issues: list[AuditIssue],
+    target_language=None,
 ) -> tuple[str, list[str]]:
     """Apply only bounded, mechanically provable repairs requested by audit findings."""
     result = text
     applied: list[str] = []
+
+    # Alone, these findings need no model; with others, the model repairs the
+    # segment and validate_repair_output corrects the marks in its answer.
+    if issues and all(_convention_replacement(item, target_language) for item in issues):
+        replaced = apply_convention_replacements(result, issues, target_language)
+        if replaced != result:
+            result = replaced
+            applied.append("convention_replacement")
 
     replaced = _apply_exact_glossary_replacements(result, issues)
     if replaced != result:
@@ -282,14 +314,9 @@ def requires_full_segment_translation(issues: list[AuditIssue]) -> bool:
     return any(
         item.source == "translation-deferred"
         or (
-            item.category is AuditCategory.UNTRANSLATED
-            and item.severity is AuditSeverity.HIGH
-            and item.message
-            in {
-                "translation contains no Chinese text",
-                "translation contains no English text",
-                "translation is identical to source",
-            }
+            item.severity is AuditSeverity.HIGH
+            and item.source != "semantic"
+            and WHOLE_TRANSLATION_WRONG.match(item.message) is not None
         )
         for item in issues
     )
@@ -438,7 +465,9 @@ def validate_repair_output(
         config.translation.direction,
         relevant_glossary=relevant_glossary,
     )
-    repaired = translations.get(segment_id, "")
+    repaired = apply_convention_replacements(
+        translations.get(segment_id, ""), trigger_issues or [], config.translation.direction.target_language
+    )
     issues = list(validation.issues)
     full_segment_recovery = requires_full_segment_translation(trigger_issues or [])
     if (
@@ -461,8 +490,13 @@ def validate_repair_output(
                 message="repair introduced or changed a provable typed quantity fact",
             )
         )
-    elif validation.passed and not config.audit.quantity.enabled and not repair_preserves_numbers(
-        source_text, original_translation, repaired
+    elif (
+        validation.passed
+        and not config.audit.quantity.enabled
+        and not full_segment_recovery
+        and not repair_preserves_numbers(
+            source_text, original_translation, repaired, config.translation.direction
+        )
     ):
         issues.append(
             TranslationIssue(
@@ -471,7 +505,9 @@ def validate_repair_output(
                 message="repair changed digit-bearing facts from the accepted translation",
             )
         )
-    if validation.passed and not repair_preserves_glossary(
+    # The same holds for the glossary: a translation of another passage is no
+    # record of which terms this one should carry, or how often.
+    if validation.passed and not full_segment_recovery and not repair_preserves_glossary(
         source_text,
         original_translation,
         repaired,
@@ -556,6 +592,7 @@ def _unresolved_deterministic_repair_triggers(
                 processed_text=source_text,
             )
         ],
+        glossary_pair=glossary_pair(config.translation.direction),
         relevant_glossary=relevant_glossary,
     )
     translated = TranslatedDocument(
@@ -895,11 +932,20 @@ def retrieve_related_source_context(
     return selected
 
 
+# Content words: three letters or more in a spaced script, two characters in an unspaced one.
+_LEXICAL_TOKEN = re.compile(
+    "|".join(
+        f"[{item.script_basic_chars}]{{{3 if item.spaced_words else 2},}}" for item in TUNED_PROFILES.values()
+    )
+)
+_STOP_WORDS = frozenset().union(*(item.stop_words for item in TUNED_PROFILES.values()))
+
+
 def _lexical_tokens(text: str) -> list[str]:
     return [
         token
-        for token in re.findall(r"[A-Za-z]{3,}|[\u3400-\u9fff]{2,}", text.casefold())
-        if token not in {"the", "and", "that", "with", "this", "from", "was", "were"}
+        for token in _LEXICAL_TOKEN.findall(text.casefold())
+        if token not in _STOP_WORDS
     ]
 
 

@@ -890,6 +890,7 @@ def _run_semantic_batch(
                 source_text_by_id,
                 translation_text_by_id,
                 quantity_enabled=config.audit.quantity.enabled,
+                direction=config.translation.direction,
             )
         except ValueError as error:
             last_error = str(error)

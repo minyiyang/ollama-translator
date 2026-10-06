@@ -146,14 +146,14 @@ class GlossaryViewTests:
             payload = glossary_payload(workspace)
             assert payload["ready"] and payload["editable"]
             assert payload["approve_status"] == "paused"
-            assert {e["english"] for e in payload["entries"]} == {"Qelwright", "Vraxwright"}
+            assert {e["source"] for e in payload["entries"]} == {"Qelwright", "Vraxwright"}
             assert "D0000-S000001" in payload["evidence"]
 
-            reviewed = [dict(payload["entries"][0], chinese="奎尔莱特")]
+            reviewed = [dict(payload["entries"][0], target="奎尔莱特")]
             path = write_reviewed_glossary(workspace, reviewed)
             result = run_glossary_approval_stage(workspace, config, reviewed_file=path)
 
-            assert [e.chinese for e in result.entries] == ["奎尔莱特"]
+            assert [e.target for e in result.entries] == ["奎尔莱特"]
             after = glossary_payload(workspace)
             assert after["approve_status"] == "completed" and not after["editable"]
 
@@ -164,7 +164,7 @@ class GlossaryViewTests:
             with pytest.raises(ValueError, match="empty"):
                 write_reviewed_glossary(workspace, [])
             with pytest.raises(ValueError, match="CJK"):
-                write_reviewed_glossary(workspace, [dict(entries[0], chinese="Qelwright!")])
+                write_reviewed_glossary(workspace, [dict(entries[0], target="Qelwright!")])
 
 
 class ServerTests:
@@ -890,6 +890,9 @@ class EndpointCoverageTests(ServerTests):
                 assert get("/api/config?name=mine.yaml")[1]["text"] == text
                 assert get("/api/config?name=..%2Fescape.yaml")[0] == 422
                 assert get("/api/config/schema")[0] == 200
+                status, languages = get("/api/languages?pair=en%3Eit")
+                assert status == 200 and languages["languages"][0]["code"] == "en"
+                assert languages["support"]["target"]["tier"] == "generic" and languages["support"]["notice"]
                 assert post("/api/config/parse", {"text": text})[0] == 200
                 assert post("/api/config/dump", {"values": {"ollama": {"temperature": 0.2}}})[0] == 200
                 assert post("/api/config/check", {"text": "ollama: [1"})[1]["errors"]
@@ -1221,7 +1224,7 @@ class SeriesApiTests(ServerTests):
                 assert app.job_info("qel-01")["series"]["version"] == "v001"
 
                 status, version = get("/api/series/qel/version?v=v001")
-                assert status == 200 and [e["english"] for e in version["glossary"]["entries"]] == ["Qelmar"]
+                assert status == 200 and [e["source"] for e in version["glossary"]["entries"]] == ["Qelmar"]
                 assert get("/api/series/qel/version?v=v009")[0] == 422
 
                 status, removed = post("/api/series/qel/books/remove", {"job_id": "qel-01"})
@@ -1284,7 +1287,7 @@ class SeriesWorkbenchApiTests(ServerTests):
 
                 status, view = get("/api/series/qel/workbench")
                 assert status == 200 and view["next_version"] == "v001" and view["books"] == ["qel-01", "qel-02"]
-                ids = {term["english"]: term["term_id"] for term in view["terms"]}
+                ids = {term["source"]: term["term_id"] for term in view["terms"]}
                 assert view["publish"] == {
                     "keep": 1, "pending": 1, "added": ["Qelmar"], "changed": [], "removed": [], "stale": False,
                 }
@@ -1292,7 +1295,7 @@ class SeriesWorkbenchApiTests(ServerTests):
                 status, error = post("/api/series/qel/workbench/decide", {"term_ids": [ids["Vraxwright"]], "decision": "keep", "reason": ""})
                 assert status == 422 and "reason" in error["error"]
                 status, view = post("/api/series/qel/workbench/decide", {
-                    "term_ids": [ids["Vraxwright"]], "decision": "keep", "chinese": "弗拉克斯赖特", "reason": "Book 1 form.",
+                    "term_ids": [ids["Vraxwright"]], "decision": "keep", "target": "弗拉克斯赖特", "reason": "Book 1 form.",
                 })
                 assert status == 200 and view["publish"]["pending"] == 0
                 status, view = post("/api/series/qel/workbench/decide", {
@@ -1312,9 +1315,9 @@ class SeriesWorkbenchApiTests(ServerTests):
                 # The book's Glossary tab now reviews its series-synchronized glossary.
                 status, glossary = get("/api/jobs/qel-02/glossary")
                 assert glossary["series_overlay"] == {"series_id": "qel", "name": "Qel", "version": "v001"}
-                by_term = {entry["english"]: entry["chinese"] for entry in glossary["entries"]}
+                by_term = {entry["source"]: entry["target"] for entry in glossary["entries"]}
                 assert by_term["Vraxwright"] == "弗拉克斯赖特"  # series form replaces the book draft
-                assert {entry["english"]: entry["chinese"] for entry in glossary["draft_entries"]}["Vraxwright"] == "弗拉克赖特"
+                assert {entry["source"]: entry["target"] for entry in glossary["draft_entries"]}["Vraxwright"] == "弗拉克赖特"
 
                 # LLM review without edits reviews the overlay, and approval pins the book.
                 with patch.object(UiApp, "launch", return_value={"running": True}) as launch:
@@ -1351,7 +1354,7 @@ class SeriesWorkbenchApiTests(ServerTests):
             series_api.add_books(runs, "qel", ["qel-03"])
             overlay = series_api.overlay_for_job(runs, "qel-03")
             assert overlay["version"] == "v001"
-            assert [(e["english"], e["chinese"]) for e in overlay["entries"]] == [("Qelmar", "凯尔玛")]
+            assert [(e["source"], e["target"]) for e in overlay["entries"]] == [("Qelmar", "凯尔玛")]
 
 
 class SeriesSuggestionApiTests(ServerTests):
@@ -1384,9 +1387,9 @@ class SeriesSuggestionApiTests(ServerTests):
                 assert json.loads(call("/api/series/qel/detail")[1])["process"] is None
 
                 # Simulate a finished run that suggested a variant for the conflict.
-                terms = {term.english: term for term in workbench.terms}
+                terms = {term.source: term for term in workbench.terms}
                 vrax = terms["Vraxwright"].model_copy(update={
-                    "suggestion": TermSuggestion(kind="resolve", chinese="弗拉克斯赖特", rationale="Book 1 form.", model="m"),
+                    "suggestion": TermSuggestion(kind="resolve", target="弗拉克斯赖特", rationale="Book 1 form.", model="m"),
                 })
                 _save_workbench(runs, workbench.model_copy(update={
                     "terms": [vrax if t.term_id == vrax.term_id else t for t in workbench.terms],
@@ -1395,7 +1398,7 @@ class SeriesSuggestionApiTests(ServerTests):
                 status, view = post("/api/series/qel/workbench/suggestions", {"term_ids": [vrax.term_id], "accept": True})
                 assert status == 200
                 accepted = next(t for t in view["terms"] if t["term_id"] == vrax.term_id)
-                assert (accepted["decision"], accepted["chinese"], accepted["decided_by"]) == ("keep", "弗拉克斯赖特", "llm-accepted")
+                assert (accepted["decision"], accepted["target"], accepted["decided_by"]) == ("keep", "弗拉克斯赖特", "llm-accepted")
                 status, error = post("/api/series/qel/workbench/suggestions", {"term_ids": [vrax.term_id], "accept": False})
                 assert status == 422 and "no suggestion" in error["error"]
 

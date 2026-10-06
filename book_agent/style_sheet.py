@@ -18,12 +18,51 @@ from typing import Iterable, Literal, Sequence
 
 from pydantic import BaseModel, ConfigDict, Field, create_model
 
-from .languages import TranslationDirection
+from .languages import DEFAULT_DIRECTION, TranslationDirection, profile
 
 _INLINE_MARKER = re.compile(r"</?I\d{3}>")
 
-Pronoun = Literal["他", "她", "它", "he", "she", "it", ""]
-Address = Literal["你", "您", ""]
+_PRONOUN_HELP = "Third-person pronoun in the translation."
+_ADDRESS_HELP = "How other characters address them in the translation."
+
+
+def pronoun_choices(direction: TranslationDirection) -> tuple[str, ...]:
+    """Pronouns the model may give a character. The tuned pairs offer both
+    languages' lists, as they always have; any other target offers its own."""
+    rules = profile(direction.target_language)
+    if rules.tier == "tuned":
+        return profile("zh").pronouns + profile("en").pronouns
+    return rules.pronouns
+
+
+def address_choices(direction: TranslationDirection) -> tuple[str, ...]:
+    """Forms of address the model may give a character (none for most targets)."""
+    rules = profile(direction.target_language)
+    if rules.tier == "tuned":
+        return profile("zh").address_forms
+    return rules.address_forms
+
+
+def _choice(values: tuple[str, ...]):
+    return Literal.__getitem__((*values, ""))  # type: ignore[misc]
+
+
+def check_style_choices(sheet: "StyleSheet", direction: TranslationDirection) -> None:
+    """Refuse a pronoun or form of address the target language does not offer
+    (a reviewer's edit; the model is held to the same lists by its schema)."""
+    pronouns = {*pronoun_choices(direction), ""}
+    addresses = {*address_choices(direction), ""}
+    for character in sheet.characters:
+        if character.pronoun not in pronouns:
+            raise ValueError(
+                f"{character.name}: pronoun {character.pronoun!r} is not one of "
+                f"{', '.join(sorted(pronouns - {''})) or 'none for this language'}"
+            )
+        if character.addressed_as not in addresses:
+            raise ValueError(
+                f"{character.name}: form of address {character.addressed_as!r} is not one of "
+                f"{', '.join(sorted(addresses - {''})) or 'none for this language'}"
+            )
 
 
 class StyleCharacter(BaseModel):
@@ -31,8 +70,8 @@ class StyleCharacter(BaseModel):
 
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     name: str = Field(min_length=1, max_length=80, description="The character's name as written in the source.")
-    pronoun: Pronoun = Field(default="", description="Third-person pronoun in the translation.")
-    addressed_as: Address = Field(default="", description="How other characters address them in the translation.")
+    pronoun: str = Field(default="", max_length=16, description=_PRONOUN_HELP)
+    addressed_as: str = Field(default="", max_length=16, description=_ADDRESS_HELP)
     voice: str = Field(default="", max_length=160, description="How they speak, in a few words.")
     evidence: list[str] = Field(default_factory=list)
     alternatives: list[str] = Field(
@@ -71,10 +110,13 @@ class StyleSheet(BaseModel):
 
 
 def default_conventions(direction: TranslationDirection) -> StyleConventions:
-    if direction.target_language.value == "zh":
-        return StyleConventions()
+    rules = profile(direction.target_language)
     return StyleConventions(
-        quotation_marks="“ ”", nested_quotation_marks="‘ ’", ellipsis="…", dash="—", numerals=""
+        quotation_marks=rules.quotes,
+        nested_quotation_marks=rules.nested_quotes,
+        ellipsis=rules.ellipsis,
+        dash=rules.dash,
+        numerals="",
     )
 
 
@@ -83,22 +125,35 @@ def default_conventions(direction: TranslationDirection) -> StyleConventions:
 
 def extraction_instructions(direction: TranslationDirection, *, max_characters: int, max_expressions: int) -> str:
     """The paragraph appended to the glossary extraction prompt when the style sheet is on."""
-    zh = direction.target_language.value == "zh"
-    pronouns = "他, 她, or 它" if zh else "he, she, or it"
-    address = (
-        " and, when the passages show it, whether other characters address them as 你 or the "
-        "polite 您"
-        if zh
+    rules = profile(direction.target_language)
+    # A target without pronouns or address forms in its profile leaves those
+    # sentences out; the characters keep their voice only.
+    pronoun = (
+        f", the pronoun the translation should use for them ({', '.join(rules.pronouns[:-1])}, or "
+        f"{rules.pronouns[-1]}; use it for an animal only when the story treats it as an object "
+        "rather than a person)"
+        if rules.pronouns
         else ""
     )
+    forms = rules.address_forms
+    if len(forms) == 2:  # an informal and a polite form (你/您, tu/vous)
+        address = (
+            " and, when the passages show it, whether other characters address them as "
+            f"{forms[0]} or the polite {forms[1]}"
+        )
+    elif forms:  # honorifics (さん, 様, 君, ちゃん)
+        address = (
+            " and, when the passages show it, the form of address other characters use for "
+            f"them ({', '.join(forms[:-1])}, or {forms[-1]})"
+        )
+    else:
+        address = ""
     return (
         "\n\nAlso fill the separate `style` object, a book style sheet for consistent "
         f"translation into {direction.target_language.display_name}. In `characters`, list "
         f"at most {max_characters} characters who speak or act in these passages, including "
-        "animals and personified creatures, with the name exactly as written in the passage, "
-        f"the pronoun the translation should use for them ({pronouns}; use it for an animal "
-        f"only when the story treats it as an object rather than a person){address}, and "
-        "a few words on how they speak. In `expressions`, list at most "
+        "animals and personified creatures, with the name exactly as written in the passage"
+        f"{pronoun}{address}, and a few words on how they speak. In `expressions`, list at most "
         f"{max_expressions} lines or phrases the passages repeat, such as a catchphrase, "
         "refrain, or recurring formula of address, each copied verbatim from the passage "
         f"with one fixed {direction.target_language.display_name} rendering. Cite evidence "
@@ -107,12 +162,18 @@ def extraction_instructions(direction: TranslationDirection, *, max_characters: 
 
 
 def build_style_candidate_schema(
-    allowed_evidence_ids: Sequence[str], *, max_characters: int, max_expressions: int
+    allowed_evidence_ids: Sequence[str],
+    *,
+    max_characters: int,
+    max_expressions: int,
+    direction: TranslationDirection = DEFAULT_DIRECTION,
 ) -> type[BaseModel]:
     evidence = list[Literal.__getitem__(tuple(dict.fromkeys(allowed_evidence_ids)))]  # type: ignore[misc]
     character = create_model(
         "StyleCharacterCandidate",
         __base__=StyleCharacter,
+        pronoun=(_choice(pronoun_choices(direction)), Field(default="", description=_PRONOUN_HELP)),
+        addressed_as=(_choice(address_choices(direction)), Field(default="", description=_ADDRESS_HELP)),
         evidence=(evidence, Field(min_length=1, max_length=3)),
     )
     expression = create_model(
@@ -240,6 +301,34 @@ def keep_recurring_expressions(sheet: StyleSheet, texts: Iterable[str]) -> Style
     return sheet.model_copy(update={"expressions": kept})
 
 
+def drop_glossary_conflicts(
+    sheet: StyleSheet, terms: Iterable[tuple[str, str]], target_language
+) -> StyleSheet:
+    """Drop expressions that render an approved glossary term another way.
+
+    `terms` are the approved (source term, rendering) pairs. An expression that
+    contains a term and none of its renderings ("Herr Prokurist" as "the
+    Prokurist" when the glossary says "Procurator") gives the translator two
+    answers, and the prompt's last word wins over the glossary.
+    """
+    from .content_policy import glossary_target_matches
+
+    renderings: dict[str, list[str]] = {}
+    for source, target in terms:
+        renderings.setdefault(source, []).append(target)
+    patterns = [(expression_pattern(source), targets) for source, targets in renderings.items()]
+
+    def conflicts(item: StyleExpression) -> bool:
+        key = _key(item.source)
+        return any(
+            pattern.search(key)
+            and not any(glossary_target_matches(item.rendering, target, target_language) for target in targets)
+            for pattern, targets in patterns
+        )
+
+    return sheet.model_copy(update={"expressions": [item for item in sheet.expressions if not conflicts(item)]})
+
+
 # -- LLM review ------------------------------------------------------------------------
 
 
@@ -253,8 +342,8 @@ class StyleCharacterDecision(BaseModel):
     model_config = ConfigDict(extra="forbid", str_strip_whitespace=True)
     entry_id: str
     action: Literal["approve", "revise", "reject"]
-    pronoun: Pronoun
-    addressed_as: Address
+    pronoun: str = Field(max_length=16)
+    addressed_as: str = Field(max_length=16)
     reason: str = Field(min_length=3, max_length=200)
 
 
@@ -277,20 +366,26 @@ def style_entry_ids(sheet: StyleSheet) -> list[str]:
     ]
 
 
-def _decisions_field(base: type[BaseModel], ids: Sequence[str], name: str):
+def _decisions_field(base: type[BaseModel], ids: Sequence[str], name: str, **fields):
     entry_id = Literal.__getitem__(tuple(ids)) if ids else str  # type: ignore[misc]
-    decision = create_model(name, __base__=base, entry_id=(entry_id, ...))
+    decision = create_model(name, __base__=base, entry_id=(entry_id, ...), **fields)
     return (list[decision], Field(min_length=len(ids), max_length=len(ids)))
 
 
-def build_style_review_schema(sheet: StyleSheet) -> type[BaseModel]:
+def build_style_review_schema(
+    sheet: StyleSheet, direction: TranslationDirection = DEFAULT_DIRECTION
+) -> type[BaseModel]:
     """Exactly one decision per entry, characters and expressions in separate lists."""
     ids = style_entry_ids(sheet)
     return create_model(
         "StyleReviewResult",
         __config__=ConfigDict(extra="forbid"),
         characters=_decisions_field(
-            StyleCharacterDecision, [i for i in ids if i.startswith("C")], "StyleCharacterDecisionFor"
+            StyleCharacterDecision,
+            [i for i in ids if i.startswith("C")],
+            "StyleCharacterDecisionFor",
+            pronoun=(_choice(pronoun_choices(direction)), ...),
+            addressed_as=(_choice(address_choices(direction)), ...),
         ),
         expressions=_decisions_field(
             StyleExpressionDecision, [i for i in ids if i.startswith("X")], "StyleExpressionDecisionFor"
@@ -448,8 +543,9 @@ def format_relevant_style(sheet: StyleSheet) -> str:
         )
         lines += [f"  - {item.source!r} => {item.rendering!r}" for item in sheet.expressions]
     conventions = sheet.conventions
-    lines.append(
-        f"- conventions: quotation marks {conventions.quotation_marks}, nested "
-        f"{conventions.nested_quotation_marks}, ellipsis {conventions.ellipsis}, dash {conventions.dash}"
-    )
+    if conventions.quotation_marks:  # empty for a language without house conventions
+        lines.append(
+            f"- conventions: quotation marks {conventions.quotation_marks}, nested "
+            f"{conventions.nested_quotation_marks}, ellipsis {conventions.ellipsis}, dash {conventions.dash}"
+        )
     return "\n".join(lines)

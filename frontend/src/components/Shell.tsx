@@ -1,5 +1,7 @@
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { Link, NavLink } from "react-router-dom";
+import { directionLabel } from "../lib/format";
+import { isGeneric } from "../lib/languages";
 import { tabStates } from "../lib/stages";
 import { useJob } from "./JobContext";
 import { JobControls } from "./JobControls";
@@ -51,6 +53,14 @@ export function Shell({
           </nav>
         )}
         {(jobId || crumb) && <span className={jobId ? "crumb mono" : "crumb"}>{jobId ?? crumb}</span>}
+        {jobId && info?.languages && isGeneric(info.languages) && (
+          <span className="chip warn" title={[
+            `${info.languages.source.name} → ${info.languages.target.name}: generic tier.`,
+            ...info.languages.skipped.map((item) => `Skipped: ${item.check} (${item.reason}).`),
+          ].join("\n")}>
+            {directionLabel(info.direction)} · {info.languages.skipped.length} checks skipped
+          </span>
+        )}
         {jobId && info?.series && (
           <Link className="chip series-chip" to={`/series/${encodeURIComponent(info.series.series_id)}`}
             title={info.series.version ? `Pinned to series glossary ${info.series.version}` : "In this series; not pinned to a version yet"}>

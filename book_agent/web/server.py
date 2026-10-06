@@ -25,9 +25,9 @@ from typing import Any
 from urllib.parse import parse_qs, quote, urlparse
 
 from .. import series as series_api
-from ..languages import TranslationDirection
+from ..languages import TranslationDirection, glossary_language_names
 from ..pipeline_state import WorkflowStage
-from ..schemas import GlossaryCategory
+from ..schemas import GlossaryCategory, GlossaryResult
 from ..review_ui import ReviewSession
 from .rerun import parse_stage, rerun_preview
 from ..workspace import validate_job_id
@@ -230,6 +230,7 @@ class UiApp:
                 "source_path": str(workspace.source_file),
                 "config": Path(status["configuration"]["source_path"] or "").name,
                 "direction": job_direction(workspace),
+                "languages": status["languages"],
                 "downloadable": overall == "complete",
                 "series": series_api.series_of_job(self.runs, job_id),
                 "stages": status["stages"],
@@ -474,14 +475,14 @@ class UiApp:
         return {**view, "category_labels": {c.value: c.name.title() for c in GlossaryCategory}}
 
     def series_decide(self, series_id: str, body: dict[str, Any]) -> dict[str, Any]:
-        chinese = body.get("chinese")
+        target = body.get("target")
         series_api.decide_terms(
             self.runs,
             series_id,
             [str(item) for item in body.get("term_ids", [])],
             str(body.get("decision", "")),
             reason=str(body.get("reason", "")),
-            chinese=str(chinese) if chinese else None,
+            target=str(target) if target else None,
             category=str(body["category"]) if body.get("category") else None,
             unlock=bool(body.get("unlock")),
         )
@@ -497,9 +498,12 @@ class UiApp:
             raise ValueError(f"series {series_id} has no version {version}")
         path = series_api.version_glossary_path(self.runs, series_id, version)
         report = path.with_name(f"{version}.report.json")
+        # Versions published before phase 3 say english/chinese; they are shown as source/target.
+        glossary = GlossaryResult.model_validate_json(path.read_text(encoding="utf-8"))
         return {
             "version": version,
-            "glossary": json.loads(path.read_text(encoding="utf-8")),
+            "glossary": glossary.model_dump(mode="json"),
+            "glossary_pair": glossary_language_names(glossary.pair),
             "report": json.loads(report.read_text(encoding="utf-8")) if report.is_file() else None,
         }
 
@@ -517,7 +521,7 @@ class UiApp:
         validated = stages.get(WorkflowStage.VALIDATE_REPAIRED.value, {})
         if validated.get("status") != StageStatus.COMPLETED.value:
             raise ValueError("XLIFF export needs the validated draft; wait for Validate draft to complete")
-        direction = load_workspace_config(workspace).translation.direction.value
+        direction = load_workspace_config(workspace).translation.direction.slug
         name = f"{workspace.source_file.stem}.{direction}.xlf"
         return export_xliff(workspace).encode("utf-8"), name
 
@@ -739,6 +743,7 @@ def make_handler(app: UiApp, port_ref: list[int]) -> type[BaseHTTPRequestHandler
         ("GET", "session"): lambda q, b: {"token": app.token},
         ("GET", "setup"): lambda q, b: app.setup(),
         ("GET", "config/schema"): lambda q, b: setup_api.config_schema(),
+        ("GET", "languages"): lambda q, b: setup_api.languages_payload(q.get("pair", [""])[0]),
         ("GET", "models"): lambda q, b: {
             "installed": setup_api.installed_models(q.get("host", ["http://localhost:11434"])[0])
         },

@@ -1,0 +1,113 @@
+
+======== bench-lang-ko-zh
+segments 103; longest D0000-S000042: source 668 chars, translation 292 chars
+  longest translation head: 一番讨价还价后，以六十钱送到仁寺洞。人力车变重，他的身体却异常轻盈；车变轻，身体又变重，但这次连心都焦急起来。家中的景象不断在眼前浮现，已无暇期盼好运。像树桩般，又像不是自己的腿，只能骂骂咧咧地乱跑。路人会担心这人力车夫是不是喝醉了，在这湿滑的路上怎么走。阴沉下雨的天空，昏暗得像黄昏。到了昌庆宫前，他才喘口气，放慢脚步。一步两步，离家越近，心竟莫名地松弛下来。但这松弛并非安心，而是预感到即将被可怕
+  longest translation tail: 骂骂咧咧地乱跑。路人会担心这人力车夫是不是喝醉了，在这湿滑的路上怎么走。阴沉下雨的天空，昏暗得像黄昏。到了昌庆宫前，他才喘口气，放慢脚步。一步两步，离家越近，心竟莫名地松弛下来。但这松弛并非安心，而是预感到即将被可怕的厄运笼罩，那种揪心的感觉。他想在厄运降临前，多拖延一点时间，想长久地留住这近乎奇迹的欢喜。他四处张望。那模样，仿佛正朝着家——朝着厄运奔跑，却无力控制双腿，像是在求谁拉住他，救救他。
+-- rule findings (all)
+  [glossary/low] D0000-S000001: approved glossary term was not preserved: 运气
+      SRC: 운수 좋은 날
+      TGT: 走运的日子
+  [glossary/low] D0000-S000004: approved glossary term was not preserved: 人力车夫
+      SRC: 이날이야말로 동소문 안에서 인력거꾼 노릇을 하는 김첨지에게는 오래간만에도 닥친 운수 좋은 날이었다. 문안에(거기도 문밖은 아니지만) 들어간답시는 앞집 마마님을 전찻길까지 모셔다 드린 것을 비롯으로 행여나 손님이있을까 하고 정류장에서 어정어정하며 내리는 사람 하나하나에게
+      TGT: 这一天，对于在东小门里拉人力车的金添智来说，确是许久未遇的走运日子。那位声称要进里院（虽说里院也不算外头）的前院太太，先是被送到了电车站，接着便在车站旁徘徊不定，生怕错过客人，对每一个下车的人几乎都投去恳求般的目光。终于，一位像是教员模样的西装客，答应让他送到东光学校。
+  [glossary/low] D0000-S000004: approved glossary term was not preserved: 运气
+      SRC: 이날이야말로 동소문 안에서 인력거꾼 노릇을 하는 김첨지에게는 오래간만에도 닥친 운수 좋은 날이었다. 문안에(거기도 문밖은 아니지만) 들어간답시는 앞집 마마님을 전찻길까지 모셔다 드린 것을 비롯으로 행여나 손님이있을까 하고 정류장에서 어정어정하며 내리는 사람 하나하나에게
+      TGT: 这一天，对于在东小门里拉人力车的金添智来说，确是许久未遇的走运日子。那位声称要进里院（虽说里院也不算外头）的前院太太，先是被送到了电车站，接着便在车站旁徘徊不定，生怕错过客人，对每一个下车的人几乎都投去恳求般的目光。终于，一位像是教员模样的西装客，答应让他送到东光学校。
+  [glossary/low] D0000-S000005: approved glossary term was not preserved: 杯
+      SRC: 첫 번에 삼십전 , 둘째 번에 오십전 - 아침 댓바람에 그리 흉치 않은 일이었다. 그야말로 재수가 옴붙어서 근 열흘 동안 돈 구경도 못한 김첨지는 십전짜리 백동화 서 푼, 또는 다섯 푼이 찰깍 하고 손바닥에 떨어질 제 거의눈물을 흘릴 만큼 기뻤었다. 더구나 이날 이때에
+      TGT: 头一趟三十钱，第二趟五十钱——大清早便得了这样不算太差的进项。那真是时来运转，近十天连钱影儿都没见着的金添智，每当十钱一枚的白铜币或五钱、三钱叮当落在掌心时，欢喜得几乎要掉下泪来。更何况，此刻这八十钱对他而言是何等有用。不仅能给干渴的喉咙润上一口米酒，更能为病中的妻子买上一碗牛骨汤。
+  [glossary/low] D0000-S000006: approved glossary term was not preserved: 病人
+      SRC: 그의 아내가 기침으로 쿨룩거리기는 벌써 달포가 넘었다. 조밥도 굶기를먹다시피 하는 형편이니 물론 약 한 첩 써본 일이 없다. 구태여 쓰려면 못쓸 바도 아니로되 그는 병이란 놈에게 약을 주어 보내면 재미를 붙여서 자꾸 온다는 자기의 신조(信條)에 어디까지 충실하였다. 따
+      TGT: 他的妻子咳嗽不止，已有一个多月了。糙米饭也是饥一顿饱一顿，自然没吃过一副药。若非要吃，倒也不是吃不起，只是他信奉一条信条：病这东西，一旦喂了药，便会缠上你，没完没了。因此从未请医生看过，究竟是什么病也无从知晓，但看她躺下便再也起不来，似乎病得不轻。病势恶化，起因是十天前吃糙米饭积食了。那时金添智难得
+  [glossary/low] D0000-S000008: approved glossary term was not preserved: 患者
+      SRC: 이 환자가 그러고도 먹는 데는 물리지 않았다. 사흘 전부터 설렁탕 국물이마시고 싶다고 남편을 졸랐다.
+      TGT: 这病人即便这样，对吃食仍不满足。三天前起，便缠着丈夫说想吃牛骨汤的汤水。
+  [glossary/low] D0000-S000015: approved glossary term was not preserved: 患者
+      SRC: “아따, 젠장맞을 년, 별 빌어먹을 소리를 다 하네. 맞붙들고 앉았으면 누가 먹여 살릴 줄 알아.”하고 훌쩍 뛰어나오려니까 환자는 붙잡을 듯이 팔을 내저으며,
+      TGT: “啧，该死的婆娘，净说些该死的胡话。坐在那里，谁养你。”说着便要跳出去，病人却像要抓住他似的挥动胳膊，
+  [glossary/medium] D0000-S000021: approved glossary term was not preserved: 金添智
+      SRC: 이 말이 저도 모를 사이에 불쑥 김첨지의 입에서 떨어졌다. 제 입으로 부르고도 스스로 그 엄청난 돈 액수에 놀랐다. 한꺼번에 이런 금액을 불러라도 본 지가 그 얼마 만인가! 그러자 그 돈벌 용기가 병자에 대한 염려를 사르고 말았다. 설마 오늘 내로 어떠랴 싶었다. 무슨
+      TGT: 这话不知怎的，从金添智口中脱口而出。连他自己都惊讶于这惊人的金额。多久没一次喊出这么高的价了！于是，赚钱的勇气压过了对病人的担忧。心想，今天之内总该没事吧。无论如何，比起第一趟的幸运，这翻倍的幸运绝不能错过。
+  [glossary/low] D0000-S000028: approved glossary term was not preserved: 人力车
+      SRC: “왜 이리우, 기차 놓치겠구먼.”하고 탄 이의 초조한 부르짖음이 간신히 그의 귀에 들어왔다. 언뜻 깨달으니 김첨지는 인력거를 쥔 채 길 한복판에 엉거주춤 멈춰 있지 않은가.
+      TGT: “怎么这么慢，要赶不上火车了。”车上的焦急呼喊勉强传入他耳中。猛然惊醒，金添智握着车把，在路中间踉跄地停住了。
+  [glossary/low] D0000-S000028: approved glossary term was not preserved: 肝
+      SRC: “왜 이리우, 기차 놓치겠구먼.”하고 탄 이의 초조한 부르짖음이 간신히 그의 귀에 들어왔다. 언뜻 깨달으니 김첨지는 인력거를 쥔 채 길 한복판에 엉거주춤 멈춰 있지 않은가.
+      TGT: “怎么这么慢，要赶不上火车了。”车上的焦急呼喊勉强传入他耳中。猛然惊醒，金添智握着车把，在路中间踉跄地停住了。
+  [glossary/low] D0000-S000033: approved glossary term was not preserved: 人力车
+      SRC: “젠장맞을 것, 이 비를 맞으며 빈 인력거를 털털거리고 돌아를 간담. 이런 빌어먹을 제 할미를 붙을 비가 왜 남의 상판을 딱딱 때려!”
+      TGT: “该死的，顶着雨空着车回去。这种该死的倒霉日子，雨为什么偏偏砸在我的饭碗上！”
+  [glossary/low] D0000-S000033: approved glossary term was not preserved: 肝
+      SRC: “젠장맞을 것, 이 비를 맞으며 빈 인력거를 털털거리고 돌아를 간담. 이런 빌어먹을 제 할미를 붙을 비가 왜 남의 상판을 딱딱 때려!”
+      TGT: “该死的，顶着雨空着车回去。这种该死的倒霉日子，雨为什么偏偏砸在我的饭碗上！”
+  [glossary/low] D0000-S000039: approved glossary term was not preserved: 墙
+      SRC: 소리를 벽력같이 지르고는 돌아선다. 김첨지는 어랍시요 하고 물러섰다.
+      TGT: 她厉声呵斥，转身离去。金添智尴尬地退后。
+  [glossary/low] D0000-S000042: approved glossary term was not preserved: 酒
+      SRC: 한동안 값으로 승강이를 하다가 육십 전에 인사동까지 태워다 주기로 하였다. 인력거가 무거워지매 그의 몸은 이상하게도 가벼워졌고 그리고 또 인력거가 가벼워지니 몸은 다시금 무거워졌건만 이번에는 마음조차 초조해 온다. 집의 광경이 자꾸 눈앞에 어른거리어 인제 요행을 바랄 
+      TGT: 一番讨价还价后，以六十钱送到仁寺洞。人力车变重，他的身体却异常轻盈；车变轻，身体又变重，但这次连心都焦急起来。家中的景象不断在眼前浮现，已无暇期盼好运。像树桩般，又像不是自己的腿，只能骂骂咧咧地乱跑。路人会担心这人力车夫是不是喝醉了，在这湿滑的路上怎么走。阴沉下雨的天空，昏暗得像黄昏。到了昌庆宫前，
+  [glossary/medium] D0000-S000048: approved glossary term was not preserved: 路边酒馆
+      SRC: 선술집은 훈훈하고 뜨뜻하였다. 추어탕을 끓이는 솥뚜껑을 열 적마다 뭉게뭉게 떠오르는 흰김 석쇠에서 뻐지짓뻐지짓 구워지는 너비아니구이며 제육이며 간이며 콩팥이며 북어며 빈대떡……이 너저분하게 늘어놓인 안주 탁자에 김첨지는 갑자기 속이 쓰려서 견딜 수 없었다. 마음대로 할
+      TGT: 路边酒馆里温暖舒适。揭开煮泥鳅汤的锅盖，白气腾腾；烤架上滋滋作响的烤肉、猪肉、肝、肾、明太鱼、煎饼……杂乱摆放的下酒菜桌上，金添智突然感到胃里灼痛，难以忍受。若由他做主，恨不得把桌上所有食物吞下。饥饿的他，先点了两个分量大的煎饼，又要了一碗泥鳅汤。饥饿的肠胃尝到味道，更觉空虚，不断催促。瞬间，一碗豆
+  [glossary/low] D0000-S000048: approved glossary term was not preserved: 桌子
+      SRC: 선술집은 훈훈하고 뜨뜻하였다. 추어탕을 끓이는 솥뚜껑을 열 적마다 뭉게뭉게 떠오르는 흰김 석쇠에서 뻐지짓뻐지짓 구워지는 너비아니구이며 제육이며 간이며 콩팥이며 북어며 빈대떡……이 너저분하게 늘어놓인 안주 탁자에 김첨지는 갑자기 속이 쓰려서 견딜 수 없었다. 마음대로 할
+      TGT: 路边酒馆里温暖舒适。揭开煮泥鳅汤的锅盖，白气腾腾；烤架上滋滋作响的烤肉、猪肉、肝、肾、明太鱼、煎饼……杂乱摆放的下酒菜桌上，金添智突然感到胃里灼痛，难以忍受。若由他做主，恨不得把桌上所有食物吞下。饥饿的他，先点了两个分量大的煎饼，又要了一碗泥鳅汤。饥饿的肠胃尝到味道，更觉空虚，不断催促。瞬间，一碗豆
+  [glossary/low] D0000-S000075: approved glossary term was not preserved: 粥
+      SRC: “우리 마누라가 죽었다네.”
+      TGT: “我老婆死了。”
+  [glossary/low] D0000-S000076: approved glossary term was not preserved: 粥
+      SRC: “뭐, 마누라가 죽다니, 언제?”
+      TGT: “什么，老婆死了？什么时候？”
+  [glossary/low] D0000-S000079: approved glossary term was not preserved: 粥
+      SRC: “거짓말은 왜, 참말로 죽었어, 참말로…… 마누라 시체를 집에 뻐들쳐 놓고 내가 술을 먹다니, 내가 죽일 놈이야, 죽일 놈이야.”하고 김첨지는 엉엉 소리를 내어 운다.
+      TGT: “胡说，真的死了，真的……老婆的尸体在家躺着，我喝酒，我是该死的，该死的。”金添智哇哇大哭。
+  [glossary/low] D0000-S000083: approved glossary term was not preserved: 粥
+      SRC: “죽기는 누가 죽어.”하고 득의가 양양.
+      TGT: “谁死了。”得意洋洋。
+  [glossary/low] D0000-S000084: approved glossary term was not preserved: 粥
+      SRC: “죽기는 왜 죽어, 생때같이 살아만 있단다. 그 오라질 년이 밥을 죽이지.인제 나한테 속았다.”하고 어린애 모양으로 손뼉을 치며 웃는다.
+      TGT: “死什么死，活得好好的。那该死的婆娘，把饭都糟蹋了。现在骗我了。”像孩子般拍手笑。
+  [glossary/low] D0000-S000086: approved glossary term was not preserved: 粥
+      SRC: “안 죽었어, 안 죽었대도 그래.”
+      TGT: “没死，没死就好。”
+  [glossary/low] D0000-S000087: approved glossary term was not preserved: 粥
+      SRC: 김첨지는 화증을 내며 확신 있게 소리를 질렀으되 그 소리엔 안 죽은 것을믿으려고 애쓰는 가락이 있었다. 기어이 일 원 어치를 채워서 곱배기 한 잔씩 더 먹고 나왔다. 궂은비는 의연히 추적추적 내린다.
+      TGT: 金添智怒气冲冲，确信地喊，但声音里透着努力相信没死的语气。终于凑够一元，又各喝了一杯小酒杯，出来。暴雨依旧淅沥。
+  [glossary/low] D0000-S000088: approved glossary term was not preserved: 肝
+      SRC: 김첨지는 취중에도 설렁탕을 사가지고 집에 다다랐다. 집이라 해도 물론셋집이요 또 집 전체를 세든 게 아니라 안과 뚝 떨어진 행랑방 한 간을 빌려 든 것인데 물을 길어 대고 한 달에 일 원씩 내는 터이다. 만일 김첨지가주기를 띠지 않았던들 한 발을 대문에 들여놓았을 제 
+      TGT: 金添智醉中买了牛骨汤到家。所谓家，当然是租的，且只租了与正房隔开的偏房一间，每月一元，需自己挑水。若金添智没喝酒，一脚跨进大门，那令人恐惧的寂静——如暴风雨过后的海面般的寂静，定会让他腿软。听不到咳嗽声，也听不到喘息声。只有打破这坟墓般沉默——不，是加深并使其更阴森的“啪嗒”声，婴儿吸吮的声音。若听
+  [glossary/low] D0000-S000089: approved glossary term was not preserved: 大门
+      SRC: 혹은 김첨지도 이 불길한 침묵을 짐작했는지도 모른다. 그렇지 않으면 대문에 들어서자마자 전에 없이,
+      TGT: 或许金添智也察觉到这阴森的沉默。否则，一进门便前所未有地，
+  [glossary/low] D0000-S000094: approved glossary term was not preserved: 患者
+      SRC: 발로 차도 그 보람이 없는 걸 보자 남편은 아내의 머리맡으로 달려들어 그야말로 까치집 같은 환자의 머리를 꺼들어 흔들며,
+      TGT: 踢了也没个着落，丈夫冲到妻子床头，抓住那像鸟巢般的病人头部摇晃，
+  [glossary/low] D0000-S000099: approved glossary term was not preserved: 粥
+      SRC: “이년아, 죽었단 말이냐, 왜 말이 없어.”
+      TGT: “你这婆娘，死了吗，怎么不说话。”
+  [glossary/low] D0000-S000101: approved glossary term was not preserved: 粥
+      SRC: “으응, 또 대답이 없네. 정말 죽었나 버이.”이러다가 누운 이의 흰 창을 덮은 위로 치뜬 눈을 알아보자마자,
+      TGT: “嗯，又不回答。真死了吗，该死的。”这时，看到躺着人那被白布盖住、向上翻起的眼睛，
+  [glossary/low] D0000-S000102: approved glossary term was not preserved: 粥
+      SRC: “이 눈깔! 이 눈깔! 왜 나를 바라보지 못하고 천장만 보느냐, 응.”하는 말 끝엔 목이 메였다. 그러자 산 사람의 눈에서 떨어진 닭의 똥 같은눈물이 죽은 이의 뻣뻣한 얼굴을 어룽어룽 적시었다. 문득 김첨지는 미친듯이 제 얼굴을 죽은 이의 얼굴에 한데 비비대며 중얼거렸
+      TGT: “这眼睛！这眼睛！为什么不能看我，只看着天花板，嗯。”话音未落，喉咙哽咽。于是，活人眼中掉下的鸡屎般的泪，滴在死者僵硬的脸上，闪烁。突然，金添智疯狂地将自己的脸贴在死者的脸上，低语。
+-- semantic findings (first 8)
+  [mistranslation/medium] D0000-S000004: The translation '进了门里' (entered the gate) incorrectly converts a state/destination into a completed action. The source '문안에... 들어간답시는' describes the destination/intent of the passenger (the lady of th
+  [mistranslation/medium] D0000-S000006: The translation '随心所欲' (at will/as one pleases) fails to capture the specific nuance of '천방지축', which denotes reckless, chaotic, or haphazard behavior, particularly in the context of cooking without c
+  [mistranslation/medium] D0000-S000015: The translation '没出息的话' (words of someone lacking ambition/spirit) is a mistranslation of '빌어먹을 소리'. In this context, '빌어먹을' is a vulgar intensifier meaning 'cursed' or 'damned', referring to the absu
+  [mistranslation/high] D0000-S000042: The translation renders '마음조차 괴상하게 누그러웠다' as '心越软' (heart became softer/more lenient), which is a mistranslation of the psychological state. In this context, '누그러웠다' refers to the easing or calming of
+  [mistranslation/medium] D0000-S000048: The translation '胃里翻腾' (stomach churning/turning) incorrectly renders '속이 쓰려서' (heartburn/stomach ache/burning sensation). In this context, it refers to the physical pain of hunger or acidity, not nau
+  [mistranslation/high] D0000-S000084: The translation mistranslates '밥을 죽이지' (meaning to ruin/spoil the rice/meal) as '饭都吃不下' (cannot eat the rice), changing the agent of the action from the 'woman' to the 'patient'.
+  [mistranslation/medium] D0000-S000094: The translation '踢了没反应' (kicked and there was no reaction) incorrectly converts the source's state of 'lack of reward/fruitfulness' (보람이 없는) into a lack of reaction from the patient. The source descri
+-- consistency report
+  {"enabled": true, "document_count": 1, "segment_count": 103, "issue_count": 0, "repair_count": 0, "by_severity": {}, "documents_with_issues": {}}
+-- review queue and validations
+  queue: []
+-- cost by stage (calls / min)
+  translate: 1 calls, 24.8 min, prompt 13082, output 6560
+  audit_translation: 26 calls, 11.4 min, prompt 28139, output 4410
+  extract_glossary: 1 calls, 1.9 min, prompt 9501, output 9180
+  resolve_glossary: 2 calls, 1.5 min, prompt 8226, output 7370
+  approve_glossary: 2 calls, 0.5 min, prompt 5093, output 2695
+  repair_translation: 8 calls, 0.5 min, prompt 10586, output 960
+  review_repaired: 1 calls, 0.3 min, prompt 5542, output 516

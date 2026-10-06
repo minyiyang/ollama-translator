@@ -18,6 +18,8 @@ from ..style_sheet import (
     build_style_candidate_schema,
     build_style_review_prompt,
     build_style_review_schema,
+    check_style_choices,
+    drop_glossary_conflicts,
     candidate_from_model,
     extraction_instructions,
     keep_recurring_expressions,
@@ -43,6 +45,7 @@ from ..glossary import (
     estimate_tokens,
     harmonize_glossary,
     load_glossary_file,
+    orient_glossary,
     merge_candidate_entries,
     merge_prioritized_sources,
     restore_glossary_evidence,
@@ -62,6 +65,7 @@ from ..glossary_prompts import (
     build_resolution_prompt,
 )
 from ..hashing import hash_named_values, sha256_file, sha256_text
+from ..languages import LanguagePair, glossary_names, glossary_pair, glossary_sides
 from ..ollama_client import OllamaClient, StructuredGenerationResult
 from ..pipeline_state import (
     WorkflowStage,
@@ -75,6 +79,7 @@ from ..schemas import (
     GlossaryApprovalRecord,
     GlossaryApprovalReport,
     GlossaryApprovalResult,
+    approval_result_type,
     GlossaryEntry,
     GlossaryResolutionResult,
     GlossaryResult,
@@ -190,7 +195,7 @@ def run_glossary_extraction_stage(
                 f"glossary/extraction-{input_hash[:16]}"
             )
             stage_root.mkdir(parents=True, exist_ok=True)
-            merged = GlossaryResult(entries=[])
+            merged = GlossaryResult(pair=_pair(config), entries=[])
             merged_path = stage_root / "candidates.merged.json"
             atomic_write_text(merged_path, merged.model_dump_json(indent=2))
             _record_file(
@@ -412,7 +417,7 @@ def run_glossary_extraction_stage(
             for entry in results_by_chunk[chunk.chunk_id].entries
         ]
 
-        raw_merged = GlossaryResult(entries=merge_candidate_entries(collected))
+        raw_merged = GlossaryResult(pair=_pair(config), entries=merge_candidate_entries(collected))
         raw_merged_path = stage_root / "candidates.raw.merged.json"
         atomic_write_text(raw_merged_path, raw_merged.model_dump_json(indent=2))
         _record_file(
@@ -485,9 +490,9 @@ def run_glossary_resolution_stage(
         candidates = _load_recorded_result(workspace, connection, "glossary_candidates")
         configured_sources, source_hashes = load_configured_glossary_sources(config)
         locked_entries = merge_prioritized_sources(configured_sources)
-        locked_terms = {normalize_term(entry.english) for entry in locked_entries}
+        locked_terms = {normalize_term(entry.source) for entry in locked_entries}
         unresolved = [
-            entry for entry in candidates.entries if normalize_term(entry.english) not in locked_terms
+            entry for entry in candidates.entries if normalize_term(entry.source) not in locked_terms
         ]
         input_values = {
             "extraction": str(extraction["output_hash"]),
@@ -498,7 +503,7 @@ def run_glossary_resolution_stage(
             "max_num_ctx": str(config.glossary.resolution_max_num_ctx),
             "context_multiplier": str(config.glossary.resolution_context_multiplier),
             "candidates": sha256_text(
-                GlossaryResult(entries=unresolved).model_dump_json()
+                GlossaryResult(pair=_pair(config), entries=unresolved).model_dump_json()
             ),
             "stage_version": RESOLUTION_STAGE_VERSION,
             **source_hashes,
@@ -550,10 +555,11 @@ def run_glossary_resolution_stage(
         eligible_documents, _ = screen_glossary_documents(manifest.documents)
         harmonized_entries, harmonization = harmonize_glossary(
             merge_prioritized_sources(all_sources),
+            pair=_pair(config),
             priority_by_term=source_priority_by_term(all_sources),
             documents=eligible_documents,
         )
-        draft = GlossaryResult(entries=harmonized_entries)
+        draft = GlossaryResult(pair=_pair(config), entries=harmonized_entries)
         quality = _with_harmonization_warnings(
             analyze_glossary_quality(
                 draft,
@@ -675,7 +681,7 @@ def run_glossary_approval_stage(
         candidate = draft
         review_source = "resolved"
         if reviewed_file is not None:
-            candidate = load_glossary_file(reviewed_file)
+            candidate = orient_glossary(load_glossary_file(reviewed_file), _pair(config))
             reviewed_hash = sha256_file(reviewed_file)
             review_source = "external"
         else:
@@ -775,9 +781,10 @@ def run_glossary_approval_stage(
         configured_sources, _ = load_configured_glossary_sources(config)
         harmonized_entries, harmonization = harmonize_glossary(
             approved.entries,
+            pair=_pair(config),
             priority_by_term=source_priority_by_term(configured_sources),
         )
-        approved = GlossaryResult(entries=sort_glossary_entries(harmonized_entries))
+        approved = GlossaryResult(pair=_pair(config), entries=sort_glossary_entries(harmonized_entries))
         dropped_generic: list[GlossaryEntry] = []
         if review_mode != "human" and config.glossary.drop_generic_terms:
             # Ordinary words the generic screen flags are left to the translator's
@@ -785,24 +792,24 @@ def run_glossary_approval_stage(
             # those a reviewed file adds to the draft or changes in it: a person
             # chose them, even when the file then goes to the LLM for review.
             configured = source_priority_by_term(configured_sources)
-            drafted = {(normalize_term(entry.english), entry.chinese) for entry in draft.entries}
+            drafted = {(normalize_term(entry.source), entry.target) for entry in draft.entries}
             chosen = (
                 {
-                    normalize_term(entry.english)
+                    normalize_term(entry.source)
                     for entry in candidate.entries
-                    if (normalize_term(entry.english), entry.chinese) not in drafted
+                    if (normalize_term(entry.source), entry.target) not in drafted
                 }
                 if reviewed_file is not None
                 else set()
             )
             kept = []
             for entry in approved.entries:
-                term = normalize_term(entry.english)
-                if is_suspicious_generic_candidate(entry) and term not in configured and term not in chosen:
+                term = normalize_term(entry.source)
+                if is_suspicious_generic_candidate(entry, _screen_language(config)) and term not in configured and term not in chosen:
                     dropped_generic.append(entry)
                 else:
                     kept.append(entry)
-            approved = GlossaryResult(entries=kept)
+            approved = GlossaryResult(pair=_pair(config), entries=kept)
         quality = _with_harmonization_warnings(
             analyze_glossary_quality(
                 approved,
@@ -821,7 +828,7 @@ def run_glossary_approval_stage(
         _record_file(connection, workspace, quality_path, WorkflowStage.APPROVE_GLOSSARY, "glossary_quality_report")
         if dropped_generic:
             dropped_path = stage_root / "glossary.dropped-generic.json"
-            atomic_write_text(dropped_path, GlossaryResult(entries=dropped_generic).model_dump_json(indent=2))
+            atomic_write_text(dropped_path, GlossaryResult(pair=_pair(config), entries=dropped_generic).model_dump_json(indent=2))
             _record_file(connection, workspace, dropped_path, WorkflowStage.APPROVE_GLOSSARY, "glossary_dropped_generic")
         harmonization_path = stage_root / "glossary.harmonization.report.json"
         atomic_write_text(harmonization_path, harmonization.model_dump_json(indent=2))
@@ -853,10 +860,23 @@ def run_glossary_approval_stage(
                 style = StyleSheet.model_validate_json(
                     Path(reviewed_style_file).read_text(encoding="utf-8")
                 )
+                check_style_choices(style, config.translation.direction)
             elif use_llm_review and not style_draft.is_empty():
                 style = _review_style_sheet(style_draft, config, client, workspace, stage_root)
             else:
                 style = style_draft
+            if reviewed_style_file is None:
+                # The glossary decides a term; a person's reviewed sheet stands as written.
+                direction = config.translation.direction
+                style = drop_glossary_conflicts(
+                    style,
+                    [
+                        glossary_sides(entry, direction)
+                        for entry in approved.entries
+                        if not is_suspicious_generic_candidate(entry, _screen_language(config))
+                    ],
+                    direction.target_language,
+                )
             style = style.model_copy(
                 update={
                     "characters": [i.model_copy(update={"alternatives": []}) for i in style.characters],
@@ -909,7 +929,7 @@ def load_configured_glossary_sources(
     for kind, paths in groups:
         for index, path in enumerate(paths):
             resolved = Path(path).resolve()
-            result = load_glossary_file(resolved)
+            result = orient_glossary(load_glossary_file(resolved), _pair(config))
             name = f"{kind.value}-{index:03d}-{resolved.name}"
             sources.append(GlossarySource(name, kind, tuple(result.entries)))
             hashes[f"glossary:{name}"] = sha256_file(resolved)
@@ -968,20 +988,34 @@ def _extract_one_chunk(
                 context_multiplier=config.glossary.extraction_context_multiplier,
                 max_attempts=1,
             )
+            # A model sometimes fills the style sheet and returns no glossary
+            # entries at all (qwen on Fortunata y Jacinta: 20 characters and no
+            # entry in each chunk, so the book ran without a glossary). With
+            # several characters named, ask again; the last attempt's answer stands.
+            style_characters = getattr(getattr(generated.value, "style", None), "characters", None) or []
+            if (
+                not generated.value.entries
+                and len(style_characters) >= _CHARACTERS_WITHOUT_ENTRIES
+                and offset <= config.workflow.max_retries
+            ):
+                raise ValueError(
+                    "the answer lists characters for the style sheet and no glossary entries; "
+                    "the names of those characters belong in `entries`"
+                )
             accepted: list[GlossaryEntry] = []
             discarded: list[str] = []
             for candidate in generated.value.entries:
                 try:
-                    accepted.append(GlossaryEntry.model_validate(candidate.model_dump()))
+                    accepted.append(GlossaryEntry.for_pair(candidate.model_dump(), _pair(config)))
                 except ValueError:
                     # Candidate extraction is intentionally recall-oriented. A model
                     # copying an ordinary English name into the Chinese field must not
                     # discard every other valid entry or trigger an identical retry.
-                    discarded.append(candidate.english)
-            extracted = GlossaryResult(entries=accepted)
+                    discarded.append(str(getattr(candidate, "source", None) or candidate.english))
+            extracted = GlossaryResult(pair=_pair(config), entries=accepted)
             normalized = canonicalize_candidate_evidence(extracted, chunk)
             validate_candidate_evidence(normalized, chunk)
-            result = GlossaryResult(entries=sort_glossary_entries(normalized.entries))
+            result = GlossaryResult(pair=_pair(config), entries=sort_glossary_entries(normalized.entries))
             if config.consistency.style_sheet.enabled:
                 atomic_write_text(
                     _style_candidate_path(candidate_path),
@@ -1065,7 +1099,7 @@ def _resolve_candidates(
     conflicts = [
         entry
         for entry in merged
-        if normalize_term(entry.english) in conflicting_terms
+        if normalize_term(entry.source) in conflicting_terms
     ]
     consolidated = _run_resolution_batches(
         connection,
@@ -1081,7 +1115,7 @@ def _resolve_candidates(
     retained = [
         entry
         for entry in merged
-        if normalize_term(entry.english) not in conflicting_terms
+        if normalize_term(entry.source) not in conflicting_terms
     ]
     return sort_glossary_entries(merge_candidate_entries(retained + consolidated))
 
@@ -1106,10 +1140,11 @@ def _run_resolution_batches(
     for batch_number, batch in enumerate(batches, start=1):
         unit_id = f"glossary-resolution-{pass_name}-{batch_number:05d}"
         prompt = prompt_builder(batch, config.translation.direction)
-        cases = build_glossary_resolution_cases(batch)
+        cases = build_glossary_resolution_cases(batch, _pair(config))
         resolution_schema = build_glossary_resolution_schema(
             [str(case["term_id"]) for case in cases],
             max_decisions=len(batch),
+            pair=_pair(config),
         )
         unit_input_hash = hash_named_values(
             {
@@ -1129,7 +1164,7 @@ def _run_resolution_batches(
             connection, unit_id, WorkflowStage.RESOLVE_GLOSSARY.value
         )
         current = _load_current_glossary_batch(
-            existing, path, unit_input_hash, batch
+            existing, path, unit_input_hash, batch, _pair(config)
         )
         if current is not None:
             results[unit_id] = current
@@ -1270,6 +1305,7 @@ def _resolve_candidate_batch(
             result = _materialize_resolution_decisions(
                 generated.value,
                 candidates,
+                pair=_pair(config),
                 max_evidence_per_entry=config.glossary.extraction_max_evidence_per_entry,
             )
             atomic_write_text(path, result.model_dump_json(indent=2))
@@ -1334,12 +1370,14 @@ def _materialize_resolution_decisions(
     generated: GlossaryResolutionResult,
     candidates: list[GlossaryEntry],
     *,
+    pair: LanguagePair,
     max_evidence_per_entry: int,
 ) -> GlossaryResult:
-    """Restore exact English terms after validating pipeline-owned decision IDs."""
-    cases = build_glossary_resolution_cases(candidates)
-    english_by_id = {
-        str(case["term_id"]): str(case["english"])
+    """Restore exact source terms after validating pipeline-owned decision IDs."""
+    cases = build_glossary_resolution_cases(candidates, pair)
+    source_name, _ = glossary_names(pair)
+    source_by_id = {
+        str(case["term_id"]): str(case[source_name])
         for case in cases
     }
     if len(generated.decisions) > len(candidates):
@@ -1350,25 +1388,28 @@ def _materialize_resolution_decisions(
         str(case["term_id"]): [
             entry
             for entry in candidates
-            if normalize_term(entry.english) == normalize_term(str(case["english"]))
+            if normalize_term(entry.source) == normalize_term(str(case[source_name]))
         ]
         for case in cases
     }
     entries: list[GlossaryEntry] = []
     for decision in generated.decisions:
-        english = english_by_id.get(decision.term_id)
-        if english is None:
+        source = source_by_id.get(decision.term_id)
+        if source is None:
             raise ValueError(
                 f"resolver returned out-of-scope term_id: {decision.term_id}"
             )
         try:
-            entry = GlossaryEntry(
-                english=english,
-                chinese=decision.chinese,
-                note=decision.note,
-                category=decision.category,
-                aliases=decision.aliases,
-                confidence=decision.confidence,
+            entry = GlossaryEntry.for_pair(
+                {
+                    "source": source,
+                    "target": decision.target,
+                    "note": decision.note,
+                    "category": decision.category,
+                    "aliases": decision.aliases,
+                    "confidence": decision.confidence,
+                },
+                pair,
             )
         except ValidationError:
             # One malformed rendering (e.g. the English echoed back) must not
@@ -1380,7 +1421,7 @@ def _materialize_resolution_decisions(
             fallback = max(supplied, key=lambda item: item.confidence)
             entry = fallback.model_copy(
                 update={
-                    "english": english,
+                    "source": source,
                     "evidence": [],
                     "note": (
                         f"{fallback.note} " if fallback.note else ""
@@ -1388,7 +1429,7 @@ def _materialize_resolution_decisions(
                 }
             )
         entries.append(entry)
-    materialized = GlossaryResult(entries=entries)
+    materialized = GlossaryResult(pair=pair, entries=entries)
     validate_resolution_scope(materialized, candidates)
     return restore_glossary_evidence(
         materialized,
@@ -1397,7 +1438,7 @@ def _materialize_resolution_decisions(
     )
 
 
-def _load_current_glossary_batch(existing, path, input_hash, candidates):
+def _load_current_glossary_batch(existing, path, input_hash, candidates, pair):
     if not (
         existing
         and existing["status"] == StageStatus.COMPLETED.value
@@ -1406,7 +1447,9 @@ def _load_current_glossary_batch(existing, path, input_hash, candidates):
         and sha256_file(path) == existing["output_hash"]
     ):
         return None
-    result = GlossaryResult.model_validate_json(path.read_text(encoding="utf-8"))
+    result = GlossaryResult.model_validate_json(
+        path.read_text(encoding="utf-8"), context={"pair": pair}
+    )
     validate_resolution_scope(result, candidates)
     return restore_glossary_evidence(result, candidates)
 
@@ -1432,8 +1475,8 @@ def _with_harmonization_warnings(
 def _conflicting_source_terms(entries: list[GlossaryEntry]) -> set[str]:
     targets: dict[str, set[str]] = {}
     for entry in entries:
-        targets.setdefault(normalize_term(entry.english), set()).add(
-            normalize_term(entry.chinese)
+        targets.setdefault(normalize_term(entry.source), set()).add(
+            normalize_term(entry.target)
         )
     return {term for term, values in targets.items() if len(values) > 1}
 
@@ -1448,7 +1491,7 @@ def _review_glossary(
     stage_input_hash: str,
 ) -> tuple[GlossaryResult, GlossaryApprovalReport]:
     """Auto-approve credible entries and review only questionable entry deltas."""
-    cases = build_glossary_approval_cases(draft_entries)
+    cases = build_glossary_approval_cases(draft_entries, _pair(config))
     deterministic_cases, review_cases, reasons_by_id = (
         screen_glossary_approval_cases(
             cases,
@@ -1465,7 +1508,7 @@ def _review_glossary(
         unit_id = f"glossary-llm-review-{batch_number:05d}"
         prompt = build_approval_review_prompt(batch, config.translation.direction)
         approval_schema = build_glossary_approval_schema(
-            [str(case["term_id"]) for case in batch]
+            [str(case["term_id"]) for case in batch], _pair(config)
         )
         unit_input_hash = hash_named_values(
             {
@@ -1489,6 +1532,7 @@ def _review_glossary(
             unit_input_hash,
             batch,
             reasons_by_id,
+            _pair(config),
         )
         if current is not None:
             results[unit_id], records[unit_id] = current
@@ -1564,7 +1608,7 @@ def _review_glossary(
             "glossary_review_batch",
         )
     reviewed = [
-        GlossaryEntry.model_validate(case["entry"])
+        GlossaryEntry.for_pair(case["entry"], _pair(config))
         for case in deterministic_cases
     ] + [
         entry
@@ -1574,11 +1618,11 @@ def _review_glossary(
     all_records = [
         GlossaryApprovalRecord(
             term_id=str(case["term_id"]),
-            english=GlossaryEntry.model_validate(case["entry"]).english,
+            source=GlossaryEntry.for_pair(case["entry"], _pair(config)).source,
             result="approved",
             mode="deterministic",
             reasons=["evidence_backed_high_confidence"],
-            chinese=GlossaryEntry.model_validate(case["entry"]).chinese,
+            target=GlossaryEntry.for_pair(case["entry"], _pair(config)).target,
         )
         for case in deterministic_cases
     ] + [
@@ -1605,8 +1649,11 @@ def _review_glossary(
             result_total=len(all_records),
         )
     return GlossaryResult(
-        entries=sort_glossary_entries(merge_candidate_entries(reviewed))
+        pair=_pair(config), entries=sort_glossary_entries(merge_candidate_entries(reviewed))
     ), report
+
+
+_APPROVAL_TOKENS_PER_CASE = 400
 
 
 def _review_glossary_batch(
@@ -1664,11 +1711,15 @@ def _review_glossary_batch(
                 context_maximum=context_bucket,
                 context_multiplier=config.glossary.approval_context_multiplier,
                 max_attempts=1,
+                # A decision is about a hundred tokens; the cap only stops a runaway
+                # (one en>ja review looped in a reason for 48k characters).
+                max_output_tokens=_APPROVAL_TOKENS_PER_CASE * len(approval_cases) + 1_024,
             )
             reviewed, approval_records = _materialize_approval_decisions(
                 generated.value,
                 approval_cases,
                 reasons_by_id,
+                _pair(config),
             )
             atomic_write_text(path, generated.value.model_dump_json(indent=2))
             output_hash = sha256_file(path)
@@ -1738,6 +1789,7 @@ def _load_current_approval_batch(
     input_hash: str,
     approval_cases: list[dict[str, object]],
     reasons_by_id: dict[str, list[str]],
+    pair: LanguagePair,
 ) -> tuple[GlossaryResult, list[GlossaryApprovalRecord]] | None:
     if not (
         existing
@@ -1747,11 +1799,11 @@ def _load_current_approval_batch(
         and sha256_file(path) == existing["output_hash"]
     ):
         return None
-    decisions = GlossaryApprovalResult.model_validate_json(
+    decisions = approval_result_type(pair).model_validate_json(
         path.read_text(encoding="utf-8")
     )
     return _materialize_approval_decisions(
-        decisions, approval_cases, reasons_by_id
+        decisions, approval_cases, reasons_by_id, pair
     )
 
 
@@ -1759,8 +1811,9 @@ def _materialize_approval_decisions(
     generated: GlossaryApprovalResult,
     approval_cases: list[dict[str, object]],
     reasons_by_id: dict[str, list[str]],
+    pair: LanguagePair,
 ) -> tuple[GlossaryResult, list[GlossaryApprovalRecord]]:
-    """Apply approval deltas while retaining exact English and evidence fields."""
+    """Apply approval deltas while retaining exact source terms and evidence fields."""
     case_by_id = {str(case["term_id"]): case for case in approval_cases}
     returned_ids = [decision.term_id for decision in generated.decisions]
     if len(returned_ids) != len(set(returned_ids)):
@@ -1785,7 +1838,7 @@ def _materialize_approval_decisions(
     approved: list[GlossaryEntry] = []
     records: list[GlossaryApprovalRecord] = []
     for decision in generated.decisions:
-        original = GlossaryEntry.model_validate(case_by_id[decision.term_id]["entry"])
+        original = GlossaryEntry.for_pair(case_by_id[decision.term_id]["entry"], pair)
         reasons = list(reasons_by_id.get(decision.term_id, []))
         if decision.reason:
             reasons.append(decision.reason)
@@ -1793,30 +1846,30 @@ def _materialize_approval_decisions(
             records.append(
                 GlossaryApprovalRecord(
                     term_id=decision.term_id,
-                    english=original.english,
+                    source=original.source,
                     result="rejected",
                     mode="llm",
                     reasons=reasons,
-                    chinese=original.chinese,
+                    target=original.target,
                 )
             )
             continue
         if decision.action == GlossaryApprovalAction.REVISE:
             payload = original.model_dump(mode="python")
-            for field in ("chinese", "note", "category", "aliases", "confidence"):
+            for field in ("target", "note", "category", "aliases", "confidence"):
                 value = getattr(decision, field)
                 if value is not None:
                     payload[field] = value
-            revised = GlossaryEntry.model_validate(payload)
+            revised = GlossaryEntry.for_pair(payload, pair)
             approved.append(revised)
             records.append(
                 GlossaryApprovalRecord(
                     term_id=decision.term_id,
-                    english=original.english,
+                    source=original.source,
                     result="revised",
                     mode="llm",
                     reasons=reasons,
-                    chinese=revised.chinese,
+                    target=revised.target,
                 )
             )
             continue
@@ -1824,14 +1877,14 @@ def _materialize_approval_decisions(
         records.append(
             GlossaryApprovalRecord(
                 term_id=decision.term_id,
-                english=original.english,
+                source=original.source,
                 result="approved",
                 mode="llm",
                 reasons=reasons,
-                chinese=original.chinese,
+                target=original.target,
             )
         )
-    return GlossaryResult(entries=sort_glossary_entries(approved)), records
+    return GlossaryResult(pair=pair, entries=sort_glossary_entries(approved)), records
 
 
 def _build_glossary_approval_report(
@@ -1861,6 +1914,16 @@ def _build_glossary_approval_report(
     )
 
 
+# An extraction answer naming this many characters and no glossary entry is asked again.
+_CHARACTERS_WITHOUT_ENTRIES = 3
+
+
+def _screen_language(config: AppConfig):
+    """The language whose rules screen ordinary words: none for the en/zh glossary's own screen."""
+    pair = _pair(config)
+    return None if pair.legacy else pair.source_language
+
+
 def _style_hash_fields(config: AppConfig) -> dict[str, str]:
     """Only a style sheet that is switched on changes the glossary checkpoints."""
     style = config.consistency.style_sheet
@@ -1885,6 +1948,7 @@ def _chunk_extraction_schema(config: AppConfig, chunk: GlossaryChunk):
         config.glossary.extraction_max_entries,
         config.glossary.extraction_max_evidence_per_entry,
         evidence_ids,
+        _pair(config),
     )
     style = config.consistency.style_sheet
     if not style.enabled:
@@ -1893,6 +1957,7 @@ def _chunk_extraction_schema(config: AppConfig, chunk: GlossaryChunk):
         evidence_ids,
         max_characters=style.max_characters_per_chunk,
         max_expressions=style.max_expressions_per_chunk,
+        direction=config.translation.direction,
     )
     return create_model(
         f"{schema.__name__}WithStyle",
@@ -1992,7 +2057,7 @@ def _review_style_batch(
     total: int,
 ) -> list[StyleReviewDecision]:
     prompt = build_style_review_prompt(batch, config.translation.direction, evidence)
-    schema = build_style_review_schema(batch)
+    schema = build_style_review_schema(batch, config.translation.direction)
     last_error: Exception | None = None
     for attempt in range(1, config.workflow.max_retries + 2):
         attempt_prompt = prompt
@@ -2068,6 +2133,11 @@ def _load_recorded_result(workspace, connection, metadata_key) -> GlossaryResult
         raise FileNotFoundError(f"job metadata is missing: {metadata_key}")
     path = workspace.directory(relative)
     return GlossaryResult.model_validate_json(path.read_text(encoding="utf-8"))
+
+
+def _pair(config: AppConfig) -> LanguagePair:
+    """The pair this job's glossary is written in (en-zh for an en/zh book)."""
+    return glossary_pair(config.translation.direction)
 
 
 def _require_completed(connection, stage: WorkflowStage) -> dict[str, object]:

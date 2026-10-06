@@ -1,0 +1,179 @@
+
+======== bench-tg-es-en
+segments 88; longest D0000-S000085: source 3044 chars, translation 3175 chars
+  longest translation head: And what narrow escapes the poor woman had to endure to come out of that immense role with her dignity intact! She usually confided in Barbarita. “Look, daughter, some months I am so on the verge of c
+  longest translation tail: ey were not, the mother very stiff in her gloves, which prevented her from using her fingers, with a muff that gave her hands excessive warmth, and her good cashmere. Without being old, she seemed so.
+-- rule findings (all)
+  [mistranslation/high] D0000-S000006: numeric content differs from source: The source idiom "daba quince y raya" (meaning to give a high score/praise) is translated as "would hav
+      SRC: Cuando el niño estudiaba los últimos años de su carrera, verificose en él uno de esos cambiazos críticos que tan comunes son en la edad juvenil. De tr
+      TGT: When the boy was studying the final years of his degree, one of those critical changes occurred in him that are so common in youth. From being mischie
+  [mistranslation/high] D0000-S000009: numeric content differs from source: The translation omits the specific quantity of Juanito's age ('veinticuatro años') and the approximate 
+      SRC: Tenía Juanito entonces veinticuatro años. Le conocí un día en casa de Federico Cimarra en un almuerzo que este dio a sus amigos. Se me ha olvidado la 
+      TGT: Juanito was twenty-four years old then. I met him one day at Federico Cimarra's house during a lunch the latter gave to his friends. I have forgotten 
+  [duplication/high] D0000-S000010: translation duplicates a different source segment: D0000-S000009
+      SRC: Barbarita estaba loca con su hijo; mas era tan discreta y delicada, que no se atrevía a elogiarle delante de sus amigas, sospechando que todas las dem
+      TGT: Barbarita was mad for her son; yet she was so discreet and delicate that she did not dare praise him before her friends, suspecting that all the other
+  [duplication/high] D0000-S000014: translation duplicates a different source segment: D0000-S000009
+      SRC: Empezó entonces para Barbarita nueva época de sobresaltos. Si antes sus oraciones fueron pararrayos puestos sobre la cabeza de Juanito para apartar de
+      TGT: A new era of anxieties then began for Barbarita. If before her prayers had been lightning rods placed over Juanito's head to ward off typhus and small
+  [mistranslation/high] D0000-S000014: numeric content differs from source: The translation is a complete hallucination/substitution. It does not translate the source text provide
+      SRC: Empezó entonces para Barbarita nueva época de sobresaltos. Si antes sus oraciones fueron pararrayos puestos sobre la cabeza de Juanito para apartar de
+      TGT: A new era of anxieties then began for Barbarita. If before her prayers had been lightning rods placed over Juanito's head to ward off typhus and small
+  [duplication/high] D0000-S000015: translation duplicates a different source segment: D0000-S000009
+      SRC: Presentose en aquellos días al simpático joven la coyuntura de hacer su primer viaje a París, adonde iban Villalonga y Federico Ruiz comisionados por 
+      TGT: In those days, the charming young man found himself with the opportunity to take his first trip to Paris, where Villalonga and Federico Ruiz were goin
+  [duplication/high] D0000-S000017: translation duplicates a different source segment: D0000-S000009
+      SRC: Ya te he contado mil veces la saliva amarga que tragaba ¡ay, Dios mío!, cuando mi madre me mandaba ponerme la levita de paño negro para llevarme a tu 
+      TGT: “I’ve told you a thousand times about the bitter gall I had to swallow—oh, good Lord!—whenever my mother ordered me to put on my black cloth frock coa
+  [mistranslation/high] D0000-S000017: numeric content differs from source: The source text contains no quantity-bearing facts (the phrase 'mil veces' is a hyperbolic expression o
+      SRC: Ya te he contado mil veces la saliva amarga que tragaba ¡ay, Dios mío!, cuando mi madre me mandaba ponerme la levita de paño negro para llevarme a tu 
+      TGT: “I’ve told you a thousand times about the bitter gall I had to swallow—oh, good Lord!—whenever my mother ordered me to put on my black cloth frock coa
+  [duplication/high] D0000-S000018: translation duplicates a different source segment: D0000-S000009
+      SRC: —No, si lo que menos falta hace a mi hijo es adquirir soltura, porque la tiene desde que era una criatura... Si no es eso. No se trata aquí de modales
+      TGT: —No, the last thing my son needs is to acquire poise, for he has had it since he was a child... It is not that. This is not a matter of manners, but o
+  [addition/medium] D0000-S000018: translation/source token ratio is unusually high: 11.22
+      SRC: —No, si lo que menos falta hace a mi hijo es adquirir soltura, porque la tiene desde que era una criatura... Si no es eso. No se trata aquí de modales
+      TGT: —No, the last thing my son needs is to acquire poise, for he has had it since he was a child... It is not that. This is not a matter of manners, but o
+  [duplication/high] D0000-S000020: translation duplicates a different source segment: D0000-S000009
+      SRC: Estas razones no convencían a Barbarita, que seguía con toda el alma fija en los peligros y escollos de la Babilonia parisiense, porque había oído con
+      TGT: These reasons did not convince Barbarita, whose whole soul remained fixed on the dangers and pitfalls of the Parisian Babylon, for she had heard horro
+  [duplication/high] D0000-S000021: translation duplicates a different source segment: D0000-S000019
+      SRC: Las inquietudes de aquella incomparable señora acabaron con el regreso de Juanito. ¡Y quién lo diría! Volvió mejor de lo que fue. Tanto hablar de Parí
+      TGT: That incomparable lady's anxieties came to an end with Juanito's return. And who would have thought it! He came back better than he had gone. So much 
+  [duplication/high] D0000-S000023: translation duplicates a different source segment: D0000-S000009
+      SRC: Santa Cruz y Arnaiz. Vistazo histórico sobre el comercio matritense
+      TGT: Santa Cruz and Arnaiz. A historical glimpse of Madrid's trade
+  [addition/medium] D0000-S000023: translation/source token ratio is unusually high: 32.35
+      SRC: Santa Cruz y Arnaiz. Vistazo histórico sobre el comercio matritense
+      TGT: Santa Cruz and Arnaiz. A historical glimpse of Madrid's trade
+  [duplication/high] D0000-S000025: translation duplicates a different source segment: D0000-S000016
+      SRC: Don Baldomero Santa Cruz era hijo de otro D. Baldomero Santa Cruz que en el siglo pasado tuvo ya tienda de paños del Reino en la calle de la Sal, en e
+      TGT: Don Baldomero Santa Cruz was the son of another Don Baldomero Santa Cruz who, in the last century, already owned a shop of the Kingdom's cloths on the
+  [mistranslation/high] D0000-S000025: numeric content differs from source: The translation is completely unrelated to the source text. The source discusses the commercial history
+      SRC: Don Baldomero Santa Cruz era hijo de otro D. Baldomero Santa Cruz que en el siglo pasado tuvo ya tienda de paños del Reino en la calle de la Sal, en e
+      TGT: Don Baldomero Santa Cruz was the son of another Don Baldomero Santa Cruz who, in the last century, already owned a shop of the Kingdom's cloths on the
+  [duplication/high] D0000-S000026: translation duplicates a different source segment: D0000-S000016
+      SRC: En el reinado de D. Baldomero I, o sea desde los orígenes hasta 1848, la casa trabajó más en géneros del país que en los extranjeros. Escaray y Pradol
+      TGT: During the reign of D. Baldomero I—that is, from the beginning until 1848—the house dealt more in domestic fabrics than in foreign ones. Escaray and P
+  [mistranslation/high] D0000-S000026: numeric content differs from source: The translation is completely unrelated to the source text. The source discusses the commercial history
+      SRC: En el reinado de D. Baldomero I, o sea desde los orígenes hasta 1848, la casa trabajó más en géneros del país que en los extranjeros. Escaray y Pradol
+      TGT: During the reign of D. Baldomero I—that is, from the beginning until 1848—the house dealt more in domestic fabrics than in foreign ones. Escaray and P
+  [duplication/high] D0000-S000027: translation duplicates a different source segment: D0000-S000019
+      SRC: En las contratas de vestuario para el Ejército y Milicia Nacional, ni Santa Cruz, ni Arnaiz, ni tampoco Bringas daban la cara. Aparecía como contratis
+      TGT: In the clothing contracts for the Army and National Militia, neither Santa Cruz, nor Arnaiz, nor Bringas showed their faces. A certain Albert, of Belg
+  [mistranslation/high] D0000-S000027: numeric content differs from source: The translation is completely unrelated to the source text. The source discusses 19th-century Spanish t
+      SRC: En las contratas de vestuario para el Ejército y Milicia Nacional, ni Santa Cruz, ni Arnaiz, ni tampoco Bringas daban la cara. Aparecía como contratis
+      TGT: In the clothing contracts for the Army and National Militia, neither Santa Cruz, nor Arnaiz, nor Bringas showed their faces. A certain Albert, of Belg
+  [duplication/high] D0000-S000028: translation duplicates a different source segment: D0000-S000016
+      SRC: En el reinado de D. Baldomero II, las prácticas y procedimientos comerciales se apartaron muy poco de la rutina heredada. Allí no se supo nunca lo que
+      TGT: During the reign of D. Baldomero II, commercial practices and procedures departed very little from the inherited routine. There, one never knew what a
+  [mistranslation/high] D0000-S000028: numeric content differs from source: The source text describes correspondence being copied "a pulso" (meaning by hand/manually), whereas the
+      SRC: En el reinado de D. Baldomero II, las prácticas y procedimientos comerciales se apartaron muy poco de la rutina heredada. Allí no se supo nunca lo que
+      TGT: During the reign of D. Baldomero II, commercial practices and procedures departed very little from the inherited routine. There, one never knew what a
+  [duplication/high] D0000-S000029: translation duplicates a different source segment: D0000-S000012
+      SRC: No significaban tales rutinas terquedad y falta de luces. Por el contrario, la clara inteligencia del segundo Santa Cruz y su conocimiento de los nego
+      TGT: Such routines did not signify stubbornness or a lack of enlightenment. On the contrary, the clear intelligence of the second Santa Cruz and his knowle
+  [mistranslation/high] D0000-S000029: numeric content differs from source: The translation is completely unrelated to the source text. The source discusses the business transitio
+      SRC: No significaban tales rutinas terquedad y falta de luces. Por el contrario, la clara inteligencia del segundo Santa Cruz y su conocimiento de los nego
+      TGT: Such routines did not signify stubbornness or a lack of enlightenment. On the contrary, the clear intelligence of the second Santa Cruz and his knowle
+  [duplication/high] D0000-S000030: translation duplicates a different source segment: D0000-S000019
+      SRC: La casa del gordo Arnaiz era relativamente moderna. Se había hecho pañero porque tuvo que quedarse con las existencias de Albert, para indemnizarse de
+      TGT: Fat Arnaiz's house was relatively modern. He had become a partner because he had to take over Albert's stock to indemnify himself for a loan he had ma
+  [mistranslation/high] D0000-S000030: numeric content differs from source: The source text contains several quantity-bearing facts (a loan in '1843', 'two' insurance companies, a
+      SRC: La casa del gordo Arnaiz era relativamente moderna. Se había hecho pañero porque tuvo que quedarse con las existencias de Albert, para indemnizarse de
+      TGT: Fat Arnaiz's house was relatively modern. He had become a partner because he had to take over Albert's stock to indemnify himself for a loan he had ma
+  [duplication/high] D0000-S000031: translation duplicates a different source segment: D0000-S000009
+      SRC: —¡Dale!, ya pareció aquello—respondía don Baldomero—Pues yo te probaré...
+      TGT: “Enough! That’s quite enough of that,” don Baldomero would reply. “Now, I’ll prove it to you...”
+  [addition/medium] D0000-S000031: translation/source token ratio is unusually high: 26.19
+      SRC: —¡Dale!, ya pareció aquello—respondía don Baldomero—Pues yo te probaré...
+      TGT: “Enough! That’s quite enough of that,” don Baldomero would reply. “Now, I’ll prove it to you...”
+  [duplication/high] D0000-S000032: translation duplicates a different source segment: D0000-S000016
+      SRC: Solía no probar nada, ni el otro tampoco, quedándose cada cual con su opinión; pero con estas sabrosas peloteras pasaban el tiempo. También había entr
+      TGT: Neither used to prove anything, nor did the other, each remaining with his own opinion; but with these savory heated debates they passed the time. The
+  [duplication/high] D0000-S000034: translation duplicates a different source segment: D0000-S000009
+      SRC: Nació Barbarita Arnaiz en la calle de Postas, esquina al callejón de San Cristóbal, en uno de aquellos oprimidos edificios que parecen estuches o casa
+      TGT: Barbarita Arnaiz was born on Postas Street, on the corner of the San Cristóbal alley, in one of those cramped buildings that look like cases or dollho
+  [mistranslation/high] D0000-S000034: numeric content differs from source: The translation is completely unrelated to the source text. The source describes the birth and childhoo
+      SRC: Nació Barbarita Arnaiz en la calle de Postas, esquina al callejón de San Cristóbal, en uno de aquellos oprimidos edificios que parecen estuches o casa
+      TGT: Barbarita Arnaiz was born on Postas Street, on the corner of the San Cristóbal alley, in one of those cramped buildings that look like cases or dollho
+  [duplication/high] D0000-S000035: translation duplicates a different source segment: D0000-S000009
+      SRC: Creció Bárbara en una atmósfera saturada de olor de sándalo, y las fragancias orientales, juntamente con los vivos colores de la pañolería chinesca, d
+      TGT: Bárbara grew up in an atmosphere saturated with the scent of sandalwood, and the oriental fragrances, together with the vivid colors of the Chinese si
+  [duplication/high] D0000-S000036: translation duplicates a different source segment: D0000-S000009
+      SRC: Pues esta prenda, esta nacional obra de arte, tan nuestra como las panderetas o los toros, no es nuestra en realidad más que por el uso; se la debemos
+      TGT: For this garment, this national work of art, as much ours as the tambourines or the bullfights, is not truly ours except by use; we owe it to an artis
+  [mistranslation/high] D0000-S000036: numeric content differs from source: The translation is completely unrelated to the source text. The source describes the artist Ayún and hi
+      SRC: Pues esta prenda, esta nacional obra de arte, tan nuestra como las panderetas o los toros, no es nuestra en realidad más que por el uso; se la debemos
+      TGT: For this garment, this national work of art, as much ours as the tambourines or the bullfights, is not truly ours except by use; we owe it to an artis
+  [duplication/high] D0000-S000037: translation duplicates a different source segment: D0000-S000009
+      SRC: Las facultades de Barbarita se desarrollaron asociadas a la contemplación de estas cosas, y entre las primeras conquistas de sus sentidos, ninguna tan
+      TGT: Once the person and his happy circumstances were known, it is easy to understand the direction that the ideas of the young Santa Cruz took when he fou
+  [duplication/high] D0000-S000038: translation duplicates a different source segment: D0000-S000019
+      SRC: Más adelante pudo la niña apreciar la belleza y variedad de los abanicos que había en la casa, y que eran una de las principales riquezas de ella. Que
+      TGT: Later, the girl was able to appreciate the beauty and variety of the fans in the house, which were among its primary riches. She would be left spellbo
+  [duplication/high] D0000-S000039: translation duplicates a different source segment: D0000-S000009
+      SRC: Ocuparon más adelante el primer lugar en el tierno corazón de la hija de D. Bonifacio Arnaiz y en sus sueños inocentes, otras preciosidades que la mam
+      TGT: Later on, other treasures that her mother used to show her from time to time, after a warning not to touch them, occupied the first place in the tende
+  [mistranslation/high] D0000-S000048: numeric content differs from source: In the source, the quantity "cincuenta mil duros" measures wealth in 'duros'. In the translation, "fift
+      SRC: Los herederos de Arnaiz, al inventariar la riqueza de la casa, que sólo en aquel artículo no bajaba de cincuenta mil duros, comprendieron que se aprox
+      TGT: The heirs of Arnaiz, when inventorying the wealth of the house, which was no less than fifty thousand duros in that item alone, realized that a crisis
+  [duplication/high] D0000-S000068: translation duplicates a different source segment: D0000-S000053
+      SRC: En este interesante periodo de la crianza del heredero, desde el 45 para acá, sufrió la casa de Santa Cruz la transformación impuesta por los tiempos,
+      TGT: During this interesting period of the heir's upbringing, from '45 onward, the house of Santa Cruz underwent the transformation imposed by the times, w
+  [mistranslation/high] D0000-S000068: numeric content differs from source: The translation contains entirely different content from the source. The source discusses historical/ec
+      SRC: En este interesante periodo de la crianza del heredero, desde el 45 para acá, sufrió la casa de Santa Cruz la transformación impuesta por los tiempos,
+      TGT: During this interesting period of the heir's upbringing, from '45 onward, the house of Santa Cruz underwent the transformation imposed by the times, w
+  [duplication/high] D0000-S000072: translation duplicates a different source segment: D0000-S000057
+      SRC: Ya en 1840 las casas que traían directamente el género de Cantón no podían competir con las que lo encargaban a Liverpool. Cualquier mercachifle de la
+      TGT: By 1840, the houses that imported goods directly from Canton could no longer compete with those that ordered them from Liverpool. Any petty trader on 
+  [mistranslation/high] D0000-S000072: numeric content differs from source: The translation contains entirely different content from the source. The source discusses trade pattern
+      SRC: Ya en 1840 las casas que traían directamente el género de Cantón no podían competir con las que lo encargaban a Liverpool. Cualquier mercachifle de la
+      TGT: By 1840, the houses that imported goods directly from Canton could no longer compete with those that ordered them from Liverpool. Any petty trader on 
+  [mistranslation/high] D0000-S000078: numeric content differs from source: The source specifies a range of years "los años del 50 al 60", which in the context of 19th-century Spa
+      SRC: De la pañolería y artículos asiáticos, sólo quedaban en la casa por los años del 50 al 60 tradiciones religiosamente conservadas. Aún había alguna tor
+      TGT: Of the linen and Asian articles, only traditions religiously preserved remained in the house by the years 1850-60. There was still a small ivory tower
+  [mistranslation/high] D0000-S000082: numeric content differs from source: The source specifies the years 'desde el 38 al 60', which in the context of the preceding text (mention
+      SRC: He dicho que eran nueve. Falta consignar que de estas nueve cifras, siete correspondían al sexo femenino. ¡Vaya una plaga que le había caído al bueno 
+      TGT: I said that there were nine. It remains to state that of these nine figures, seven corresponded to the female sex. What a plague had fallen upon good 
+  [mistranslation/high] D0000-S000086: numeric content differs from source: The translation omits the quantity 'seven' (siete) referring to the number of daughters/people to be pl
+      SRC: Dios, al fin, apreciando los méritos de aquella heroína, que ni un punto se apartaba de su puesto en el combate social, echó una mirada de benevolenci
+      TGT: God, finally, appreciating the merits of that heroine, who did not deviate a single point from her post in the social battle, cast a benevolent glance
+-- semantic findings (first 8)
+  [mistranslation/high] D0000-S000004: The translation renders 'dos meses largos' as 'more than two months'. In Spanish, 'meses largos' refers to the perceived duration or the 'fullness' of the months (long months), not necessarily a quant
+  [mistranslation/medium] D0000-S000004: The translation renders 'noticias más remotas' as 'earliest news'. In this context, 'remotas' refers to the most distant/remote information the narrator possesses regarding the person, not necessarily
+  [mistranslation/high] D0000-S000011: The translation is a complete hallucination. It ignores the source text entirely and instead translates a different passage (which appears to be the content of the neighboring context segments).
+  [mistranslation/medium] D0000-S000012: The translation omits the specific sensory detail of 'mastication' (chewing), reducing the process of eating to just 'taste'.
+  [untranslated/high] D0000-S000017: The translation provides a completely unrelated text instead of translating the source. There is no correspondence between the source quotes and the translation quotes.
+  [mistranslation/medium] D0000-S000040: The term 'planchas' in this historical context refers to flat irons (clothing irons), not 'plates'.
+  [mistranslation/medium] D0000-S000057: The translation 'square of the Wood' is a literal mistranslation of 'plazuela de la Leña'. In this context, 'Leña' refers to firewood, and 'Plazuela de la Leña' is a specific toponym (place name). Tra
+  [mistranslation/high] D0000-S000060: The translation 'leave those lovely things for the Lovers of Teruel' is a concrete error in factual proposition. The source 'vais a dejar tamañitos a los Amantes de Teruel' means the couple's love is 
+  [mistranslation/medium] D0000-S000061: The translation 'if the other is not there' fails to capture the specific action of watching the performance, turning a state of presence into a general location, which omits the nuance of shared acti
+-- consistency report
+  {"enabled": true, "document_count": 1, "segment_count": 88, "issue_count": 13, "repair_count": 0, "by_severity": {"low": 13}, "documents_with_issues": {"pg-header": 13}}
+  FILE 0000-pg-header.consistency.json {"segment_id": "D0000-S000011", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Juanito Santa Cruz\" as \"Juanito Santa Cruz\", but this translation does not use it.", "suggested_fix": "Render \"Juanito Santa Cruz\" as \"Juanito Santa Cruz\".", "source": "consistency", "source_quote": "Juanito Santa Cruz", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-pg-header.consistency.json {"segment_id": "D0000-S000027", "category": "consistency", "severity": "low", "message": "The style sheet renders \"la calle de Tintoreros\" as \"Dyers' Street\", but this translation does not use it.", "suggested_fix": "Render \"la calle de Tintoreros\" as \"Dyers' Street\".", "source": "consistency", "source_quote": "la calle de Tintoreros", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-pg-header.consistency.json {"segment_id": "D0000-S000032", "category": "consistency", "severity": "low", "message": "The style sheet renders \"la calle de Toledo\" as \"Toledo Street\", but this translation does not use it.", "suggested_fix": "Render \"la calle de Toledo\" as \"Toledo Street\".", "source": "consistency", "source_quote": "la calle de Toledo", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-pg-header.consistency.json {"segment_id": "D0000-S000032", "category": "consistency", "severity": "low", "message": "The style sheet renders \"peloteras\" as \"heated debates\", but this translation does not use it.", "suggested_fix": "Render \"peloteras\" as \"heated debates\".", "source": "consistency", "source_quote": "peloteras", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-pg-header.consistency.json {"segment_id": "D0000-S000034", "category": "consistency", "severity": "low", "message": "The style sheet renders \"la calle de Postas\" as \"Postas Street\", but this translation does not use it.", "suggested_fix": "Render \"la calle de Postas\" as \"Postas Street\".", "source": "consistency", "source_quote": "la calle de Postas", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-pg-header.consistency.json {"segment_id": "D0000-S000035", "category": "consistency", "severity": "low", "message": "The style sheet renders \"mantón de Manila\" as \"Manila shawl\", but this translation does not use it.", "suggested_fix": "Render \"mantón de Manila\" as \"Manila shawl\".", "source": "consistency", "source_quote": "mantón de Manila", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-pg-header.consistency.json {"segment_id": "D0000-S000035", "category": "consistency", "severity": "low", "message": "The style sheet renders \"pañuelos de Manila\" as \"Manila handkerchiefs\", but this translation does not use it.", "suggested_fix": "Render \"pañuelos de Manila\" as \"Manila handkerchiefs\".", "source": "consistency", "source_quote": "pañuelos de Manila", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-pg-header.consistency.json {"segment_id": "D0000-S000063", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Juanito Santa Cruz\" as \"Juanito Santa Cruz\", but this translation does not use it.", "suggested_fix": "Render \"Juanito Santa Cruz\" as \"Juanito Santa Cruz\".", "source": "consistency", "source_quote": "Juanito Santa Cruz", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-pg-header.consistency.json {"segment_id": "D0000-S000063", "category": "consistency", "severity": "low", "message": "The style sheet renders \"el gordo Arnaiz\" as \"the fat Arnaiz\", but this translation does not use it.", "suggested_fix": "Render \"el gordo Arnaiz\" as \"the fat Arnaiz\".", "source": "consistency", "source_quote": "el gordo Arnaiz", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-pg-header.consistency.json {"segment_id": "D0000-S000064", "category": "consistency", "severity": "low", "message": "The style sheet renders \"el gordo Arnaiz\" as \"the fat Arnaiz\", but this translation does not use it.", "suggested_fix": "Render \"el gordo Arnaiz\" as \"the fat Arnaiz\".", "source": "consistency", "source_quote": "el gordo Arnaiz", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-pg-header.consistency.json {"segment_id": "D0000-S000071", "category": "consistency", "severity": "low", "message": "The style sheet renders \"la calle de Postas\" as \"Postas Street\", but this translation does not use it.", "suggested_fix": "Render \"la calle de Postas\" as \"Postas Street\".", "source": "consistency", "source_quote": "la calle de Postas", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-pg-header.consistency.json {"segment_id": "D0000-S000071", "category": "consistency", "severity": "low", "message": "The style sheet renders \"pañuelos de Manila\" as \"Manila handkerchiefs\", but this translation does not use it.", "suggested_fix": "Render \"pañuelos de Manila\" as \"Manila handkerchiefs\".", "source": "consistency", "source_quote": "pañuelos de Manila", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-pg-header.consistency.json {"segment_id": "D0000-S000072", "category": "consistency", "severity": "low", "message": "The style sheet renders \"la calle de Postas\" as \"Postas Street\", but this translation does not use it.", "suggested_fix": "Render \"la calle de Postas\" as \"Postas Street\".", "source": "consistency", "source_quote": "la calle de Postas", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+-- review queue and validations
+  queue: ['D0000-S000078']
+  D0000-S000078 SRC: De la pañolería y artículos asiáticos, sólo quedaban en la casa por los años del 50 al 60 tradiciones religiosamente conservadas. Aún había alguna torrecilla de marfil, y buena porción de mantones ricos de alto precio en cajas primorosas. Era quizás Gumersindo la persona que en Madrid tenía más arte
+  D0000-S000078 TGT: Of the linen and Asian articles, only traditions religiously preserved remained in the house by the years 1850-60. There was still a small ivory tower, and a good number of rich shawls in exquisite boxes. Perhaps Gumersindo was the person in Madrid who had the most skill in folding them, because it 
+-- cost by stage (calls / min)
+  translate: 13 calls, 44.3 min, prompt 122017, output 51469
+  audit_translation: 75 calls, 16.4 min, prompt 160471, output 24746
+  repair_translation: 41 calls, 13.4 min, prompt 142406, output 21816
+  approve_glossary: 2 calls, 2.5 min, prompt 7350, output 3126
+  extract_glossary: 3 calls, 2.3 min, prompt 27363, output 8697
+  repair_review: 3 calls, 0.8 min, prompt 11666, output 1015
+  review_repaired: 9 calls, 0.5 min, prompt 27093, output 1054
+  validate_repaired: 0 calls, 0.0 min, prompt 0, output 0

@@ -2,11 +2,13 @@ import pytest
 from pydantic import ValidationError
 
 from book_agent.schemas import (
+    DEFAULT_GLOSSARY_PAIR,
     GlossaryCategory,
     GlossaryEntry,
     GlossaryResult,
     build_glossary_extraction_schema,
     deduplicate_entries,
+    entry_for_model,
     normalize_term,
     render_legacy_glossary,
 )
@@ -33,7 +35,7 @@ class GlossarySchemaTests:
 
     def test_extraction_result_bounds_entries_and_evidence(self) -> None:
         extraction_schema = build_glossary_extraction_schema(80, 3)
-        payload = entry().model_dump()
+        payload = entry_for_model(entry(), DEFAULT_GLOSSARY_PAIR)
         payload["evidence"] = ["S1", "S2", "S3"]
         result = extraction_schema.model_validate({"entries": [payload]})
         assert len(result.entries[0].evidence) == 3
@@ -52,7 +54,7 @@ class GlossarySchemaTests:
             3,
             ["D0001-S000001", "D0001-S000002"],
         )
-        payload = entry().model_dump()
+        payload = entry_for_model(entry(), DEFAULT_GLOSSARY_PAIR)
         payload["evidence"] = ["D0001-S000001"]
         extraction_schema.model_validate({"entries": [payload]})
         payload["evidence"] = ["D0001-S000003"]
@@ -61,7 +63,7 @@ class GlossarySchemaTests:
 
     def test_extraction_schema_accepts_provisional_untranslated_candidate(self) -> None:
         extraction_schema = build_glossary_extraction_schema(80, 3, ["D0001-S000001"])
-        payload = entry().model_dump()
+        payload = entry_for_model(entry(), DEFAULT_GLOSSARY_PAIR)
         payload.update(
             english="Riverstone",
             chinese="Riverstone",

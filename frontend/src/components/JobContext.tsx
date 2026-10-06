@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Outlet, useParams } from "react-router-dom";
 import { jobApi } from "../api";
+import type { LanguageSupport } from "../lib/languages";
 import type { Stage } from "../lib/stages";
 
 export type JobInfo = {
@@ -11,6 +12,8 @@ export type JobInfo = {
   source_path?: string;
   config: string;
   direction?: string;
+  /** The pair's tiers and skipped checks (docs/GENERIC_LANGUAGES.md, 2.3). */
+  languages?: LanguageSupport | null;
   downloadable?: boolean;
   series?: { series_id: string; name: string; version: string | null; latest: string | null } | null;
   validated?: boolean;

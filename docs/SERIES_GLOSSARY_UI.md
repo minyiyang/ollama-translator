@@ -110,13 +110,16 @@ runs/.series/qel/
   conflicts, and each term's decision with who made it (`rule`, `user`, or
   `llm-accepted`), when, and why.
 
-**`workbench.json`**: one row per candidate term.
+**`workbench.json`**: one row per candidate term. `source` and `target` are the
+sides of the series glossary's pair (en-zh for an en/zh series); workbenches
+written before docs/GENERIC_LANGUAGES.md phase 3 said `english`/`chinese` and
+still load.
 
 ```json
 {
   "term_id": "T00012",
-  "english": "Qelmar",
-  "chinese": "凯尔玛",
+  "source": "Qelmar",
+  "target": "凯尔玛",
   "category": "person",
   "aliases": [],
   "origin": "consensus",
@@ -237,7 +240,7 @@ process, so logs, checkpoints, Pause, and Stop behave the same. New commands:
 | `book-agent series create <id> --direction en-zh [--name …]` | Create a series *(phase 1)* |
 | `book-agent series add <id> <job>…` | Add member books as the next volumes *(phase 1)* |
 | `book-agent series build <id>` | Build or update the workbench, deterministically *(phase 1)* |
-| `book-agent series decide <id> <term>… --decision keep\|drop\|pending --reason … [--chinese …] [--unlock]` | Manual decisions *(phase 1)* |
+| `book-agent series decide <id> <term>… --decision keep\|drop\|pending --reason … [--target …] [--unlock]` | Manual decisions *(phase 1)* |
 | `book-agent series publish <id>` | Freeze the workbench into the next version and write book overlays *(phase 1)* |
 | `book-agent series bind <id> <job> [--version vNNN] [--upgrade]` | Pin a book; `--upgrade` confirms rebinding a preprocessed book *(phase 1)* |
 | `book-agent series import <id> <file>` | Publish an existing CLI series file as the next version *(phase 1)* |

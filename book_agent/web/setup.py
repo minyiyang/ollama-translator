@@ -14,6 +14,7 @@ from pydantic import ValidationError
 from ..atomic_io import atomic_write_text
 from ..cli import resolve_config_paths
 from ..config import AppConfig
+from ..languages import LanguagePair, language_catalog, language_support
 from ..pipeline_state import WorkflowStage
 from ..workspace import build_job_id, slugify_job_name, validate_job_id
 
@@ -70,7 +71,13 @@ def parse_config(text: str, base: Path) -> AppConfig:
 
 def model_roles(config: AppConfig) -> list[dict[str, str]]:
     """Every model the enabled stages will call, with the role that uses it."""
-    roles = [("translation, glossary resolution/approval", config.ollama.model)]
+    if config.translation.model:
+        roles = [
+            ("translation", config.translation.model),
+            ("glossary resolution/approval", config.ollama.model),
+        ]
+    else:
+        roles = [("translation, glossary resolution/approval", config.ollama.model)]
     if config.glossary.extraction_enabled:
         roles.append(("glossary extraction", config.glossary.extraction_model))
     roles += [(f"fallback translation #{i + 1}", model) for i, model in enumerate(config.translation.fallback_models)]
@@ -119,7 +126,7 @@ def validate_setup(
         problems.append(f"source file not found: {source_path}")
     elif source_path.suffix.casefold() not in {".epub", ".rtf"}:
         problems.append("source must be an EPUB or RTF file")
-    readable = f"{slugify_job_name(source_path.stem)}-{config.translation.direction.value}" if source else ""
+    readable = f"{slugify_job_name(source_path.stem)}-{config.translation.direction.slug}" if source else ""
     job = job_id or (readable if readable and not (runs / readable).exists() else build_job_id(source_path) if source else "")
     try:
         validate_job_id(job)
@@ -145,6 +152,8 @@ def validate_setup(
         "models": models,
         "summary": {
             "direction": config.translation.direction.value,
+            # Tiers, skipped checks, and the model-risk notice for this pair.
+            "languages": language_support(config.translation.direction),
             "style": config.translation.style.value,
             "glossary_review": (
                 "LLM" if config.workflow.llm_glossary_review
@@ -158,6 +167,17 @@ def validate_setup(
         },
         "stages": [stage.value for stage in WorkflowStage],
     }
+
+
+def languages_payload(pair: str) -> dict[str, Any]:
+    """The language picker's list, and what a pair supports (or why it is not a pair)."""
+    payload: dict[str, Any] = {"languages": language_catalog(), "support": None, "error": ""}
+    if pair:
+        try:
+            payload["support"] = language_support(LanguagePair(pair))
+        except ValueError as error:
+            payload["error"] = str(error)
+    return payload
 
 
 _SECTION_TITLES = {

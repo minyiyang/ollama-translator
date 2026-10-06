@@ -11,8 +11,9 @@ export function seriesIdFromName(name: string): string {
 
 export type Term = {
   term_id: string;
-  english: string;
-  chinese: string;
+  /** The term in the series glossary's source language, and its rendering. */
+  source: string;
+  target: string;
   category: string;
   origin: "consensus" | "conflict" | "single_book" | "carried" | "manual";
   books: Record<string, string[]>;
@@ -20,7 +21,7 @@ export type Term = {
   decided_by: "rule" | "user" | "llm-accepted";
   reason: string;
   locked_from: string | null;
-  suggestion?: { kind: SuggestionKind; chinese: string | null; rationale: string; model: string } | null;
+  suggestion?: { kind: SuggestionKind; target: string | null; rationale: string; model: string } | null;
   /** Suggestion kinds a person rejected; those tasks skip the term. */
   dismissed?: SuggestionKind[];
   /** Occurrences in each member book's source text, glossary or not. */

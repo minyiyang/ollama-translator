@@ -5,6 +5,7 @@ import { SideItem, SideLayout } from "../components/SideLayout";
 import { useToast } from "../components/Toast";
 import { Chip } from "../components/ui";
 import { Highlight } from "../components/ui";
+import { FALLBACK_PAIR, langAttr, pairCodes, type GlossaryPair } from "../lib/languages";
 import {
   WORKBENCH_VIEWS, matchesView, mentioningBooks, singleBookOf, suggestionEligible,
   type SuggestTask, type Term, type WorkbenchView,
@@ -12,9 +13,9 @@ import {
 
 type BookInfo = { job_id: string; volume: number | null; title: string };
 type Evidence = {
-  english: string;
+  source: string;
   books: (BookInfo & {
-    glossary: { chinese: string; category: string; note: string; evidence: string[] }[];
+    glossary: { target: string; category: string; note: string; evidence: string[] }[];
     mentions: number;
     snippets: string[];
   })[];
@@ -23,7 +24,7 @@ const PAGE = 150;
 const volumeLabel = (book: BookInfo) => (book.volume ? `Vol. ${book.volume}` : book.job_id);
 
 /** Every member book's view of a term: its translation, or how often its text mentions it. */
-function BookLine({ term, books }: { term: Term; books: BookInfo[] }) {
+function BookLine({ term, books, lang }: { term: Term; books: BookInfo[]; lang: string }) {
   return (
     <div className="term-books">
       {books.map((book) => {
@@ -32,7 +33,7 @@ function BookLine({ term, books }: { term: Term; books: BookInfo[] }) {
         return (
           <span key={book.job_id} className={`book-cell ${translations ? "" : "absent"}`} title={`${book.title} (${book.job_id})`}>
             <span className="meta">{volumeLabel(book)}</span>{" "}
-            {translations ? <span lang="zh-CN">{translations.join(" / ")}</span>
+            {translations ? <span lang={lang}>{translations.join(" / ")}</span>
               : mentions ? <span className="meta">not in glossary</span> : <span className="meta">—</span>}
             {mentions > 0 && <span className="meta"> · {mentions}×</span>}
           </span>
@@ -43,7 +44,7 @@ function BookLine({ term, books }: { term: Term; books: BookInfo[] }) {
 }
 
 /** Per book: glossary entries with their evidence, text mentions, and passages. */
-function EvidencePanel({ seriesId, term, labels }: { seriesId: string; term: Term; labels: Record<string, string> }) {
+function EvidencePanel({ seriesId, term, labels, lang }: { seriesId: string; term: Term; labels: Record<string, string>; lang: string }) {
   const [data, setData] = useState<Evidence | null>(null);
   const [error, setError] = useState("");
   useEffect(() => {
@@ -62,13 +63,13 @@ function EvidencePanel({ seriesId, term, labels }: { seriesId: string; term: Ter
           </div>
           {book.glossary.length ? book.glossary.map((entry, i) => (
             <div key={i} className="evidence-entry">
-              Glossary: <span lang="zh-CN"><b>{entry.chinese}</b></span> <Chip>{labels[entry.category] ?? entry.category}</Chip>
+              Glossary: <span lang={lang}><b>{entry.target}</b></span> <Chip>{labels[entry.category] ?? entry.category}</Chip>
               {entry.note && <span className="meta"> {entry.note}</span>}
-              {entry.evidence.map((sentence, j) => <div key={j} className="quote"><Highlight text={sentence} quote={data.english} /></div>)}
+              {entry.evidence.map((sentence, j) => <div key={j} className="quote"><Highlight text={sentence} quote={data.source} /></div>)}
             </div>
           )) : <div className="meta">Not in this book's glossary.</div>}
           {!book.glossary.length && book.snippets.map((snippet, j) => (
-            <div key={j} className="quote"><Highlight text={snippet} quote={data.english} /></div>
+            <div key={j} className="quote"><Highlight text={snippet} quote={data.source} /></div>
           ))}
         </div>
       ))}
@@ -117,13 +118,15 @@ const TASKS: [SuggestTask, string, string][] = [
 function suggestionText(term: Term): string {
   const s = term.suggestion;
   if (!s) return "";
-  if (s.kind === "resolve") return `use ${s.chinese} for the whole series`;
+  if (s.kind === "resolve") return `use ${s.target} for the whole series`;
   if (s.kind === "drop_generic") return "drop it: an ordinary word, not a series term";
   return "promote it to the series glossary";
 }
 
 type View = {
   series_id: string;
+  /** The series glossary's pair: an en/zh series' glossary is en-zh. */
+  glossary_pair?: GlossaryPair;
   based_on: string | null;
   built_at: string;
   not_ready: string[];
@@ -185,31 +188,32 @@ function ReasonPicker({ name, value, onChange }: { name: string; value: string; 
   );
 }
 
-function TermEditor({ term, categoryLabels, onDecide, busy }: {
+function TermEditor({ term, categoryLabels, onDecide, busy, lang }: {
   term: Term;
   categoryLabels: Record<string, string>;
   busy: boolean;
-  onDecide: (decision: Term["decision"], reason: string, chinese: string | null, category: string | null, unlock: boolean) => void;
+  lang: string;
+  onDecide: (decision: Term["decision"], reason: string, rendering: string | null, category: string | null, unlock: boolean) => void;
 }) {
-  const [chinese, setChinese] = useState(term.chinese);
+  const [rendering, setRendering] = useState(term.target);
   const [category, setCategory] = useState(term.category);
   const [reason, setReason] = useState("");
   const [unlock, setUnlock] = useState(false);
-  const variants = [...new Set([term.chinese, ...Object.values(term.books).flat()])];
-  const changed = chinese.trim() !== term.chinese;
+  const variants = [...new Set([term.target, ...Object.values(term.books).flat()])];
+  const changed = rendering.trim() !== term.target;
   const recategorized = category !== term.category;
   const reasonOk = reason.trim().length >= 3;
   const categories = Object.keys(categoryLabels).length ? Object.keys(categoryLabels) : [term.category];
   const decide = (decision: Term["decision"]) =>
-    onDecide(decision, reason, changed && decision === "keep" ? chinese.trim() : null, recategorized ? category : null, unlock);
+    onDecide(decision, reason, changed && decision === "keep" ? rendering.trim() : null, recategorized ? category : null, unlock);
   return (
     <div className="term-editor">
       <div className="row" style={{ margin: 0 }}>
         <span className="meta">Pick:</span>
         {variants.map((v) => (
-          <button key={v} className={`small ${v === chinese ? "on" : ""}`} lang="zh-CN" onClick={() => setChinese(v)}>{v}</button>
+          <button key={v} className={`small ${v === rendering ? "on" : ""}`} lang={lang} onClick={() => setRendering(v)}>{v}</button>
         ))}
-        <input type="text" lang="zh-CN" className="term-input" value={chinese} aria-label="Series translation" onChange={(e) => setChinese(e.target.value)} />
+        <input type="text" lang={lang} className="term-input" value={rendering} aria-label="Series translation" onChange={(e) => setRendering(e.target.value)} />
         <label className="meta" htmlFor={`category-${term.term_id}`}>Category</label>
         <select id={`category-${term.term_id}`} className="term-category" value={category} onChange={(e) => setCategory(e.target.value)}>
           {categories.map((value) => <option key={value} value={value}>{categoryLabels[value] ?? value}</option>)}
@@ -223,12 +227,12 @@ function TermEditor({ term, categoryLabels, onDecide, busy }: {
         </label>
       )}
       <div className="row" style={{ margin: "8px 0 0" }}>
-        <button className="primary small" disabled={busy || !reasonOk || !(changed || recategorized) || !chinese.trim()}
+        <button className="primary small" disabled={busy || !reasonOk || !(changed || recategorized) || !rendering.trim()}
           title="Save the new translation or category and keep the current decision"
-          onClick={() => onDecide(term.decision, reason, changed ? chinese.trim() : null, recategorized ? category : null, unlock)}>
+          onClick={() => onDecide(term.decision, reason, changed ? rendering.trim() : null, recategorized ? category : null, unlock)}>
           Save changes
         </button>
-        <button className="small" disabled={busy || !reasonOk || !chinese.trim()} onClick={() => decide("keep")}>
+        <button className="small" disabled={busy || !reasonOk || !rendering.trim()} onClick={() => decide("keep")}>
           Keep{changed || recategorized ? " with these changes" : ""}
         </button>
         <button className="small" disabled={busy || !reasonOk} onClick={() => decide("drop")}>Drop</button>
@@ -269,12 +273,12 @@ export function WorkbenchTab({ seriesId, process, onChanged, onPublished }: {
   useEffect(load, [load]);
 
   const decide = async (
-    termIds: string[], decision: Term["decision"], reason: string, chinese: string | null, category: string | null = null, unlock = false,
+    termIds: string[], decision: Term["decision"], reason: string, rendering: string | null, category: string | null = null, unlock = false,
   ) => {
     setBusy(true);
     try {
       setData(await api<View>(`/api/series/${encodeURIComponent(seriesId)}/workbench/decide`, {
-        term_ids: termIds, decision, reason, chinese, category, unlock,
+        term_ids: termIds, decision, reason, target: rendering, category, unlock,
       }));
       setOpen(null);
       setChecked([]);
@@ -358,9 +362,11 @@ export function WorkbenchTab({ seriesId, process, onChanged, onPublished }: {
   if (error) return <div className="banner bad">{error}</div>;
   if (!data) return <p className="meta">Loading…</p>;
 
+  const pair = data.glossary_pair ?? FALLBACK_PAIR;
+  const [sourceLang, targetLang] = pairCodes(pair.pair).map(langAttr);
   const needle = query.trim().toLowerCase();
   const shown = data.terms.filter((t) => matchesView(t, view) && (!needle
-    || t.english.toLowerCase().includes(needle) || t.chinese.includes(query.trim())));
+    || t.source.toLowerCase().includes(needle) || t.target.includes(query.trim())));
 
   const sidebar = (
     <>
@@ -440,7 +446,7 @@ export function WorkbenchTab({ seriesId, process, onChanged, onPublished }: {
       )}
       {view === "elsewhere" && (
         <p className="meta">
-          Each term below is in <b>one book's glossary only</b>, but its English also appears in the text of other books
+          Each term below is in <b>one book's glossary only</b>, but it also appears in the text of other books
           (the orange chip counts them), so the other books translate it ad hoc. These are the terms worth promoting to the
           series glossary. Open <b>Evidence</b> to read each book's passages before deciding.
         </p>
@@ -449,14 +455,14 @@ export function WorkbenchTab({ seriesId, process, onChanged, onPublished }: {
       {shown.slice(0, limit).map((term) => (
         <section key={term.term_id} className={`card term ${term.decision}`}>
           <div className="term-head">
-            <input type="checkbox" aria-label={`Select ${term.english}`} checked={checked.includes(term.term_id)}
+            <input type="checkbox" aria-label={`Select ${term.source}`} checked={checked.includes(term.term_id)}
               onChange={(e) => setChecked((old) => (e.target.checked ? [...old, term.term_id] : old.filter((id) => id !== term.term_id)))} />
-            <b>{term.english}</b>
-            <span lang="zh-CN" className="term-zh">{term.chinese}</span>
+            <b lang={sourceLang}>{term.source}</b>
+            <span lang={targetLang} className="term-zh">{term.target}</span>
             <Chip>{data.category_labels?.[term.category] ?? term.category}</Chip>
             {term.origin !== "carried" && <Chip kind={term.origin === "conflict" ? "warn" : undefined}>{ORIGIN_LABEL[term.origin]}</Chip>}
             {term.origin === "single_book" && mentioningBooks(term).length >= 2 && (
-              <Chip kind="warn" title="The English term also appears in other books' text; open Evidence">
+              <Chip kind="warn" title="The term also appears in other books' text; open Evidence">
                 in {mentioningBooks(term).length} books&rsquo; text
               </Chip>
             )}
@@ -468,8 +474,8 @@ export function WorkbenchTab({ seriesId, process, onChanged, onPublished }: {
             </button>
             <button className="small" onClick={() => setOpen(open === term.term_id ? null : term.term_id)}>{open === term.term_id ? "Close" : "Decide"}</button>
           </div>
-          <BookLine term={term} books={books} />
-          {evidenceOf === term.term_id && <EvidencePanel seriesId={seriesId} term={term} labels={data.category_labels ?? {}} />}
+          <BookLine term={term} books={books} lang={targetLang} />
+          {evidenceOf === term.term_id && <EvidencePanel seriesId={seriesId} term={term} labels={data.category_labels ?? {}} lang={targetLang} />}
           {term.reason && <div className="meta">{term.reason}</div>}
           {term.suggestion && (
             <div className="suggestion">
@@ -481,8 +487,8 @@ export function WorkbenchTab({ seriesId, process, onChanged, onPublished }: {
             </div>
           )}
           {open === term.term_id && (
-            <TermEditor term={term} busy={busy} categoryLabels={data.category_labels ?? {}}
-              onDecide={(decision, reason, chinese, category, unlock) => decide([term.term_id], decision, reason, chinese, category, unlock)} />
+            <TermEditor term={term} busy={busy} categoryLabels={data.category_labels ?? {}} lang={targetLang}
+              onDecide={(decision, reason, rendering, category, unlock) => decide([term.term_id], decision, reason, rendering, category, unlock)} />
           )}
         </section>
       ))}

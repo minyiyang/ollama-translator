@@ -1,0 +1,41 @@
+-- failed validations by (validator, code):
+  665  first_draft_contract             protected_marker_mismatch          28 jobs (tg-en-ja:74, tg3-en-ja:73, tg3-en-ko:69, tg-en-ko:68)
+  151  first_draft_contract             shifted_passage                    6 jobs (zhsrc2-tg-zh-es:34, zhsrc2-tg-zh-ja:24, zhsrc3-tg-zh-ja:24, zhsrc4-tg-zh-ja:24)
+  128  feedback_repair_contract         repair_unchanged                   16 jobs (zhsrc-qwen-zh-es:15, zhsrc-qwen-zh-fr:15, zhsrc-tg-zh-fr:15, zhsrc-qwen-zh-de:13)
+  126  first_draft_contract             repeated_passage                   14 jobs (zhsrc-tg-zh-es:22, zhsrc2-tg-zh-es:22, tg3-en-fr:14, tg2-en-de:12)
+   94  feedback_repair_contract         glossary_integrity                 21 jobs (tg2-en-ko:16, zhsrc-tg-zh-de:16, zhsrc2-tg-zh-de:8, tg3-en-ko:6)
+   92  targeted_repair_contract         glossary_integrity                 22 jobs (tg2-en-ko:14, zhsrc-tg-zh-de:12, tg3-en-ko:6, zhsrc2-tg-zh-de:6)
+   62  first_draft_contract             marker_contract                    28 jobs (tg3-fr-en:6, zhsrc-tg-zh-ja:4, zhsrc2-tg-zh-ja:4, zhsrc3-tg-zh-ja:4)
+   60  targeted_repair_contract         number_integrity                   18 jobs (tg2-en-ko:6, zhsrc4-tg-zh-ja:6, zhsrc5-tg-zh-ja:6, tg-de-en:4)
+   58  targeted_repair_contract         repair_unchanged                   9 jobs (lang-en-es:12, zhsrc-qwen-zh-es:10, zhsrc-qwen-zh-fr:9, lang-en-de:8)
+   33  first_draft_contract             untranslated_exact                 8 jobs (lang-en-de:7, zhsrc2-tg-zh-ja:5, zhsrc3-tg-zh-ja:5, zhsrc4-tg-zh-ja:5)
+   29  feedback_repair_contract         number_integrity                   11 jobs (tg-de-en:4, tg2-es-en:4, tg3-es-en:4, zhsrc-tg-zh-de:4)
+   29  first_draft_contract             untranslated_source_language       5 jobs (zhsrc3-tg-zh-ja:7, zhsrc4-tg-zh-ja:7, zhsrc5-tg-zh-ja:7, zhsrc2-tg-zh-ja:6)
+   26  fallback_style_harmonization     protected_marker_mismatch          5 jobs (tg-fr-en:9, tg-en-ko:8, tg-en-ja:6, tg-en-es:2)
+    9  targeted_repair_contract         repair_trigger_unresolved          5 jobs (lang-en-ja:2, tg-en-ja:2, zhsrc-qwen-zh-fr:2, zhsrc-tg-zh-fr:2)
+    6  feedback_repair_contract         repair_trigger_unresolved          3 jobs (lang-en-ja:2, zhsrc-qwen-zh-fr:2, zhsrc-tg-zh-fr:2)
+    6  feedback_repair_contract         untranslated_source_language       3 jobs (zhsrc2-tg-zh-ja:2, zhsrc4-tg-zh-ja:2, zhsrc5-tg-zh-ja:2)
+    3  first_draft_contract             empty_translation                  2 jobs (tg-en-es:2, tg3-en-es:1)
+    3  first_draft_contract             target_language_missing            3 jobs (tg-es-en:1, tg2-es-en:1, tg3-es-en:1)
+    2  semantic_audit_scope             (no issue list)                    2 jobs (lang-en-fr:1, tg-en-ja:1)
+    2  targeted_repair_contract         protected_marker_mismatch          2 jobs (lang-en-ko:1, lang-fr-en:1)
+    2  targeted_repair_contract         untranslated_exact                 1 jobs (lang-fr-en:2)
+    2  fallback_style_harmonization     marker_contract                    2 jobs (tg-en-ja:1, tg-fr-en:1)
+    1  feedback_repair_contract         protected_marker_mismatch          1 jobs (lang-en-es:1)
+
+-- last message of repair-side work units:
+  58  repair_review        repair output is identical to the flagged translation; repeated identical invalid output; switching strategy   [zhsrc-qwen-zh-es:7, zhsrc-qwen-zh-fr:7, zhsrc-qwen-zh-de:6]
+  56  repair_translation   repeated_validation   [tg2-en-ko:8, zhsrc-tg-zh-de:6, zhsrc5-tg-zh-ja:5]
+  42  repair_translation   repeated_candidate   [lang-en-es:6, lang-en-de:4, zhsrc-qwen-zh-es:4]
+  28  repair_review        repair changed an applicable approved term from accepted text   [tg2-en-ko:6, zhsrc-tg-zh-de:4, tg3-en-ko:3]
+  18  repair_review        repair changed an applicable approved term from accepted text; repeated identical invalid output; switching st   [zhsrc-tg-zh-de:4, lang-es-en:2, tg2-en-ko:2]
+   7  repair_review        repair changed digit-bearing facts from the accepted translation   [tg-de-en:2, tg-en-de:1, tg-en-es:1]
+   7  repair_review        repair changed digit-bearing facts from the accepted translation; repeated identical invalid output; switching   [tg2-es-en:2, tg3-es-en:2, tg-es-en:1]
+   3  repair_review        translation is still written in Simplified Chinese   [zhsrc2-tg-zh-ja:1, zhsrc4-tg-zh-ja:1, zhsrc5-tg-zh-ja:1]
+   2  repair_translation   repair output is identical to the flagged translation   [lang-en-ko:1, zhsrc-qwen-zh-de:1]
+   2  repair_translation   repair changed an applicable approved term from accepted text   [zhsrc-qwen-zh-de:1, zhsrc-qwen-zh-fr:1]
+   2  repair_review        repair output is identical to the flagged translation   [zhsrc-qwen-zh-fr:1, zhsrc-tg-zh-fr:1]
+   1  repair_review        repair left its deterministic trigger unresolved: duplication; repeated identical invalid output; switching st   [lang-en-ja:1]
+   1  validate_repaired    structured verification exhausted; escalated to human review   [lang-es-zh:1]
+   1  repair_review        repair left its deterministic trigger unresolved: punctuation   [zhsrc-qwen-zh-fr:1]
+   1  repair_review        repair left its deterministic trigger unresolved: punctuation; repeated identical invalid output; switching st   [zhsrc-tg-zh-fr:1]

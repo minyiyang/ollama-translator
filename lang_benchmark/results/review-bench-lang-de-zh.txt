@@ -1,0 +1,75 @@
+
+======== bench-lang-de-zh
+segments 31; longest D0000-S000031: source 4388 chars, translation 1051 chars
+  longest translation head: “母亲，母亲，”格里高尔轻声说，向上看她。经理对他来说一瞬间完全从脑海中消失了；相反，他无法克制自己，看着流出的咖啡，多次用颌骨对着空气咬合。母亲再次尖叫，从桌上逃开，倒向迎上来的父亲怀里。但格里高尔现在没时间管父母；经理已经在楼梯上；下巴靠在栏杆上，最后一次回头看。格里高尔冲刺，想尽可能安全地追上他；经理必须察觉到了，因为他跳过了几级台阶，消失了；“呼！”但他还喊道，声音通过整个楼梯间。不幸的是
+  longest translation tail: 仿佛没有障碍，现在特别吵闹地向前推格里高尔；在格里高尔身后，声音不再像只是一个父亲的声音；现在真的没有玩笑的余地，格里高尔挤——无论发生什么——进入门。他身体的一侧抬起，他斜躺在门口，他的一侧完全磨伤，在白色的门上留下难看的斑点，很快他卡住，自己无法再移动，一侧的短腿颤抖地悬在空中，另一侧痛苦地压在地上——这时父亲从后面给了他现在真正解脱的一推，他飞进房间，剧烈出血。门被拐杖关上，然后终于安静了。
+-- rule findings (all)
+  [glossary/low] D0000-S000007: approved glossary term was not preserved: 父亲
+      SRC: Und er sah zur Weckuhr hinüber, die auf dem Kasten tickte. »Himmlischer Vater!« dachte er, Es war halb sieben Uhr, und die Zeiger gingen ruhig vorwärt
+      TGT: 他看向放在箱子上滴答作响的闹钟。“天哪！”他想。已经七点半了，指针平静地向前走着，甚至已经过了半刻，接近七点四十五了。闹钟难道没响吗？从床上可以看到，它被准确地设定在四点；它肯定响过。是的，但可能吗，这种震得家具都抖动的铃声，他能安然睡过？好吧，他睡得并不安稳，但可能睡得更沉了。那他现在该怎么办？下
+  [glossary/low] D0000-S000016: approved glossary term was not preserved: 副经理
+      SRC: Schon war er so weit, daß er bei stärkerem Schaukeln kaum das Gleichgewicht noch erhielt, und sehr bald mußte er sich nun endgültig entscheiden, denn 
+      TGT: 他已经摇晃到几乎失去平衡，很快必须做出最终决定，因为五分钟后就是八点一刻，——这时公寓门铃响了。“那是公司的人，”他对自己说，几乎僵住，而他的短腿却更加急切地跳舞。一瞬间，一切静止。“他们不开门，”格里高尔对自己说，陷入某种愚蠢的希望。但随后，像往常一样，女仆坚定地走向门并打开。格里高尔只需听到访客
+  [glossary/low] D0000-S000017: approved glossary term was not preserved: 副经理
+      SRC: »Da drin ist etwas gefallen,« sagte der Prokurist im Nebenzimmer links. Gregor suchte sich vorzustellen, ob nicht auch einmal dem Prokuristen etwas Äh
+      TGT: “里面有什么东西掉了，”经理在左边的隔壁房间说。格里高尔试图想象，经理是否也会发生像今天他一样的事；这种可能性必须承认。但就像对这个问题粗暴的回答，经理现在在隔壁房间走了几步，让他的漆皮鞋嘎吱作响。从右边的隔壁房间，姐姐低声说，为了通知格里高尔：“格里高尔，经理来了。”“我知道，”格里高尔自言自语；
+  [glossary/low] D0000-S000018: approved glossary term was not preserved: 副经理
+      SRC: »Gregor,« sagte nun der Vater aus dem Nebenzimmer links, »der Herr Prokurist ist gekommen und erkundigt sich, warum du nicht mit dem Frühzug weggefahr
+      TGT: “格里高尔，”父亲现在从左边的隔壁房间说，“经理先生来了，询问你为什么没有坐早班车离开。我们不知道该怎么回答他。此外，他想亲自和你说话。所以请开门。他会宽容地原谅房间里的混乱。”“早上好，萨姆沙先生，”经理友好地插话。“他身体不舒服，”母亲对经理说，而父亲还在门口说话，“他身体不舒服，相信我，经理先
+  [glossary/low] D0000-S000019: approved glossary term was not preserved: 副经理
+      SRC: Warum ging denn die Schwester nicht zu den anderen? Sie war wohl erst jetzt aus dem Bett aufgestanden und hatte noch gar nicht angefangen sich anzuzie
+      TGT: 为什么姐姐不去其他人那里？她可能刚从床上起来，还没开始穿衣服。而且她为什么哭？因为他不起床，不让经理进来，因为他面临失去职位的危险，然后老板会再次向父母追讨旧债？这些目前可能是多余的担忧。格里高尔还在这里，丝毫不想离开他的家庭。此刻他可能躺在地板上，任何了解他状况的人都不会严肃地要求他让经理进来。但
+  [glossary/low] D0000-S000020: approved glossary term was not preserved: 副经理
+      SRC:  »Herr Samsa,« rief nun der Prokurist mit erhobener Stimme, »was ist denn los? Sie verbarrikadieren sich da in Ihrem Zimmer, antworten bloß mit ja und
+      TGT:  “萨姆沙先生，”经理现在提高声音喊道，“怎么了？你把自己关在房间里，只回答是或否，给你的父母带来沉重、不必要的担忧，并且——顺便提一下——以实际上不可思议的方式忽视你的职业责任。我代表你的父母和老板，严肃地要求你立即、明确的解释。我惊讶，我惊讶。我以为你是一个冷静、理智的人，现在你似乎突然开始用奇
+  [glossary/low] D0000-S000021: approved glossary term was not preserved: 副经理
+      SRC: »Aber Herr Prokurist,« rief Gregor außer sich und vergaß in der Aufregung alles andere, »ich mache ja sofort, augenblicklich auf. Ein leichtes Unwohls
+      TGT: “但经理先生，”格里高尔激动地喊道，在激动中忘记了一切，“我马上，立刻开门。轻微的不适，一阵头晕，阻止我起床。我现在还躺在床上。但现在我又完全清爽了。我刚从床上下来。请再等一小会儿！情况还没像我想象的那么好。但我已经感觉好些了。人怎么能被这样突然袭击！昨晚我还很好，我父母知道，或者更好说，昨晚我就有
+  [glossary/low] D0000-S000022: approved glossary term was not preserved: 副经理
+      SRC: Und während Gregor dies alles hastig ausstieß und kaum wußte, was er sprach, hatte er sich leicht, wohl infolge der im Bett bereits erlangten Übung, d
+      TGT: 当格里高尔急切地吐出这一切，几乎不知道自己在说什么时，他轻松地，可能由于在床上已经获得的练习，靠近了箱子，并试图靠它支撑起来。他真的想开门，真的想让人看见，并与经理说话；他渴望知道，那些现在如此急切地要求他的人，看到他会说什么。如果他们震惊，那么格里高尔就不再负责，可以安心。但如果他们平静地接受，那
+  [glossary/low] D0000-S000023: approved glossary term was not preserved: 副经理
+      SRC: »Haben Sie auch nur ein Wort verstanden?« fragte der Prokurist die Eltern, »er macht sich doch wohl nicht einen Narren aus uns?« »Um Gottes willen,« r
+      TGT: “你听懂了一个字吗？”经理问父母，“他难道在取笑我们吗？”“天哪，”母亲已经哭着喊道，“他可能病得很重，我们在折磨他。格雷特！格雷特！”她喊道。“母亲？”姐姐从另一边喊道。他们通过格里高尔的房间交流。“你必须立刻叫医生。格里高尔病了。快去叫医生。你刚才听到格里高尔说话了吗？”“那是野兽的声音，”经理
+  [glossary/low] D0000-S000024: approved glossary term was not preserved: 副经理
+      SRC: Gregor war aber viel ruhiger geworden. Man verstand zwar also seine Worte nicht mehr, trotzdem sie ihm genug klar, klarer als früher, vorgekommen ware
+      TGT: 但格里高尔变得平静多了。虽然他们不再理解他的话，尽管对他来说足够清晰，比以前更清晰，可能是由于耳朵的习惯。但无论如何，他们现在相信他有点不对劲，并准备帮助他。最初命令下达时的信心和确定性让他感到舒适。他感到自己重新被纳入人类圈子，并期望从医生和锁匠那里——他并没有严格区分他们——获得伟大和惊人的表现
+  [glossary/low] D0000-S000025: approved glossary term was not preserved: 副经理
+      SRC: Gregor schob sich langsam mit dem Sessel zur Tür hin, ließ ihn dort los, warf sich gegen die Tür, hielt sich an ihr aufrecht – die Ballen seiner Beinc
+      TGT: 格里高尔慢慢地用椅子向门移动，在那里松开它，撞向门，靠它直立——他的短腿球状末端有一点粘性——并在那里休息片刻，缓解疲劳。然后他开始用嘴转动锁里的钥匙。不幸的是，他似乎没有真正的牙齿——他怎么抓住钥匙？——但颌骨当然很强，借助它们，他确实让钥匙转动，并不在意他无疑给自己造成了某种伤害，因为一种棕色液
+  [glossary/low] D0000-S000026: approved glossary term was not preserved: 副经理
+      SRC: Da er die Türe auf diese Weise öffnen mußte, war sie eigentlich schon recht weit geöffnet, und er selbst noch nicht zu sehen. Er mußte sich erst langs
+      TGT: 由于他必须以这种方式开门，门其实已经开得很宽，而他本人还看不见。他必须慢慢地绕着一扇门板转动，非常小心，否则他会在进入房间时笨拙地摔在背上。他还在进行那个艰难的动作，没时间注意其他事，就听到经理发出一声响亮的“哦！”——听起来像风在呼啸——然后他也看到了经理，经理离门最近，用手捂住张开的嘴，慢慢后退
+  [glossary/low] D0000-S000028: approved glossary term was not preserved: 副经理
+      SRC: »Nun,« sagte Gregor und war sich dessen wohl bewußt, daß er der einzige war, der die Ruhe bewahrt hatte, »ich werde mich gleich anziehen, die Kollekti
+      TGT: “现在，”格里高尔说，他完全意识到他是唯一保持冷静的人，“我马上穿衣服，打包样品，然后离开。你们愿意，愿意让我离开吗？经理先生，你看，我不是固执，我喜欢工作；旅行很麻烦，但我不能没有旅行生活。你要去哪里，经理先生？去公司？是的？你会如实报告吗？人可能在某一刻无法工作，但那时正是回忆过去业绩并考虑在障
+  [glossary/low] D0000-S000029: approved glossary term was not preserved: 副经理
+      SRC: Aber der Prokurist hatte sich schon bei den ersten Worten Gregors abgewendet, und nur über die zuckende Schulter hinweg sah er mit aufgeworfenen Lippe
+      TGT: 但经理在格里高尔的第一句话后就转过身去，只从颤抖的肩膀上，用抬起的嘴唇回头看格里高尔。在格里高尔说话期间，他一刻也没停，而是悄然向门边挪动，但非常缓慢，仿佛存在一个秘密的禁令，禁止离开房间。他已经在门厅了，从他最后一次从客厅抽出脚的动作来看，人们可能认为他刚刚烧到了鞋底。但在门厅，他把右手伸向楼梯，
+  [glossary/low] D0000-S000030: approved glossary term was not preserved: 副经理
+      SRC: Gregor sah ein, daß er den Prokuristen in dieser Stimmung auf keinen Fall weggehen lassen dürfe, wenn dadurch seine Stellung im Geschäft nicht aufs äu
+      TGT: 格里高尔意识到，他绝不能让经理在这种情绪下离开，否则他在公司的职位将面临极大危险。父母没有这么理解；他们在多年里形成了信念，认为格里高尔在这家公司终身有保障，而且现在他们忙于眼前的担忧，失去了任何预见。但格里高尔有这种预见。经理必须被留住、安抚、说服并最终争取过来；格里高尔和他家庭的未来取决于此！要
+  [glossary/low] D0000-S000031: approved glossary term was not preserved: 副经理
+      SRC: »Mutter, Mutter,« sagte Gregor leise und sah zu  ihr hinauf. Der Prokurist war ihm für einen Augenblick ganz aus dem Sinn gekommen; dagegen konnte er 
+      TGT: “母亲，母亲，”格里高尔轻声说，向上看她。经理对他来说一瞬间完全从脑海中消失了；相反，他无法克制自己，看着流出的咖啡，多次用颌骨对着空气咬合。母亲再次尖叫，从桌上逃开，倒向迎上来的父亲怀里。但格里高尔现在没时间管父母；经理已经在楼梯上；下巴靠在栏杆上，最后一次回头看。格里高尔冲刺，想尽可能安全地追上
+-- semantic findings (first 8)
+  [mistranslation/medium] D0000-S000010: The translation renders 'breit' (wide/broad) as '宽阔', which in Chinese typically describes landscapes or roads. When referring to a body's physical dimension in this context, it is a concrete defect o
+  [mistranslation/medium] D0000-S000029: The translation renders 'verzog sich' as '逐渐向门移动' (gradually moved toward the door), but the source describes a specific type of movement: 'verzog sich' implies slinking away, withdrawing, or stealing
+-- consistency report
+  {"enabled": true, "document_count": 1, "segment_count": 31, "issue_count": 3, "repair_count": 0, "by_severity": {"low": 3}, "documents_with_issues": {"pg-header": 3}}
+  FILE 0000-pg-header.consistency.json {"segment_id": "D0000-S000014", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Geschäft\" as \"生意\", but this translation does not use it.", "suggested_fix": "Render \"Geschäft\" as \"生意\".", "source": "consistency", "source_quote": "Geschäft", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-pg-header.consistency.json {"segment_id": "D0000-S000028", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Geschäft\" as \"生意\", but this translation does not use it.", "suggested_fix": "Render \"Geschäft\" as \"生意\".", "source": "consistency", "source_quote": "Geschäft", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-pg-header.consistency.json {"segment_id": "D0000-S000030", "category": "consistency", "severity": "low", "message": "The style sheet renders \"Geschäft\" as \"生意\", but this translation does not use it.", "suggested_fix": "Render \"Geschäft\" as \"生意\".", "source": "consistency", "source_quote": "Geschäft", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+-- review queue and validations
+  queue: ['D0000-S000029']
+  D0000-S000029 SRC: Aber der Prokurist hatte sich schon bei den ersten Worten Gregors abgewendet, und nur über die zuckende Schulter hinweg sah er mit aufgeworfenen Lippen nach Gregor zurück. Und während Gregors Rede stand er keinen Augenblick still, sondern verzog sich, ohne Gregor aus den Augen zu lassen, gegen die T
+  D0000-S000029 TGT: 但经理在格里高尔的第一句话后就转过身去，只从颤抖的肩膀上，用抬起的嘴唇回头看格里高尔。在格里高尔说话期间，他一刻也没停，而是悄然向门边挪动，但非常缓慢，仿佛存在一个秘密的禁令，禁止离开房间。他已经在门厅了，从他最后一次从客厅抽出脚的动作来看，人们可能认为他刚刚烧到了鞋底。但在门厅，他把右手伸向楼梯，仿佛在那里等待着他一种近乎超自然的解脱。
+-- cost by stage (calls / min)
+  audit_translation: 25 calls, 8.6 min, prompt 58859, output 9371
+  translate: 1 calls, 1.8 min, prompt 12288, output 6779
+  extract_glossary: 2 calls, 0.9 min, prompt 11355, output 3165
+  approve_glossary: 1 calls, 0.3 min, prompt 2780, output 1863
+  repair_review: 2 calls, 0.3 min, prompt 8574, output 307
+  repair_translation: 2 calls, 0.3 min, prompt 6068, output 142
+  review_repaired: 1 calls, 0.3 min, prompt 4400, output 171
+  resolve_glossary: 1 calls, 0.2 min, prompt 586, output 304

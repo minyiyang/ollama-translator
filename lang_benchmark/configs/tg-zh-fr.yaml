@@ -1,0 +1,77 @@
+# translategemma comparison of qwen-zh-fr.yaml: same book and settings, other models.
+# Chinese-source benchmark (docs/GENERIC_LANGUAGES.md, section 7): Simplified Chinese -> French.
+# 阿Q正传 chapters 1-5 (Lu Xun, 1921-22; text from Chinese Wikisource). Unattended, as qwen-en-*.yaml.
+
+ollama:
+  host: http://localhost:11434
+  model: qwen3.8:latest            # translation, glossary resolution + LLM approval
+  num_ctx: 131072
+  adaptive_num_ctx: true
+  min_num_ctx: 16384
+  temperature: 0.0
+  timeout_seconds: 1800
+  keep_alive: 2m                   # benchmark: do not keep idle models in memory
+  max_retries: 3
+  progress_interval_seconds: 30.0
+  progress_interval_tokens: 2000
+
+translation:
+  model: translategemma:27b        # translates; qwen3.8 keeps the glossary calls (gemma4:31b took 48 min on one)
+  fallback_models: [qwen3.8:latest]
+  harmonize_fallback_with_primary: false   # a rewrite task translategemma repeats itself on
+  direction: zh>fr
+  style: literary
+  preserve_paragraphs: true
+  preserve_punctuation: true
+  use_glossary_strictly: true
+  de_ai_enabled: true
+  de_ai_strength: conservative
+  thinking: false
+  boundary_context: adjacent-read-only
+  max_num_ctx: 65536
+  max_prompt_tokens: 8000          # shorter chunks: translategemma repeats itself in long ones
+  context_multiplier: 3.0
+
+glossary:
+  extraction_enabled: true
+  extraction_model: qwen3.8:latest # qwen3.8:27b is not installed locally
+  extraction_thinking: false
+  extraction_max_entries: 120
+  # Entries at/above this confidence with evidence and no conflict skip the LLM
+  # reviewer; everything else is approved/rejected/revised by the model.
+  approval_auto_approve_min_confidence: 0.9
+
+epub:
+  strip_print_page_markers: true
+  insert_missing_chapter_headings: true
+
+audit:
+  model: gemma4:31b
+  verifier_model: gemma4:26b
+  verifier_max_num_ctx: 16384
+  repair_model: gemma4:31b
+  semantic_verification_policy: autonomous
+  thinking: false
+  semantic_enabled: true
+  semantic_max_candidates_per_batch: 1
+  repair_min_severity: medium
+
+reprose:
+  enabled: false
+  model: qwen3.8:latest
+  verifier_model: gemma4:31b
+  candidate_mode: risk-filtered
+
+workflow:
+  require_glossary_review: true
+  llm_glossary_review: true        # benchmark: unattended
+  require_final_review: false
+  defer_failed_translation_segments: true
+
+paths:
+  runs: ../../runs
+
+consistency:
+  style_sheet:
+    enabled: true
+    review: glossary

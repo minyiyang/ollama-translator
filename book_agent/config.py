@@ -4,9 +4,15 @@ from pathlib import Path
 from typing import Literal
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, model_validator
+from pydantic import BaseModel, ConfigDict, Field, model_serializer, model_validator
 
-from .languages import TranslationDirection
+from .languages import (
+    DEFAULT_DIRECTION,
+    Language,
+    LanguagePair,
+    TranslationDirection,
+    profile,
+)
 from .styles import TranslationStyle
 from .token_budget import TokenBudget, validate_budget
 
@@ -80,7 +86,13 @@ class BudgetConfig(StrictModel):
 
 
 class TranslationConfig(StrictModel):
-    direction: TranslationDirection = TranslationDirection.EN_TO_ZH
+    direction: TranslationDirection = DEFAULT_DIRECTION
+    # The pair as two codes (docs/GENERIC_LANGUAGES.md, 6). Either these or
+    # `direction` may be given; both always agree after validation. They are
+    # left out of the saved JSON for en-zh and zh-en, so those configs (and
+    # every stage hash built from them) stay exactly as before.
+    source_language: Language | None = None
+    target_language: Language | None = None
     style: TranslationStyle = TranslationStyle.LITERARY
     custom_style_file: Path | None = None
     preserve_paragraphs: bool = True
@@ -90,6 +102,10 @@ class TranslationConfig(StrictModel):
     de_ai_strength: Literal["conservative", "moderate"] = "conservative"
     thinking: bool = False
     marker_examples: Literal["none", "one-shot", "few-shot"] = "few-shot"
+    # The model that translates, when it is not `ollama.model`. A model trained
+    # only to translate (translategemma) writes better prose in some languages
+    # but cannot resolve a glossary; those calls stay with `ollama.model`.
+    model: str | None = None
     fallback_models: list[str] = Field(default_factory=list)
     attempts_per_model: int = Field(default=2, gt=0)
     harmonize_fallback_with_primary: bool = True
@@ -99,6 +115,32 @@ class TranslationConfig(StrictModel):
     boundary_context: Literal["none", "adjacent-read-only"] = "none"
 
     @model_validator(mode="after")
+    def validate_languages(self) -> "TranslationConfig":
+        if self.source_language is not None or self.target_language is not None:
+            if self.source_language is None or self.target_language is None:
+                raise ValueError("source_language and target_language must be given together")
+            pair = LanguagePair.of(self.source_language, self.target_language)
+            if "direction" in self.model_fields_set and self.direction != pair:
+                raise ValueError(
+                    f"direction {self.direction.value} disagrees with "
+                    f"source_language/target_language ({pair.value})"
+                )
+            object.__setattr__(self, "direction", pair)
+        legacy = self.direction.legacy
+        object.__setattr__(self, "source_language", None if legacy else self.direction.source_language)
+        object.__setattr__(self, "target_language", None if legacy else self.direction.target_language)
+        return self
+
+    @model_serializer(mode="wrap")
+    def _omit_restated_languages(self, handler):
+        data = handler(self)
+        if isinstance(data, dict):
+            for key in ("source_language", "target_language", "model"):
+                if data.get(key) is None:
+                    data.pop(key, None)
+        return data
+
+    @model_validator(mode="after")
     def validate_custom_style(self) -> "TranslationConfig":
         if self.style is TranslationStyle.CUSTOM and self.custom_style_file is None:
             raise ValueError("custom_style_file is required for the custom style")
@@ -106,6 +148,8 @@ class TranslationConfig(StrictModel):
             raise ValueError("custom_style_file can only be used with the custom style")
         if any(not model.strip() for model in self.fallback_models):
             raise ValueError("fallback_models cannot contain an empty model name")
+        if self.model is not None and not self.model.strip():
+            raise ValueError("translation model cannot be empty")
         return self
 
 
@@ -358,6 +402,11 @@ class PathsConfig(StrictModel):
     prompts: Path = Path("prompts")
 
 
+def translation_model(config: "AppConfig") -> str:
+    """The model the translate stage calls first."""
+    return config.translation.model or config.ollama.model
+
+
 class AppConfig(StrictModel):
     ollama: OllamaConfig = OllamaConfig()
     budget: BudgetConfig = BudgetConfig()
@@ -386,6 +435,12 @@ class AppConfig(StrictModel):
             raise ValueError(
                 "workflow.production_profile_version must be positive when a "
                 "production_profile is named"
+            )
+        target = profile(self.translation.direction.target_language)
+        if self.reprose.enabled and target.tier != "tuned":
+            raise ValueError(
+                f"reprose is written for Chinese and English targets, not {target.display_name}; "
+                "set reprose.enabled to false"
             )
         if not self.glossary.extraction_enabled and not (
             self.glossary.seed_glossaries

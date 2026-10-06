@@ -4,11 +4,19 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from typing import Any
 
-from pydantic import BaseModel, ConfigDict, Field, model_serializer
+from pydantic import BaseModel, ConfigDict, Field, model_serializer, model_validator
 
-from .languages import Language, TranslationDirection
-from .schemas import GlossaryEntry, normalize_term
+from .languages import (
+    Language,
+    LanguagePair,
+    TranslationDirection,
+    glossary_sides,
+    profile,
+    source_aliases,
+)
+from .schemas import DEFAULT_GLOSSARY_PAIR, GlossaryEntry, glossary_pair_scope, normalize_term
 from .style_sheet import StyleSheet
 
 
@@ -20,13 +28,13 @@ class GlossaryReplacementConflict(ValueError):
 class ReplacementRule:
     source: str
     target: str
-    canonical_english: str
+    canonical_term: str
     source_language: Language
 
     @property
     def normalized_source(self) -> str:
         """Return the comparison key appropriate for the source language."""
-        return normalize_term(self.source) if self.source_language is Language.ENGLISH else self.source
+        return profile(self.source_language).normalize_term(self.source)
 
 
 @dataclass(frozen=True)
@@ -40,8 +48,16 @@ class ReplacementOccurrence(BaseModel):
     model_config = ConfigDict(extra="forbid")
     source: str
     target: str
-    canonical_english: str
+    # The glossary entry's source term (the English term in an en-zh glossary).
+    canonical_term: str
     count: int = Field(gt=0)
+
+    @model_validator(mode="before")
+    @classmethod
+    def read_pre_phase3_name(cls, data: Any) -> Any:
+        if isinstance(data, dict) and "canonical_english" in data:
+            data = {("canonical_term" if key == "canonical_english" else key): value for key, value in data.items()}
+        return data
 
 
 class PreprocessedSegment(BaseModel):
@@ -59,11 +75,22 @@ class PreprocessedDocument(BaseModel):
     archive_path: str
     source_sha256: str
     segments: list[PreprocessedSegment]
+    # The pair of the glossary the relevant entries come from (an en-zh glossary
+    # in an en-zh or zh-en job); documents written before phase 3 lack it.
+    glossary_pair: LanguagePair = DEFAULT_GLOSSARY_PAIR
     relevant_glossary: list[GlossaryEntry] = Field(default_factory=list)
     # Style-sheet entries relevant to this document (docs/BOOK_CONSISTENCY.md, phase 2).
     relevant_style: StyleSheet | None = None
     # "Story so far" for this document (docs/BOOK_CONSISTENCY.md, phase 3).
     story_context: str | None = None
+
+    @model_validator(mode="wrap")
+    @classmethod
+    def _validate_entries_for_pair(cls, data: Any, handler: Any) -> Any:
+        if not isinstance(data, dict):
+            return handler(data)
+        with glossary_pair_scope(LanguagePair(data.get("glossary_pair") or DEFAULT_GLOSSARY_PAIR)):
+            return handler(data)
 
     @model_serializer(mode="wrap")
     def _omit_absent_style(self, handler):
@@ -106,23 +133,18 @@ def build_replacement_index(
         raise ValueError("conflict_policy must be 'skip' or 'error'")
     candidates: dict[str, list[ReplacementRule]] = {}
     display_source: dict[str, str] = {}
+    language = direction.source_language
     for entry in entries:
-        if direction is TranslationDirection.EN_TO_ZH:
-            source_terms = [entry.english, *entry.aliases]
-            target = entry.chinese
-            language = Language.ENGLISH
-        else:
-            source_terms = [entry.chinese]
-            target = entry.english
-            language = Language.CHINESE
+        source_term, target = glossary_sides(entry, direction)
+        source_terms = [source_term, *source_aliases(entry, direction)]
         for source in source_terms:
             source = source.strip()
             if not source:
                 continue
-            key = normalize_term(source) if language is Language.ENGLISH else source
+            key = profile(language).normalize_term(source)
             display_source.setdefault(key, source)
             candidates.setdefault(key, []).append(
-                ReplacementRule(source, target, entry.english, language)
+                ReplacementRule(source, target, entry.source, language)
             )
 
     conflicts: dict[str, tuple[str, ...]] = {}
@@ -136,7 +158,7 @@ def build_replacement_index(
             possible,
             key=lambda rule: (
                 -len(rule.source),
-                normalize_term(rule.canonical_english),
+                normalize_term(rule.canonical_term),
                 rule.source,
             ),
         )[0]
@@ -163,7 +185,7 @@ def apply_replacement_index(
             pattern = _rule_pattern(rule)
 
             def replace(match: re.Match[str]) -> str:
-                key = (rule.source, rule.target, rule.canonical_english)
+                key = (rule.source, rule.target, rule.canonical_term)
                 counts[key] = counts.get(key, 0) + 1
                 return rule.target
 
@@ -173,7 +195,7 @@ def apply_replacement_index(
         ReplacementOccurrence(
             source=source,
             target=target,
-            canonical_english=canonical,
+            canonical_term=canonical,
             count=count,
         )
         for (source, target, canonical), count in sorted(
@@ -197,13 +219,9 @@ def select_relevant_glossary_entries(
     """
     visible = _PROTECTED_TAG.sub("", text)
     matches: dict[tuple[int, int, str], set[int]] = {}
+    language = direction.source_language
     for entry_index, entry in enumerate(entries):
-        if direction is TranslationDirection.EN_TO_ZH:
-            terms = [entry.english, *entry.aliases]
-            language = Language.ENGLISH
-        else:
-            terms = [entry.chinese]
-            language = Language.CHINESE
+        terms = [glossary_sides(entry, direction)[0], *source_aliases(entry, direction)]
         for term in terms:
             if not term:
                 continue
@@ -212,8 +230,7 @@ def select_relevant_glossary_entries(
                 key = (
                     match.start(),
                     match.end(),
-                    normalize_term(match.group()) if language is Language.ENGLISH
-                    else match.group(),
+                    profile(language).normalize_term(match.group()),
                 )
                 matches.setdefault(key, set()).add(entry_index)
 
@@ -236,7 +253,7 @@ def select_relevant_glossary_entries(
     selected = [entries[index] for index in selected_indices]
     return sorted(
         selected,
-        key=lambda entry: (normalize_term(entry.english), normalize_term(entry.chinese)),
+        key=lambda entry: (normalize_term(entry.source), normalize_term(entry.target)),
     )
 
 
@@ -275,33 +292,43 @@ def render_preprocessed_document(document: PreprocessedDocument) -> str:
 
 def _rule_pattern(rule: ReplacementRule) -> re.Pattern[str]:
     escaped = re.escape(rule.source)
-    if rule.source_language is Language.ENGLISH:
+    language = profile(rule.source_language)
+    if language.spaced_words:
         return re.compile(
-            rf"(?<![A-Za-z0-9_]){escaped}(?![A-Za-z0-9_])",
-            flags=re.IGNORECASE,
+            rf"{language.term_start}{escaped}{language.term_end}",
+            flags=re.IGNORECASE if language.cased else 0,
         )
     return re.compile(escaped)
 
 
 def _selection_pattern(source: str, language: Language) -> re.Pattern[str]:
     """Match glossary annotations conservatively without changing replace mode."""
-    escaped = "".join(
-        "['\u2018\u2019]"
-        if character in "'\u2018\u2019"
-        else "[-\u2010\u2011]"
-        if character in "-\u2010\u2011"
-        else re.escape(character)
-        for character in source
-    )
-    if language is Language.ENGLISH:
-        case_sensitive = any(character.isupper() for character in source)
+    def escape(text: str) -> str:
+        return "".join(
+            "['\u2018\u2019]"
+            if character in "'\u2018\u2019"
+            else "[-\u2010\u2011]"
+            if character in "-\u2010\u2011"
+            else re.escape(character)
+            for character in text
+        )
+
+    escaped = escape(source)
+    rules = profile(language)
+    if rules.spaced_words:
+        case_sensitive = not rules.cased or any(character.isupper() for character in source)
         # A term is written in prose as often in the plural as the singular
         # (``binders`` for ``binder``).  Without this the entry annotates the
         # singular only, and every plural occurrence silently escapes both the
         # translation prompt and the glossary audit.
-        plural = "(?:e?s)?" if source[-1:].isalpha() else ""
+        # Not on an abbreviation: "Mr" + "s" is "Mrs", another word.
+        if rules.inflection_suffix:
+            # Every word of the term inflects (des Weißen Hasen, los Conejos Blancos).
+            term = rules.inflected([escape(word) for word in source.split()], rules.plural_suffix)
+        else:
+            term = escaped + (rules.plural_suffix if re.search(r"[^\W\d_]{3}$", source) else "")
         return re.compile(
-            rf"(?<![A-Za-z0-9_]){escaped}{plural}(?![A-Za-z0-9_])",
+            rf"{rules.term_start}{term}{rules.term_end}",
             flags=0 if case_sensitive else re.IGNORECASE,
         )
     return re.compile(escaped)
@@ -313,12 +340,8 @@ def _targets_are_incompatible(
     direction: TranslationDirection,
 ) -> bool:
     """Return whether nested source mappings cannot both hold in one target phrase."""
-    if direction is TranslationDirection.EN_TO_ZH:
-        longer_targets = {entry.chinese for entry in longer}
-        shorter_targets = {entry.chinese for entry in shorter}
-    else:
-        longer_targets = {entry.english for entry in longer}
-        shorter_targets = {entry.english for entry in shorter}
+    longer_targets = {glossary_sides(entry, direction)[1] for entry in longer}
+    shorter_targets = {glossary_sides(entry, direction)[1] for entry in shorter}
     return not any(
         normalize_term(short_target) in normalize_term(long_target)
         for long_target in longer_targets

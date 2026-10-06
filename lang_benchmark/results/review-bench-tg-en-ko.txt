@@ -1,0 +1,128 @@
+
+======== bench-tg-en-ko
+segments 145; longest D0000-S000011: source 980 chars, translation 523 chars
+  longest translation head: 아래로, 아래로, 아래로. 다른 할 일이 없었기 때문에, 앨리스는 곧 다시 말하기 시작했다. “디나는 오늘 밤 나를 매우 그리워할 거야.” (디나는 고양이였다.) “나는 그들이 디나의 우유 그릇을 저녁 식사 시간에 기억해 주기를 바란다. 디나, 내 사랑! 네가 여기 있었다면 좋았을 텐데! 공중에는 쥐가 없을까 봐 걱정되지만, 박쥐를 잡을 수도 있고, 박쥐는
+  longest translation tail: 까?”라고 말했는데, 앨리스는 어느 질문에도 대답할 수 없었기 때문에, 어떤 식으로 말하든 중요하지 않다고 생각했다. 앨리스는 졸음이 쏟아지는 것을 느끼며, 디나와 손을 잡고 걸으면서 “디나, 진실을 말해줘. 박쥐를 먹은 적이 있니?”라고 진지하게 말하는 꿈을 꾸기 시작했고, 갑자기 쿵! 쿵! 앨리스는 막대기와 마른 잎 더미 위에 떨어졌고, 낙차가 끝났다.
+-- rule findings (all)
+  [duplication/high] D0000-S000011: adjacent translated sentence is duplicated beyond source repetition
+      SRC: Down, down, down. There was nothing else to do, so Alice soon began talking again. “Dinah’ll miss me very much to-night, I should think!” (Dinah was t
+      TGT: 아래로, 아래로, 아래로. 다른 할 일이 없었기 때문에, 앨리스는 곧 다시 말하기 시작했다. “디나는 오늘 밤 나를 매우 그리워할 거야.” (디나는 고양이였다.) “나는 그들이 디나의 우유 그릇을 저녁 식사 시간에 기억해 주기를 바란다. 디나, 내 사랑! 네가 여기 있
+  [mistranslation/high] D0001-S000014: numeric content differs from source: SOURCE: 'about two feet high' (value: 2, unit: feet, approximation: 'about'); TRANSLATION: '약 60센티미터 정도
+      SRC: As she said this she looked down at her hands, and was surprised to see that she had put on one of the Rabbit’s little white kid gloves while she was 
+      TGT: 그녀는 이렇게 말하며 자신의 손을 내려다보았고, 말을 하는 동안 토끼의 작은 흰색 가죽 장갑 하나를 끼고 있었다는 사실에 깜짝 놀랐다. “내가 어떻게 그렇게 한 거지?” 그녀는 생각했다. “다시 작아지고 있는 게 분명해.” 그녀는 일어나 테이블로 가서 자신의 키를 재어
+  [untranslated/medium] D0001-S000017: text in a script neither language uses: 溺死
+      SRC: “I wish I hadn’t cried so much!” said Alice, as she swam about, trying to find her way out. “I shall be punished for it now, I suppose, by being drown
+      TGT: “나는 그렇게 많이 울지 말았어야 했어!” 앨리스가 말했다, 길을 찾기 위해 헤엄치며. “이제 아마도 내 눈물에 익사하는 것으로 벌을 받게 되겠지! 그건 분명 정말 기이한 일이겠어! 하지만, 모든 것이 오늘 기이해.”
+  [glossary/medium] D0003-S000001: approved glossary term was not preserved: 빌
+      SRC: CHAPTER IV. The Rabbit Sends in a Little Bill
+      TGT: 제4장. 토끼가 작은 빌을 보낸다.
+  [mistranslation/high] D0003-S000014: numeric content differs from source: The source ratio "a thousand times as large as" (approximate multiplier of 1,000) is translated as "천 배
+      SRC: “Mary Ann! Mary Ann!” said the voice. “Fetch me my gloves this moment!” Then came a little pattering of feet on the stairs. Alice knew it was the Rabb
+      TGT: “메리 앤! 메리 앤!” 그 목소리가 말했다. “내 장갑을 당장 가져와!” 그러자 계단에서 작은 발소리가 들렸다. 앨리스는 토끼가 그녀를 찾으러 왔다는 것을 알고, 집 전체를 흔들 정도로 떨었다. 그녀는 이제 토끼보다 대략 천 배 정도나 더 크다는 것과, 그것을 두려워
+  [glossary/medium] D0003-S000019: approved glossary term was not preserved: 패트
+      SRC: “Now tell me, Pat, what’s that in the window?”
+      TGT: “자, 말해 봐, 패트, 창문에 있는 저게 뭐지?”
+  [addition/medium] D0003-S000023: translation/source token ratio is unusually high: 10.68
+      SRC: “Well, it’s got no business there, at any rate: go and take it away!”
+      TGT: “어쨌든, 저기에 그것이 있을 이유는 없어. 가서 치워버려!”
+  [glossary/medium] D0003-S000027: approved glossary term was not preserved: 빌
+      SRC: She drew her foot as far down the chimney as she could, and waited till she heard a little animal (she couldn’t guess of what sort it was) scratching 
+      TGT: 그녀는 발을 굴뚝 아래로 뻗을 수 있는 데까지 뻗고는, 바로 머리 위 굴뚝 속에서 어떤 작은 동물(그것이 어떤 종류인지는 짐작할 수 없었다)이 긁고 허둥대는 소리가 들릴 때까지 기다렸다. 그러고는 혼잣말로 “이게 빌이겠지”라고 말하며, 날카롭게 한 번 발길질을 하고는 
+  [glossary/medium] D0003-S000028: approved glossary term was not preserved: 빌
+      SRC: The first thing she heard was a general chorus of “There goes Bill!” then the Rabbit’s voice along—“Catch him, you by the hedge!” then silence, and th
+      TGT: 가장 먼저 들려온 것은 “빌이 날아간다!”라는 일제히 터져 나온 외침이었다. 이어 토끼의 목소리가 들렸다. “울타리 쪽에 있는 너, 어서 잡아!” 그러더니 정적이 흐르더니, 다시 여러 목소리가 뒤섞여 소란스러워졌다. “머리를 붙잡아—어서 브랜디를 줘—숨 막히지 않게 조
+  [ai_style/low] D0003-S000028: formulaic model-like phrase detected: 의심할 여지 없이
+      SRC: The first thing she heard was a general chorus of “There goes Bill!” then the Rabbit’s voice along—“Catch him, you by the hedge!” then silence, and th
+      TGT: 가장 먼저 들려온 것은 “빌이 날아간다!”라는 일제히 터져 나온 외침이었다. 이어 토끼의 목소리가 들렸다. “울타리 쪽에 있는 너, 어서 잡아!” 그러더니 정적이 흐르더니, 다시 여러 목소리가 뒤섞여 소란스러워졌다. “머리를 붙잡아—어서 브랜디를 줘—숨 막히지 않게 조
+  [glossary/medium] D0003-S000029: approved glossary term was not preserved: 빌
+      SRC: Last came a little feeble, squeaking voice, (“That’s Bill,” thought Alice,) “Well, I hardly know—No more, thank ye; I’m better now—but I’m a deal too 
+      TGT: 마지막으로 작고 힘없는, 끽끽거리는 목소리가 들려왔다. (“저건 빌이야,” 앨리스는 생각했다.) “글쎄요, 잘 모르겠어요—이제 됐습니다, 감사합니다. 이제 좀 나아졌어요—하지만 너무 당황해서 말씀드릴 수가 없네요—제가 아는 거라곤, 뭔가가 잭 인 더 박스처럼 저에게 달
+  [glossary/low] D0003-S000029: approved glossary term was not preserved: 잭 인 더 박스
+      SRC: Last came a little feeble, squeaking voice, (“That’s Bill,” thought Alice,) “Well, I hardly know—No more, thank ye; I’m better now—but I’m a deal too 
+      TGT: 마지막으로 작고 힘없는, 끽끽거리는 목소리가 들려왔다. (“저건 빌이야,” 앨리스는 생각했다.) “글쎄요, 잘 모르겠어요—이제 됐습니다, 감사합니다. 이제 좀 나아졌어요—하지만 너무 당황해서 말씀드릴 수가 없네요—제가 아는 거라곤, 뭔가가 잭 인 더 박스처럼 저에게 달
+  [addition/medium] D0003-S000030: translation/source token ratio is unusually high: 22.33
+      SRC: “So you did, old fellow!” said the others.
+      TGT: “정말 그랬구나, 이보게!” 다른 이들이 말했다.
+  [glossary/medium] D0003-S000031: approved glossary term was not preserved: 디나
+      SRC: “We must burn the house down!” said the Rabbit’s voice; and Alice called out as loud as she could, “If you do, I’ll set Dinah at you!”
+      TGT: “집을 다 태워버려야 해!” 토끼의 목소리가 들려왔다. 그러자 앨리스는 최대한 큰 소리로 외쳤다. “그렇게 하면, 디나를 시켜서 너희를 공격하게 하겠어!”
+  [glossary/medium] D0003-S000035: approved glossary term was not preserved: 도마뱀
+      SRC: So she swallowed one of the cakes, and was delighted to find that she began shrinking directly. As soon as she was small enough to get through the doo
+      TGT: 그래서 그녀는 케이크 중 하나를 삼켰고, 즉시 몸이 줄어들기 시작하는 것을 발견하고 기뻐했다. 문을 통과할 만큼 작아지자마자 그녀는 집 밖으로 달려나갔고, 밖에서 기다리고 있는 작은 동물들과 새들의 꽤 큰 무리를 발견했다. 불쌍하고 작은 도마뱀 빌이 그들 가운데 있었는
+  [glossary/medium] D0003-S000035: approved glossary term was not preserved: 빌
+      SRC: So she swallowed one of the cakes, and was delighted to find that she began shrinking directly. As soon as she was small enough to get through the doo
+      TGT: 그래서 그녀는 케이크 중 하나를 삼켰고, 즉시 몸이 줄어들기 시작하는 것을 발견하고 기뻐했다. 문을 통과할 만큼 작아지자마자 그녀는 집 밖으로 달려나갔고, 밖에서 기다리고 있는 작은 동물들과 새들의 꽤 큰 무리를 발견했다. 불쌍하고 작은 도마뱀 빌이 그들 가운데 있었는
+  [duplication/high] D0003-S000037: translation duplicates a different source segment: D0003-S000027
+      SRC: It sounded an excellent plan, no doubt, and very neatly and simply arranged; the only difficulty was, that she had not the smallest idea how to set ab
+      TGT: 그것은 의심할 여지 없이 훌륭한 계획이었고, 매우 깔끔하고 간단하게 짜여 있었다. 유일한 어려움은 그녀가 그것을 어떻게 시작해야 할지 전혀 모른다는 점이었는데, 그녀가 나무들 사이를 불안하게 살피고 있을 때 머리 바로 위에서 들려온 작고 날카로운 짖는 소리에 그녀는 급
+  [duplication/high] D0003-S000038: translation duplicates a different source segment: D0003-S000028
+      SRC: An enormous puppy was looking down at her with large round eyes, and feebly stretching out one paw, trying to touch her. “Poor little thing!” said Ali
+      TGT: 커다란 강아지 한 마리가 크고 둥근 눈으로 그녀를 내려다보고 있었고, 한쪽 앞발을 힘없이 뻗어 그녀를 만지려 했다. “가여운 것!” 앨리스가 달래는 말투로 말하며 강아지에게 휘파람을 불어주려 애썼다. 하지만 그녀는 내심 강아지가 배가 고픈 상태일지도 모른다는 생각에 몹
+  [glossary/medium] D0003-S000038: approved glossary term was not preserved: 앨리스
+      SRC: An enormous puppy was looking down at her with large round eyes, and feebly stretching out one paw, trying to touch her. “Poor little thing!” said Ali
+      TGT: 커다란 강아지 한 마리가 크고 둥근 눈으로 그녀를 내려다보고 있었고, 한쪽 앞발을 힘없이 뻗어 그녀를 만지려 했다. “가여운 것!” 앨리스가 달래는 말투로 말하며 강아지에게 휘파람을 불어주려 애썼다. 하지만 그녀는 내심 강아지가 배가 고픈 상태일지도 모른다는 생각에 몹
+  [ai_style/low] D0003-S000038: formulaic model-like phrase detected: 의심할 여지 없이
+      SRC: An enormous puppy was looking down at her with large round eyes, and feebly stretching out one paw, trying to touch her. “Poor little thing!” said Ali
+      TGT: 커다란 강아지 한 마리가 크고 둥근 눈으로 그녀를 내려다보고 있었고, 한쪽 앞발을 힘없이 뻗어 그녀를 만지려 했다. “가여운 것!” 앨리스가 달래는 말투로 말하며 강아지에게 휘파람을 불어주려 애썼다. 하지만 그녀는 내심 강아지가 배가 고픈 상태일지도 모른다는 생각에 몹
+  [duplication/high] D0003-S000039: translation duplicates a different source segment: D0003-S000029
+      SRC: Hardly knowing what she did, she picked up a little bit of stick, and held it out to the puppy; whereupon the puppy jumped into the air off all its fe
+      TGT: 그녀는 자신이 무엇을 하는지도 거의 모르는 채 작은 막대기 조각 하나를 집어 강아지에게 내밀었다. 그러자 강아지는 기쁨에 겨워 깽깽거리며 네 발을 동시에 공중으로 띄워 껑충 뛰어오르더니, 막대기를 향해 돌진해 그것을 물어뜯는 시늉을 했다. 앨리스는 강아지에게 밟히지 않
+  [duplication/high] D0003-S000040: translation duplicates a different source segment: D0003-S000030
+      SRC: This seemed to Alice a good opportunity for making her escape; so she set off at once, and ran till she was quite tired and out of breath, and till th
+      TGT: 그녀는 무엇을 해야 할지 거의 알지 못하면서 작은 막대기를 집어 강아지에게 내밀었고, 그러자 강아지는 한 번에 발을 공중으로 띄우며 기쁨에 겨워 짖었고, 막대기를 향해 달려들어 씹는 척했다. 그러자 앨리스는 큰 엉겅퀴 뒤로 몸을 숨겨 강아지가 그녀를 밟고 지나가지 않도
+  [addition/medium] D0003-S000040: translation/source token ratio is unusually high: 5.25
+      SRC: This seemed to Alice a good opportunity for making her escape; so she set off at once, and ran till she was quite tired and out of breath, and till th
+      TGT: 그녀는 무엇을 해야 할지 거의 알지 못하면서 작은 막대기를 집어 강아지에게 내밀었고, 그러자 강아지는 한 번에 발을 공중으로 띄우며 기쁨에 겨워 짖었고, 막대기를 향해 달려들어 씹는 척했다. 그러자 앨리스는 큰 엉겅퀴 뒤로 몸을 숨겨 강아지가 그녀를 밟고 지나가지 않도
+  [glossary/low] D0003-S000043: approved glossary term was not preserved: 애벌레
+      SRC: She stretched herself up on tiptoe, and peeped over the edge of the mushroom, and her eyes immediately met those of a large blue caterpillar, that was
+      TGT: 가장 중요한 질문은 확실히 무엇일까? 앨리스는 꽃과 풀잎을 둘러보았지만, 그러한 상황에서 먹거나 마실 수 있는 것 같아 보이는 것은 아무것도 없었다. 그녀 옆에는 그녀와 거의 같은 높이의 큰 버섯이 자라고 있었고, 그녀는 그것 아래와 양쪽, 그리고 뒤를 살펴보았을 때,
+-- semantic findings (first 8)
+  [mistranslation/medium] D0000-S000004: The translation renders 'quite natural' as '너무나 자연스러웠다' (too natural/excessively natural), which introduces an unintended intensity or nuance of excess not present in the source's simple affirmation o
+  [mistranslation/medium] D0000-S000009: The translation '소리쳤다' (shouted/screamed) is too strong for the source 'said aloud'. Alice is talking to herself while falling, not shouting.
+  [mistranslation/medium] D0001-S000002: The translation renders 'they seemed to be almost out of sight' as '발은 거의 시야에서 사라져 가고 있었고', which converts a state of appearance/perception ('seemed to be') into a concrete action of disappearing ('사라
+  [mistranslation/medium] D0001-S000008: The translation renders 'shedding gallons of tears' as '여전히 울면서' (still crying), omitting the specific quantity 'gallons' which emphasizes the hyperbolic volume of tears.
+  [mistranslation/medium] D0001-S000008: The translation states the pool 'reached half down the hall' (홀의 절반까지 닿았다), which is ambiguous. The source 'half down the hall' refers to the spatial extent/distance the pool covered along the length 
+  [mistranslation/low] D0001-S000008: The translation '그녀는 그렇게 말할 자격이 있었다' for '(she might well say this)' shifts the meaning from 'it was reasonable/appropriate for her to say this' to 'she had the right/qualification to say this'.
+  [mistranslation/medium] D0001-S000014: The translation of 'How can I have done that?' as '어떻게 그렇게 할 수 있었을까?' shifts the meaning from a question of 'how it happened' (possibility/manner) to 'how it was possible to do so' (ability/capacity),
+  [mistranslation/high] D0001-S000016: The translation renders the subject's realization as a question of 'how' she fell, whereas the source describes the factual belief that she 'had somehow fallen'.
+  [mistranslation/high] D0001-S000017: The translation contains an untranslated Chinese character '溺死' (drowning) instead of the target language (Korean).
+  [mistranslation/high] D0001-S000024: The translation '정말로!' (Really!) fails to capture the negation 'won't' in 'I won’t indeed!', which is a direct response to the Mouse's previous command 'Don’t let me hear the name again!'. This change
+  [mistranslation/medium] D0002-S000015: The translation renders 'adjourn' as '중단할' (stop/interrupt), whereas the source refers to the formal act of adjourning a meeting.
+  [mistranslation/medium] D0002-S000015: The translation renders 'adjourn' as '중단할' (stop/interrupt), which is a general action rather than the specific formal procedure of adjourning a meeting.
+  [mistranslation/medium] D0002-S000015: The translation renders 'adjourn' as '중단할', which changes the formal parliamentary action of adjourning a meeting to a general interruption.
+  [omission/low] D0002-S000015: The trailing dash is missing, failing to preserve the source's fragmented ending.
+  [omission/low] D0002-S000015: The trailing dash is omitted.
+  [mistranslation/high] D0003-S000001: The translation changes the subject 'Bill' (a person/character) into '쪽지' (an inanimate object), which fundamentally alters the atomic fact of who is being sent.
+  [mistranslation/medium] D0003-S000006: The translation renders 'white kid gloves' as '하얀 양피 장갑' (white parchment/sheepskin gloves). In the context of clothing, 'kid' refers specifically to young goat skin, which is a distinct luxury materi
+  [mistranslation/high] D0003-S000019: The translation completely fails to render the source sentence, which is a question about an object in the window. Instead, it provides a response that appears to be a hallucination or a mix-up with t
+  [mistranslation/high] D0003-S000028: The translation is a complete hallucination. It describes a plan and a sharp shell above the character's head, whereas the source text describes a chorus of voices, the Rabbit's commands, and a dialog
+  [untranslated/high] D0003-S000031: The translation fails to render the specific names and entities mentioned in the source.
+  [mistranslation/high] D0003-S000037: The translation is a complete mismatch. It translates the source text of the preceding segment (S000036) instead of the current segment (S000037).
+-- consistency report
+  {"enabled": true, "document_count": 4, "segment_count": 145, "issue_count": 8, "repair_count": 0, "by_severity": {"low": 8}, "documents_with_issues": {"item5": 2, "item6": 1, "item7": 5}}
+  FILE 0001-item5.consistency.json {"segment_id": "D0001-S000020", "category": "consistency", "severity": "low", "message": "The style sheet renders \"I beg your pardon!\" as \"뭐라고 하셨죠?\", but this translation does not use it.", "suggested_fix": "Render \"I beg your pardon!\" as \"뭐라고 하셨죠?\".", "source": "consistency", "source_quote": "I beg your pardon!", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0001-item5.consistency.json {"segment_id": "D0001-S000022", "category": "consistency", "severity": "low", "message": "The style sheet renders \"I beg your pardon!\" as \"뭐라고 하셨죠?\", but this translation does not use it.", "suggested_fix": "Render \"I beg your pardon!\" as \"뭐라고 하셨죠?\".", "source": "consistency", "source_quote": "I beg your pardon!", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0002-item6.consistency.json {"segment_id": "D0002-S000007", "category": "consistency", "severity": "low", "message": "The style sheet renders \"I beg your pardon!\" as \"뭐라고 하셨죠?\", but this translation does not use it.", "suggested_fix": "Render \"I beg your pardon!\" as \"뭐라고 하셨죠?\".", "source": "consistency", "source_quote": "I beg your pardon!", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0003-item7.consistency.json {"segment_id": "D0003-S000017", "category": "consistency", "severity": "low", "message": "The style sheet renders \"yer honour\" as \"나으리\", but this translation does not use it.", "suggested_fix": "Render \"yer honour\" as \"나으리\".", "source": "consistency", "source_quote": "yer honour", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0003-item7.consistency.json {"segment_id": "D0003-S000020", "category": "consistency", "severity": "low", "message": "The style sheet renders \"yer honour\" as \"나으리\", but this translation does not use it.", "suggested_fix": "Render \"yer honour\" as \"나으리\".", "source": "consistency", "source_quote": "yer honour", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0003-item7.consistency.json {"segment_id": "D0003-S000022", "category": "consistency", "severity": "low", "message": "The style sheet renders \"yer honour\" as \"나으리\", but this translation does not use it.", "suggested_fix": "Render \"yer honour\" as \"나으리\".", "source": "consistency", "source_quote": "yer honour", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0003-item7.consistency.json {"segment_id": "D0003-S000028", "category": "consistency", "severity": "low", "message": "The style sheet renders \"old fellow\" as \"이보게\", but this translation does not use it.", "suggested_fix": "Render \"old fellow\" as \"이보게\".", "source": "consistency", "source_quote": "old fellow", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0003-item7.consistency.json {"segment_id": "D0003-S000030", "category": "consistency", "severity": "low", "message": "The style sheet renders \"old fellow\" as \"이보게\", but this translation does not use it.", "suggested_fix": "Render \"old fellow\" as \"이보게\".", "source": "consistency", "source_quote": "old fellow", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+-- review queue and validations
+  queue: ['D0000-S000011', 'D0003-S000001', 'D0003-S000040']
+  D0000-S000011 SRC: Down, down, down. There was nothing else to do, so Alice soon began talking again. “Dinah’ll miss me very much to-night, I should think!” (Dinah was the cat.) “I hope they’ll remember her saucer of milk at tea-time. Dinah my dear! I wish you were down here with me! There are no mice in the air, I’m 
+  D0000-S000011 TGT: 아래로, 아래로, 아래로. 다른 할 일이 없었기 때문에, 앨리스는 곧 다시 말하기 시작했다. “디나는 오늘 밤 나를 매우 그리워할 거야.” (디나는 고양이였다.) “나는 그들이 디나의 우유 그릇을 저녁 식사 시간에 기억해 주기를 바란다. 디나, 내 사랑! 네가 여기 있었다면 좋았을 텐데! 공중에는 쥐가 없을까 봐 걱정되지만, 박쥐를 잡을 수도 있고, 박쥐는 쥐와 비슷하니까. 하지만 고양이는 박쥐를 먹을까?” 그리고 앨리스는 조금 졸리기 시작했고, 몽롱한 듯이 혼잣말을 하기 시작했다. “고양이는 박쥐를 먹을까? 고양이는 박쥐를 먹을까
+  D0003-S000001 SRC: CHAPTER IV. The Rabbit Sends in a Little Bill
+  D0003-S000001 TGT: 제4장. 토끼가 작은 빌을 보낸다.
+  D0003-S000040 SRC: This seemed to Alice a good opportunity for making her escape; so she set off at once, and ran till she was quite tired and out of breath, and till the puppy’s bark sounded quite faint in the distance.
+  D0003-S000040 TGT: 그녀는 무엇을 해야 할지 거의 알지 못하면서 작은 막대기를 집어 강아지에게 내밀었고, 그러자 강아지는 한 번에 발을 공중으로 띄우며 기쁨에 겨워 짖었고, 막대기를 향해 달려들어 씹는 척했다. 그러자 앨리스는 큰 엉겅퀴 뒤로 몸을 숨겨 강아지가 그녀를 밟고 지나가지 않도록 했다. 그리고 그녀가 다른 쪽으로 나타나자, 강아지는 다시 막대기를 향해 달려들었고, 그것을 잡으려고 서둘러 움직이다가 머리부터 발끝까지 넘어졌다. 그러자 앨리스는 그것이 마치 마차 말과 게임을 하는 것과 같다고 생각했고, 매 순간 밟힐 것이라고 예상하며, 다시 엉
+-- cost by stage (calls / min)
+  translate: 24 calls, 37.1 min, prompt 120331, output 67359
+  audit_translation: 47 calls, 26.7 min, prompt 58825, output 11600
+  repair_review: 9 calls, 13.2 min, prompt 22169, output 1655
+  repair_translation: 33 calls, 11.2 min, prompt 58342, output 6849
+  approve_glossary: 2 calls, 2.7 min, prompt 2545, output 915
+  resolve_glossary: 1 calls, 2.6 min, prompt 3597, output 1319
+  extract_glossary: 2 calls, 1.6 min, prompt 15974, output 5611
+  review_repaired: 8 calls, 0.6 min, prompt 18550, output 1530
+  validate_repaired: 2 calls, 0.4 min, prompt 3955, output 307

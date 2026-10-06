@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import asdict
 
 from ..atomic_io import atomic_write_text
-from ..config import AppConfig
+from ..config import AppConfig, translation_model
 from ..hashing import hash_named_values, sha256_file
 from ..ollama_client import (
     GenerationMetrics,
@@ -115,7 +115,7 @@ def run_translation_stage(
                 "style_instruction": style_instruction,
                 "de_ai_enabled": str(config.translation.de_ai_enabled),
                 "de_ai_strength": config.translation.de_ai_strength,
-                "model": config.ollama.model,
+                "model": translation_model(config),
                 "num_ctx": str(config.ollama.num_ctx),
                 "temperature": str(config.ollama.temperature),
                 "translation_config": config.translation.model_dump_json(),
@@ -237,7 +237,7 @@ def run_translation_stage(
 
         report_stage_plan(
             client,
-            model=config.ollama.model,
+            model=translation_model(config),
             stage=WorkflowStage.TRANSLATE.value,
             prescreened=chunk_count,
             llm_tasks=len(translation_tasks),
@@ -555,7 +555,7 @@ def _translate_chunk(
     defaults are the translate stage's behavior; the rescue stage overrides them
     to draft with fallback models only and to harmonize separately.
     """
-    models = list(models) if models else [config.ollama.model, *config.translation.fallback_models]
+    models = list(models) if models else [translation_model(config), *config.translation.fallback_models]
     defer_on_failure = (
         config.workflow.defer_failed_translation_segments
         if defer_on_failure is None
@@ -627,7 +627,7 @@ def _translate_chunk(
                 **llm_role_kwargs(
                     client,
                     f"{role_prefix}.draft.primary"
-                    if active_model == config.ollama.model
+                    if active_model == translation_model(config)
                     else f"{role_prefix}.draft.fallback",
                 ),
                 context_minimum=context_bucket,
@@ -906,10 +906,16 @@ def _translate_chunk(
                 config.translation.direction,
                 relevant_glossary,
             )
-            if not validation.passed:
+            if any(issue.code not in _PLACEMENT_CODES for issue in validation.issues):
                 raise TranslationOutputError(
                     f"internal merged translation failed validation: {chunk.chunk_id}"
                 )
+            # A retried passage can repeat one accepted in an earlier attempt, or
+            # complete a run of shifted ones; only the merged chunk shows it.
+            # Those passages are asked again.
+            for issue in validation.issues:
+                accepted_translations.pop(issue.reference_id, None)
+        if validation.passed:
             record_attempt(
                 connection,
                 chunk.chunk_id,
@@ -919,7 +925,7 @@ def _translate_chunk(
                 metrics=metrics,
             )
             if (
-                active_model != config.ollama.model
+                active_model != translation_model(config)
                 and harmonize
             ):
                 harmonized = client.generate_text(
@@ -931,7 +937,7 @@ def _translate_chunk(
                     ),
                     stream=True,
                     think=config.translation.thinking,
-                    model=config.ollama.model,
+                    model=translation_model(config),
                     progress_label=(
                         f"chunk={chunk_index}/{total_chunks} id={chunk.chunk_id} "
                         "harmonize=1/1 mode=fallback-style"
@@ -943,7 +949,7 @@ def _translate_chunk(
                 generation_calls += 1
                 harmonized_path = attempt_root / (
                     f"{chunk.chunk_id}.attempt-{attempt:03d}-harmonized-"
-                    f"{_safe_model_name(config.ollama.model)}.txt"
+                    f"{_safe_model_name(translation_model(config))}.txt"
                 )
                 atomic_write_text(harmonized_path, harmonized.content)
                 harmonized_translations, harmonized_validation = (
@@ -981,7 +987,7 @@ def _translate_chunk(
                     ),
                     metrics={
                         **asdict(harmonized.metrics),
-                        "model": config.ollama.model,
+                        "model": translation_model(config),
                         "purpose": "fallback_style_harmonization",
                     },
                 )
@@ -1008,7 +1014,7 @@ def _translate_chunk(
                 output_hash=output_hash,
                 validation=validation.model_dump(mode="json"),
             )
-            return translated, generation_calls, active_model != config.ollama.model
+            return translated, generation_calls, active_model != translation_model(config)
         _retain_valid_translations(
             accepted_translations,
             translations,
@@ -1174,6 +1180,10 @@ def _report_deferred_translation(
                 ),
             )
         )
+
+
+# Contract failures that compare one passage with the others in its chunk.
+_PLACEMENT_CODES = {"repeated_passage", "shifted_passage", "unusual_length"}
 
 
 def _retain_valid_translations(
@@ -1512,7 +1522,7 @@ def _harmonize_chunk(
         ),
         stream=True,
         think=config.translation.thinking,
-        model=config.ollama.model,
+        model=translation_model(config),
         progress_label=f"id={chunk.chunk_id} harmonize=1/1 mode=fallback-style",
         **llm_role_kwargs(client, f"{role_prefix}.fallback_harmonization"),
         context_maximum=config.translation.max_num_ctx,
@@ -1520,7 +1530,7 @@ def _harmonize_chunk(
     )
     atomic_write_text(
         attempt_root
-        / f"{chunk.chunk_id}.harmonized-{_safe_model_name(config.ollama.model)}.txt",
+        / f"{chunk.chunk_id}.harmonized-{_safe_model_name(translation_model(config))}.txt",
         harmonized.content,
     )
     translations, validation = validate_translation_output(
@@ -1549,7 +1559,7 @@ def _harmonize_chunk(
         ),
         metrics={
             **asdict(harmonized.metrics),
-            "model": config.ollama.model,
+            "model": translation_model(config),
             "purpose": "fallback_style_harmonization",
         },
     )

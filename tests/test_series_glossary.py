@@ -103,7 +103,7 @@ class SeriesGlossaryTests:
 
         assert prepared.glossary.entries == []
         assert prepared.report.conflicts[0].reason == "relevance_review_required"
-        assert [entry.english for entry in approved.glossary.entries] == ["qelm"]
+        assert [entry.source for entry in approved.glossary.entries] == ["qelm"]
 
     def test_obfuscated_series_canon_synchronizes_review_overlays(self) -> None:
         sources = [
@@ -122,9 +122,9 @@ class SeriesGlossaryTests:
 
         overlays, reports = synchronize_book_glossaries(sources, build.glossary)
 
-        assert overlays["qel-01"].entries[0].english == "Nul"
+        assert overlays["qel-01"].entries[0].source == "Nul"
         vrax = next(
-            entry for entry in overlays["qel-01"].entries if entry.english == "Vrax"
+            entry for entry in overlays["qel-01"].entries if entry.source == "Vrax"
         )
         assert vrax.evidence == ["series:qel-01", "series:qel-02"]
         assert reports[0].canonicalized_term_count == 1
@@ -171,7 +171,7 @@ class SeriesGlossaryTests:
                 checkpoint_directory=checkpoints,
             )
 
-            assert resolved.glossary.entries[0].chinese == "沃拉克斯"
+            assert resolved.glossary.entries[0].target == "沃拉克斯"
             assert resolved.report.conflict_count == 0
             assert resolved.report.llm_attempted_conflict_count == 1
             assert resolved.report.llm_resolved_conflict_count == 1
@@ -305,7 +305,7 @@ class SeriesGlossaryTests:
 
         assert len(client.prompts) == 2
         assert "every supplied conflict_id" in client.prompts[1]
-        assert [entry.english for entry in resolved.glossary.entries] == ["Qelm", "Vrax"]
+        assert [entry.source for entry in resolved.glossary.entries] == ["Qelm", "Vrax"]
         assert '"english"' not in json.dumps(client.schemas[0].model_json_schema())
 
     def test_obfuscated_series_conflicts_stop_repeated_incomplete_response(self) -> None:
@@ -344,7 +344,7 @@ class SeriesGlossaryTests:
             ]
         )
 
-        assert [entry.english for entry in build.glossary.entries] == ["Vrax"]
+        assert [entry.source for entry in build.glossary.entries] == ["Vrax"]
         assert build.report.recurring_term_count == 1
         assert build.report.excluded_below_minimum_count == 1
         assert build.glossary.entries[0].confidence == 1.0
@@ -385,7 +385,7 @@ class SeriesGlossaryTests:
             consensus_ratio=0.66,
         )
 
-        assert build.glossary.entries[0].chinese == "沃拉克斯"
+        assert build.glossary.entries[0].target == "沃拉克斯"
         assert build.glossary.entries[0].confidence == 0.666667
 
     def test_excludes_term_with_ambiguous_translation_inside_one_book(self) -> None:
@@ -436,7 +436,7 @@ class SeriesGlossaryTests:
             ]
         )
 
-        vrax = next(entry for entry in build.glossary.entries if entry.english == "Vrax")
+        vrax = next(entry for entry in build.glossary.entries if entry.source == "Vrax")
         assert vrax.aliases == []
 
     def test_removes_shared_alias_with_different_targets(self) -> None:
@@ -471,7 +471,7 @@ class SeriesGlossaryTests:
             )
 
             parsed = GlossaryResult.model_validate_json(output.read_text(encoding="utf-8"))
-            assert parsed.entries[0].english == "Vrax"
+            assert parsed.entries[0].source == "Vrax"
             assert json.loads(report.read_text(encoding="utf-8"))["conflict_count"] == 0
             assert "Vrax:沃拉克斯" in legacy.read_text(encoding="utf-8")
 

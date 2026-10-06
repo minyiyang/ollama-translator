@@ -202,6 +202,52 @@ to the configuration file. The resulting absolute paths and complete
 configuration are captured in the job workspace so a later `resume` does not
 depend on the current shell directory.
 
+### Language pairs
+
+English to Simplified Chinese (`en-zh`) and back (`zh-en`) are tuned: every
+check, the glossary, the style sheet, and prose rewrite run for them. French
+(`fr`), Japanese (`ja`), Spanish (`es`), German (`de`), and Korean (`ko`) are
+profiled: their punctuation conventions, forms of address, number words, and
+prompt examples are written in, to and from any language. Any other language is accepted at the generic tier. A pair is written
+either way:
+
+```yaml
+translation:
+  direction: en>ja          # or: source_language: en / target_language: ja
+```
+
+In the dashboard, pick the two languages under *Languages* on a job's Config
+tab or when creating a series. Codes are BCP 47 (`fr`, `ja`, `pt-BR`, `zh-Hant`). A generic pair has a
+glossary, a style sheet, and a series like any other; checks its languages
+cannot support are skipped rather than run with English or Chinese rules.
+`run --dry-run` and `status --json` list them under `languages.skipped`.
+Prose rewrite stays off for generic targets. Translation quality for other
+pairs depends on the model (docs/GENERIC_LANGUAGES.md). Section 7 of that
+document rates each benchmarked pair, says which model to use for which job,
+and lists what the pipeline cannot do. The benchmark books, configs, and
+scripts are in `lang_benchmark/`.
+
+For a pair other than English and Chinese the audit model reads every prose
+segment, not only the ones the rules mark as risky: the rules are weaker
+there. Expect the audit to be most of a run, and a run to take about twice
+as long as the same text between English and Chinese.
+
+### Glossary files
+
+A glossary records its language pair, and each entry has a `source` term and
+its `target` rendering:
+
+```json
+{"pair": "en>ja", "entries": [{"source": "Aster", "target": "アスター", "category": "人名"}]}
+```
+
+An en/zh book's glossary is always `en-zh`, keyed by the English term, so a
+`zh-en` job uses it the other way round. Files written by earlier versions
+(`english`/`chinese`, no `pair`) are read as `en-zh`. A seed, series, or
+reviewed glossary must be in the job's glossary pair, or its exact reverse,
+which is swapped on load (its aliases, spellings of the old source term, are
+dropped). The colon-separated `.txt` format stays en/zh only.
+
 ## Start a job
 
 Inspect a prospective run without writing files or contacting Ollama:
@@ -473,7 +519,7 @@ book-agent series create qel --name "The Qel Cycle" --direction en-zh
 book-agent series add qel qel-series-01-en-zh qel-series-02-en-zh
 book-agent series build qel      # workbench: consensus, conflicts, single-book terms
 book-agent series status qel
-book-agent series decide qel T00012 --decision keep --chinese 凯尔玛 --reason "Book 1 form is canonical."
+book-agent series decide qel T00012 --decision keep --target 凯尔玛 --reason "Book 1 form is canonical."
 book-agent series publish qel    # v001 + per-book overlays under runs/.series/qel/overlays/v001/
 book-agent series bind qel qel-series-01-en-zh
 book-agent approve .\runs\qel-series-01-en-zh --resume `
@@ -557,7 +603,11 @@ leaving LLM review disabled performs no independent review.
 - **Jobs** lists jobs with their translation direction (for example
   `EN → ZH`) and creates new ones; a completed job has a *Download* button for
   its translated book, also in the job header. Each job's **Config** tab edits,
-  validates, and starts it. **Series** groups jobs that share a versioned
+  validates, and starts it; its *Languages* setting takes any two language
+  codes, lists the tuned ones first, and for a generic pair shows the tiers,
+  a model-quality notice, and the checks that will be skipped (options those
+  checks would use are hidden, with a line saying why). A generic-tier job
+  shows the skipped checks in its header. **Series** groups jobs that share a versioned
   series glossary (see [the plan](docs/SERIES_GLOSSARY_UI.md)). The job header pauses (after the current LLM
   call), stops, or resumes a run. `book-agent pause <workspace>` pauses a run
   started from a terminal the same way.
@@ -696,6 +746,18 @@ translation:
   fallback_models: []
   attempts_per_model: 2
   harmonize_fallback_with_primary: true
+```
+
+A model trained only to translate can take the translate stage alone. The
+primary model keeps the glossary, review, and repair calls, which such a model
+cannot do (asked to resolve six glossary terms, translategemma returned one):
+
+```yaml
+ollama:
+  model: qwen3.8:latest            # glossary resolution and approval, repair review
+translation:
+  model: translategemma:27b        # translates; empty: the primary model does
+  fallback_models: [qwen3.8:latest]
 ```
 
 Inline formatting markers are source-owned. If a model invents marker IDs, the

@@ -1,0 +1,78 @@
+tg misplaced in final: [('D0000-S000011', 'D0000-S000012'), ('D0000-S000012', 'D0000-S000011'), ('D0000-S000017', 'D0000-S000018'), ('D0000-S000018', 'D0000-S000017'), ('D0000-S000021', 'D0000-S000022'), ('D0000-S000022', 'D0000-S000021')]
+  D0000-S000011 SRC 『你怎么会姓赵！——你那里配姓赵！』
+     FINAL A-Q widersprach nicht, dass er tatsächlich den Nachnamen Zhao hatte, sondern er tastete mit der Hand seine linke Wange ab und ging zusammen mit dem Dibao hinaus
+     FIRST A-Q widersprach nicht, dass er tatsächlich den Nachnamen Zhao hatte, sondern er tastete mit der Hand seine linke Wange ab und ging zusammen mit dem Dibao hinaus  (in queue: True)
+  D0000-S000012 SRC 阿Q并没有抗辩他确凿姓赵，只用手摸着左颊，和地保退出去了；外面又被地保训斥了一番，谢了地保二百文酒钱。知道的人都说阿Q太荒唐，自己去招打；他大约未必姓赵，即使真
+     FINAL A-Q widersprach nicht, dass er tatsächlich den Nachnamen Zhao trage, sondern strich sich nur mit der Hand über die linke Wange und trat mit dem Dibao den Raum; 
+     FIRST Drittens weiß ich nicht, wie A-Qs Name geschrieben wird. Während er lebte, nannten ihn die Leute A-Quei, aber nachdem er gestorben war, nannte ihn niemand mehr   (in queue: True)
+  D0000-S000017 SRC 第二章 优胜记略
+     FINAL A-Q ist nicht nur in seinem Namen und Wohnort etwas unklar, sondern auch seine „Lebensgeschichte“ ist unklar. Denn die Bewohner von Weizhuang achten auf A-Q nur
+     FIRST A-Q ist nicht nur in seinem Namen und Wohnort etwas unklar, sondern auch seine „Lebensgeschichte“ ist unklar. Denn die Bewohner von Weizhuang achten auf A-Q nur  (in queue: True)
+  D0000-S000018 SRC 阿Q不独是姓名籍贯有些渺茫，连他先前的『行状』也渺茫。因为未庄的人们之于阿Q，只要他帮忙，只拿他玩笑，从来没有留心他的『行状』的。而阿Q自己也不说，独有和别人口
+     FINAL A-Q ist nicht nur in seinem Namen und seiner Herkunft etwas unklar, sondern auch sein früherer ‚Lebenslauf‘ ist unklar. Denn die Bewohner von Weizhuang achten a
+     FIRST „Wir waren früher viel besser als du! Was bist du schon!“  (in queue: True)
+
+-- D0000-S000003
+  SRC : 第一章 序
+  QWEN: Kapitel 1: Vorwort
+  TG  : Erstes Kapitel: Vorwort
+
+-- D0000-S000005 [qwen queue] [tg queue]
+  SRC : 然而要做这一篇速朽的文章，才下笔，便感到万分的困难了。第一是文章的名目。孔子曰：『名不正则言不顺。』这原是应该极注意的。传的名目很繁多：列传、自传、内传、外传、别传、家传、小传，……而可惜都不合。『列传』么，这一篇并非和许多阔人排在『正史』里；『自传』么，我又并非就是阿Q。说是『外传』，『内传』在那里呢？倘用『内传』，阿Q又决不是神仙。『别传』呢，阿Q实在未曾有大总统上谕宣付国史馆立『本传』——虽说英国正史上并无『博徒列传』，而文豪迭更司也做过博徒别传这一部书，但文豪则可，在我辈却不可的。其次是『家传』，则我既不知与阿Q是否同宗，也未曾受他子孙的拜托；或『小传』，则阿Q又更无别的『大传』了。总而言之，这一篇也便是『本传』，但从我的文章着想，因为文体卑下，是『引车卖浆者流』所用的话，所以不敢僭称，便从不入三教九流的小说家所谓『闲话休题言归正传』这一句套话里，取出『正传』两个字来，作为名目，即使与古人所撰书法正传的『正传』字面上很相
+  QWEN: Doch als ich mich an dieses schnell vergängliche Werk machte, spürte ich, kaum hatte ich die Feder in die Hand genommen, eine unermessliche Schwierigkeit. Erstens der Titel des Werks. Konfuzius sagte: „Wenn die Namen nicht richtig sind, sind die Worte nicht flüssig.“ Dies ist etwas, auf das man unbedingt achten sollte. Die Titel für Biographien sind vielfältig: Biographien, Autobiographie, Innere Biographie, Äußere Biographie, Nebenbiographie, Familienbiographie, Kurzbiographie, … und leider passt keiner. „Biographien“? Dieser Text ist nicht in der offiziellen Geschichte neben vielen Großbüßigen aufgeführt. „Autobiographie“? Ich bin
+  TG  : Allerdings ist es schwierig, diesen schnell vergänglichen Artikel zu schreiben. Sobald ich anfange, stelle ich fest, dass es viele Schwierigkeiten gibt. Erstens ist der Titel des Werkes. Konfuzius sagte: „Wenn die Namen nicht richtig sind, sind die Worte nicht fließend.“ Das sollte man unbedingt beachten. Es gibt viele Arten von Biographien: Biographien, Autobiographien, innere Biographien, äußere Biographien, Nebenbiographien, Familienbiographien, Kurzbiographien… Aber leider passen sie nicht. „Biographien“ sind nicht geeignet, denn diese Biographie ist nicht mit vielen berühmten Persönlichkeiten in der „offiziellen Geschichte“ auf
+
+-- D0000-S000007
+  SRC : 『阿Q，你这浑小子！你说我是你的本家么？』
+  QWEN: „A-Q, du unverschämter Bursche! Du sagst, ich sei dein Verwandter?“
+  TG  : A-Q sagte nichts.
+
+-- D0000-S000010
+  SRC : 阿Q不开口，想往后退了；赵太爷跳过去，给了他一个嘴巴。
+  QWEN: A-Q schwieg und versuchte, zurückzutreten; doch Vater Zhao sprang vor und gab ihm eine Ohrfeige.
+  TG  : A-Q sagte nichts und wollte zurückweichen; Vater Zhao sprang auf ihn zu und versetzte ihm eine Ohrfeige.
+
+-- D0000-S000018 [tg queue]
+  SRC : 阿Q不独是姓名籍贯有些渺茫，连他先前的『行状』也渺茫。因为未庄的人们之于阿Q，只要他帮忙，只拿他玩笑，从来没有留心他的『行状』的。而阿Q自己也不说，独有和别人口角的时候，间或瞪着眼睛道：
+  QWEN: A-Q ist nicht nur in Bezug auf Namen und Herkunft vage, sondern auch seine früheren Lebenslauf sind vage. Denn die Menschen in Weizhuang haben sich um A-Q nie gekümmert, außer wenn sie seine Hilfe brauchten oder ihn zum Spaß hatten; sie haben nie auf seinen Lebenslauf geachtet. Und A-Q selbst sprach auch nicht darüber, nur wenn er mit anderen in Streit geriet, starrte er manchmal mit großen Augen und sagte:
+  TG  : A-Q ist nicht nur in seinem Namen und seiner Herkunft etwas unklar, sondern auch sein früherer ‚Lebenslauf‘ ist unklar. Denn die Bewohner von Weizhuang achten auf A-Q nur, wenn sie seine Hilfe brauchen oder ihn verspotten; sie haben nie auf seinen ‚Lebenslauf‘ geachtet. Und A-Q selbst spricht auch nicht darüber, außer wenn er mit anderen streitet, dann sagt er gelegentlich mit weit aufgerissenen Augen:
+
+-- D0000-S000020 [tg queue]
+  SRC : 阿Q没有家，住在未庄的土谷祠里；也没有固定的职业，只给人家做短工，割麦便割麦，舂米便舂米，撑船便撑船。工作略长久时，他也或住在临时主人的家里，但一完就走了。所以，人们忙碌的时候，也还记起阿Q来，然而记起的是做工，并不是『行状』；一闲空，连阿Q都早忘却，更不必说『行状』了。只是有一回，有一个老头子颂扬说：『阿Q真能做！』这时阿Q赤着膊，懒洋洋的瘦伶仃的正在他面前，别人也摸不着这话是真心还是讥笑，然而阿Q很喜欢。
+  QWEN: A-Q hatte kein Zuhause und wohnte im Tugu-Tempel in Weizhuang; er hatte auch keinen festen Beruf, sondern machte nur Aushilfsarbeit: Wenn man Weizen schneiden musste, schnitt er Weizen; wenn man Reis stampfen musste, stampfte er Reis; wenn man ein Boot stützen musste, stützte er ein Boot. Wenn die Arbeit etwas länger dauerte, wohnte er auch manchmal im Haus des vorübergehenden Arbeitgebers, aber sobald sie vorbei war, ging er. Daher erinnerten sich die Menschen in geschäftigen Zeiten noch an A-Q, aber sie erinnerten sich an die Arbeit, nicht an seinen „Lebenslauf“; in der Freizeit vergaßen sie A-Q bald, geschweige denn seinen „Leben
+  TG  : A-Q ist auch sehr stolz, und alle Bewohner von Weizhuang sind ihm egal. Sogar die beiden „Prüfungskandidaten“ sind es nicht wert, dass er sie respektiert. Die Prüfungskandidaten werden wahrscheinlich in Zukunft Xiucai werden. Zhao Taiye und Qian Taiye werden von den Bewohnern sehr respektiert, nicht nur wegen ihres Reichtums, sondern auch, weil sie beide die Väter von Prüfungskandidaten sind. A-Q verehrt sie jedoch auf eine ganz besondere Weise. Er denkt: „Meine Söhne werden viel besser sein als sie!“ Außerdem ist er ein paar Mal in die Stadt gegangen, und A-Q ist natürlich noch selbstbewusster geworden. Aber er verachtet auch die L
+
+-- D0000-S000031
+  SRC : 『阿Q，这不是儿子打老子，是人打畜生。自己说，人打畜生！』
+  QWEN: „A-Q, das ist kein Sohn, der seinen Vater schlägt, sondern ein Mensch, der ein Tier schlägt. Sag selbst: Ein Mensch schlägt ein Tier!“
+  TG  : „A-Q, das ist nicht der Sohn, der den Vater schlägt, sondern ein Mensch, der ein Vieh schlägt. Sag es selbst: Ein Mensch schlägt ein Vieh!“
+
+-- D0000-S000049
+  SRC : 他付过地保二百文酒钱，忿忿的躺下了，后来想：『现在的世界太不成话，儿子打老子……』于是忽而想到赵太爷的威风，而现在是他的儿子了，便自己也渐渐的得意起来，爬起身，唱着小孤孀上坟到酒店去。这时候，他又觉得赵太爷高人一等了。
+  QWEN: Nachdem er dem Dibao zweihundert Cash Trinkgeld gezahlt hatte, legte er sich wütend hin. Später dachte er: „Die Welt von heute ist wirklich nicht in Ordnung, ein Sohn schlägt seinen Vater …“ Dann dachte er an die Macht von Vater Zhao, und da dieser jetzt sein Sohn war, wurde er allmählich selbstbewusst, stand auf und sang das Lied der jungen Witwe, die zum Grab ihres Mannes geht, während er in die Taverne ging. In diesem Moment fühlte er, dass Vater Zhao eine Stufe höher stand.
+  TG  : Nachdem er dem Dibao zweihundert Kupfermünzen als Trinkgeld gezahlt hatte, legte sich er wütend hin. Dann dachte er: „Die heutige Welt ist viel zu unordentlich, ein Sohn schlägt seinen Vater …“ Plötzlich fiel ihm die Macht Vaters Zhao ein, und da er nun dessen Sohn war, wurde er allmählich selbstgefällig, stand auf und sang ein Lied von einer jungen Witwe, die zum Grab ihres Mannes geht, während er zum Wirtshaus ging. In diesem Moment fühlte er sich wieder, dass Vater Zhao eine Stufe über ihm stand.
+
+-- D0000-S000061
+  SRC : 阿Q以为他要逃了，抢进去就是一拳。这拳头还未达到身上，已经被他抓住了，只一拉，阿Q跄跄踉踉的跌进去，立刻又被王胡扭住了辫子，要撞到墙上照例去碰头。
+  QWEN: A-Q dachte, er würde fliehen, und schlug sofort. Der Schlag erreichte den Körper nicht, denn Wang Hu packte ihn, zog ihn, und A-Q stolperte und fiel. Sofort packte Wang Hu seinen Zopf und wollte ihn, wie üblich, an die Wand schlagen.
+  TG  : A-Q dachte, er wolle fliehen, und stürzte sich auf ihn. Bevor seine Faust ihn jedoch erreichte, wurde er von Wang Hu gepackt. A-Q stolperte und fiel zu Boden, und Wang Hu verdrehte ihm sofort den Zopf und wollte ihn wie üblich gegen die Wand schlagen.
+
+-- D0000-S000093
+  SRC : 阿Q的耳朵里又听到这句话。他想：不错，应该有一个女人，断子绝孙便没有人供一碗饭，……应该有一个女人。夫『不孝有三无后为大』，而『若敖之鬼馁而』，也是一件人生的大哀，所以他那思想，其实是样样合于圣经贤传的，只可惜后来有些『不能收其放心』了。
+  QWEN: A-Q hörte diese Worte wieder. Er dachte: Richtig, es sollte eine Frau geben, ohne Nachkommen gibt es niemanden, der eine Schale Reis opfert, … es sollte eine Frau geben. Von drei Arten der Unfilialität ist die größte die Nachkommenschaftslosigkeit, und „Der Geist von Ru'ao hungert“ ist auch ein großes Leid im Leben, also war sein Denken eigentlich im Einklang mit den heiligen Schriften und weisen Überlieferungen, nur leider wurde es später etwas „seinen unruhigen Geist nicht bändigen können“.
+  TG  : A-Q hörte diese Worte erneut in seinen Ohren. Er dachte: „Stimmt, es sollte eine Frau geben; bei Nachkommenschaftslosigkeit wird einem niemand eine Schale Reis darbringen, … es sollte eine Frau geben.“ Denn „von drei Arten der Unfilialität ist die größte die Nachkommenschaftslosigkeit“, und dass „der Geist von Ru'ao hungert“, ist ebenfalls ein großes Leid des Lebens; so stimmten seine Gedanken eigentlich in jeder Hinsicht mit den heiligen Schriften und weisen Überlieferungen überein, nur dass er später seinen unruhigen Geist nicht bändigen konnte.
+
+-- D0000-S000113
+  SRC : 『阿呀！』吴妈楞了一息，突然发抖，大叫着往外跑，且跑且嚷，似乎后来带哭了。
+  QWEN: „Ah!“ Mutter Wu erstarrte einen Moment, begann dann zu zittern, schrie und rannte nach draußen, rief dabei, und weinte schließlich.
+  TG  : „Oh!“, Mutter Wu zuckte zusammen, schrie auf und rannte davon. Dabei weinte sie und rief immer wieder.
+
+-- D0000-S000138 [qwen queue] [tg queue]
+  SRC : 阿Q忍不下去了，他只好到老主顾的家里去探问，——但独不许踏进赵府的门槛，——然而情形也异样：一定走出一个男人来，现了十分烦厌的相貌，像回复乞丐一般的摇手道：——
+  QWEN: A-Q konnte es nicht mehr aushalten, er musste in die Häuser seiner Stammkunden gehen, um nachzufragen – aber er durfte die Schwelle des Hauses der Zhao nicht überschreiten – doch die Lage war auch seltsam: Ein Mann kam heraus, mit einem sehr genervten Gesicht, und schüttelte die Hand, als würde er einen Bettler abweisen:
+  TG  : A-Q konnte es nicht mehr ertragen, also beschloss er, zu den Häusern seiner alten Bekannten zu gehen und sich zu erkundigen, – aber er durfte auf keinen Fall die Schwelle des Hauses der Zhao betreten, – doch die Situation war eigenartig: Es trat gewiss ein Mann heraus, der ein äußerst genervtes Gesicht machte und, wie einen Bettler abweisend, mit der Hand winkte: –
+
+-- D0000-S000151
+  SRC : 这一场『龙虎斗』似乎并无胜败，也不知道看的人可满足，都没有发什么议论，而阿Q却仍然没有人来叫他做短工。
+  QWEN: Dieser Drachen-Tiger-Kampf schien keinen Sieger zu haben, und man wusste nicht, ob die Zuschauer zufrieden waren, sie äußerten keine Meinung, und A-Q hatte immer noch niemanden, der ihn zu Aushilfsarbeit rief.
+  TG  : Dieser „Drachen-Tiger-Kampf“ hatte scheinbar keinen Sieger, und es war unklar, ob die Zuschauer zufrieden waren, und sie äußerten keine Kommentare. Aber A-Q wurde immer noch nicht von jemandem engagiert, um Gelegenheitsarbeiten zu verrichten.

@@ -1,0 +1,34 @@
+
+======== bench-tg3-de-en
+segments 31; longest D0000-S000031: source 4388 chars, translation 4062 chars
+  longest translation head: “Mother, Mother,” said Gregor softly, looking up at her. The Prokurist had been completely forgotten for a moment; however, he couldn’t help but snap his jaws several times in the air at the sight of 
+  longest translation tail: e ground – then the Father gave him a truly redeeming strong push from behind, and he flew, bleeding heavily, far into his room. The door was slammed shut with the cane, and then it was finally quiet.
+-- rule findings (all)
+-- semantic findings (first 8)
+  [mistranslation/medium] D0000-S000005: The translation 'business excitements' is a literal but unnatural rendering of 'geschäftlichen Aufregungen', which in this context refers to the stresses, pressures, or anxieties of business travel ra
+  [mistranslation/medium] D0000-S000006: The translation 'write down' for 'überschreiben' is a mistranslation of the business action. In this context, 'überschreiben' refers to transferring, copying, or formally recording orders into a ledge
+  [mistranslation/medium] D0000-S000010: The translation 'But further on it became difficult' mistranslates 'Aber weiterhin wurde es schwierig'. In this context, 'weiterhin' refers to the subsequent steps of the process (getting out of bed),
+  [omission/high] D0000-S000021: The translation omits the final request for the Prokurist to recommend Gregor to the Chef.
+  [mistranslation/medium] D0000-S000023: The translation 'Did you understand a single word?' fails to capture the restrictive modality of 'auch nur', which emphasizes 'even a single word' in a context of total incomprehensibility.
+  [mistranslation/medium] D0000-S000028: The translation 'think better about this prejudice' is a mistranslation of 'dieses Vorurteil besser zu durchdenken'. The source refers to thinking through or reflecting upon the prejudice more deeply/
+  [mistranslation/medium] D0000-S000029: The translation 'lips pursed' fails to capture the specific physical state of 'aufgeworfenen Lippen', which describes lips that are lifted, curled, or flared (often in a sneer or expression of disgust
+  [mistranslation/medium] D0000-S000029: The translation 'took his last step' converts a specific physical action ('den Fuß... zog' - pulled/withdrew the foot) into a general movement ('step'). In the context of the following sentence regard
+  [mistranslation/high] D0000-S000031: The translation omits the agent of the threat. The source states the blow comes 'from the stick in the father's hand', whereas the translation says 'threatened by the Father’s hand', turning the instr
+  [mistranslation/medium] D0000-S000031: The translation renders 'Gasse' as 'hallway'. 'Gasse' refers to the street or alley outside the building, not an interior hallway. This creates a spatial error regarding the source of the draft.
+  [mistranslation/medium] D0000-S000031: The translation renders 'Überzieher' as 'coat', which is a general term. In the context of the Prokurist's attire and the era, 'Überzieher' specifically refers to an overcoat or a dressing gown/over-s
+-- consistency report
+  {"enabled": true, "document_count": 1, "segment_count": 31, "issue_count": 2, "repair_count": 0, "by_severity": {"low": 2}, "documents_with_issues": {"pg-header": 2}}
+  FILE 0000-pg-header.consistency.json {"segment_id": "D0000-S000023", "category": "consistency", "severity": "low", "message": "The style sheet renders \"um Gottes willen\" as \"for God's sake\", but this translation does not use it.", "suggested_fix": "Render \"um Gottes willen\" as \"for God's sake\".", "source": "consistency", "source_quote": "um Gottes willen", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0000-pg-header.consistency.json {"segment_id": "D0000-S000030", "category": "consistency", "severity": "low", "message": "The style sheet renders \"um Gottes willen\" as \"for God's sake\", but this translation does not use it.", "suggested_fix": "Render \"um Gottes willen\" as \"for God's sake\".", "source": "consistency", "source_quote": "um Gottes willen", "translation_quote": "", "risk_tags": [], "quantity_mismatches": []}
+-- review queue and validations
+  queue: []
+-- cost by stage (calls / min)
+  audit_translation: 25 calls, 9.1 min, prompt 61844, output 8122
+  translate: 6 calls, 8.1 min, prompt 31542, output 20005
+  repair_translation: 8 calls, 1.4 min, prompt 27221, output 879
+  extract_glossary: 3 calls, 1.1 min, prompt 21052, output 3844
+  review_repaired: 6 calls, 0.5 min, prompt 24857, output 668
+  resolve_glossary: 1 calls, 0.4 min, prompt 1665, output 1255
+  approve_glossary: 1 calls, 0.2 min, prompt 1332, output 787
+  validate_repaired: 0 calls, 0.0 min, prompt 0, output 0
+  repair_review: 0 calls, 0.0 min, prompt 0, output 0

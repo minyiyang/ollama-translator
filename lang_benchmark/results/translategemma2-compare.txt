@@ -1,0 +1,117 @@
+
+================ de-en
+  [lang] status complete; 12.7 min; audit_translation 8.5, translate 1.9, extract_glossary 0.8, repair_translation 0.7, review_repaired 0.4
+         glossary 4; rule findings {'glossary': 15}; semantic {'mistranslation': 11, 'glossary': 1}
+         repeated passages: first draft 0, final 0; conventions 0; third script 0; broken markers 0; review queue 0 of 31
+  [tg  ] status paused; 39.5 min; audit_translation 13.9, repair_translation 9.0, translate 7.4, repair_review 3.5, resolve_glossary 2.6
+         glossary 4; rule findings {'glossary': 34, 'duplication': 11, 'mistranslation': 4, 'omission': 1}; semantic {'mistranslation': 1}
+         repeated passages: first draft 16, final 4; conventions 0; third script 0; broken markers 0; review queue 4 of 31
+  [tg2 ] status paused; 62.1 min; repair_translation 25.7, audit_translation 23.5, translate 9.7, extract_glossary 1.3, repair_review 0.8
+         glossary 18; rule findings {'glossary': 3, 'untranslated': 2}; semantic {'mistranslation': 5, 'omission': 1}
+         repeated passages: first draft 0, final 0; conventions 0; third script 0; broken markers 0; review queue 2 of 31
+  -- D0000-S000002
+     SRC : Als Gregor Samsa eines Morgens aus unruhigen Träumen erwachte, fand er sich in seinem Bett zu einem ungeheueren Ungeziefer verwandelt. Er lag auf seinem panzerartig harten Rücken und sah, wenn er den Kopf ein wenig hob, seinen gewölbten, braunen, von bogenförmigen Versteifungen geteilten Bauch, auf dessen Höhe sich die Bettdecke, zum gänzlichen Niedergleiten bereit, kaum noch e
+     LANG: When Gregor Samsa awoke one morning from troubled dreams, he found himself transformed in his bed into a monstrous vermin. He lay on his back, which was hard as armor, and, lifting his head slightly, saw his swollen, brown belly, divided by arched ridges, on which the bedspread, ready to slide off entirely, could barely hold. His many legs, pitifully thin in comparison to his o
+     TG2 : When Gregor Samsa awoke one morning from troubled dreams, he found himself transformed in his bed into a monstrous vermin. He lay on his armor-like hard back and saw, if he raised his head a little, his swollen, brown belly, divided by arched stiffening plates, on whose height the bedspread, ready to slide off completely, could barely be kept in place. His many legs, pitifully 
+  -- D0000-S000008
+     SRC : Als er dies alles in größter Eile überlegte, ohne sich entschließen zu können, das Bett zu verlassen – gerade schlug der Wecker dreiviertel sieben – klopfte es vorsichtig an die Tür am Kopfende seines Bettes. »Gregor,« rief es – es war die Mutter –, »es ist dreiviertel sieben. Wolltest du nicht wegfahren?« Die sanfte Stimme! Gregor erschrak, als er seine antwortende Stimme hört
+     LANG: As he was considering all this in the greatest haste, unable to decide to leave the bed—just then the alarm clock struck three-quarters past seven—there was a cautious knock at the door at the head of his bed. “Gregor,” it called—it was the Mother—“it is three-quarters past seven. Did you not want to leave?” The gentle voice! Gregor was startled when he heard his answering voic
+     TG2 : As he thought all this in the greatest haste, without being able to decide to leave the bed — just then the alarm clock struck three-quarters past seven — someone knocked gently at the door at the head of his bed. “Gregor,” it called — it was Mother — “it is three-quarters past seven. Did you not want to leave?” The gentle voice! Gregor was startled when he heard his answering 
+  -- D0000-S000016
+     SRC : Schon war er so weit, daß er bei stärkerem Schaukeln kaum das Gleichgewicht noch erhielt, und sehr bald mußte er sich nun endgültig entscheiden, denn es war in fünf Minuten einviertel acht, – als es an der Wohnungstür läutete. »Das ist jemand aus dem Geschäft,« sagte er sich und erstarrte fast, während seine Beinchen nur desto eiliger tanzten. Einen Augenblick blieb alles still
+     LANG: He was already so far along that with stronger shaking he could barely maintain his balance, and very soon he had to make a final decision, for it was five minutes past a quarter to eight, — when the doorbell rang at the apartment door. “That is someone from the office,” he said to himself and almost froze, while his little legs danced all the more hurriedly. For a moment, ever
+     TG2 : He was already so far that with stronger rocking he could barely maintain his balance, and very soon he had to make a final decision, for it was five minutes to a quarter to eight, — when the doorbell rang at the apartment door. “That is someone from the office,” he said to himself and almost froze, while his little legs danced all the more hurriedly. For a moment everything wa
+  -- D0000-S000024
+     SRC : Gregor war aber viel ruhiger geworden. Man verstand zwar also seine Worte nicht mehr, trotzdem sie ihm genug klar, klarer als früher, vorgekommen waren, vielleicht infolge der Gewöhnung des Ohres. Aber immerhin glaubte man nun schon daran, daß es mit ihm nicht ganz in Ordnung war, und war bereit, ihm  zu helfen. Die Zuversicht und Sicherheit, womit die ersten Anordnungen getrof
+     LANG: Gregor, however, had become much calmer. One understood, therefore, his words no longer, although they had seemed to him quite clear, clearer than before, perhaps due to the habituation of the ear. But at any rate, one now believed that something was not quite right with him, and was ready to help  him. The confidence and certainty with which the first orders had been given did
+     TG2 : Gregor, however, was much calmer now. Although his words were no longer understood, they had seemed clear enough to him, clearer than before, perhaps as a result of his ear getting used to them. But at least they now believed that he was not quite all right and were ready to help him. The confidence and certainty with which the first orders had been given did him good. He felt 
+  -- D0000-S000030
+     SRC : Gregor sah ein, daß er den Prokuristen in dieser Stimmung auf keinen Fall weggehen lassen dürfe, wenn dadurch seine Stellung im Geschäft nicht aufs äußerste gefährdet werden sollte. Die Eltern verstanden das alles nicht so gut; sie hatten sich in den langen Jahren die Überzeugung gebildet, daß Gregor in diesem Geschäft für sein Leben versorgt war, und hatten außerdem jetzt mit 
+     LANG: Gregor realized that he must not let the Prokurist go in this mood under any circumstances, if his position in the office was not to be endangered to the utmost. The parents did not understand all this so well; they had formed the conviction in the long years that Gregor was secured for life in this office, and besides, they now had so much to do with the immediate worries that
+     TG2 : Gregor sah ein, dass er den Prokuristen in dieser Stimmung auf keinen Fall weggehen lassen dürfe, wenn dadurch seine Stellung im Geschäft nicht aufs äußerste gefährdet werden sollte. Die Eltern verstanden das alles nicht so gut; sie hatten sich in den langen Jahren die Überzeugung gebildet, dass Gregor in diesem Geschäft für sein Leben versorgt war, und hatten außerdem jetzt mi
+
+================ en-ko
+  [lang] status paused; 16.3 min; audit_translation 7.6, translate 4.2, extract_glossary 1.3, repair_translation 1.1, repair_review 0.6
+         glossary 36; rule findings {'untranslated': 5, 'ai_style': 1}; semantic {'mistranslation': 17}
+         repeated passages: first draft 0, final 0; conventions 0; third script 7; broken markers 0; review queue 4 of 145
+  [tg  ] status paused; 96.2 min; translate 37.1, audit_translation 26.7, repair_review 13.2, repair_translation 11.2, approve_glossary 2.7
+         glossary 43; rule findings {'glossary': 11, 'duplication': 5, 'addition': 3, 'mistranslation': 2, 'ai_style': 2, 'untranslated': 1}; semantic {'mistranslation': 18, 'omission': 2, 'untranslated': 1}
+         repeated passages: first draft 4, final 0; conventions 0; third script 0; broken markers 2; review queue 3 of 145
+  [tg2 ] status paused; 31.2 min; translate 13.6, audit_translation 7.6, repair_translation 5.6, extract_glossary 1.4, repair_review 1.3
+         glossary 43; rule findings {'glossary': 15, 'mistranslation': 5, 'addition': 2, 'untranslated': 1}; semantic {'mistranslation': 9, 'omission': 3, 'untranslated': 3}
+         repeated passages: first draft 0, final 0; conventions 0; third script 0; broken markers 0; review queue 9 of 145
+  -- D0000-S000002
+     SRC : Alice was beginning to get very tired of sitting by her sister on the bank, and of having nothing to do: once or twice she had peeped into the book her sister was reading, but it had no pictures or conversations in it, “and what is the use of a book,” thought Alice “without pictures or conversations?”
+     LANG: 앨리스는 언덕에 앉아 언니를 바라보며, 할 일이 없다는 사실에 점점 지쳐가고 있었다. 언니가 읽고 있는 책을 몇 번이나 엿보았지만, 그 안에는 그림도 대화도 없었다. “그림도, 대화도 없는 책이 무슨 소용이 있겠어?” 앨리스는 생각했다.
+     TG2 : 앨리스는 강둑에 앉아 있는 여동생 옆에 앉아 있는 것이 점점 지루해지고, 할 일이 없어지자, 여동생이 읽고 있는 책을 흘끗 보았지만, 그림이나 대화가 없어서 “그림이나 대화가 없는 책은 무슨 소용일까?”라고 생각했다.
+  -- D0001-S000010
+     SRC : Alice took up the fan and gloves, and, as the hall was very hot, she kept fanning herself all the time she went on talking: “Dear, dear! How queer everything is to-day! And yesterday things went on just as usual. I wonder if I’ve been changed in the night? Let me think: was I the same when I got up this morning? I almost think I can remember feeling a little different. But if I
+     LANG: 앨리스는 부채와 장갑을 집어 들고, 홀이 매우 덥기 때문에, 계속 말하면서 계속 부채질을 했다: “아이고, 아이고! 오늘 모든 것이 얼마나 기이한지! 그리고 어제 모든 것이 평소처럼 진행되었다. 내가 밤새 변했을까? 생각해 보자: 오늘 아침에 일어났을 때 나는 같은 사람이었을까? 나는 거의 조금 다르게 느껴진 것 같다. 하지만 내가 같은 사람이 아니라면, 다음 질문은, 세상에서 나는 누구인가? 아, 그것이 큰 수수께끼야!” 그리고 그녀는 자기와 같은 나이의 모든 아이들을 생각해 보며, 그녀가 그들 중 누구로 변했을 수 있는지 보았다.
+     TG2 : 앨리스는 부채와 장갑을 집어 들고 홀이 매우 더워서 계속해서 부채질을 하며 말했다. “아이고, 오늘 모든 것이 얼마나 이상한가! 그리고 어제는 모든 것이 평소와 같았다. 나는 밤에 변했을까? 어디 보자. 오늘 아침에 일어났을 때도 그랬을까? 나는 조금 달라진 것을 기억하는 것 같다. 하지만 내가 다르다면, 다음 질문은, 나는 누구일까? 아, 그것이 가장 큰 수수께끼야!” 그리고 그녀는 자신이 알고 있는 또래의 아이들을 모두 떠올리며, 자신이 그들 중 누구로 변했을 수 있는지 생각해 보기 시작했다.
+  -- D0002-S000020
+     SRC : First it marked out a race-course, in a sort of circle, (“the exact shape doesn’t matter,” it said,) and then all the party were placed along the course, here and there. There was no “One, two, three, and away,” but they began running when they liked, and left off when they liked, so that it was not easy to know when the race was over. However, when they had been running half a
+     LANG: 먼저 도도새는 경주 코스를 표시했다. 일종의 원형으로 (“정확한 모양은 중요하지 않다”고 말했고), 그리고 그들 모두는 코스 여기저기에 배치되었다. “하나, 둘, 셋, 출발”이라는 신호는 없었지만, 그들은 원하는 때에 달리기 시작하고 원하는 때에 멈추었으므로, 경주가 언제 끝났는지 알기 어려웠다. 그러나 그들이 약 반 시간 정도 달리고 완전히 마른 후, 도도새는 갑자기 “경주가 끝났다!”라고 외쳤고, 그들은 모두 헐떡이며 그 주위에 몰려들었다. “하지만 누가 이겼나요?”
+     TG2 : 먼저 원 모양으로 경주 코스를 표시했는데, (“정확한 모양은 중요하지 않다고” 그는 말했다.) 그런 다음 모든 사람들이 코스를 따라 여기저기에 배치되었다. “하나, 둘, 셋, 출발!”이라고 말하지 않고, 그들은 원하는 대로 달리기 시작했고, 원하는 대로 멈췄기 때문에 경기가 언제 끝났는지 알기 어려웠다. 그러나 그들이 서른 분 정도 달리고 완전히 마른 후, 도도새는 갑자기 “경기가 끝났습니다!”라고 외쳤고, 그들은 모두 도도새 주위로 모여 숨을 헐떡이며 “하지만 누가 이겼나요?”라고 물었다.
+  -- D0003-S000007
+     SRC : It did so indeed, and much sooner than she had expected: before she had drunk half the bottle, she found her head pressing against the ceiling, and had to stoop to save her neck from being broken. She hastily put down the bottle, saying to herself “That’s quite enough—I hope I shan’t grow any more—As it is, I can’t get out at the door—I do wish I hadn’t drunk quite so much!”
+     LANG: 그녀의 바람대로, 그리고 그녀가 예상했던 것보다 훨씬 더 빨리, 일이 일어났다. 병의 절반도 마시기 전에, 그녀의 머리가 천장에 닿는 것을 느끼고, 목이 부러지지 않도록 몸을 숙여야 했다. 그녀는 서둘러 병을 내려놓으며 스스로에게 말했다. “이 정도면 충분해—더 이상 커지지 않기를 바라—지금 상태로는 문으로 나갈 수 없어—이렇게 많이 마시지 않았으면 좋았을 걸!”
+     TG2 : 정말 그랬고, 그녀가 예상했던 것보다 훨씬 빨리 일어났다. 병의 절반을 마시기 전에 그녀는 머리가 천장에 닿았고, 목이 부러지지 않도록 몸을 숙여야 했다. 그녀는 서둘러 병을 내려놓고 스스로에게 말했다. “이것으로 충분해요—더 이상 자라지 않기를 바라요—지금 상태로는 문 밖으로 나갈 수 없어요—아, 정말 많이 마시지 말았어야 했는데!”
+  -- D0003-S000042
+     SRC : The great question certainly was, what? Alice looked all round her at the flowers and the blades of grass, but she did not see anything that looked like the right thing to eat or drink under the circumstances. There was a large mushroom growing near her, about the same height as herself; and when she had looked under it, and on both sides of it, and behind it, it occurred to he
+     LANG: 큰 질문은 확실히, 무엇이었어? 앨리스는 꽃과 풀잎을 사방으로 둘러보았지만, 그녀는 그런 상황에서 먹거나 마시기에 적합한 것으로 보이는 것을 보지 못했다. 그녀 근처에 그녀와 거의 같은 높이의 큰 버섯이 자라고 있었고; 그녀가 그것 아래를, 그리고 양쪽을, 그리고 뒤를 본 후, 그녀는 그것의 꼭대기에 무엇이 있는지 보고 보는 것이 나을 수도 있다고 생각했다.
+     TG2 : 가장 중요한 질문은 분명히 무엇일까? 앨리스는 주변의 꽃과 풀잎을 둘러보았지만, 현재 상황에서 먹거나 마시기에 적합해 보이는 것은 아무것도 없었다. 그녀 옆에는 그녀와 거의 같은 높이의 큰 버섯이 자라 있었고, 그녀는 그것 아래와 양쪽, 그리고 뒤를 살펴보았을 때, 그것의 꼭대기를 살펴보는 것이 좋을 것 같다는 생각이 들었다.
+
+================ es-en
+  [lang] status paused; 2.3 min; repair_review 1.1, review_repaired 0.7, validate_repaired 0.4, approve_glossary 0.0, audit_consistency 0.0
+         glossary 157; rule findings {'glossary': 5, 'mistranslation': 2, 'ai_style': 1}; semantic {'mistranslation': 28}
+         repeated passages: first draft 0, final 0; conventions 0; third script 0; broken markers 0; review queue 2 of 88
+  [tg  ] status paused; 80.2 min; translate 44.3, audit_translation 16.4, repair_translation 13.4, approve_glossary 2.5, extract_glossary 2.3
+         glossary 0; rule findings {'duplication': 24, 'mistranslation': 18, 'addition': 3}; semantic {'mistranslation': 8, 'untranslated': 1}
+         repeated passages: first draft 31, final 6; conventions 0; third script 0; broken markers 0; review queue 1 of 88
+  [tg2 ] status paused; 44.5 min; audit_translation 18.3, translate 14.9, extract_glossary 4.1, repair_translation 2.9, resolve_glossary 1.8
+         glossary 168; rule findings {'glossary': 19, 'mistranslation': 8}; semantic {'mistranslation': 13}
+         repeated passages: first draft 0, final 0; conventions 0; third script 0; broken markers 0; review queue 3 of 88
+  -- D0000-S000002
+     SRC : Juanito Santa Cruz
+     LANG: Juanito Santa Cruz
+     TG2 : Juanito Santa Cruz
+  -- D0000-S000023
+     SRC : Santa Cruz y Arnaiz. Vistazo histórico sobre el comercio matritense
+     LANG: Santa Cruz and Arnaiz. A historical glance at the Madrid trade
+     TG2 : Santa Cruz and Arnaiz. A historical glimpse of the Madrid trade.
+  -- D0000-S000045
+     SRC : Esta niña y otras del barrio, bien apañaditas por sus respectivas mamás, peinadas a estilo de maja, con peineta y flores en la cabeza, y sobre los hombros pañuelo de Manila de los que llaman de talle, se reunían en un portal de la calle de Postas para pedir el cuartito para la Cruz de Mayo, el 3 de dicho mes, repicando en una bandeja de plata, junto a una mesilla forrada de dam
+     LANG: This girl and others from the neighborhood, well-groomed by their respective mothers, coiffed in the maja style, with a peineta and flowers in their hair, and a Manila shawl of the waist-length kind over their shoulders, gathered in a portal on Calle de Postas to ask for the small donation for the May Cross, on the 3rd of that month, ringing a silver tray next to a small table 
+     TG2 : This girl and other girls from the neighborhood, well-dressed by their respective mothers, with their hair styled in the maja fashion, with a comb and flowers on their heads, and a Manila shawl over their shoulders, the ones they call “waist shawls,” would gather at a doorway on Calle de Postas to ask for the little coin for the May Cross, on the 3rd of that month, tapping on a
+  -- D0000-S000067
+     SRC : -v-
+     LANG: -v-
+     TG2 : -v-
+  -- D0000-S000087
+     SRC : Casose luego la mayor, llamada Benigna en memoria de su abuelito el héroe de Boteros. Esta sí que fue buena boda. El novio era Ramón Villuendas, hijo mayor del célebre cambiante de la calle de Toledo; gran casa, fortuna sólida. Era ya viudo con dos chiquillos, y su parentela ofrecía variedad chocante en orden de riqueza. Su tío D. Cayetano Villuendas estaba casado con Eulalia h
+     LANG: Then the oldest married, called Benigna in memory of her grandfather the hero of Boteros. This one was indeed a good marriage. The groom was Ramón Villuendas, eldest son of the famous money changer of Calle de Toledo; great house, solid fortune. He was already a widower with two children, and his kinship offered a shocking variety in order of wealth. His uncle Don Cayetano Vill
+     TG2 : Then the eldest, named Benigna in memory of her grandfather, the hero of Boteros, got married. This was a good wedding. The groom was Ramón Villuendas, the eldest son of the famous cloth merchant on Calle de Toledo; he had a large house and a solid fortune. He was already a widower with two children, and his family offered a striking variety in terms of wealth. His uncle, Don C
+
+================ en-de
+  [lang] status paused; 59.5 min; audit_translation 47.1, translate 4.9, repair_translation 2.9, extract_glossary 1.6, repair_review 0.9
+         glossary 42; rule findings {'untranslated': 14, 'glossary': 7, 'mistranslation': 2}; semantic {'mistranslation': 13, 'untranslated': 6, 'glossary': 1}
+         repeated passages: first draft 0, final 0; conventions 10; third script 0; broken markers 0; review queue 16 of 145
+  [tg  ] status paused; 86.8 min; audit_translation 28.3, translate 19.7, resolve_glossary 15.6, repair_translation 9.9, repair_review 8.5
+         glossary 38; rule findings {'glossary': 16, 'mistranslation': 4, 'duplication': 4, 'addition': 1}; semantic {'mistranslation': 7}
+         repeated passages: first draft 7, final 2; conventions 0; third script 0; broken markers 0; review queue 1 of 145
+  [tg2 ] not evaluated: active artifact root is not recorded for stage: audit_translation
+  -- D0000-S000002
+     SRC : Alice was beginning to get very tired of sitting by her sister on the bank, and of having nothing to do: once or twice she had peeped into the book her sister was reading, but it had no pictures or conversations in it, “and what is the use of a book,” thought Alice “without pictures or conversations?”
+     LANG: Alice begann, sich sehr zu langweilen, während sie am Ufer neben ihrer Schwester saß und nichts zu tun hatte: Ein- oder zweimal hatte sie in das Buch geschaut, das ihre Schwester las, aber es enthielt weder Bilder noch Gespräche, „und wozu ist ein Buch gut“, dachte Alice, „ohne Bilder oder Gespräche?“
+  -- D0001-S000010
+     SRC : Alice took up the fan and gloves, and, as the hall was very hot, she kept fanning herself all the time she went on talking: “Dear, dear! How queer everything is to-day! And yesterday things went on just as usual. I wonder if I’ve been changed in the night? Let me think: was I the same when I got up this morning? I almost think I can remember feeling a little different. But if I
+     LANG: Alice nahm den Fächer und die Handschuhe auf und, da der Saal sehr heiß war, fächelte sie sich die ganze Zeit, während sie weiterredete: „Lieb, lieb! Wie seltsam ist alles heute! Und gestern ging alles ganz normal. Ich frage mich, ob ich in der Nacht verändert wurde? Lass mich nachdenken: War ich dieselbe, als ich heute Morgen aufstand? Ich glaube fast, ich kann mich daran erin
+  -- D0002-S000020
+     SRC : First it marked out a race-course, in a sort of circle, (“the exact shape doesn’t matter,” it said,) and then all the party were placed along the course, here and there. There was no “One, two, three, and away,” but they began running when they liked, and left off when they liked, so that it was not easy to know when the race was over. However, when they had been running half a
+     LANG: Zuerst markierte er eine Rennstrecke, in einer Art Kreis, („die genaue Form ist nicht wichtig“, sagte er,) und dann wurden alle Teilnehmer entlang der Strecke platziert, hier und da. Es gab kein „Eins, zwei, drei, los“, aber sie begannen zu laufen, wann immer sie wollten, und hörten auf, wann immer sie wollten, so dass es nicht leicht war zu wissen, wann das Rennen zu Ende war.
+  -- D0003-S000007
+     SRC : It did so indeed, and much sooner than she had expected: before she had drunk half the bottle, she found her head pressing against the ceiling, and had to stoop to save her neck from being broken. She hastily put down the bottle, saying to herself “That’s quite enough—I hope I shan’t grow any more—As it is, I can’t get out at the door—I do wish I hadn’t drunk quite so much!”
+     LANG: Es tut es tatsächlich, und viel schneller, als sie erwartet hatte: Bevor sie die Hälfte der Flasche getrunken hatte, spürte sie, wie ihr Kopf gegen die Decke drückte, und sie musste sich bücken, um ihren Hals vor dem Brechen zu retten. Sie setzt hastig die Flasche ab und sagt zu sich selbst: „Das ist genug – ich hoffe, ich werde nicht noch größer – So wie es ist, kann ich nicht
+  -- D0003-S000042
+     SRC : The great question certainly was, what? Alice looked all round her at the flowers and the blades of grass, but she did not see anything that looked like the right thing to eat or drink under the circumstances. There was a large mushroom growing near her, about the same height as herself; and when she had looked under it, and on both sides of it, and behind it, it occurred to he
+     LANG: Die große Frage war es tatsächlich, was? Alice blickte sich um, auf die Blumen und die Grashalme, aber sie sah nichts, das unter den Umständen wie das Richtige zum Essen oder Trinken aussah. Es wuchs ein großer Pilz in ihrer Nähe, ungefähr so hoch wie sie selbst; und als sie sich darunter, auf beiden Seiten und dahinter umgesehen hatte, fiel ihr ein, dass sie genauso gut schaue

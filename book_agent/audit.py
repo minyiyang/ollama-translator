@@ -24,7 +24,20 @@ from .content_policy import (
     numeric_content_matches,
 )
 from .glossary import estimate_tokens, is_suspicious_generic_candidate
-from .languages import Language, TranslationDirection
+from .languages import (
+    TUNED_PROFILES,
+    SCRIPTS,
+    SENTENCE_END,
+    TranslationDirection,
+    copied_source_run,
+    copy_is_untranslated,
+    lacks_target_script,
+    glossary_pair,
+    glossary_sides,
+    leftover_scripts,
+    profile,
+    scripts_disjoint,
+)
 from .schemas import GlossaryCategory
 from .numeric_adjudication import (
     NUMBER_RULE_SOURCE,
@@ -39,7 +52,7 @@ from .quantities import (
     compare_quantity_texts,
     contains_quantity_expression,
 )
-from .translation import TranslatedDocument
+from .translation import TranslatedDocument, misplaced_passages, shifted_passages, unusual_length_passages
 
 
 class AuditCategory(str, Enum):
@@ -137,6 +150,20 @@ class AuditIssue(BaseModel):
     quantity_mismatches: list[QuantityMismatch] = Field(default_factory=list)
 
 
+def _without_decimal_patterns(schema):
+    """Drop the regular expression newer pydantic releases attach to a decimal
+    written as a string. What the auditor is sent must not change with the
+    installed library, and the pattern uses a lookahead that grammar-based
+    structured output does not support."""
+    if isinstance(schema, dict):
+        if schema.get("type") == "string" and str(schema.get("pattern", "")).startswith("^(?!^[-+.]*$)"):
+            schema = {key: value for key, value in schema.items() if key != "pattern"}
+        return {key: _without_decimal_patterns(value) for key, value in schema.items()}
+    if isinstance(schema, list):
+        return [_without_decimal_patterns(item) for item in schema]
+    return schema
+
+
 class SemanticAuditResult(BaseModel):
     model_config = ConfigDict(extra="forbid")
     issues: list[AuditIssue] = Field(default_factory=list)
@@ -154,7 +181,7 @@ class SemanticAuditResult(BaseModel):
             category["enum"] = [
                 value for value in category["enum"] if value not in PIPELINE_ONLY_CATEGORIES
             ]
-        return schema
+        return _without_decimal_patterns(schema)
 
 
 class DocumentAudit(BaseModel):
@@ -183,9 +210,11 @@ class TranslationAuditReport(BaseModel):
     quantity_uncertain_count: int = Field(default=0, ge=0)
 
 
-_CJK = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]")
+# Han characters: Chinese number words in a target, and Han inside quotations.
+_CJK = profile("zh").script_pattern
 _LATIN = re.compile(r"[A-Za-z]")
-_CJK_RUN = re.compile(r"[\u3400-\u9fff]{4,}")
+# Letters of every profiled script, kept when comparing source and target prose.
+_PROSE_CHARS = "".join(item.script_basic_chars for item in TUNED_PROFILES.values())
 _NUMBER_OR_UNIT = re.compile(
     r"\d|\b(?:mile|miles|inch|inches|foot|feet|yard|yards|pound|pounds|"
     r"ounce|ounces|degree|degrees|percent|percentage)\b",
@@ -194,24 +223,7 @@ _NUMBER_OR_UNIT = re.compile(
 _MOJIBAKE = re.compile(r"(?:â€|Ã.|Â.|�)")
 _SEPARATOR = re.compile(r"^[\W_]+$", flags=re.UNICODE)
 _INLINE_MARKER = re.compile(r"</?I\d{3}>")
-_SENTENCE_SPLIT = re.compile(r"(?<=[.!?。！？])\s*")
-
-_AI_PATTERNS = {
-    Language.CHINESE: (
-        "值得注意的是",
-        "总而言之",
-        "不禁让人",
-        "仿佛在诉说着",
-        "这一刻，时间仿佛静止",
-    ),
-    Language.ENGLISH: (
-        "it is worth noting that",
-        "in conclusion",
-        "a testament to",
-        "time seemed to stand still",
-        "as if whispering a story",
-    ),
-}
+_SENTENCE_SPLIT = re.compile(rf"(?<=[{SENTENCE_END}])\s*")
 
 
 def audit_translated_document(
@@ -308,7 +320,7 @@ def audit_translated_document(
             # the legacy token multiset here would reintroduce representation-only
             # false positives after semantic adjudication.
         else:
-            _audit_number_integrity(segment_id, source_text, target_text, issues)
+            _audit_number_integrity(segment_id, source_text, target_text, issues, translated.direction)
         if kind is SegmentKind.STRUCTURAL:
             continue
         if should_run_language_check(kind):
@@ -350,6 +362,62 @@ def audit_translated_document(
                         f"translation duplicates a different source segment: {duplicate_ids[0]}",
                     )
                 )
+    # The same passage worded twice: one of the two translations stands under
+    # the wrong segment (a model translating a neighbouring passage).
+    exact = {item for ids in normalized_targets.values() if len(ids) > 1 for item in ids}
+    for segment_id, other_id in misplaced_passages(
+        [
+            (item.segment_id, source_by_id[item.segment_id].processed_text, item.translated_text)
+            for item in translated.segments
+            if item.segment_id in source_by_id
+        ]
+    ):
+        if segment_id not in exact:
+            issues.append(
+                _issue(
+                    segment_id,
+                    AuditCategory.DUPLICATION,
+                    AuditSeverity.HIGH,
+                    f"translation closely matches that of a different source segment: {other_id}",
+                )
+            )
+    # A run of translations each standing some segments away from its source.
+    for segment_id, offset in shifted_passages(
+        [
+            (item.segment_id, source_by_id[item.segment_id].processed_text, item.translated_text)
+            for item in translated.segments
+            if item.segment_id in source_by_id
+        ]
+    ):
+        issues.append(
+            _issue(
+                segment_id,
+                AuditCategory.STRUCTURE,
+                AuditSeverity.HIGH,
+                "translation fits the source segment "
+                f"{abs(offset)} {'later' if offset > 0 else 'earlier'}, not this one: "
+                "the translations here appear shifted",
+            )
+        )
+
+    # Far shorter or longer than this document's translations usually are. The
+    # en/zh pairs keep their fixed token ratio (_audit_length).
+    if not translated.direction.legacy:
+        for segment_id, share in unusual_length_passages(
+            [
+                (item.segment_id, source_by_id[item.segment_id].processed_text, item.translated_text)
+                for item in translated.segments
+                if item.segment_id in source_by_id
+            ]
+        ):
+            issues.append(
+                _issue(
+                    segment_id,
+                    AuditCategory.OMISSION if share < 1 else AuditCategory.ADDITION,
+                    AuditSeverity.HIGH,
+                    f"translation length is far from usual here: {share} of the usual length for its source",
+                )
+            )
 
     if numeric_rulings:
         issues = apply_numeric_rulings(
@@ -365,7 +433,15 @@ def audit_translated_document(
         )
     issues = deduplicate_audit_issues(issues)
     candidates = select_semantic_audit_candidates(
-        source, issues, config, eligible_ids=semantic_eligible_ids
+        source,
+        issues,
+        config,
+        eligible_ids=semantic_eligible_ids,
+        # For the en/zh pairs the rules are strong enough to pick the risky
+        # segments. For any other pair they are not: a short line translated
+        # as another line passed them all (阿Q正传 into Japanese), so the model
+        # reads every prose segment.
+        every_segment=not translated.direction.legacy,
     )
     return DocumentAudit(
         document_id=source.manifest_id,
@@ -497,8 +573,12 @@ def select_semantic_audit_candidates(
     config: AuditConfig,
     *,
     eligible_ids: set[str] | None = None,
+    every_segment: bool = False,
 ) -> list[str]:
-    """Select bounded high-risk segments for semantic review in document order."""
+    """Select bounded high-risk segments for semantic review in document order.
+
+    With `every_segment`, every eligible segment, without the per-document cap.
+    """
     selected = {
         issue.segment_id
         for issue in issues
@@ -513,7 +593,8 @@ def select_semantic_audit_candidates(
         if is_decorative_separator(text):
             continue
         if (
-            estimate_tokens(text) >= config.semantic_min_source_tokens
+            every_segment
+            or estimate_tokens(text) >= config.semantic_min_source_tokens
             or (
                 not config.quantity.enabled
                 and _NUMBER_OR_UNIT.search(visible_segment_text(text))
@@ -522,7 +603,7 @@ def select_semantic_audit_candidates(
         ):
             selected.add(segment.segment_id)
     ordered = [item.segment_id for item in document.segments if item.segment_id in selected]
-    return ordered[: config.max_semantic_candidates_per_document]
+    return ordered if every_segment else ordered[: config.max_semantic_candidates_per_document]
 
 
 def build_semantic_audit_batches(
@@ -646,7 +727,7 @@ def build_semantic_audit_prompt(
         )
         if scoped_glossary:
             glossary_lines = [
-                f"- {entry.english} => {entry.chinese}"
+                f"- {entry.source} => {entry.target}"
                 for entry in scoped_glossary
             ]
             glossary = (
@@ -794,6 +875,7 @@ def validate_semantic_audit_scope(
     translation_text_by_id: dict[str, str] | None = None,
     *,
     quantity_enabled: bool = False,
+    direction: TranslationDirection | None = None,
 ) -> SemanticAuditResult:
     """Reject unsafe scope errors, ground evidence, and normalize owned metadata."""
     normalized: list[AuditIssue] = []
@@ -839,7 +921,7 @@ def validate_semantic_audit_scope(
                 and (
                     compare_quantity_texts(source_text, translation_text).status == "match"
                     if quantity_enabled
-                    else numeric_content_matches(source_text, translation_text)
+                    else numeric_content_matches(source_text, translation_text, direction)
                 )
             ):
                 continue
@@ -1011,9 +1093,24 @@ def deduplicate_audit_issues(issues: list[AuditIssue]) -> list[AuditIssue]:
 def _audit_language(
     segment_id, source, target, direction, config, issues, glossary=()
 ) -> None:
-    if direction.target_language is Language.CHINESE:
-        if _LATIN.search(source) and not _CJK.search(target):
-            issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.HIGH, "translation contains no Chinese text"))
+    source_rules = profile(direction.source_language)
+    target_rules = profile(direction.target_language)
+    # When the two languages share a script (en/de, zh/ja), the script cannot
+    # show that a passage was left untranslated: only an identical long passage
+    # is flagged here, and the semantic audit covers the rest.
+    disjoint = scripts_disjoint(direction)
+    leftover = leftover_scripts(direction)
+    if (
+        disjoint
+        and source_rules.script_pattern.search(source)
+        and not target_rules.script_pattern.search(target)
+    ):
+        issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.HIGH, f"translation contains no {target_rules.short_name} text"))
+    if not leftover and source_rules.function_words and target_rules.function_words:
+        passage = _shared_script_leftover(target, source_rules, target_rules)
+        if passage:
+            issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.MEDIUM, f"possible untranslated {source_rules.short_name} passage: {passage}"))
+    if "Latin" in leftover:
         phrase_target = _strip_exact_preserved_inline_spans(source, target)
         phrase_target = _strip_intentional_foreign_quotations(source, phrase_target)
         phrase_target = re.sub(
@@ -1035,7 +1132,7 @@ def _audit_language(
         if phrase and not _is_preserved_titlecase_literal(
             source, phrase.group(0)
         ):
-            issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.MEDIUM, f"possible untranslated English phrase: {phrase.group(0)}"))
+            issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.MEDIUM, f"possible untranslated {source_rules.short_name} phrase: {phrase.group(0)}"))
         stray_word = _find_inflected_target_only_latin_word(source, phrase_target)
         if not stray_word:
             stray_word = _find_exact_source_latin_residue(
@@ -1049,17 +1146,68 @@ def _audit_language(
                     segment_id,
                     AuditCategory.UNTRANSLATED,
                     AuditSeverity.MEDIUM,
-                    f"possible untranslated English word: {stray_word}",
+                    f"possible untranslated {source_rules.short_name} word: {stray_word}",
                 )
             )
-    else:
-        if _CJK.search(source) and not _LATIN.search(target):
-            issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.HIGH, "translation contains no English text"))
-        run = _CJK_RUN.search(target)
+    elif leftover:
+        chars = (
+            source_rules.script_basic_chars
+            if leftover == source_rules.scripts
+            else "".join(SCRIPTS[item] for item in leftover)
+        )
+        run = re.search(f"[{chars}]{{4,}}", target)
         if run:
-            issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.MEDIUM, f"possible untranslated Chinese text: {run.group(0)}"))
-    if _normalize_prose(source) == _normalize_prose(target):
+            issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.MEDIUM, f"possible untranslated {source_rules.short_name} text: {run.group(0)}"))
+    approved = [glossary_sides(entry, direction)[1] for entry in glossary]
+    if lacks_target_script(_INLINE_MARKER.sub("", target), direction, approved):
+        issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.HIGH, f"translation contains no {target_rules.short_name} text"))
+    copied = copied_source_run(_INLINE_MARKER.sub("", source), _INLINE_MARKER.sub("", target), direction, approved)
+    if copied and _normalize_prose(source) != _normalize_prose(target):
+        issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.MEDIUM, f"possible untranslated {source_rules.short_name} text: {copied[:40]}"))
+    if not direction.legacy:
+        stray = _foreign_script_text(source, target, source_rules, target_rules)
+        if stray:
+            issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.MEDIUM, f"text in a script neither language uses: {stray}"))
+    if _normalize_prose(source) == _normalize_prose(target) and copy_is_untranslated(source, direction):
         issues.append(_issue(segment_id, AuditCategory.UNTRANSLATED, AuditSeverity.HIGH, "translation is identical to source"))
+
+
+# Where a quoted line or a sentence ends, for the shared-script leftover check.
+_PASSAGE_SPLIT = re.compile(r"[«»“”\"„‹›]|(?<=[.!?…])\s+")
+_WORD = re.compile(r"[^\W\d_]+(?:[’'][^\W\d_]+)?")
+
+
+def _foreign_script_text(source, target, source_rules, target_rules) -> str:
+    """Letters of a script that neither the source nor the target language is
+    written in, and that the source text does not contain: a model slipping
+    into a third language (Chinese words in a Korean translation of English).
+    Latin is left out: names and brands are written in it everywhere."""
+    if not target_rules.scripts:
+        return ""
+    known = {*source_rules.scripts, *target_rules.scripts, "Latin"}
+    chars = "".join(body for name, body in SCRIPTS.items() if name not in known)
+    for run in re.finditer(f"[{chars}]+", _INLINE_MARKER.sub("", target)):
+        text = run.group(0)
+        if any(character.isalpha() for character in text) and not any(character in source for character in text):
+            return text[:40]
+    return ""
+
+
+def _shared_script_leftover(target, source_rules, target_rules) -> str:
+    """A passage of the translation still written in the source language, for a
+    pair sharing a script (en/fr): two or more of the source's function words and
+    none of the target's. Names and short exclamations have neither."""
+    for passage in _PASSAGE_SPLIT.split(_INLINE_MARKER.sub("", target)):
+        words = [word.casefold().replace("’", "'") for word in _WORD.findall(passage)]
+        if len(words) < 3:
+            continue
+        # A word both languages use (es/fr "la", de/en "was") tells nothing.
+        source_only = source_rules.function_words - target_rules.function_words
+        source_hits = sum(word in source_only for word in words)
+        target_hits = sum(word in target_rules.function_words for word in words)
+        if source_hits >= 2 and target_hits == 0:
+            return passage.strip()[:120]
+    return ""
 
 
 def _strip_intentional_foreign_quotations(source: str, target: str) -> str:
@@ -1077,7 +1225,7 @@ def _strip_intentional_foreign_quotations(source: str, target: str) -> str:
         has_non_ascii_latin = any(
             character.isalpha()
             and ord(character) > 127
-            and not ("\u4e00" <= character <= "\u9fff")
+            and not _CJK.match(character)
             for character in content
         )
         normalized_content = unicodedata.normalize("NFKC", content)
@@ -1144,7 +1292,7 @@ def _find_exact_source_latin_residue(source: str, target: str, glossary=()) -> s
     }
     approved_latin_targets: set[str] = set()
     for entry in glossary:
-        target_term = getattr(entry, "chinese", "")
+        target_term = getattr(entry, "target", "")
         approved_latin_targets.update(
             word.casefold()
             for word in re.findall(
@@ -1226,12 +1374,12 @@ def _audit_length(segment_id, source, target, config, issues) -> None:
         issues.append(_issue(segment_id, AuditCategory.ADDITION, AuditSeverity.MEDIUM, f"translation/source token ratio is unusually high: {ratio:.2f}"))
 
 
-def _audit_number_integrity(segment_id, source, target, issues) -> None:
+def _audit_number_integrity(segment_id, source, target, issues, direction=None) -> None:
     """Keep digit-bearing facts deterministic even for non-prose segments."""
-    source_numbers = number_tokens(source)
-    target_numbers = number_tokens(target)
+    source_numbers = number_tokens(source, direction.source_language if direction else None)
+    target_numbers = number_tokens(target, direction.target_language if direction else None)
     target_has_cjk = bool(_CJK.search(visible_segment_text(target)))
-    if not numeric_content_matches(source, target) and (target_numbers or not target_has_cjk):
+    if not numeric_content_matches(source, target, direction) and (target_numbers or not target_has_cjk):
         # Only a trigger: the audit stage asks the quantity model for a ruling.
         issues.append(
             _issue(
@@ -1293,7 +1441,7 @@ def _is_unambiguous_name(source_term: str, direction, lowercase_words: frozenset
     playing card), "Rat", or "Mouse" can be an ordinary word when the chapter
     also uses it in lowercase, so a miss on them stays a low finding.
     """
-    if direction is not TranslationDirection.EN_TO_ZH:
+    if not profile(direction.source_language).cased:
         return len(source_term.strip()) >= 2
     if not any(character.isupper() for character in source_term):
         return False  # "the island": a lowercase entry is not a name, whatever its category
@@ -1301,6 +1449,21 @@ def _is_unambiguous_name(source_term: str, direction, lowercase_words: frozenset
     if len(words) != 1:
         return bool(words)
     return words[0].casefold() not in lowercase_words
+
+
+WRONG_PASSAGE_MIN_TERMS = 4
+WRONG_PASSAGE_BY_TERMS = "translation may be another passage's, or leaves most of this one out: it has"
+# Findings that say the whole translation belongs elsewhere or is not a
+# translation: repair translates the segment again instead of editing it.
+WHOLE_TRANSLATION_WRONG = re.compile(
+    r"^(?:translation contains no .+ text$"
+    r"|translation is identical to source$"
+    r"|translation duplicates a different source segment"
+    r"|translation closely matches that of a different source segment"
+    r"|translation fits the source segment"
+    r"|translation may be another passage's"
+    r"|translation length is far from usual here)"
+)
 
 
 def _audit_glossary(
@@ -1317,18 +1480,11 @@ def _audit_glossary(
         # Generic lowercase terms are useful prompt hints but are too polysemous
         # for strict deterministic enforcement. A semantic auditor may still flag
         # a concrete misuse with source-grounded evidence.
-        if is_suspicious_generic_candidate(entry):
+        if is_suspicious_generic_candidate(
+            entry, None if glossary_pair(direction).legacy else direction.source_language
+        ):
             continue
-        source_term = (
-            entry.english
-            if direction is TranslationDirection.EN_TO_ZH
-            else entry.chinese
-        )
-        target_term = (
-            entry.chinese
-            if direction is TranslationDirection.EN_TO_ZH
-            else entry.english
-        )
+        source_term, target_term = glossary_sides(entry, direction)
         key = unicodedata.normalize("NFKC", source_term).casefold()
         if key not in grouped:
             grouped[key] = (source_term, set())
@@ -1338,8 +1494,30 @@ def _audit_glossary(
         ):
             names.add(key)
 
+    # A passage with several approved terms whose translation has almost none
+    # of them is, as a rule, the translation of another passage (阿Q正传 into
+    # Japanese: six terms, one kept, in a paragraph the audit model accepted
+    # three times). A model that merely ignores the glossary still keeps the
+    # names.
+    kept = sum(
+        any(glossary_target_matches(target_text, term, direction.target_language) for term in target_terms)
+        for _, target_terms in grouped.values()
+    )
+    if len(grouped) >= WRONG_PASSAGE_MIN_TERMS and kept <= 1:
+        issues.append(
+            _issue(
+                segment_id,
+                AuditCategory.MISTRANSLATION,
+                AuditSeverity.HIGH,
+                f"{WRONG_PASSAGE_BY_TERMS} {kept} of the {len(grouped)} approved terms in this passage",
+            )
+        )
+
     for key, (source_term, target_terms) in grouped.items():
-        if not any(glossary_target_matches(target_text, target_term) for target_term in target_terms):
+        if not any(
+            glossary_target_matches(target_text, target_term, direction.target_language)
+            for target_term in target_terms
+        ):
             required = " | ".join(sorted(target_terms))
             # A missed name is repaired: readers notice a character or place
             # renamed mid-book, and a name is rarely ambiguous. Other entries
@@ -1394,7 +1572,7 @@ def _adjacent_duplication_count(text: str) -> int:
 
 def _audit_ai_style(segment_id, target, direction, issues) -> None:
     lowered = target.casefold()
-    matches = [pattern for pattern in _AI_PATTERNS[direction.target_language] if pattern.casefold() in lowered]
+    matches = [pattern for pattern in profile(direction.target_language).stock_phrases if pattern.casefold() in lowered]
     if matches:
         issues.append(_issue(segment_id, AuditCategory.AI_STYLE, AuditSeverity.LOW, f"formulaic model-like phrase detected: {matches[0]}"))
 
@@ -1404,7 +1582,7 @@ def _issue(segment_id, category, severity, message) -> AuditIssue:
 
 
 def _normalize_prose(text: str) -> str:
-    return re.sub(r"[^\w\u3400-\u9fff]+", "", text.casefold())
+    return re.sub(f"[^\\w{_PROSE_CHARS}]+", "", text.casefold())
 
 
 def is_decorative_separator(text: str) -> bool:

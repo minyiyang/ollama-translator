@@ -1,0 +1,32 @@
+
+======== bench-r1-qwen-en-zh
+segments 191; longest D0000-S000011: source 935 chars, translation 282 chars
+  longest translation head: “我肯定不是阿达，”她说，“因为她的头发是长长的卷发，而我的头发根本不打卷；我也肯定不是梅布尔，因为我什么都懂，而她，哦！她懂得太少了！况且，她是她，我是我，——天哪，这一切多令人困惑！我试试我是否还记得我过去知道的所有事情。让我想想：四乘五是十二，四乘六是十三，四乘七是——天哪！照这样下去，我永远到不了二十！不过，乘法表不重要：试试地理吧。伦敦是巴黎的首都，巴黎是罗马的首都，罗马——不，那全错了
+  longest translation tail: 哪，这一切多令人困惑！我试试我是否还记得我过去知道的所有事情。让我想想：四乘五是十二，四乘六是十三，四乘七是——天哪！照这样下去，我永远到不了二十！不过，乘法表不重要：试试地理吧。伦敦是巴黎的首都，巴黎是罗马的首都，罗马——不，那全错了，我肯定！我一定是变成了梅布尔！我试试背‘小鳄鱼如何——’”她把双手交叠在膝上，仿佛正在背诵课文，开始背诵，但她的声音听起来沙哑而陌生，词句也不像以前那样顺溜：——
+-- rule findings (all)
+-- semantic findings (first 8)
+  [mistranslation/medium] D0000-S000002: The translation '张开了' (opened/spread out) for 'opening out' in the context of a telescope describes a general state of being open or spreading, whereas the source describes the process of extending/te
+  [omission/medium] D0000-S000003: The translation omits the closing quotation mark for the final sentence of the segment, leaving the dialogue open.
+  [mistranslation/medium] D0000-S000009: The translation renders 'a little pattering of feet' as '一阵急促的脚步声' (a burst of hurried footsteps). 'Pattering' specifically denotes a light, rapid tapping sound, whereas '急促' (hurried/urgent) describe
+  [mistranslation/medium] D0000-S000014: The translation '我怎么会这样？' (How could I be like this/How did this happen to me?) is too general and fails to capture the specific action of the source 'How can I have done that?', which refers specific
+  [mistranslation/medium] D0000-S000024: The translation renders 'beg for its dinner' as '乞讨晚餐' (begging for dinner/food from others), which implies a state of poverty or homelessness. In the context of a dog's trick, 'beg' refers to the spe
+  [mistranslation/high] D0001-S000012: The translation incorrectly suggests the King is wearing the crown on the cushion, whereas the source states the crown is being carried on the cushion.
+  [mistranslation/medium] D0001-S000043: The translation renders 'unrolled itself' as '舒展开来' (stretched out/unfolded), which is a generic term for expanding. In the context of a hedgehog, 'unrolled' specifically refers to the animal unfoldin
+-- consistency report
+  {"enabled": true, "document_count": 3, "segment_count": 191, "issue_count": 2, "repair_count": 1, "by_severity": {"medium": 1, "low": 1}, "documents_with_issues": {"item11": 1, "item12": 1}}
+  FILE 0001-item11.consistency.json {"segment_id": "D0001-S000060", "category": "consistency", "severity": "medium", "message": "Repeated quoted line \"Off with his head\" is rendered \"砍掉它的头！\" here but \"砍掉他的头！\" in D0001-S000044, D0002-S000037.", "suggested_fix": "Render it as in D0001-S000044: 砍掉他的头！", "source": "consistency", "source_quote": "Off with his head", "translation_quote": "砍掉它的头！", "risk_tags": [], "quantity_mismatches": []}
+  FILE 0002-item12.consistency.json {"segment_id": "D0002-S000042", "category": "consistency", "severity": "low", "message": "Repeated quoted line \"Come on, then\" is rendered \"走吧，\" here but \"那就来吧！\" in D0001-S000034.", "suggested_fix": "Render it as in D0001-S000034: 那就来吧！", "source": "consistency", "source_quote": "Come on, then", "translation_quote": "走吧，", "risk_tags": [], "quantity_mismatches": []}
+-- review queue and validations
+  queue: ['D0000-S000003']
+  D0000-S000003 SRC: And she went on planning to herself how she would manage it. “They must go by the carrier,” she thought; “and how funny it’ll seem, sending presents to one’s own feet! And how odd the directions will look!
+  D0000-S000003 TGT: 她继续在心里盘算着该怎么办。“得用邮车送，”她想；“给自己脚寄礼物，那该多滑稽！地址写起来该多古怪！"
+-- cost by stage (calls / min)
+  audit_translation: 17 calls, 4.6 min, prompt 20424, output 2635
+  translate: 4 calls, 2.7 min, prompt 21785, output 12783
+  extract_glossary: 2 calls, 0.9 min, prompt 14990, output 2801
+  reprose_translation: 10 calls, 0.9 min, prompt 25501, output 3210
+  review_repaired: 5 calls, 0.8 min, prompt 10749, output 670
+  resolve_glossary: 1 calls, 0.6 min, prompt 2861, output 2392
+  repair_translation: 8 calls, 0.5 min, prompt 12844, output 739
+  approve_glossary: 1 calls, 0.0 min, prompt 574, output 20
+  validate_repaired: 0 calls, 0.0 min, prompt 0, output 0

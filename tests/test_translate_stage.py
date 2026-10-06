@@ -350,7 +350,7 @@ class TranslateStageTests:
             {"translation": {"direction": TranslationDirection.EN_TO_ZH.value}}
         )
         selected = _chunk_relevant_glossary(document, chunk, config)
-        assert [item.english for item in selected] == ["qel drive"]
+        assert [item.source for item in selected] == ["qel drive"]
 
     def prepare_workspace(self, base, *, config=None, chapter=CHAPTER):
         config = config or AppConfig()
@@ -804,3 +804,58 @@ class TranslateStageTests:
             with pytest.raises(RuntimeError, match="preprocess"):
                 run_translation_stage(workspace, AppConfig(), FakeTranslationClient())
 
+
+
+class RepeatOnRetryClient(FakeTranslationClient):
+    """Drops the inline markers once, then answers the retried passage with another passage's text."""
+
+    def generate_text(self, prompt, **kwargs):
+        self.prompts.append(prompt)
+        self.progress_labels.append(kwargs.get("progress_label", ""))
+        pieces = re.findall(r"<(D[A-Za-z0-9_-]+)>(.*?)</\1>", prompt.split("Source:\n", 1)[1], flags=re.DOTALL)
+        call = len(self.prompts)
+        if call == 1:
+            self.first_id = pieces[0][0]
+        rendered = []
+        for item, source_text in pieces:
+            inline = re.findall(r"</?I\d{3}>", source_text)
+            # The second call repeats the first passage's translation under the retried marker.
+            owner = self.first_id if call == 2 else item
+            seed = sum(ord(character) * (index + 1) for index, character in enumerate(owner))
+            # Sixty characters that differ from passage to passage.
+            text = "".join(chr(0x4E00 + (seed * 31 + index * index * 7 + index * seed) % 3000) for index in range(60)) + "。"
+            if inline and call > 1:
+                text = inline[0] + text + "".join(inline[1:])
+            rendered.append(f"<{item}>{text}</{item}>")
+        return GenerationResult(content="\n".join(rendered), thinking="", metrics=GenerationMetrics(prompt_eval_count=100, eval_count=20))
+
+
+class TestRepeatedPassageInTheStage:
+    def test_a_retried_passage_that_repeats_an_accepted_one_is_asked_again(self):
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = TranslateStageTests().prepare_workspace(Path(directory))
+            client = RepeatOnRetryClient()
+            run_translation_stage(workspace, AppConfig(), client)
+            assert len(client.prompts) == 3
+            assert "after=repeated_passage" in client.progress_labels[2]
+            texts = [s.translated_text for d in load_translated_documents(workspace) for s in d.segments]
+            openings = [re.sub(r"</?I\d{3}>", "", text)[:30] for text in texts]
+            assert len(set(openings)) == len(openings)
+
+
+def test_every_placement_failure_of_a_merged_chunk_is_a_retry():
+    from book_agent.stages.translate import _PLACEMENT_CODES
+    from book_agent.translation import TranslationChunk, TranslationChunkPiece, validate_translation_output
+
+    # The codes the contract gives for passages compared with their neighbours.
+    assert _PLACEMENT_CODES == {"repeated_passage", "shifted_passage", "unusual_length"}
+    text = "He slid back into his former position and thought for a long time about getting up early in the morning."
+    chunk = TranslationChunk(
+        chunk_id="c", document_id="d", document_order=0, estimated_source_tokens=0,
+        pieces=[
+            TranslationChunkPiece(reference_id="S1", segment_id="S1", part_number=1, source_text="Er glitt wieder in seine frühere Lage zurück und dachte lange nach."),
+            TranslationChunkPiece(reference_id="S2", segment_id="S2", part_number=1, source_text="Und er sah zur Weckuhr hinüber, die auf dem Kasten tickte."),
+        ],
+    )
+    _, validation = validate_translation_output(f"<S1>{text}</S1><S2>{text}</S2>", chunk, TranslationDirection("de>en"))
+    assert {issue.code for issue in validation.issues} <= _PLACEMENT_CODES and validation.issues

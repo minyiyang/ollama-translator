@@ -6,6 +6,7 @@ import {
   HELP,
   LABELS,
   MODEL_PATHS,
+  SPECIAL_PATHS,
   glossaryReviewMode,
   humanize,
   type GlossaryReviewMode,
@@ -13,8 +14,10 @@ import {
   type SchemaSection,
 } from "../lib/configCatalog";
 import { getPath, hasPath, sameValue, setPath, unsetPath, type Values } from "../lib/configValues";
+import { hiddenOptions, loadLanguages, pairOf, type LanguageSupport } from "../lib/languages";
 import { CodeEditor, type SyntaxError_ } from "./CodeEditor";
 import { FieldControl } from "./FieldControl";
+import { LanguagePairPicker } from "./LanguagePairPicker";
 import { Segmented, Switch } from "./ui";
 
 type FieldError = { path: string; message: string };
@@ -89,6 +92,18 @@ export function ConfigEditor({
     return () => window.clearTimeout(handle);
   }, [host]);
 
+  // The pair is `translation.direction`, or the two language fields when the YAML sets them.
+  const source = effective("translation.source_language");
+  const target = effective("translation.target_language");
+  const pair: string = source && target ? pairOf(String(source), String(target)) : String(effective("translation.direction") ?? "en-zh");
+  const [support, setSupport] = useState<LanguageSupport | null>(null);
+  useEffect(() => {
+    let current = true;
+    loadLanguages(pair).then((r) => current && setSupport(r.support)).catch(() => current && setSupport(null));
+    return () => { current = false; };
+  }, [pair]);
+  const hidden = hiddenOptions(support);
+
   const commit = (next: Values) => {
     setValues(next);
     const seq = ++dumpSeq.current;
@@ -154,6 +169,40 @@ export function ConfigEditor({
     );
   };
 
+  const renderLanguagePair = () => (
+    <div className="opt" key="language-pair">
+      <div>
+        <div className="name">Languages</div>
+        <div className="path">translation.direction</div>
+        <div className="help">
+          English and Simplified Chinese are tuned; any other language code works at the generic tier,
+          with the checks it cannot support skipped.
+        </div>
+      </div>
+      <div className="control">
+        <LanguagePairPicker
+          value={pair}
+          disabled={readOnly}
+          onChange={(next) =>
+            commit(unsetPath(unsetPath(setPath(values, "translation.direction", next), "translation.source_language"), "translation.target_language"))
+          }
+        />
+      </div>
+      {errorFor("translation.direction") && <div className="error">{errorFor("translation.direction")}</div>}
+    </div>
+  );
+
+  /** A line naming the options this pair does not use, and why. */
+  const renderHidden = (group: (typeof COMMON_GROUPS)[number]) => {
+    const names = group.options.flatMap((o) => ("path" in o && hidden.has(o.path) ? [[o.label, hidden.get(o.path)!.reason] as const] : []));
+    if (!names.length) return null;
+    return (
+      <p className="meta" key="hidden">
+        Not used for {pair}: {names.map(([label, reason]) => `${label} (${reason})`).join("; ")}.
+      </p>
+    );
+  };
+
   const toggle = (key: string) =>
     setCollapsed((old) => { const next = new Set(old); if (!next.delete(key)) next.add(key); return next; });
   const setAll = (keys: string[], closed: boolean) =>
@@ -183,7 +232,7 @@ export function ConfigEditor({
     );
   };
   const optionPaths = (group: (typeof COMMON_GROUPS)[number]) =>
-    group.options.flatMap((o) => ("special" in o ? ["workflow.require_glossary_review", "workflow.llm_glossary_review"] : [o.path]));
+    group.options.flatMap((o) => ("special" in o ? SPECIAL_PATHS[o.special] : hidden.has(o.path) ? [] : [o.path]));
 
   const q = query.trim().toLowerCase();
   const matches = (f: SchemaField) =>
@@ -230,9 +279,14 @@ export function ConfigEditor({
                 `opt:${group.title}`,
                 group.title,
                 optionPaths(group),
-                group.options.map((option) =>
-                  "special" in option ? renderGlossaryReview() : fields.has(option.path) ? renderRow(fields.get(option.path)!) : null,
-                ),
+                [
+                  ...group.options.map((option) =>
+                    "special" in option
+                      ? option.special === "language-pair" ? renderLanguagePair() : renderGlossaryReview()
+                      : fields.has(option.path) && !hidden.has(option.path) ? renderRow(fields.get(option.path)!) : null,
+                  ),
+                  renderHidden(group),
+                ],
                 group.help,
               ),
             )}

@@ -8,7 +8,8 @@ from collections import Counter
 from enum import Enum
 from typing import Iterable
 
-from .languages import TranslationDirection
+from .languages import SENTENCE_END, TUNED_PROFILES, TranslationDirection, glossary_sides, profile
+from .number_words import OBJECTIVE_PATTERNS, WORD_VALUES, japanese_as_chinese_numerals
 from .schemas import GlossaryEntry, is_preservable_technical_identifier
 
 
@@ -19,8 +20,13 @@ class SegmentKind(str, Enum):
     STRUCTURAL = "structural"
 
 
-_CJK = re.compile(r"[\u3400-\u4dbf\u4e00-\u9fff\uf900-\ufaff]")
+# Han characters, for the Chinese number-word and demonym rules below.
+_CJK = profile("zh").script_pattern
 _LATIN = re.compile(r"[A-Za-z]")
+# A run of letters in any profiled script (a "word" for heading detection).
+_SCRIPT_RUN = re.compile("|".join(f"[{item.script_basic_chars}]+" for item in TUNED_PROFILES.values()))
+# Chinese numerals up to ten, for clock times and countdowns.
+_CHINESE_DIGITS = "零〇一二两三四五六七八九十"
 _INLINE_MARKER = re.compile(r"</?I\d{3}>")
 _SEPARATOR = re.compile(r"^[\W_]+$", flags=re.UNICODE)
 _URI = re.compile(r"(?:https?|ftp)://\S+|mailto:\S+", flags=re.IGNORECASE)
@@ -196,7 +202,7 @@ _ENGLISH_QUANTIFIED_DURATION = re.compile(
     r"(?P<scale>decades?|centur(?:y|ies)|millenn(?:ium|ia))\b",
     flags=re.IGNORECASE,
 )
-_CHINESE_COUNTDOWN_NUMBER = re.compile(r"[\u96f6\u3007\u4e00\u4e8c\u4e24\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5341\u767e]+")
+_CHINESE_COUNTDOWN_NUMBER = re.compile(f"[{_CHINESE_DIGITS}百]+")
 _ENGLISH_FRACTION_OF_MAGNITUDE = re.compile(
     r"\b(?P<numerator>a|one|two|three|four|five|six|seven|eight|nine)[ -]+"
     r"(?P<denominator>half|halves|third|thirds|quarter|quarters|fifth|fifths|"
@@ -280,7 +286,7 @@ _CHINESE_FRACTION_OF_MAGNITUDE_PREFIX = re.compile(
 )
 _CHINESE_FRACTION_OF_MAGNITUDE_SUFFIX = re.compile(
     r"(?P<magnitude>[零〇一二两三四五六七八九十百千万亿]*[万亿])"
-    r"(?:[\u3400-\u9fff]{0,8})的"
+    f"(?:[{profile('zh').script_basic_chars}]{{0,8}})的"
     r"(?P<denominator>[零〇一二两三四五六七八九十百千万亿]+)分之"
     r"(?P<numerator>[零〇一二两三四五六七八九十百千万亿]+"
     r"(?:点[零〇一二两三四五六七八九]+)?)"
@@ -339,7 +345,7 @@ _CHINESE_SUFFIX_HALF = re.compile(
     r"(?<=\u5c81)|(?<=\u5c0f\u65f6)|(?<=\u5206\u949f)|(?<=\u79d2)|"
     r"(?<=\u500d))\u534a"
 )
-_CHINESE_STANDALONE_HALF = re.compile(r"(?:\u4e00\u534a|\u534a\u6570)")
+_CHINESE_STANDALONE_HALF = re.compile(r"(?:一半|半数)")
 _CHINESE_TWO_HALVES = re.compile(r"\u4e24\u534a")
 _CHINESE_BISECTION = re.compile(
     r"(?:\u88c2|\u5288|\u5207|\u526a|\u5206|\u65a9|\u65ad)"
@@ -349,9 +355,9 @@ _CHINESE_BISECTION = re.compile(
 _CHINESE_EXTRA_PREFIX_HALF = re.compile(r"\u534a(?=\u622a)")
 _CHINESE_CLOCK_TIME = re.compile(
     r"(?P<period>\u4e0a\u5348|\u4e0b\u5348|\u665a\u4e0a|\u4e2d\u5348|\u51cc\u6668)?\s*"
-    r"(?P<hour>[\u96f6\u3007\u4e00\u4e8c\u4e24\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5341]+)"
+    f"(?P<hour>[{_CHINESE_DIGITS}]+)"
     r"[\u70b9\u6642\u65f6]"
-    r"(?P<minute>[\u96f6\u3007\u4e00\u4e8c\u4e24\u4e09\u56db\u4e94\u516d\u4e03\u516b\u4e5d\u5341]+)\u5206?"
+    f"(?P<minute>[{_CHINESE_DIGITS}]+)分?"
 )
 _CHINESE_MAGNITUDE_UNIT = re.compile(
     r"^(?:\u4e2a|\u9897|\u53ea|\u672c|\u5f20|\u5e45|\u6761|\u9762|\u6b21|\u53f7|"
@@ -470,11 +476,7 @@ def classify_segment(
         )
     ):
         return SegmentKind.PROTECTED_IDENTIFIER
-    has_source_prose = (
-        bool(_LATIN.search(source))
-        if direction is TranslationDirection.EN_TO_ZH
-        else bool(_CJK.search(source))
-    )
+    has_source_prose = bool(profile(direction.source_language).script_pattern.search(source))
     if has_source_prose and _looks_like_translated_heading(source, target, direction):
         return SegmentKind.STRUCTURAL
     return SegmentKind.PROSE if has_source_prose else SegmentKind.LANGUAGE_NEUTRAL
@@ -504,11 +506,54 @@ def should_run_semantic_audit(kind: SegmentKind) -> bool:
     return kind is SegmentKind.PROSE
 
 
-def number_tokens(text: str) -> Counter[str]:
-    """Return conservative, cross-language objective number facts."""
+def _number_parser(language: str | None) -> str:
+    """The extra number-word parser for text in `language` ("" when none applies)."""
+    return profile(language).number_words if language else ""
+
+
+def _marker_split_view(text: str, visible: str) -> str:
+    """`visible` with a non-space where an inline marker was, so the added parsers
+    never join a number across a formatting change ("six <I000>cents</I000>" is
+    coins, not 600). Same length and positions as `visible`."""
+    marked = unicodedata.normalize("NFKC", _INLINE_MARKER.sub("\x00", text))
+    spaced = marked.replace("\x00", " ")
+    lead = len(spaced) - len(spaced.lstrip())
+    view = marked[lead : lead + len(visible)]
+    return view if len(view) == len(visible) else visible
+
+
+# Digits as German, Spanish, and French write them: 1.000 is a thousand and 1,5
+# is one and a half. Read as English, they would be 1 and 15. A date (12.03.1915)
+# is not grouped in threes and is left as it is.
+_LOCALIZED_DIGITS = re.compile(
+    r"(?<![\d.,])\d{1,3}(?:\.\d{3})+(?:,\d+)?(?![\d]|[.,]\d)"
+    r"|(?<![\d.,])\d+,\d+(?![\d]|[.,]\d)"
+)
+
+
+def _as_plain_digits(match: re.Match[str]) -> str:
+    """The number with a period for its decimal and no thousands marks, padded
+    to the length it had so positions in the text stay where they were."""
+    written = match.group(0)
+    whole, _, decimal = written.partition(",")
+    plain = whole.replace(".", "") + ("." + decimal if decimal else "")
+    return plain.ljust(len(written))
+
+
+def number_tokens(text: str, language: str | None = None) -> Counter[str]:
+    """Return conservative, cross-language objective number facts.
+
+    English and Chinese number words are read in any text. With `language`, the
+    parser of that language's profile also runs (French; Japanese 億).
+    """
+    parser = _number_parser(language)
     # Marker boundaries must not concatenate prose into synthetic identifiers such
     # as ``LLC<I000></I000>175`` -> ``LLC175``.
     visible = unicodedata.normalize("NFKC", _INLINE_MARKER.sub(" ", text)).strip()
+    if parser == "japanese":
+        visible = japanese_as_chinese_numerals(visible)
+    if language and profile(language).decimal_comma:
+        visible = _LOCALIZED_DIGITS.sub(_as_plain_digits, visible)
     countdown = _countdown_number_tokens(visible)
     if countdown:
         return countdown
@@ -545,6 +590,16 @@ def number_tokens(text: str) -> Counter[str]:
                 facts.append(_canonical_numeric_fact(value))
             masked[match.start():match.end()] = " " * (match.end() - match.start())
 
+    if parser in OBJECTIVE_PATTERNS:
+        view = _marker_split_view(text, visible)
+        for pattern, convert in OBJECTIVE_PATTERNS[parser]():
+            # The marker-split view, with what earlier patterns consumed masked out.
+            current = "".join(m if m != v else w for v, m, w in zip(visible, masked, view))
+            for match in pattern.finditer(current):
+                value = convert(match)
+                if value is not None:
+                    facts.append(_canonical_numeric_fact(value))
+                masked[match.start():match.end()] = " " * (match.end() - match.start())
     add_matches(
         _SPACED_WORD_IDENTIFIER,
         lambda match: _SMALL_ENGLISH_NUMBERS[match.group("number").casefold()],
@@ -781,10 +836,14 @@ def _canonical_identifier_fact(value: str) -> str:
     return re.search(r"\d+", value).group(0)
 
 
-def numeric_content_matches(source_text: str, target_text: str) -> bool:
+def numeric_content_matches(
+    source_text: str, target_text: str, direction: TranslationDirection | None = None
+) -> bool:
     """Require every source fact without hard-failing implied target additions."""
-    source = number_tokens(source_text)
-    target = number_tokens(target_text)
+    source_language = direction.source_language if direction else None
+    target_language = direction.target_language if direction else None
+    source = number_tokens(source_text, source_language)
+    target = number_tokens(target_text, target_language)
     # Literary English commonly expresses a total ratio ("half again" = 1.5x),
     # while idiomatic Chinese expresses the same relation as a relative increase
     # ("增加百分之五十" or "大出一半" = +0.5). Keep the objective relation
@@ -819,11 +878,11 @@ def numeric_content_matches(source_text: str, target_text: str) -> bool:
     # classifiers explicit. Semantic audit handles suspicious additions; this hard
     # gate is deliberately limited to source facts that disappeared or changed.
     if source:
-        return not (source - (target + _number_word_tokens(target_text)))
-    source_words = _number_word_tokens(source_text)
+        return not (source - (target + _number_word_tokens(target_text, target_language)))
+    source_words = _number_word_tokens(source_text, source_language)
     if not source_words:
         return True
-    target_facts = target + _number_word_tokens(target_text)
+    target_facts = target + _number_word_tokens(target_text, target_language)
     # A lexical count with no mechanically recognizable target counterpart is too
     # ambiguous to block cross-language prose. It remains eligible for semantic audit.
     if not target_facts:
@@ -837,37 +896,44 @@ def numeric_content_matches(source_text: str, target_text: str) -> bool:
 
 
 def repair_preserves_numbers(
-    source_text: str, accepted_text: str, candidate_text: str
+    source_text: str,
+    accepted_text: str,
+    candidate_text: str,
+    direction: TranslationDirection | None = None,
 ) -> bool:
     """Prevent a repair from changing number facts already aligned with the source."""
-    source = _credible_number_facts(source_text)
-    accepted_objective = number_tokens(accepted_text)
-    candidate_objective = number_tokens(candidate_text)
-    if numeric_content_matches(source_text, accepted_text):
+    target_language = direction.target_language if direction else None
+    source = _credible_number_facts(source_text, direction.source_language if direction else None)
+    accepted_objective = number_tokens(accepted_text, target_language)
+    candidate_objective = number_tokens(candidate_text, target_language)
+    if numeric_content_matches(source_text, accepted_text, direction):
         # Ordinary target-language classifiers are lower-confidence lexical hints,
         # not immutable quantities. Treat only objective facts as additions here;
         # otherwise a localized prose repair can be rejected merely for changing
         # an indefinite article into a natural Chinese classifier.
-        return numeric_content_matches(source_text, candidate_text) and not (
+        return numeric_content_matches(source_text, candidate_text, direction) and not (
             candidate_objective - (accepted_objective + source)
         )
     # A pre-existing mismatch must not prevent an unrelated localized repair. It may
     # improve to the source facts, but it may never introduce a third set of facts.
     return candidate_objective == accepted_objective or (
-        numeric_content_matches(source_text, candidate_text)
+        numeric_content_matches(source_text, candidate_text, direction)
         and not (candidate_objective - source)
     )
 
 
-def _credible_number_facts(text: str) -> Counter[str]:
+def _credible_number_facts(text: str, language: str | None = None) -> Counter[str]:
     """Use the same confidence ordering as ``numeric_content_matches``."""
-    objective = number_tokens(text)
-    return objective if objective else _number_word_tokens(text)
+    objective = number_tokens(text, language)
+    return objective if objective else _number_word_tokens(text, language)
 
 
-def _number_word_tokens(text: str) -> Counter[str]:
+def _number_word_tokens(text: str, language: str | None = None) -> Counter[str]:
     """Return lower-confidence lexical counts used only when both sides expose them."""
+    parser = _number_parser(language)
     visible = unicodedata.normalize("NFKC", _INLINE_MARKER.sub(" ", text)).strip()
+    if parser == "japanese":
+        visible = japanese_as_chinese_numerals(visible)
     masked = list(visible)
     for match in _ENGLISH_ARTICLE_ORDINAL_NOUN.finditer(visible):
         masked[match.start():match.end()] = " " * (match.end() - match.start())
@@ -896,6 +962,9 @@ def _number_word_tokens(text: str) -> Counter[str]:
         _canonical_numeric_fact(_parse_chinese_number(match.group("number")))
         for match in _CHINESE_NUMBER.finditer(visible)
     )
+    if parser in WORD_VALUES:
+        view = _marker_split_view(text, visible)
+        facts.extend(_canonical_numeric_fact(value) for value in WORD_VALUES[parser](view))
     return Counter(facts)
 
 
@@ -932,7 +1001,7 @@ def _ordered_range_fact(start: int | float, end: int | float) -> str:
     return f"range:{_canonical_numeric_fact(start)}:{_canonical_numeric_fact(end)}"
 
 
-def _parse_arabic_match(match: re.Match[str]) -> int | float:
+def _parse_arabic_match(match: re.Match[str]) -> int | float | None:
     value = match.group(0)
     if (
         value.startswith(("-", "+"))
@@ -940,6 +1009,10 @@ def _parse_arabic_match(match: re.Match[str]) -> int | float:
         and _CJK.fullmatch(match.string[match.start() - 1])
     ):
         value = value[1:]
+    if value.replace(",", "").count(".") > 1:
+        # A date or a version (12.03.1915, 1.2.3) is not one number, and its
+        # parts are written in another order or as words in the other language.
+        return None
     return _parse_arabic_number(value)
 
 
@@ -1119,34 +1192,65 @@ def repair_preserves_glossary(
         list(glossary),
         direction,
     )
+    if not direction.legacy:
+        return _repair_keeps_terms(source_visible, accepted_visible, candidate_visible, applicable, direction)
     for entry in applicable:
-        source_term = (
-            entry.english
-            if direction is TranslationDirection.EN_TO_ZH
-            else entry.chinese
-        )
-        target_term = (
-            entry.chinese
-            if direction is TranslationDirection.EN_TO_ZH
-            else entry.english
-        )
+        source_term, target_term = glossary_sides(entry, direction)
         source_count = glossary_term_count(source_visible, source_term)
-        accepted_count = glossary_term_count(accepted_visible, target_term)
+        accepted_count = glossary_term_count(accepted_visible, target_term, direction.target_language)
         if not source_count or not accepted_count:
             continue
-        candidate_count = glossary_term_count(candidate_visible, target_term)
+        candidate_count = glossary_term_count(candidate_visible, target_term, direction.target_language)
         if not accepted_count <= candidate_count <= max(accepted_count, source_count):
             return False
     return True
 
 
-def glossary_term_count(text: str, term: str) -> int:
-    """Count exact glossary terms without matching inside larger Latin words."""
+def _repair_keeps_terms(source: str, accepted: str, candidate: str, applicable, direction) -> bool:
+    """The rule for pairs other than en/zh: a repair keeps a term's count
+    between the source's and the accepted text's, in any approved rendering.
+
+    The en/zh rule (never fewer than the accepted text) refused repairs that
+    brought a count down to the source's: a name the draft wrote three times
+    for the source's once, a noun the target language replaces with a pronoun.
+    It also counted each rendering alone, so changing one approved rendering
+    for another was a loss, and read the source without its inflection.
+    """
+    renderings: dict[str, set[str]] = {}
+    for entry in applicable:
+        source_term, target_term = glossary_sides(entry, direction)
+        renderings.setdefault(source_term, set()).add(target_term)
+    for source_term, targets in renderings.items():
+        source_count = glossary_term_count(source, source_term, direction.source_language)
+        accepted_count = sum(glossary_term_count(accepted, term, direction.target_language) for term in targets)
+        if not source_count or not accepted_count:
+            continue
+        candidate_count = sum(glossary_term_count(candidate, term, direction.target_language) for term in targets)
+        if not min(accepted_count, source_count) <= candidate_count <= max(accepted_count, source_count):
+            return False
+    return True
+
+
+def glossary_term_count(text: str, term: str, language: str | None = None) -> int:
+    """Count exact glossary terms without matching inside larger Latin words.
+
+    With `language`, each word of a term may also carry that language's endings
+    (German "des Käfers" for "Käfer", "der Weiße Hase" for "Weißer Hase"), as
+    its profile allows.
+    """
     if not term:
         return 0
     visible = visible_segment_text(text)
     normalized_term = unicodedata.normalize("NFKC", term)
     escaped = re.escape(normalized_term)
+    rules = profile(language) if language else None
+    if rules is not None and rules.inflection_suffix and rules.word_chars and rules.script_pattern.search(normalized_term):
+        inflected = rules.inflected([re.escape(word) for word in normalized_term.split()], rules.inflection_suffix)
+        pattern = re.compile(
+            rf"(?<![{rules.word_chars}]){inflected}(?![{rules.word_chars}])",
+            flags=re.IGNORECASE,
+        )
+        return len(pattern.findall(visible))
     if _LATIN.search(normalized_term):
         pattern = re.compile(
             rf"(?<![A-Za-z0-9_]){escaped}(?![A-Za-z0-9_])",
@@ -1156,9 +1260,9 @@ def glossary_term_count(text: str, term: str) -> int:
     return visible.count(normalized_term)
 
 
-def glossary_target_matches(text: str, term: str) -> bool:
+def glossary_target_matches(text: str, term: str, language: str | None = None) -> bool:
     """Accept an exact target term or a conservative Chinese demonym stem."""
-    if glossary_term_count(text, term):
+    if glossary_term_count(text, term, language):
         return True
     normalized = unicodedata.normalize("NFKC", term)
     suffix = next(
@@ -1268,19 +1372,21 @@ def _is_bibliographic_identifier(value: str) -> bool:
     )
 
 
+_CLOSING_MARKS = "”’』」»«“\"'）)\\]"
+
+
 def _looks_like_translated_heading(
     source: str, target: str, direction: TranslationDirection
 ) -> bool:
-    if len(source) > 40 or re.search(r"[.!?。！？]$", source):
+    # A sentence ends before its closing quotation mark: “Not I!” and
+    # 『你出去！』 are lines of dialogue, not headings. Nor is a line that
+    # introduces speech (他站起来，两手叉在腰间说：).
+    if len(source) > 40 or re.search(f"[{SENTENCE_END}…:：][{_CLOSING_MARKS}]*$", source):
         return False
-    source_words = re.findall(r"[A-Za-z]+|[\u3400-\u9fff]+", source)
+    source_words = _SCRIPT_RUN.findall(source)
     if not 1 <= len(source_words) <= 4:
         return False
-    return (
-        bool(_CJK.search(target))
-        if direction is TranslationDirection.EN_TO_ZH
-        else bool(_LATIN.search(target))
-    )
+    return bool(profile(direction.target_language).script_pattern.search(target))
 
 
 def _is_glossary_approved_literal(
@@ -1292,8 +1398,7 @@ def _is_glossary_approved_literal(
     source_core = _strip_outer_punctuation(source)
     target_core = _strip_outer_punctuation(target)
     for entry in glossary:
-        approved_source = entry.english if direction is TranslationDirection.EN_TO_ZH else entry.chinese
-        approved_target = entry.chinese if direction is TranslationDirection.EN_TO_ZH else entry.english
+        approved_source, approved_target = glossary_sides(entry, direction)
         if (
             source_core.casefold() == approved_source.casefold()
             and target_core == approved_target

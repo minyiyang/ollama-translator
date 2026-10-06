@@ -184,7 +184,7 @@ class GlossaryChunkTests:
 
         screened, report = screen_glossary_candidates(result, pieces)
 
-        assert [entry.english for entry in screened.entries] == ["Nul"]
+        assert [entry.source for entry in screened.entries] == ["Nul"]
         assert report.rejected_count == 1
         assert report.rejected_reason_counts == {"publication_document_only": 1}
 
@@ -204,7 +204,7 @@ class GlossaryChunkTests:
 
         assert quality.result == "warning"
         assert quality.suspicious_generic_terms == ["qelm"]
-        assert result.entries[0].english == "qelm"
+        assert result.entries[0].source == "qelm"
 
     def test_quality_report_warns_for_oversized_draft(self) -> None:
         result = GlossaryResult(
@@ -249,10 +249,10 @@ class GlossaryChunkTests:
         qelm_batches = [
             batch
             for batch in batches
-            if any(item.english == "Qelm" for item in batch)
+            if any(item.source == "Qelm" for item in batch)
         ]
         assert len(qelm_batches) == 1
-        assert {(item.english, item.chinese) for item in qelm_batches[0]} == {("Qelm", "卡姆"), ("Qelm", "奇尔")}
+        assert {(item.source, item.target) for item in qelm_batches[0]} == {("Qelm", "卡姆"), ("Qelm", "奇尔")}
         assert len(batches) > 1
 
     def test_glossary_allows_preserved_codes_but_not_untranslated_names(self) -> None:
@@ -266,8 +266,8 @@ class GlossaryChunkTests:
             "RND",
             category=GlossaryCategory.ORGANIZATION,
         )
-        assert code.chinese == "ZX-17"
-        assert acronym.chinese == "RND"
+        assert code.target == "ZX-17"
+        assert acronym.target == "RND"
         with pytest.raises(ValueError, match="CJK character"):
             glossary_entry("Riverstone", "Riverstone")
         with pytest.raises(ValueError, match="exact same"):
@@ -464,7 +464,7 @@ class GlossaryChunkTests:
         assert [case["term_id"] for case in cases] == ([
             "A00001", "A00002", "A00003", "A00004"
         ])
-        assert [GlossaryEntry.model_validate(case["entry"]).english for case in deterministic] == ["Qelm Spindle"]
+        assert [GlossaryEntry.model_validate(case["entry"]).source for case in deterministic] == ["Qelm Spindle"]
         assert len(review) == 3
         assert "missing_evidence" in reasons["A00001"]
         assert "low_confidence" in reasons["A00003"]
@@ -506,7 +506,7 @@ class GlossaryMergeTests:
             glossary_entry("Heron", "兔子"),
             glossary_entry("Aster", "阿斯特"),
         ]
-        assert [entry.english for entry in sort_glossary_entries(entries)] == ["Aster", "Heron", "Farshore"]
+        assert [entry.source for entry in sort_glossary_entries(entries)] == ["Aster", "Heron", "Farshore"]
 
     def test_source_precedence_and_same_level_alternatives(self) -> None:
         sources = [
@@ -517,9 +517,9 @@ class GlossaryMergeTests:
             GlossarySource("book", GlossarySourceKind.BOOK, (glossary_entry("Heron", "石鹭"),)),
         ]
         merged = merge_prioritized_sources(sources)
-        aster = [entry.chinese for entry in merged if entry.english.casefold() == "aster"]
+        aster = [entry.target for entry in merged if entry.source.casefold() == "aster"]
         assert aster == ["阿斯提", "阿斯特"]
-        assert "石鹭" in [entry.chinese for entry in merged]
+        assert "石鹭" in [entry.target for entry in merged]
 
 
 class GlossaryFormatTests:
@@ -529,7 +529,7 @@ class GlossaryFormatTests:
             glossary_entry("Farshore", "远岸", category=GlossaryCategory.PLACE, note="地点"),
         ]
         parsed = parse_legacy_glossary(render_legacy_glossary(original))
-        assert [(entry.english, entry.chinese, entry.note, entry.category) for entry in parsed.entries] == [(entry.english, entry.chinese, entry.note, entry.category) for entry in original]
+        assert [(entry.source, entry.target, entry.note, entry.category) for entry in parsed.entries] == [(entry.source, entry.target, entry.note, entry.category) for entry in original]
 
     def test_legacy_parser_rejects_unknown_missing_category_and_bad_entry(self, subtests) -> None:
         cases = (
@@ -551,7 +551,7 @@ class GlossaryFormatTests:
             text_path = Path(directory, "glossary.txt")
             text_path.write_text(render_legacy_glossary(result.entries), encoding="utf-8")
             assert load_glossary_file(json_path).entries == result.entries
-            assert load_glossary_file(text_path).entries[0].english == "Aster"
+            assert load_glossary_file(text_path).entries[0].source == "Aster"
             json_path.write_text("invalid", encoding="utf-8")
             with pytest.raises(GlossaryFormatError):
                 load_glossary_file(json_path)
@@ -562,7 +562,7 @@ class GlossaryHarmonizationTests:
     """Variant spellings of one term must not carry competing mandatory renderings."""
 
     def rendering(self, entries: list[GlossaryEntry], english: str) -> list[str]:
-        return sorted(item.chinese for item in entries if item.english == english)
+        return sorted(item.target for item in entries if item.source == english)
 
     def test_leading_article_variants_share_the_better_supported_rendering(self) -> None:
         entries, report = harmonize_glossary(
@@ -575,7 +575,7 @@ class GlossaryHarmonizationTests:
         assert self.rendering(entries, "Qelm") == ["奇尔"]
         assert report.change_count == 1
         assert report.changes[0].kind == "variant"
-        assert report.changes[0].previous_chinese == "奇尔族"
+        assert report.changes[0].previous_target == "奇尔族"
 
     def test_lowercase_plural_variants_share_one_rendering(self) -> None:
         entries, report = harmonize_glossary(

@@ -1,0 +1,1 @@
+﻿bench-r2-tg-en-ko            en>ko  paused      91.7 min (audit_translation 66.7, translate 15.1, repair_translation 4.1)  segments 145  review queue  2  repaired  44  audit model 52 (high 10)  rules {'glossary': 4, 'mistranslation': 3, 'untranslated': 2}  out of place first/final 0/0  untranslated first/final 0/0  conventions final 0  third script final 0  glossary 43

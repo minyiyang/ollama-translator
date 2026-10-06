@@ -100,7 +100,7 @@ class PreprocessStageTests:
             assert first.replacement_count == 0
             documents = load_preprocessed_documents(workspace)
             assert len(documents) == 1
-            assert [item.english for item in documents[0].relevant_glossary] == ["Chapter One", "Hello"]
+            assert [item.source for item in documents[0].relevant_glossary] == ["Chapter One", "Hello"]
             assert documents[0].segments[0].processed_text == "Chapter One"
             assert documents[0].segments[1].processed_text.startswith("Hello")
             assert load_preprocessing_report(workspace) == first
@@ -249,7 +249,7 @@ class PreprocessStageTests:
             run_preprocessing_stage(workspace, config)
 
             relevant = {
-                entry.english: entry.chinese
+                entry.source: entry.target
                 for entry in load_preprocessed_documents(workspace)[0].relevant_glossary
             }
             assert relevant == {"Cipher Spruce": "\u7532\u672c", "Vector Harbor": "\u4e59\u5171"}

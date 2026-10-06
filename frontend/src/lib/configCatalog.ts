@@ -17,14 +17,22 @@ export type SchemaField = {
 };
 export type SchemaSection = { key: string; title: string; fields: SchemaField[] };
 
-export type CommonOption = { path: string; label: string; help?: string; model?: boolean } | { special: "glossary-review" };
+export type CommonOption =
+  | { path: string; label: string; help?: string; model?: boolean }
+  | { special: "glossary-review" | "language-pair" };
+
+/** The settings a special option writes, for counts of changed and invalid settings. */
+export const SPECIAL_PATHS: Record<"glossary-review" | "language-pair", string[]> = {
+  "glossary-review": ["workflow.require_glossary_review", "workflow.llm_glossary_review"],
+  "language-pair": ["translation.direction", "translation.source_language", "translation.target_language"],
+};
 export type CommonGroup = { title: string; help?: string; options: CommonOption[] };
 
 export const COMMON_GROUPS: CommonGroup[] = [
   {
     title: "Translation",
     options: [
-      { path: "translation.direction", label: "Direction", help: "en-zh translates English into Simplified Chinese; zh-en the reverse." },
+      { special: "language-pair" },
       { path: "translation.style", label: "Prose style", help: "Voice preset for the translation. “custom” uses the style file below." },
       { path: "translation.custom_style_file", label: "Custom style file", help: "Style instructions file, relative to this config. Used only with style “custom”." },
       { path: "translation.boundary_context", label: "Neighbor context", help: "Show the previous and next source segments read-only, for continuity across chunks." },
@@ -52,6 +60,7 @@ export const COMMON_GROUPS: CommonGroup[] = [
       { path: "audit.repair_model", label: "Targeted repair", model: true, help: "Leave empty to use the primary model." },
       { path: "reprose.model", label: "Prose rewrite", model: true },
       { path: "reprose.verifier_model", label: "Rewrite verification", model: true },
+      { path: "translation.model", label: "Translation model", model: true, help: "Translates instead of the primary model, which keeps the glossary and review calls. Leave empty to translate with the primary model." },
       { path: "translation.fallback_models", label: "Fallback models", model: true, help: "Tried in order for passages the primary model could not translate." },
     ],
   },
