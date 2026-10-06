@@ -299,7 +299,8 @@ describe("Jobs page", () => {
       expect(await within(dialog).findByText(BOOK.title)).toBeInTheDocument();
       expect(within(dialog).getByText("Lewis Carroll")).toBeInTheDocument();
       await waitFor(() => expect(within(dialog).getByLabelText("Config file name")).toHaveValue("alice.yaml"));
-      expect(within(dialog).getByLabelText("Job ID")).toHaveValue("alice");
+      // The job id follows the config name a moment later.
+      await waitFor(() => expect(within(dialog).getByLabelText("Job ID")).toHaveValue("alice"));
       expect(within(dialog).getByText("A new alice.yaml is created in configs from default.yaml; you adjust it on the Config tab.")).toBeInTheDocument();
       expect(within(dialog).getByText("Defaults to the config file name. Used as the workspace folder name.")).toBeInTheDocument();
 
@@ -419,7 +420,7 @@ describe("Jobs page", () => {
 
       await user.clear(config);
       await user.type(config, "wonderland.yml");
-      expect(within(dialog).getByLabelText("Job ID")).toHaveValue("wonderland");
+      await waitFor(() => expect(within(dialog).getByLabelText("Job ID")).toHaveValue("wonderland"));
     });
 
     it("keeps a job id the user typed when the config name changes", async () => {
@@ -504,7 +505,7 @@ describe("Jobs page", () => {
       expect(await screen.findByRole("status")).toHaveTextContent("No name could be suggested: the book has no readable title");
       expect(within(dialog).getByLabelText("Config file name")).toHaveValue("");
       await user.type(within(dialog).getByLabelText("Config file name"), "wonderland.yaml");
-      expect(within(dialog).getByLabelText("Job ID")).toHaveValue("wonderland");
+      await waitFor(() => expect(within(dialog).getByLabelText("Job ID")).toHaveValue("wonderland"));
 
       await user.click(within(dialog).getByRole("button", { name: "Create job" }));
       await waitFor(() => expect(api.posted("/api/jobs/new")).toEqual([

@@ -63,23 +63,35 @@ export function ConfigEditor({
   const [changedOnly, setChangedOnly] = useState(false);
   const written = useRef<string | null>(null);
   const dumpSeq = useRef(0);
+  // The values the YAML text holds: what the form goes back to when a change cannot be written.
+  const confirmed = useRef<Values>({});
+  // Whether the text is still being read into the form, and which reading is the latest.
+  const [reading, setReading] = useState(true);
+  const parseSeq = useRef(0);
 
   useEffect(() => { loadSchema().then(setSections).catch((e: Error) => setSchemaFailure(e.message)); }, []);
 
   const fields = useMemo(() => new Map(sections.flatMap((s) => s.fields.map((f) => [f.path, f] as const))), [sections]);
 
-  // Text -> values, unless this text is what the form just wrote.
+  // Text -> values, unless this text is what the form just wrote. Until the
+  // text has been read the form shows defaults, not the file: a change made
+  // then would be lost, or written back without the file's other settings. So
+  // the form waits.
   useEffect(() => {
     if (text === written.current) return;
+    setReading(true);
+    const seq = ++parseSeq.current;
     const handle = window.setTimeout(() => {
       api<{ values: Values | null; syntax_error: SyntaxError_ | null }>("/api/config/parse", { text })
         .then((r) => {
+          if (seq !== parseSeq.current) return;
           setParseFailure("");
           setSyntaxError(r.syntax_error);
-          if (r.values) setValues(r.values);
+          if (r.values) { confirmed.current = r.values; setValues(r.values); }
         })
         // A request failure (server restarted, offline) is not a YAML problem; say so.
-        .catch((e: Error) => setParseFailure(e.message));
+        .catch((e: Error) => { if (seq === parseSeq.current) setParseFailure(e.message); })
+        .finally(() => { if (seq === parseSeq.current) setReading(false); });
     }, 250);
     return () => window.clearTimeout(handle);
   }, [text]);
@@ -114,20 +126,21 @@ export function ConfigEditor({
   const hidden = hiddenOptions(support);
 
   const commit = (next: Values) => {
-    const before = values;
     setValues(next);
     const seq = ++dumpSeq.current;
     api<{ text: string }>("/api/config/dump", { values: next })
       .then((r) => {
         if (seq !== dumpSeq.current) return;
         setWriteFailure("");
+        confirmed.current = next;
         written.current = r.text;
         onTextChange(r.text);
       })
-      // The YAML was not rewritten, so the form goes back to what the YAML says.
+      // The YAML was not rewritten, so the form goes back to what the YAML says:
+      // not to the change before this one, which may never have been written either.
       .catch((e: Error) => {
         if (seq !== dumpSeq.current) return;
-        setValues(before);
+        setValues(confirmed.current);
         setWriteFailure(e.message);
       });
   };
@@ -200,7 +213,7 @@ export function ConfigEditor({
       <div className="control">
         <LanguagePairPicker
           value={pair}
-          disabled={readOnly}
+          disabled={readOnly || reading}
           onChange={(next) =>
             commit(unsetPath(unsetPath(setPath(values, "translation.direction", next), "translation.source_language"), "translation.target_language"))
           }
@@ -241,7 +254,7 @@ export function ConfigEditor({
           <span className="meta">{paths.length} setting{paths.length === 1 ? "" : "s"}</span>
         </button>
         {!closed && (
-          <fieldset disabled={readOnly} className="plain-fieldset group-body">
+          <fieldset disabled={readOnly || reading} className="plain-fieldset group-body">
             {help && <p className="meta">{help}</p>}
             {body}
           </fieldset>

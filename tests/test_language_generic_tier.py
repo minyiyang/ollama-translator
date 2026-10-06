@@ -148,3 +148,16 @@ def test_source_words_are_compared_only_where_nothing_else_tells():
     # A term the glossary keeps as written is not left-over text.
     kept = "the room were in and at"
     assert source_worded_passage(source, f"Był tam, {kept} i tyle.", en_pl) and not source_worded_passage(source, f"Był tam, {kept} i tyle.", en_pl, [kept])
+
+
+def test_a_short_sentence_two_related_languages_share_is_not_rejected():
+    # English and Dutch write this sentence almost alike, and the Dutch is right.
+    en_nl = LanguagePair("en>nl")
+    source, dutch = "Water is water and gas is gas.", "Water is water en gas is gas."
+    assert _codes(dutch, source, en_nl) == []
+    assert source_worded_passage(source, dutch, en_nl, whole=True) == ""
+    # A whole passage handed back with a word changed is still refused.
+    long_source = "She was beginning to get very tired of sitting by her sister on the bank and of having nothing to do."
+    assert _codes(long_source.replace("very", "quite"), long_source, en_nl) == ["untranslated_source_language"]
+    # The audit may still point a sentence like the first one out; it does not reject.
+    assert all("possible untranslated" in message for message in _audit(source, dutch, en_nl))

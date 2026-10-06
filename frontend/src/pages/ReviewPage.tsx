@@ -77,23 +77,28 @@ function CompileCard({ jobId, initial }: { jobId: string; initial?: CompileState
   const toast = useToast();
   const [state, setState] = useState<CompileState | undefined>(initial);
   const timer = useRef<number | undefined>(undefined);
+  // Bumped when the card goes away: an answer that arrives afterwards is dropped and asks for nothing more.
+  const visit = useRef(0);
   const poll = useCallback(async () => {
+    const asked = visit.current;
     let next: CompileState;
     try {
       next = await jobApi<CompileState>(jobId, "review/compile");
     } catch (e) {
+      if (asked !== visit.current) return;
       // Keep following: one failed request does not mean the compile stopped.
       toast("bad", `Could not check the compile: ${(e as Error).message}`, 0);
       timer.current = window.setTimeout(poll, 1500);
       return;
     }
+    if (asked !== visit.current) return;
     setState(next);
     if (next.state === "running") timer.current = window.setTimeout(poll, 1500);
     else if (next.result) toast(next.result.result === "complete" ? "ok" : "warn", `Compile finished: ${next.result.result}`, 0);
   }, [jobId, toast]);
   useEffect(() => {
     if (initial?.state === "running") poll();
-    return () => window.clearTimeout(timer.current);
+    return () => { visit.current += 1; window.clearTimeout(timer.current); };
   }, [initial, poll]);
   const start = async () => {
     try { await jobApi(jobId, "review/compile", {}); poll(); } catch (e) { toast("bad", (e as Error).message, 0); }

@@ -2,7 +2,7 @@ import { act, cleanup, render, screen, waitFor, within } from "@testing-library/
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "../App";
-import { apiError, mockApi } from "../test/mockApi";
+import { apiError, deferred, mockApi } from "../test/mockApi";
 import { jobInfo, stage } from "../test/job";
 
 // -- fixtures -----------------------------------------------------------------
@@ -831,6 +831,45 @@ describe("Final review tab: when the server stumbles", () => {
     expect(await screen.findByText("Compile finished: complete", {}, { timeout: 4000 })).toBeInTheDocument();
     expect(document.querySelector(".compile-log")).toHaveTextContent("EPUB: output/alice.zh.epub");
     expect(button).toBeEnabled();
+  });
+
+  it("stops following a compile once the reviewer leaves, even with a check still on its way", async () => {
+    const check = deferred<unknown>();
+    let polls = 0;
+    reviewApi({
+      [`GET ${BASE}`]: review({ worksheet: null, compile: { state: "running", events: [], result: null } }),
+      [`GET ${BASE}/compile`]: () => {
+        polls += 1;
+        return check.promise;
+      },
+    });
+    await renderReviewTab();
+    await waitFor(() => expect(polls).toBe(1));
+    cleanup(); // the reviewer closes the page
+
+    check.resolve({ state: "running", events: [], result: null }); // the answer arrives after they have gone
+    await new Promise((done) => setTimeout(done, 1800));
+    expect(polls).toBe(1);
+  });
+
+  it("does not try again, or complain, when a check fails after the reviewer has left", async () => {
+    const check = deferred<Response>();
+    let polls = 0;
+    reviewApi({
+      [`GET ${BASE}`]: review({ worksheet: null, compile: { state: "running", events: [], result: null } }),
+      [`GET ${BASE}/compile`]: () => {
+        polls += 1;
+        return check.promise;
+      },
+    });
+    await renderReviewTab();
+    await waitFor(() => expect(polls).toBe(1));
+    cleanup(); // the reviewer closes the page
+
+    check.resolve(apiError("server restarting", 503));
+    await new Promise((done) => setTimeout(done, 1800));
+    expect(polls).toBe(1);
+    expect(screen.queryByText(/Could not check the compile/)).not.toBeInTheDocument();
   });
 
   it("shows the next job's queue, not the error left by the job before it", async () => {

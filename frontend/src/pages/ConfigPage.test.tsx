@@ -330,8 +330,9 @@ describe("Config tab: setting a book up", () => {
     await screen.findByRole("heading", { name: "Configuration" });
     expect(screen.getByRole("button", { name: "Start translation" })).toBeDisabled();
 
-    // Pick the two languages.
+    // Pick the two languages, once the page has read the book's config and lets them be changed.
     const from = await screen.findByRole("combobox", { name: "From language" });
+    await waitFor(() => expect(from).toBeEnabled());
     await user.clear(from);
     await user.type(from, "fr");
     await user.tab();

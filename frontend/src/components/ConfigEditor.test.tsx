@@ -2,7 +2,7 @@ import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { useState } from "react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { apiError, mockApi } from "../test/mockApi";
+import { apiError, deferred, jsonResponse, mockApi } from "../test/mockApi";
 import { ConfigEditor } from "./ConfigEditor";
 
 // The Config tab for any language pair (docs/GENERIC_LANGUAGES.md, phase 4).
@@ -548,6 +548,48 @@ describe("Config editor: when a change cannot be saved to the file", () => {
     await waitFor(() => expect(screen.queryByText(/The change was not written to the YAML/)).not.toBeInTheDocument());
     expect(thinking).toBeChecked();
     expect(lastWritten(api)).toEqual({ ollama: { host: HOST }, translation: { thinking: true } });
+  });
+
+  it("cannot be changed until the file has been read, so no change is made to settings it has not shown yet", async () => {
+    const read = deferred<Response>();
+    const api = formApi({}, { "POST /api/config/parse": () => read.promise });
+    render(<Harness onText={vi.fn()} />);
+    const from = await screen.findByRole("combobox", { name: "From language" });
+    const thinking = within(option("translation.thinking")).getByRole("checkbox");
+    await waitFor(() => expect(api.count("/api/config/parse")).toBe(1));
+    expect(from).toBeDisabled();
+    expect(thinking).toBeDisabled();
+
+    read.resolve(jsonResponse({ values: { ollama: { host: HOST } }, syntax_error: null }));
+    await screen.findByDisplayValue(HOST);
+    expect(from).toBeEnabled();
+    expect(thinking).toBeEnabled();
+    expect(api.posted("/api/config/dump")).toEqual([]);
+  });
+
+  it("goes back to what the file says when two quick changes are both lost", async () => {
+    // The first change is still being written when the second is made; the second cannot be written.
+    const first = deferred<Response>();
+    let writes = 0;
+    formApi({}, {
+      "POST /api/config/dump": () => {
+        writes += 1;
+        return writes === 1 ? first.promise : apiError("server restarting", 503);
+      },
+    });
+    const { user, onText } = await renderEditor();
+    const thinking = within(option("translation.thinking")).getByRole("checkbox");
+    const conventions = within(option("consistency.conventions")).getByRole("checkbox");
+    expect(conventions).toBeChecked(); // on unless the file says otherwise
+    await user.click(thinking);
+    await user.click(conventions);
+    await screen.findByText(/The change was not written to the YAML/);
+    first.resolve(jsonResponse({ text: "translation:\n  thinking: true\n" })); // too late: a newer change replaced it
+
+    // Neither change is in the file, so neither is shown.
+    await waitFor(() => expect(thinking).not.toBeChecked());
+    expect(conventions).toBeChecked();
+    expect(onText).not.toHaveBeenCalled();
   });
 });
 

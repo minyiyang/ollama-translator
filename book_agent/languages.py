@@ -987,6 +987,13 @@ def copied_source_run(source: str, text: str, direction: LanguagePair, approved=
 # left as it was. Cognates and names do not fill a sentence.
 SOURCE_WORDS_MIN = 6
 SOURCE_WORDS_SHARE = 0.8
+# Related languages share whole short sentences: English "Water is water and
+# gas is gas." is Dutch "Water is water en gas is gas." A sentence in the
+# source's words is therefore something for the audit to point out, and the
+# translation contract, which rejects, asks for more: a whole translation of
+# this length with next to no word of its own.
+SOURCE_WORDS_WHOLE_MIN = 12
+SOURCE_WORDS_WHOLE_SHARE = 0.9
 _SENTENCE_END = re.compile(r"(?<=[.!?\u2026\u0964\u06d4;:])\s+|\n+")
 
 
@@ -1025,17 +1032,19 @@ def source_worded_passage(source: str, text: str, direction: LanguagePair, appro
     whose words are the source's, or as many of the source's words in a row
     (the translation changing language in the middle of a sentence). With
     `whole`, the translation is taken as one passage: is it, all of it, still
-    the source? `approved` are glossary renderings, which do not count."""
+    the source? That is asked more strictly, since the answer rejects a
+    translation. `approved` are glossary renderings, which do not count."""
     if not compares_source_words(direction):
         return ""
     cased = profile(direction.source_language).cased
     known = {word for word, _ in _plain_words(source)}
     text = _without_terms(text, approved)
+    least, share = (SOURCE_WORDS_WHOLE_MIN, SOURCE_WORDS_WHOLE_SHARE) if whole else (SOURCE_WORDS_MIN, SOURCE_WORDS_SHARE)
     for passage in [text] if whole else _SENTENCE_END.split(text):
         words = _plain_words(passage)
         # Names stand in any translation as the source has them.
         plain = [word for word, capital in words if not (cased and capital)]
-        if len(plain) >= SOURCE_WORDS_MIN and sum(word in known for word in plain) >= SOURCE_WORDS_SHARE * len(plain):
+        if len(plain) >= least and sum(word in known for word in plain) >= share * len(plain):
             return passage.strip()[:120]
         if whole:
             continue
