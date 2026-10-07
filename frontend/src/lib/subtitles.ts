@@ -35,8 +35,35 @@ export function readingProblems(text: string, cue: Cue | undefined, limits: Read
   if (cue.speakers) {
     // A speaker's line is written with a dash and a space before it, and is not broken again.
     if (length + 2 > limits.line_characters) problems.push(`line too long: ${length + 2} characters, ${limits.line_characters} fit`);
-  } else if (length > limits.lines * limits.line_characters) {
-    problems.push(`does not fit ${limits.lines} lines of ${limits.line_characters}: ${length} characters`);
+  } else {
+    const needed = linesNeeded(text, limits.line_characters);
+    if (needed > limits.lines) problems.push(`does not fit ${limits.lines} lines of ${limits.line_characters}: it needs ${needed}`);
   }
   return problems;
+}
+
+/**
+ * How many lines of `width` characters a cue's text takes when it is broken
+ * between words: fewer characters than two lines hold may still need three,
+ * when no word ends near the middle. Text without spaces breaks anywhere.
+ */
+export function linesNeeded(text: string, width: number): number {
+  const words = text.trim().split(/\s+/).filter(Boolean);
+  let lines = 0;
+  let room = 0;
+  for (const word of words) {
+    if (word.length > width) {
+      // One unbroken stretch longer than a line (a script without spaces): it starts a line and fills as many as it needs.
+      lines += Math.ceil(word.length / width);
+      room = width - (word.length % width || width);
+      continue;
+    }
+    if (lines === 0 || word.length + 1 > room) {
+      lines += 1;
+      room = width - word.length;
+    } else {
+      room -= word.length + 1;
+    }
+  }
+  return lines;
 }

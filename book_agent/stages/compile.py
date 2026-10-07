@@ -21,7 +21,9 @@ from ..pipeline_state import (
     stage_is_current,
 )
 from ..book_formats import CONVERTED_SUFFIXES, EXPORT_FORMATS, export_book
+from ..languages import profile
 from ..rtf import compile_rtf_document
+from .title import load_translated_title
 from ..subtitles import compile_subtitle_file, subtitle_limits
 from ..text_edits import (
     active_edit_texts,
@@ -105,6 +107,7 @@ def run_epub_compile_stage(
                 f"Review report: {report_path or 'not recorded'}. "
                 f"Manual review details: {manual_review_path}"
             )
+        settled_title = load_translated_title(workspace, connection=connection)
         input_hash = build_stage_input_hash(
             {
                 "decompile": str(decompile["output_hash"]),
@@ -123,6 +126,13 @@ def run_epub_compile_stage(
                     config.epub.chapter_heading_labels
                 ),
                 "active_edits": edit_hash,
+                # A book whose title was settled by the title stage is compiled again when that changes.
+                **({"title": settled_title["translated"]} if settled_title["translated"] else {}),
+                **(
+                    {"contents": json.dumps(settled_title["labels"], ensure_ascii=False, sort_keys=True)}
+                    if settled_title["labels"]
+                    else {}
+                ),
                 "stage_version": COMPILE_STAGE_VERSION,
             }
         )
@@ -180,6 +190,10 @@ def run_epub_compile_stage(
                     config.epub.insert_missing_chapter_headings
                 ),
                 chapter_heading_labels=config.epub.chapter_heading_labels,
+                source_language=profile(config.translation.direction.source_language).code,
+                target_language=profile(config.translation.direction.target_language).code,
+                title=(settled_title["source"], settled_title["translated"]),
+                labels=settled_title["labels"],
             )
         )
         report_path = workspace.directory("reports") / f"compile-{input_hash[:16]}.json"

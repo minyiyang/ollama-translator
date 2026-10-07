@@ -133,6 +133,12 @@ export const COMMON_GROUPS: CommonGroup[] = [
     ],
   },
   {
+    title: "Book title",
+    options: [
+      { path: "translation.translated_title", label: "Translated title", help: "The book's title in the language translated into. Left empty, the title follows its passage's translation where it is one, and is translated by one short model call where it is not." },
+    ],
+  },
+  {
     title: "Subtitles",
     help: "Only for a subtitle job (.srt, .vtt, .ass). Left unset, each limit is the usual one for the language translated into: 42 characters a line and 20 a second for most, fewer for Chinese, Japanese, and Korean.",
     options: [

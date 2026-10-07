@@ -133,6 +133,14 @@ def approval_result(
     )
 
 
+
+def make_workspace(base: Path):
+    """A new job on the fixture book, for tests elsewhere to start from.
+    Importing this rather than the class keeps pytest from running the class's
+    tests again in every module that imports it."""
+    return GlossaryStageTests().make_workspace(base)
+
+
 class GlossaryStageTests:
     def make_workspace(self, base: Path):
         epub = make_epub(base / "fixture.epub")

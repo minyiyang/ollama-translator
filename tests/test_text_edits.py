@@ -28,12 +28,12 @@ from book_agent.text_edits import (
     segment_status,
     unresolved_review_gate,
 )
-from tests.test_compile_stages import CompileStageTests, _retarget_pipeline_text
+from tests.test_compile_stages import _retarget_pipeline_text, prepare_workspace
 
 
 def _clean_workspace(directory: Path):
     config = AppConfig.model_validate({"audit": {"semantic_enabled": False}})
-    workspace = CompileStageTests().prepare_workspace(directory, config)
+    workspace = prepare_workspace(directory, config)
     from book_agent.stages.validate_repaired import load_validated_repaired_documents
 
     repaired = load_validated_repaired_documents(workspace)[0]

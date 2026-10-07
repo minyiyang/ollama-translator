@@ -35,6 +35,10 @@ budget:
 
 translation:
   direction: en-zh
+  # The book's title in the target language, for the compiled book. Left out,
+  # the title follows its passage's translation where it is a passage of the
+  # book, and is translated by one short model call where it is not.
+  # translated_title: 爱丽丝梦游仙境
   style: literary
   custom_style_file: null
   preserve_paragraphs: true

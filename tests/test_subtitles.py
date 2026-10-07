@@ -471,18 +471,23 @@ def test_the_audit_of_subtitles_is_given_little_room_to_run_on_and_no_more_after
         assert [issue for audit in load_document_audits(workspace) for issue in audit.issues] == []
 
 
-def test_a_subtitle_job_is_refused_settings_written_for_a_books_prose():
+def test_a_subtitle_job_runs_with_a_books_config_the_prose_rewrite_switched_off():
     from book_agent.cli import build_dry_run_summary
-    from book_agent.subtitles import book_only_problem, book_only_settings
+    from book_agent.subtitles import subtitle_config
 
-    plain = AppConfig()
-    story = AppConfig.model_validate({"consistency": {"story_context": {"enabled": True}, "style_sheet": {"enabled": True}}})
-    assert book_only_settings("film.srt", plain) == [] and book_only_problem("film.srt", plain) == ""
-    assert book_only_settings("book.epub", story) == []  # a book may have them
-    assert book_only_settings("film.srt", story) == ["consistency.story_context.enabled", "consistency.style_sheet.enabled"]
+    # The benchmark configs are written for books: the style sheet on, and for English into Chinese the prose rewrite.
+    book_config = AppConfig.model_validate({
+        "reprose": {"enabled": True},
+        "consistency": {"story_context": {"enabled": True}, "style_sheet": {"enabled": True}},
+    })
+    config, note = subtitle_config("film.vtt", book_config)
+    assert not config.reprose.enabled and "reprose.enabled is switched off for this job" in note
+    assert config.consistency.style_sheet.enabled and config.consistency.story_context.enabled  # left as they are
+    assert book_config.reprose.enabled  # the config given is not changed
+    assert subtitle_config("book.epub", book_config) == (book_config, "")
+    assert subtitle_config("film.vtt", AppConfig()) == (AppConfig(), "")
     with tempfile.TemporaryDirectory() as directory:
         source = Path(directory) / "film.srt"
         source.write_text(SRT, encoding="utf-8")
-        assert build_dry_run_summary(source, plain, Path(directory) / "runs")["job_type"] == "subtitles"
-        with pytest.raises(ValueError, match="are for a book's chapters and prose; set to false for a subtitle job"):
-            build_dry_run_summary(source, story, Path(directory) / "runs")
+        summary = build_dry_run_summary(source, book_config, Path(directory) / "runs")
+        assert summary["job_type"] == "subtitles" and summary["reprose_enabled"] is False and "switched off" in summary["note"]

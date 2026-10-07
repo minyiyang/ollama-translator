@@ -48,6 +48,7 @@ from .stages.compile import (
     write_unresolved_review_report,
 )
 from .stages.decompile import run_decompile_stage
+from .stages.title import run_title_stage
 from .stages.glossary import (
     GlossaryApprovalRequired,
     run_glossary_approval_stage,
@@ -161,6 +162,9 @@ def default_stage_runners() -> dict[WorkflowStage, StageRunner]:
             workspace, config, _require_client(client)
         ),
         WorkflowStage.VALIDATE_REPAIRED: lambda workspace, config, client: run_repaired_validation_stage(
+            workspace, config, client
+        ),
+        WorkflowStage.TRANSLATE_TITLE: lambda workspace, config, client: run_title_stage(
             workspace, config, client
         ),
         WorkflowStage.COMPILE: lambda workspace, config, client: run_document_compile_stage(

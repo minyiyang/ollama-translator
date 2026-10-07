@@ -45,7 +45,7 @@ test.describe("A subtitler works on a film's subtitles", () => {
     const editor = page.getByRole("textbox").first();
     await editor.fill("Alice öffnete um 3 Uhr die kleine Tür und blickte durch den Gang in den schönsten Garten, den man je gesehen hat.");
     await expect(page.getByText(/too long to read in 3\.0 s: \d+ characters, about 60 can be read/)).toBeVisible();
-    await expect(page.getByText(/does not fit 2 lines of 42: \d+ characters/)).toBeVisible();
+    await expect(page.getByText(/does not fit 2 lines of 42: it needs 3/)).toBeVisible();
     await editor.fill("Alice öffnete die kleine Tür um 3 Uhr.");
     await expect(page.getByText(/too long to read|does not fit/)).toHaveCount(0);
   });

@@ -29,7 +29,7 @@ from .pipeline_state import WorkflowStage
 from .ollama_client import GenerationProgressEvent, OllamaClient, PauseRequested
 from .styles import TranslationStyle
 from .book_formats import EXPORT_FORMATS, export_book
-from .subtitles import JOB_SOURCE_NAMES, JOB_SOURCE_SUFFIXES, book_only_problem, job_type
+from .subtitles import JOB_SOURCE_NAMES, JOB_SOURCE_SUFFIXES, job_type, subtitle_config
 from .languages import LanguagePair, language_support
 from .stages.compile import load_compiled_epub_path
 from .schemas import DEFAULT_GLOSSARY_PAIR
@@ -775,9 +775,9 @@ def build_dry_run_summary(source: str | Path, config: AppConfig, runs: str | Pat
     source_format = source_path.suffix.casefold().lstrip(".")
     if source_path.suffix.casefold() not in JOB_SOURCE_SUFFIXES:
         raise ValueError(f"source must be {JOB_SOURCE_NAMES}")
-    if book_only_problem(source_path, config):
-        raise ValueError(book_only_problem(source_path, config))
+    config, note = subtitle_config(source_path, config)
     return {
+        **({"note": note} if note else {}),
         "dry_run": True,
         "source": str(source_path),
         "source_format": source_format,
@@ -1360,8 +1360,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             if args.dry_run:
                 print(format_json(build_dry_run_summary(args.source, config, runs)))
                 return ExitCode.COMPLETE
-            if book_only_problem(args.source, config):
-                raise ValueError(book_only_problem(args.source, config))
+            config, note = subtitle_config(args.source, config)
+            if note:
+                print(note, file=sys.stderr)
             workspace = create_job_workspace(
                 args.source,
                 runs,

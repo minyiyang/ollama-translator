@@ -53,31 +53,23 @@ def job_type(source: str | Path) -> str:
     return "subtitles" if Path(source).suffix.casefold() in SUBTITLE_SUFFIXES else "book"
 
 
-def book_only_settings(source: str | Path, config) -> list[str]:
-    """The settings switched on in `config` that are written for a book's
-    prose and chapters and do nothing useful to subtitle cues; none for a book."""
-    if job_type(source) != "subtitles":
-        return []
-    return [
-        name
-        for name, enabled in (
-            ("consistency.story_context.enabled", config.consistency.story_context.enabled),
-            ("consistency.style_sheet.enabled", config.consistency.style_sheet.enabled),
-            ("reprose.enabled", config.reprose.enabled),
-        )
-        if enabled
-    ]
+SUBTITLE_CONFIG_NOTE = (
+    "reprose.enabled is switched off for this job: the prose rewrite makes literary prose "
+    "of what a subtitle must say briefly"
+)
 
 
-def book_only_problem(source: str | Path, config) -> str:
-    """What to tell someone who starts a subtitle job with book-only settings on, or ""."""
-    names = book_only_settings(source, config)
-    if not names:
-        return ""
-    return (
-        f"{', '.join(names)} {'is' if len(names) == 1 else 'are'} for a book's chapters and prose; "
-        "set to false for a subtitle job"
-    )
+def subtitle_config(source: str | Path, config):
+    """The config a job on `source` runs with, and a note for the person
+    starting it when that differs from the one given ("" otherwise).
+
+    A subtitle job takes any config written for books, the benchmark configs
+    among them. One setting it cannot use: the prose rewrite, which is
+    switched off. The style sheet and the story context are written with
+    books in mind but do a subtitle job no harm, and are left as they are."""
+    if job_type(source) != "subtitles" or not config.reprose.enabled:
+        return config, ""
+    return config.model_copy(update={"reprose": config.reprose.model_copy(update={"enabled": False})}), SUBTITLE_CONFIG_NOTE
 
 
 class SubtitleError(BookFormatError):

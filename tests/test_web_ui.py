@@ -27,8 +27,8 @@ from book_agent.web.jobs import LogTracker, ProgressReader, job_path, list_jobs
 from book_agent.web.server import UiApp, make_handler
 from tests.test_glossary_stages import (
     FakeGlossaryClient,
-    GlossaryStageTests,
     entry,
+    make_workspace,
     resolution_result,
 )
 
@@ -47,7 +47,7 @@ LOG = (
 
 
 def paused_glossary_workspace(base: Path):
-    workspace = GlossaryStageTests().make_workspace(base)
+    workspace = make_workspace(base)
     config = AppConfig.model_validate({"glossary": {"extraction_chunk_tokens": 100}})
     candidates = GlossaryResult(
         entries=[

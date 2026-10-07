@@ -114,6 +114,13 @@ export const STAGE_INFO: Record<string, StageInfo> = {
     checks: "Blocking findings keep a segment in the review queue; nothing is rewritten here.",
     model: "audit.verifier_model (default: audit.model)",
   },
+  translate_title: {
+    does: "Settles the book's title and its table of contents in the language translated into, for the compiled book to carry. The config's translated_title is used when set; a title or a contents entry that is a passage of the book (a title page's heading, a chapter's heading) takes that passage's translation; the others are translated here by short model calls, with the book's translated headings shown to the model. If no model answers, the book keeps them as they were.",
+    input: "The book's title, its table of contents, the glossary, and the validated draft.",
+    output: "The translated title and contents entries (reports/); the stage's message gives the title and how many entries were translated.",
+    checks: "A title is one line, not empty; a contents entry is taken only from a line numbered as that entry. To set the title yourself, put translation.translated_title in the config and rerun from here.",
+    model: "translation.model (default: ollama.model), only for a title or contents entries that are no passage of the book",
+  },
   compile: {
     does: "Rebuilds the EPUB: translated text goes back into the original markup, markers become the original inline elements, all resources are kept.",
     input: "Validated documents and the original package.",

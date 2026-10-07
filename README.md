@@ -28,7 +28,7 @@ decompile
   -> audit_translation -> audit_consistency -> repair_translation
   -> reprose_translation
   -> review_repaired -> repair_review -> validate_repaired
-  -> compile -> validate_epub
+  -> translate_title -> compile -> validate_epub
 ```
 
 Every stage checkpoints its artifacts under `runs/<job-id>/`. `resume` skips
@@ -946,6 +946,16 @@ models for every rejected document:
 
 - `review_repaired`: Gemma reviews all repaired drafts and collects failures.
 - `repair_review`: Qwen repairs the complete collected batch.
+- `translate_title`: settles the book's title in the target language for the
+  compiled book. `translation.translated_title` in the config is used when
+  set; a title that is a passage of the book takes that passage's
+  translation; any other is translated by one short model call. The table of
+  contents is settled here too: an entry that reads the same as a passage (a
+  chapter's heading) follows that passage, and the entries that are no
+  passage of the book ("Chapter 7" for a heading "CHAPTER VII. A Mad
+  Tea-Party") are translated in batches, with the book's translated headings
+  shown to the model. If no model answers, the book keeps its title and
+  those entries as they were, and the stage says so.
 - `validate_repaired`: deterministic checks run over every final draft, while
   Gemma independently verifies only problem segments changed by
   `repair_review`; repairs that already passed review are skipped. Review state

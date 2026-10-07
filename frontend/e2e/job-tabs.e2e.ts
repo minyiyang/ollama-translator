@@ -3,7 +3,9 @@ import { expect, test } from "@playwright/test";
 test.describe("Someone looks into a job that is waiting for them", () => {
   test("learns from Progress why the run stopped and where to go", async ({ page }) => {
     await page.goto("/jobs/alice-german/progress");
-    await expect(page.getByText("15 of 17 stages complete")).toBeVisible();
+    await expect(page.getByText("16 of 18 stages complete")).toBeVisible();
+    // The book's title was no passage of the chapter: the title stage translated it, and says what it chose.
+    await expect(page.getByRole("row", { name: /Translate title/ })).toContainText("Alice im Wunderland");
     await expect(page.getByText(/1 unresolved defect\(s\)/).first()).toBeVisible();
     await expect(page.getByRole("row", { name: /Translate/ }).first()).toContainText("done");
     await page.getByRole("link", { name: "Open final review" }).click();

@@ -7,14 +7,14 @@ from book_agent.hashing import sha256_text
 from book_agent.state import connect_state, get_job_metadata
 from book_agent.text_edits import apply_edit
 from book_agent.xliff_export import CORE_NAMESPACE, METADATA_NAMESPACE, export_xliff
-from tests.test_compile_stages import CompileStageTests
+from tests.test_compile_stages import prepare_workspace
 
 _NS = {"x": CORE_NAMESPACE, "mda": METADATA_NAMESPACE}
 
 
 def _workspace(directory):
     config = AppConfig.model_validate({"audit": {"semantic_enabled": False}})
-    return CompileStageTests().prepare_workspace(Path(directory), config)
+    return prepare_workspace(Path(directory), config)
 
 
 def _unit(root, unit_id):

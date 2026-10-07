@@ -12,7 +12,7 @@ import yaml
 from pydantic import ValidationError
 
 from ..atomic_io import atomic_write_text
-from ..subtitles import JOB_SOURCE_NAMES, JOB_SOURCE_SUFFIXES, book_only_problem
+from ..subtitles import JOB_SOURCE_NAMES, JOB_SOURCE_SUFFIXES
 from ..cli import resolve_config_paths
 from ..config import AppConfig
 from ..languages import LanguagePair, language_catalog, language_support
@@ -127,8 +127,6 @@ def validate_setup(
         problems.append(f"source file not found: {source_path}")
     elif source_path.suffix.casefold() not in JOB_SOURCE_SUFFIXES:
         problems.append(f"source must be {JOB_SOURCE_NAMES}")
-    elif book_only_problem(source_path, config):
-        problems.append(book_only_problem(source_path, config))
     readable = f"{slugify_job_name(source_path.stem)}-{config.translation.direction.slug}" if source else ""
     job = job_id or (readable if readable and not (runs / readable).exists() else build_job_id(source_path) if source else "")
     try:

@@ -114,6 +114,11 @@ class TranslationConfig(StrictModel):
     context_multiplier: float = Field(default=3.0, ge=1.0, le=8.0)
     boundary_context: Literal["none", "adjacent-read-only"] = "none"
 
+    # The book's title in the target language, for the compiled book. Unset, the
+    # title is its passage's translation where it is a passage of the book,
+    # and is translated by one short model call where it is not.
+    translated_title: str | None = Field(default=None, max_length=300)
+
     @model_validator(mode="after")
     def validate_languages(self) -> "TranslationConfig":
         if self.source_language is not None or self.target_language is not None:
@@ -135,7 +140,7 @@ class TranslationConfig(StrictModel):
     def _omit_restated_languages(self, handler):
         data = handler(self)
         if isinstance(data, dict):
-            for key in ("source_language", "target_language", "model"):
+            for key in ("source_language", "target_language", "model", "translated_title"):
                 if data.get(key) is None:
                     data.pop(key, None)
         return data

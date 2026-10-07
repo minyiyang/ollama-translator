@@ -447,3 +447,61 @@ def test_what_is_not_a_readable_pdf_is_refused_with_the_reason():
         broken.write_bytes(b"%PDF-1.7 not really")
         with pytest.raises(BookFormatError, match="broken.pdf"):
             read_book(broken)
+
+
+def test_the_compiled_book_says_it_is_in_the_language_it_was_translated_into():
+    from zipfile import ZipFile
+
+    from tests.epub_fixture import OPF, make_epub
+    from tests.test_compile_stages import CompileStageTests
+
+    config = AppConfig.model_validate({"audit": {"semantic_enabled": False}})  # English into Chinese
+    with tempfile.TemporaryDirectory() as directory:
+        base = Path(directory)
+        # A book named for its first chapter, so that its title is a passage that gets translated.
+        source = make_epub(base / "book.epub", opf=OPF.replace(b"Fixture Book", b"Chapter One"))
+        workspace = CompileStageTests().prepare_workspace(base, config, source=source)
+        run_epub_compile_stage(workspace, config)
+        assert run_epub_validation_stage(workspace).passed
+        with ZipFile(load_compiled_epub_path(workspace)) as archive:
+            package = archive.read("OEBPS/content.opf").decode("utf-8")
+            contents = archive.read("OEBPS/nav.xhtml").decode("utf-8")
+            chapter = archive.read("OEBPS/text/chapter.xhtml").decode("utf-8")
+        # The package: its language, and its title where the title is a passage of the book.
+        assert "<dc:language>zh-Hans</dc:language>" in package and "<dc:language>en</dc:language>" not in package
+        assert "<dc:title>译文。</dc:title>" in package and "<dc:creator>Test Author</dc:creator>" in package
+        # The contents: an entry that is a chapter's heading reads as the heading does now; one that is not stays.
+        assert ">译文。</a>" in contents and ">Part</a>" in contents and "Chapter One" not in contents
+        # The chapter itself is marked as Chinese, for the reader's fonts and voice.
+        assert 'lang="zh-Hans"' in chapter.split(">", 2)[1] + chapter.split(">", 3)[2]
+        # And what is written from the EPUB says the same.
+        assert read_epub(load_compiled_epub_path(workspace)).language == "zh-Hans"
+        word = export_book(load_compiled_epub_path(workspace), base / "book.docx", "docx")
+        assert (read_book(word).language, read_book(word).title) == ("zh-Hans", "译文。")
+
+
+def test_a_phrase_marked_as_another_language_keeps_its_mark():
+    from book_agent.epub_compile import localize_package
+    from book_agent.epub import EpubMetadata, EpubPackageManifest, ChapterDocument
+
+    with tempfile.TemporaryDirectory() as directory:
+        root = Path(directory)
+        (root / "c.xhtml").write_text(
+            '<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="en-GB" lang="en-GB"><head><title>One</title></head>'
+            '<body><p>He said <span lang="fr" xml:lang="fr">au revoir</span>.</p></body></html>', encoding="utf-8",
+        )
+        (root / "plain.xhtml").write_text('<html xmlns="http://www.w3.org/1999/xhtml"><body><p>x</p></body></html>', encoding="utf-8")
+        documents = [
+            ChapterDocument(order=index, manifest_id=name, archive_path=f"{name}.xhtml", media_type="application/xhtml+xml", linear=True, source_sha256="x")
+            for index, name in enumerate(("c", "plain"))
+        ]
+        manifest = EpubPackageManifest(
+            source_sha256="x", opf_path="", package_version="3.0", unique_identifier="x", metadata=EpubMetadata(values={}),
+            manifest_items=[], spine=[], navigation=[], documents=documents, resources=[],
+        )
+        localize_package(root, manifest, [], "en", "de")
+        chapter = (root / "c.xhtml").read_text(encoding="utf-8")
+        assert chapter.startswith('<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="de" lang="de">')
+        assert '<span lang="fr" xml:lang="fr">au revoir</span>' in chapter  # the French stays French
+        # A document that named no language is given the target's.
+        assert (root / "plain.xhtml").read_text(encoding="utf-8").startswith('<html xmlns="http://www.w3.org/1999/xhtml" xml:lang="de" lang="de">')

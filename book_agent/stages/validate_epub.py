@@ -19,6 +19,7 @@ from ..pipeline_state import (
     invalidate_stage_and_dependents,
     stage_is_current,
 )
+from ..languages import profile
 from ..rtf import validate_compiled_rtf
 from ..subtitles import validate_compiled_subtitles
 from ..state import (
@@ -35,6 +36,7 @@ from ..text_edits import overlay_active_edits
 from ..workspace import JobWorkspace
 from .compile import load_compiled_epub_path
 from .decompile import load_decompile_manifest
+from .title import load_translated_title
 from .validate_repaired import load_validated_repaired_documents
 
 
@@ -79,6 +81,7 @@ def run_epub_validation_stage(
             input_hash=input_hash,
         )
         output_path = load_compiled_epub_path(workspace)
+        settled_title = load_translated_title(workspace, connection=connection)
         manifest = load_decompile_manifest(workspace)
         repaired = load_validated_repaired_documents(workspace)
         # Validate against the exact edit snapshot compile consumed, rather
@@ -110,6 +113,10 @@ def run_epub_validation_stage(
                     resolved_config.epub.strip_print_page_markers
                 ),
                 source_package_root=package_root,
+                source_language=profile(resolved_config.translation.direction.source_language).code,
+                target_language=profile(resolved_config.translation.direction.target_language).code,
+                title=(settled_title["source"], settled_title["translated"]),
+                labels=settled_title["labels"],
             )
         )
         report_path = workspace.directory("reports") / f"validate-document-{input_hash[:16]}.json"

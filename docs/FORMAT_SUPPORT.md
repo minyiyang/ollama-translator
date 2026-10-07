@@ -163,9 +163,18 @@ Later trials, and what they changed:
 - **Series and XLIFF.** A finished subtitle job was added to a series and
   exported as XLIFF (230 units, a file for each part of the film).
 
-Not tried: any of the four book formats with a model (the seven sample
-files of `lang_benchmark/make_format_samples.py` are there for that); a
-Word document with pictures; a text file in an encoding other than UTF-8,
+- **A Word document with the models** (English into German): "A Mad
+  Tea-Party" as a `.docx`, 106 passages. It came back as an EPUB and a Word
+  document with the same 106 blocks, the heading, and all nineteen phrases
+  in italics where they belong. Its title and language tag came out as the
+  source's, which that run showed up; the compiled book is now tagged with
+  the target language and titled in it where the title is a passage of the
+  book (docs/GENERIC_LANGUAGES.md, 7.6), and what is exported from it
+  follows.
+
+Not tried: text, Markdown, and HTML with a model (the sample files of
+`lang_benchmark/make_format_samples.py` are there for that); a Word
+document with pictures; a text file in an encoding other than UTF-8,
 UTF-16, GB18030, or CP1252.
 
 ### 6.1 PDF
@@ -208,9 +217,12 @@ paragraph of the EPUB of the same book, and its sixteen chapters were found.
 (Those two files were a publisher's edition with its own terms, and were not
 kept.) Two Google Books scans with a text layer were refused. A PDF saved by
 Word from a short excerpt reads back exactly, and is the sample and the test
-data (`tests/data/sign-of-the-four.pdf`). **Not tried:** a typeset book
-with running heads and hyphenation, two columns, any language but English,
-and a run with a model.
+data (`tests/data/sign-of-the-four.pdf`). That PDF also went through
+the models, English into German, without a person: eight passages in three
+chapters, the word in italics still in italics, and a book titled "Das
+Zeichen der Vier", tagged as German, with its contents in German. **Not
+tried:** a typeset book with running heads and hyphenation, two columns, any
+language but English, and a book-length PDF with a model.
 
 ## 7. Subtitles and game text
 
@@ -234,7 +246,7 @@ Text tab and its edits, XLIFF.
 | Hard limits on length | `ReadingLimits`: characters a line, lines a cue, characters a second, by target language or from `subtitles:` in the config. The audit's new `readability` finding (code `unreadable_subtitle`) says a cue cannot be read in its time or does not fit the screen. Up to 1.3 times the reading speed it is a low finding; beyond, or when the lines do not fit, a medium one that goes to repair and then to review |
 | Timing and markup must survive exactly | The file is kept as the pieces it is made of, and only a cue's text is replaced. Markup around a whole cue is put back around its translation. The validate stage reads the written file back: the same number of cues, each at its time, with its markup and the accepted text |
 | The output is not an EPUB | The compile and validate stages have a third branch beside EPUB and RTF. The output is a file of the kind that went in; there is no export to other formats |
-| The rules for prose misfire | A scene of ten cues with short answers ("Yes.", "Yeah.", a name alone) gave no finding from the existing rules. The translation prompt replaces the config's prose style with one for subtitles. The story context, the style sheet, and the prose rewrite are not adapted and are best left off |
+| The rules for prose misfire | A scene of ten cues with short answers ("Yes.", "Yeah.", a name alone) gave no finding from the existing rules. The translation prompt replaces the config's prose style with one for subtitles. The prose rewrite is switched off for a subtitle job, with a note saying so; the story context and the style sheet are written with books in mind and are left to the config (the Alice run had the style sheet on) |
 | Less context | Not addressed. Who is speaking is not known, apart from a WebVTT voice tag, which is kept but not used |
 
 Where a book has chapters, a subtitle file has parts: a new one after four
@@ -280,10 +292,25 @@ repeats itself until its allowance runs out, which the fixed allowance
 bounds but does not prevent. When the GPU's memory is short the same model
 runs at a fifth of its speed without saying so.
 
-**Not tried:** a whole film's file, a file made by a subtitling tool,
-WebVTT or ASS with a model, and subtitles into Chinese, Japanese, or
-Korean. The reading limits are the published guidelines' as remembered and
-have not been checked against a source or against real translations.
+**The same scene as ASS** (English into German) gave the German of the
+SubRip run, cue for cue, and after the same three cues were shortened it
+compiled to a file with its `[Script Info]` and style sections untouched,
+each `Dialogue` line at its time, italics still `{\i1}...{\i0}`, and lines
+broken with `\N`.
+
+**The same scene as WebVTT into Chinese** (qwen3.8 throughout) completed
+without a person: 214 cues at their times, markup and two-speaker cues
+intact, no line over the 16 characters Chinese is allowed, no cue over two
+lines, and none faster than 8.3 characters a second against the limit of 9.
+The audit found four cues with "muchness" left in English and one that
+needed three lines; repair settled all five. The whole job took under three
+minutes: for English and Chinese the audit model reads only the passages
+the rules pick out, two calls here.
+
+**Not tried:** a whole film's file, a file made by a subtitling tool, and
+subtitles into Japanese or Korean. The reading limits are the published
+guidelines' as remembered and have not been checked against a source; the
+Chinese ones held on this one scene.
 
 ### 7.2 Game text
 

@@ -933,8 +933,25 @@ Left to the models, and so only as good as they are:
   run, apart from the four into Chinese.
 - **Tuned for Chinese only:** the prose rewrite, the character section of the
   consistency report, and the optional quantity audit (English and Chinese).
-- **The compiled EPUB keeps the source's language tag** (`dc:language`,
-  `xml:lang`) for every pair.
+- **The book's title and contents are translated by their own stage, and
+  kept as they were if no model answers.** The compiled EPUB is tagged with
+  the target language (`dc:language`, and `lang` on each translated
+  document; a phrase marked as some third language keeps its mark), and its
+  title, document titles, and table of contents are given in translation
+  (`localize_package`). One that reads the same as a translated passage (a
+  title page's heading, a chapter's heading) takes that passage's
+  translation. The rest are settled by a stage before the compile,
+  `translate_title`. The title: the config's `translation.translated_title`
+  when set, else one short model call with the glossary. The contents
+  entries and document titles that are no passage ("Chapter 7" for a heading
+  "CHAPTER VII. A Mad Tea-Party"): batches of 40 to a call, each with the
+  glossary and the book's headings as the book translated them, answered as
+  a numbered list; a line that is not numbered as an entry is dropped. An
+  entry that is only a number is left alone. If no model answers, the book
+  keeps its title and those entries, and the stage says how many it
+  translated and how to set a title. The validate stage accepts those
+  changes to the package document and the contents, and no others. A job
+  compiled before the stage existed reads as past it.
 - **Token estimates undercount kana**, so a Japanese source may be chunked
   larger than planned.
 - **The glossary is the weakest stage.** Extraction collects ordinary words

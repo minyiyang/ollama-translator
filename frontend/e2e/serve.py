@@ -31,6 +31,7 @@ from book_agent.stages.repair import run_translation_repair_stage  # noqa: E402
 from book_agent.stages.repair_review import run_review_repair_stage  # noqa: E402
 from book_agent.stages.review_repaired import run_repaired_review_stage  # noqa: E402
 from book_agent.stages.translate import run_translation_stage  # noqa: E402
+from book_agent.stages.title import run_title_stage  # noqa: E402
 from book_agent.stages.validate_repaired import run_repaired_validation_stage  # noqa: E402
 from book_agent.subtitles import cue_passages, parse_subtitles  # noqa: E402
 from book_agent.web import serve_ui  # noqa: E402
@@ -115,6 +116,16 @@ class BookTranslator:
         return GenerationResult(content=content, thinking="", metrics=GenerationMetrics(prompt_eval_count=100, eval_count=20))
 
 
+class TitleTranslator:
+    """Answers the title stage: the book's title is no passage of the chapter."""
+
+    def __init__(self, german: bool):
+        self.title = "Alice im Wunderland" if german else "\u7231\u4e3d\u4e1d\u68a6\u6e38\u4ed9\u5883"
+
+    def generate_text(self, prompt, **_):
+        return GenerationResult(content=self.title, thinking="", metrics=GenerationMetrics(prompt_eval_count=20, eval_count=5))
+
+
 class BookAuditor(FakeAuditClient):
     """Answers the audit as a careful reader would: it says so when a passage has the wrong hour."""
 
@@ -165,6 +176,7 @@ def build_job(base: Path, job_id: str, pair: str, wrong_hour: bool = True, book:
         WorkflowStage.REVIEW_REPAIRED: lambda w, c, _: run_repaired_review_stage(w, c, verifier),
         WorkflowStage.REPAIR_REVIEW: lambda w, c, _: run_review_repair_stage(w, c, verifier),
         WorkflowStage.VALIDATE_REPAIRED: lambda w, c, _: run_repaired_validation_stage(w, c, verifier),
+        WorkflowStage.TRANSLATE_TITLE: lambda w, c, _: run_title_stage(w, c, TitleTranslator(german)),
     })
     result = None
     for _ in range(4):

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cueLabel, readingProblems, type Cue } from "./subtitles";
+import { cueLabel, linesNeeded, readingProblems, type Cue } from "./subtitles";
 
 const LIMITS = { line_characters: 42, lines: 2, characters_per_second: 20 };
 const cue = (over: Partial<Cue> = {}): Cue => ({ number: 8, start: "0:00:27", seconds: 1.2, speakers: false, other_characters: 0, ...over });
@@ -22,7 +22,19 @@ describe("a subtitle cue in the dashboard", () => {
 
   it("does not fit when it needs more than its lines hold, however long it is shown", () => {
     const text = "Wenn du nicht anständig sein kannst, solltest du die Geschichte lieber selbst zu Ende erzählen.";
-    expect(readingProblems(text, cue({ seconds: 9 }), LIMITS)).toEqual(["does not fit 2 lines of 42: 95 characters"]);
+    expect(readingProblems(text, cue({ seconds: 9 }), LIMITS)).toEqual(["does not fit 2 lines of 42: it needs 3"]);
+  });
+
+  it("may need three lines for fewer characters than two lines hold, when no word ends near the middle", () => {
+    // 78 characters, and two lines hold 84; but the first line cannot take "beleidigen," and the second cannot take the rest.
+    const text = "Alice wollte die Maus nicht wieder beleidigen, also begann sie sehr vorsichtig";
+    expect(linesNeeded(text, 42)).toBe(3);
+    expect(readingProblems(text, cue({ seconds: 9 }), LIMITS)).toEqual(["does not fit 2 lines of 42: it needs 3"]);
+    expect(linesNeeded("Alice wollte die Maus nicht wieder kränken und begann sehr vorsichtig", 42)).toBe(2);
+    expect(linesNeeded("Danke.", 42)).toBe(1);
+    // Chinese has no spaces to break at: sixteen characters a line, wherever the line ends.
+    expect(linesNeeded("福尔摩斯从壁炉台的角落里拿起他的瓶子，又取出皮下注射器。", 16)).toBe(2);
+    expect(linesNeeded("", 42)).toBe(0);
   });
 
   it("counts both speakers of a cue for its time, and each speaker's line with its dash for its room", () => {

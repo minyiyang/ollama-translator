@@ -27,6 +27,7 @@ from book_agent.languages import (
     scripts_disjoint,
 )
 from book_agent.ollama_client import StructuredOutputError
+from book_agent.stages.title import run_title_stage
 from book_agent.pipeline_state import WorkflowStage
 from book_agent.stages.glossary import load_approved_glossary
 from book_agent.quantities import QuantityAuditResult
@@ -239,6 +240,13 @@ class _Auditor(FakeAuditClient):
         return super().generate_structured(prompt, schema, **kwargs)
 
 
+class _TitleTranslator:
+    def generate_text(self, prompt, **_):
+        from book_agent.ollama_client import GenerationMetrics, GenerationResult
+
+        return GenerationResult(content="\u201cA Title\u201d", thinking="", metrics=GenerationMetrics(prompt_eval_count=10, eval_count=3))
+
+
 def _runners(translated: str) -> dict:
     translator = FakeTranslationClient(translated_text=translated)
     # The audit model reads every segment of these pairs; this one finds nothing wrong.
@@ -260,6 +268,8 @@ def _runners(translated: str) -> dict:
         WorkflowStage.REVIEW_REPAIRED: lambda w, c, _: run_repaired_review_stage(w, c, verifier),
         WorkflowStage.REPAIR_REVIEW: lambda w, c, _: run_review_repair_stage(w, c, verifier),
         WorkflowStage.VALIDATE_REPAIRED: lambda w, c, _: run_repaired_validation_stage(w, c, verifier),
+        # The fixture book's title is no passage of it: the title stage asks the model, once.
+        WorkflowStage.TRANSLATE_TITLE: lambda w, c, _: run_title_stage(w, c, _TitleTranslator()),
     })
     return runners, translator
 

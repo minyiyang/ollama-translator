@@ -81,6 +81,14 @@ def _retarget_pipeline_text(workspace, segment_id: str, new_text: str) -> None:
     raise AssertionError(f"segment not found in the validated draft: {segment_id}")
 
 
+
+def prepare_workspace(base, config, *, unresolved=False, source=None):
+    """A job validated and ready to compile, for tests elsewhere to start from.
+    Importing this rather than the class keeps pytest from running the class's
+    tests again in every module that imports it."""
+    return CompileStageTests().prepare_workspace(base, config, unresolved=unresolved, source=source)
+
+
 class CompileStageTests:
     def prepare_workspace(self, base, config, *, unresolved=False, source=None):
         from tests.test_validate_repaired_stage import (
