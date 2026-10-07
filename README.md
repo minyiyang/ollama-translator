@@ -8,7 +8,7 @@
 
 A local, resumable book-translation pipeline for English-to-Chinese and
 Chinese-to-English literary prose. It takes an EPUB, RTF, text, Markdown,
-HTML, or Word (.docx) file and produces a translated EPUB, which can also be
+HTML, Word (.docx), or text PDF file and produces a translated EPUB, which can also be
 written as Word, HTML, Markdown, or text. It also translates subtitle files
 (.srt, .vtt, .ass), cue by cue, keeping their timing. It runs entirely against local Ollama models: no cloud API,
 no MCP server, and no agent framework such as LangGraph or AutoGen.
@@ -297,7 +297,14 @@ out and an insertion kept. In a text file, a blank line separates
 paragraphs when the lines are wrapped at a fixed width, and otherwise every
 line is a paragraph; a short line such as "Chapter 3" or "第一章" starts a
 chapter. A Word file is read for its heading styles, so a book whose
-headings are only bold text becomes one chapter. PDF is not read.
+headings are only bold text becomes one chapter.
+
+A PDF (`.pdf`) is read too, when it holds text and is not pictures of
+pages. Its paragraphs and headings are put together again from where the
+lines stand on the page and how large the type is, so a book set in two
+columns, or with footnotes and tables, comes out less well than a plain
+novel; look at the Text tab before trusting it. A scanned PDF is refused.
+The translation is an EPUB; nothing is written as PDF.
 [docs/FORMAT_SUPPORT.md](docs/FORMAT_SUPPORT.md) has the design and the
 limits.
 

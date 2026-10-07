@@ -284,7 +284,7 @@ class CliTests:
             rtf.write_bytes(rb"{\rtf1 Zorvak}")
             rtf_summary = build_dry_run_summary(rtf, AppConfig(), root / "runs")
             assert rtf_summary["source_format"] == "rtf"
-            bad = root / "sample.pdf"  # a text file is a book the pipeline reads; a PDF is not
+            bad = root / "sample.mobi"  # a text file is a book the pipeline reads; a Kindle file is not
             bad.write_text("text", encoding="utf-8")
             with pytest.raises(ValueError, match="EPUB"):
                 build_dry_run_summary(bad, AppConfig(), root / "runs")

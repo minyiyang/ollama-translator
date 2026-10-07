@@ -174,7 +174,7 @@ def test_a_text_file_is_read_as_wrapped_paragraphs_or_one_paragraph_a_line():
         with pytest.raises(BookFormatError, match="contains no text"):
             read_book(empty)
         with pytest.raises(BookFormatError, match="cannot read"):
-            read_book(base / "book.pdf")
+            read_book(base / "book.mobi")
 
 
 def test_an_html_book_gives_its_text_without_scripts_styles_or_unsafe_links():
@@ -284,9 +284,9 @@ def test_a_text_file_job_is_named_as_a_source_the_pipeline_takes():
         run_decompile_stage(workspace)
         manifest = load_decompile_manifest(workspace)
         assert [segment.text for segment in manifest.documents[0].segments] == ["CHAPTER I", "Alice was beginning to get very tired."]
-        pdf = base / "alice.pdf"
-        pdf.write_bytes(b"%PDF-1.7")
-        other = create_job_workspace(pdf, base / "runs", AppConfig(), job_id="alice-pdf")
+        kindle = base / "alice.mobi"
+        kindle.write_bytes(b"BOOKMOBI")
+        other = create_job_workspace(kindle, base / "runs", AppConfig(), job_id="alice-mobi")
         with pytest.raises(ValueError, match="a book .EPUB, RTF, text, Markdown, HTML, Word"):
             run_decompile_stage(other)
 
@@ -361,3 +361,89 @@ def test_a_compiled_book_is_written_as_text_markdown_html_and_word():
         assert set(EXPORT_FORMATS) == {"txt", "md", "html", "docx"}
         with pytest.raises(BookFormatError, match="cannot write a book as pdf"):
             export_book(epub, base / "zeichen.pdf", "pdf")
+
+
+def test_a_document_written_in_word_itself_is_read_for_what_a_translator_needs():
+    # Saved by Word: a title, two headings, italics, a footnote, a numbered list, a table,
+    # a comment, a sentence typed with tracked changes on, and a text box.
+    book = read_book(Path(__file__).parent / "data" / "word-authored.docx")
+    assert book.title == "The Sign of the Four"
+    assert [(block.kind, block.html) for block in book.blocks] == [
+        ("h1", "The Sign of the Four"),
+        ("h1", "Chapter I. The Science of Deduction"),
+        ("p", "Sherlock Holmes took his bottle from the corner of the <em>mantelpiece</em> and his hypodermic syringe from its neat morocco case."),
+        ("p", "Three times a day for many months I had witnessed this performance."),
+        ("oli", "the wrist"),
+        ("oli", "the forearm"),
+        ("p", "Agra"), ("p", "1857"), ("p", "Andaman Islands"), ("p", "1878"),  # the table, cell by cell
+        ("h1", "Chapter II. The Statement of the Case"),
+        ("p", "Miss Morstan entered the room with a firm step."),
+        ("p", "She was a blonde young lady, small and dainty."),  # the tracked insertion
+        ("p", "A caption in a text box."),  # once, though Word stores a text box twice
+    ]
+    text = " ".join(block.html for block in book.blocks)
+    assert "seven-per-cent" not in text and "first edition" not in text  # the footnote and the comment are not read
+
+
+def test_a_converted_book_is_tagged_with_the_jobs_source_language_unless_the_file_names_its_own():
+    config = AppConfig.model_validate({"translation": {"direction": "de>en"}})
+    with tempfile.TemporaryDirectory() as directory:
+        base = Path(directory)
+        text = base / "verwandlung.txt"
+        text.write_text("Als Gregor Samsa eines Morgens aus unruhigen Träumen erwachte.\n", encoding="utf-8")
+        page = base / "sign.html"
+        page.write_text("<html lang='en-GB'><body><p>Holmes took his bottle.</p></body></html>", encoding="utf-8")
+        for source, expected in ((text, "de"), (page, "en-GB")):
+            workspace = create_job_workspace(source, base / "runs", config, job_id=source.stem)
+            run_decompile_stage(workspace)
+            assert load_decompile_manifest(workspace).metadata.values["language"] == [expected]
+            chapter = next(workspace.root.rglob("chapter-0001.xhtml")).read_text(encoding="utf-8")
+            assert f'xml:lang="{expected}"' in chapter and "und" not in chapter
+
+
+# "The Sign of the Four", its opening, saved as a PDF by Word: a title, two chapters, a word in italics.
+PDF = Path(__file__).parent / "data" / "sign-of-the-four.pdf"
+
+
+def test_a_pdf_that_holds_text_is_read_as_headings_and_paragraphs():
+    book = read_book(PDF)
+    assert (book.title, book.author) == ("The Sign of the Four", "Arthur Conan Doyle")
+    assert _kinds(book) == ["h1", "h2", "p", "p", "p", "h2", "p", "p"]
+    assert [block.html for block in book.blocks if block.kind != "p"] == [
+        "The Sign of the Four", "Chapter I. The Science of Deduction", "Chapter II. The Statement of the Case",
+    ]
+    # A paragraph set over several lines of the page is one paragraph again, each line joined to the next.
+    first = book.blocks[2].html
+    assert first.startswith("Sherlock Holmes took his bottle from the corner of the mantelpiece, and his hypodermic syringe")
+    assert first.endswith("all dotted and scarred with innumerable puncture-marks.") and "  " not in first
+    assert book.blocks[4].html == "“Which is it to-day,” I asked, “<em>morphine</em> or cocaine?”"
+    assert [chapter[0].html for chapter in split_chapters(book.blocks)][1:] == [
+        "Chapter I. The Science of Deduction", "Chapter II. The Statement of the Case",
+    ]
+
+
+def test_a_pdf_becomes_a_job_with_a_chapter_for_each_of_its_chapters():
+    from book_agent.book_formats import CONVERTED_SUFFIXES
+
+    with tempfile.TemporaryDirectory() as directory:
+        base = Path(directory)
+        source = base / "sign.pdf"
+        source.write_bytes(PDF.read_bytes())
+        workspace = create_job_workspace(source, base / "runs", AppConfig(), job_id="sign")
+        run_decompile_stage(workspace)
+        manifest = load_decompile_manifest(workspace)
+        assert [document.title for document in manifest.documents][1:] == [
+            "Chapter I. The Science of Deduction", "Chapter II. The Statement of the Case",
+        ]
+        segments = [segment.text for document in manifest.documents for segment in document.segments]
+        assert len(segments) == 8 and segments[-1] == "“State your case,” said he, in brisk, business tones."
+    # A PDF is read, never written: its translation is an EPUB, which `book-agent export` writes in other formats.
+    assert CONVERTED_SUFFIXES[".pdf"] not in EXPORT_FORMATS
+
+
+def test_what_is_not_a_readable_pdf_is_refused_with_the_reason():
+    with tempfile.TemporaryDirectory() as directory:
+        broken = Path(directory) / "broken.pdf"
+        broken.write_bytes(b"%PDF-1.7 not really")
+        with pytest.raises(BookFormatError, match="broken.pdf"):
+            read_book(broken)

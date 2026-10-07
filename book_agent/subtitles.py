@@ -45,12 +45,39 @@ _PART_MAX_CUES = 150
 
 # Everything a job can be made from, and the two kinds of job.
 JOB_SOURCE_SUFFIXES = SOURCE_SUFFIXES | set(SUBTITLE_SUFFIXES)
-JOB_SOURCE_NAMES = "a book (EPUB, RTF, text, Markdown, HTML, Word .docx) or a subtitle file (.srt, .vtt, .ass)"
+JOB_SOURCE_NAMES = "a book (EPUB, RTF, text, Markdown, HTML, Word .docx, PDF) or a subtitle file (.srt, .vtt, .ass)"
 
 
 def job_type(source: str | Path) -> str:
     """The kind of job a source file makes: "subtitles" or "book"."""
     return "subtitles" if Path(source).suffix.casefold() in SUBTITLE_SUFFIXES else "book"
+
+
+def book_only_settings(source: str | Path, config) -> list[str]:
+    """The settings switched on in `config` that are written for a book's
+    prose and chapters and do nothing useful to subtitle cues; none for a book."""
+    if job_type(source) != "subtitles":
+        return []
+    return [
+        name
+        for name, enabled in (
+            ("consistency.story_context.enabled", config.consistency.story_context.enabled),
+            ("consistency.style_sheet.enabled", config.consistency.style_sheet.enabled),
+            ("reprose.enabled", config.reprose.enabled),
+        )
+        if enabled
+    ]
+
+
+def book_only_problem(source: str | Path, config) -> str:
+    """What to tell someone who starts a subtitle job with book-only settings on, or ""."""
+    names = book_only_settings(source, config)
+    if not names:
+        return ""
+    return (
+        f"{', '.join(names)} {'is' if len(names) == 1 else 'are'} for a book's chapters and prose; "
+        "set to false for a subtitle job"
+    )
 
 
 class SubtitleError(BookFormatError):
@@ -378,6 +405,35 @@ def inspect_subtitle_file(path: str | Path, source_sha256: str) -> EpubPackageMa
         documents=documents,
         resources=[],
     )
+
+
+def cue_views(source_file: str | Path, documents, texts: dict[str, str]) -> tuple[dict | None, dict[str, dict]]:
+    """For the dashboard: a subtitle job's reading limits, and for each segment
+    its cue: the cue's number, when it starts, its seconds on screen, whether
+    it is one of two speakers' lines, and how many characters the cue's other
+    passages have in `texts` (a cue is read as a whole). `documents` are the
+    job's preprocessed documents; a book has neither limits nor cues."""
+    documents = [document for document in documents if document.cues]
+    if not documents:
+        return None, {}
+    starts = {cue.number: cue.start for cue in read_subtitles(source_file).cues}
+    views: dict[str, dict] = {}
+    for document in documents:
+        by_cue: dict[int, list[str]] = {}
+        for segment_id, (number, _, _) in document.cues.items():
+            by_cue.setdefault(number, []).append(segment_id)
+        for segment_id, (number, seconds, speakers) in document.cues.items():
+            others = [texts.get(other, "") for other in by_cue[number] if other != segment_id]
+            views[segment_id] = {
+                "number": number,
+                "start": format_time(starts.get(number, 0)),
+                "seconds": round(seconds, 1),
+                "speakers": speakers,
+                "other_characters": sum(len(_squeezed(text)) for text in others),
+            }
+    line_characters, lines, characters_per_second = documents[0].reading_limits
+    limits = {"line_characters": line_characters, "lines": lines, "characters_per_second": characters_per_second}
+    return limits, views
 
 
 def cue_of(element_path: str) -> int:

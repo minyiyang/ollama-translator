@@ -20,7 +20,7 @@ from ..pipeline_state import (
     invalidate_stage_and_dependents,
     stage_is_current,
 )
-from ..book_formats import CONVERTED_SUFFIXES, export_book
+from ..book_formats import CONVERTED_SUFFIXES, EXPORT_FORMATS, export_book
 from ..rtf import compile_rtf_document
 from ..subtitles import compile_subtitle_file, subtitle_limits
 from ..text_edits import (
@@ -188,7 +188,7 @@ def run_epub_compile_stage(
         # A book that came as text, Markdown, HTML, or a Word document is also
         # written in the format it came in, next to the EPUB.
         export_format = CONVERTED_SUFFIXES.get(workspace.source_file.suffix.casefold())
-        if export_format:
+        if export_format in EXPORT_FORMATS:  # a PDF is read, never written
             exported = export_book(output_path, output_path.with_suffix(f".{export_format}"), export_format)
             _record_file(connection, workspace, exported, "compiled_export")
         _record_file(connection, workspace, report_path, "epub_compilation_report")

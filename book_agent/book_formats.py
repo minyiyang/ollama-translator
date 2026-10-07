@@ -1,4 +1,4 @@
-"""Books that are not EPUB: plain text, Markdown, HTML, and Word documents.
+"""Books that are not EPUB: plain text, Markdown, HTML, Word documents, and PDFs that hold text.
 
 Reading: each format is read into one simple shape, a list of blocks (a
 heading, a paragraph, a list item, ...) whose text keeps emphasis, links, and
@@ -35,6 +35,7 @@ CONVERTED_SUFFIXES = {
     ".htm": "html",
     ".xhtml": "html",
     ".docx": "docx",
+    ".pdf": "pdf",
 }
 SOURCE_SUFFIXES = {".epub", ".rtf", *CONVERTED_SUFFIXES}
 # What a compiled book can be written as, besides the EPUB it is.
@@ -81,8 +82,10 @@ def read_book(path: str | Path) -> Book:
         raise BookFormatError(f"cannot read a {source.suffix or 'file without a suffix'} as a book")
     if source.stat().st_size > _MAX_SOURCE_BYTES:
         raise BookFormatError(f"{source.name} exceeds the {_MAX_SOURCE_BYTES} byte limit")
-    data = source.read_bytes()
-    if kind == "docx":
+    data = b"" if kind == "pdf" else source.read_bytes()
+    if kind == "pdf":
+        book = _read_pdf(source)
+    elif kind == "docx":
         book = _read_docx(source)
     elif kind == "html":
         book = _read_html(data)
@@ -446,6 +449,21 @@ def _docx_runs(paragraph, links: dict[str, str]) -> str:
     return html
 
 
+_FALLBACK = "{http://schemas.openxmlformats.org/markup-compatibility/2006}Fallback"
+
+
+def _docx_paragraphs(element):
+    """Every paragraph under `element`, in order, a text box's among them.
+    Word writes a text box twice, as a drawing and again as a fallback for
+    programs that cannot draw it; the fallback is passed over."""
+    for child in element:
+        if child.tag == _FALLBACK:
+            continue
+        if child.tag == f"{_W}p":
+            yield child
+        yield from _docx_paragraphs(child)
+
+
 def _docx_list_kinds(archive: zipfile.ZipFile) -> dict[str, str]:
     """Each list of the document (by its numbering id) as li, a bullet list, or oli, a numbered one."""
     numbering = _docx_part(archive, "word/numbering.xml")
@@ -493,7 +511,7 @@ def _read_docx(path: Path) -> Book:
             book.author = (core.findtext(f"{_DC}creator") or "").strip()
             book.language = (core.findtext(f"{_DC}language") or "").strip()
     body = document.find(f"{_W}body")
-    for paragraph in body.iter(f"{_W}p") if body is not None else []:
+    for paragraph in _docx_paragraphs(body) if body is not None else []:
         spaced = _docx_runs(paragraph, links)
         html = spaced.strip()
         if not html:
@@ -533,6 +551,240 @@ def _read_docx(path: Path) -> Book:
             html = re.sub(r"</?strong>", "", html)  # a heading's bold is its style, not emphasis
         book.blocks.append(Block(kind, html))
     return book
+
+
+@dataclass
+class _PdfLine:
+    page: int
+    x0: float
+    x1: float
+    top: float  # y of the line's top edge; larger is higher on the page
+    size: float
+    html: str  # the line's text, with what is set in italics or bold marked
+    text: str
+    margin: bool = False  # in the top or bottom band of its page
+
+
+_ITALIC_FONT = re.compile(r"italic|oblique", re.IGNORECASE)
+_BOLD_FONT = re.compile(r"bold|black|heavy", re.IGNORECASE)
+_SENTENCE_STOP = re.compile(r"[.!?:;…\"'”’»)\]。！？：；」』）]\s*$")
+
+
+def _pdf_lines(path: Path) -> tuple[list[_PdfLine], int, int]:
+    """Every line of text in the PDF, in reading order; its number of pages;
+    and how many of them are a picture of a page (one image over most of it)."""
+    try:
+        from pdfminer.high_level import extract_pages
+        from pdfminer.layout import LAParams, LTAnno, LTChar, LTFigure, LTImage, LTTextContainer, LTTextLine
+        from pdfminer.pdfparser import PDFSyntaxError
+    except ImportError as error:  # the library is a dependency of the package; say so if it is missing
+        raise BookFormatError("reading a PDF needs the pdfminer.six package: pip install pdfminer.six") from error
+    lines: list[_PdfLine] = []
+    pages = pictures = 0
+    try:
+        for pages, page in enumerate(extract_pages(str(path), laparams=LAParams()), start=1):
+            pictures += any(
+                isinstance(item, (LTFigure, LTImage)) and item.width * item.height > page.width * page.height * 0.7
+                for item in page
+            )
+            for box in page:
+                if not isinstance(box, LTTextContainer):
+                    continue
+                for line in box:
+                    if not isinstance(line, LTTextLine):
+                        continue
+                    runs: list[tuple[str, bool, bool]] = []
+                    sizes: dict[float, int] = {}
+                    for item in line:
+                        if isinstance(item, LTChar):
+                            style = (bool(_ITALIC_FONT.search(item.fontname)), bool(_BOLD_FONT.search(item.fontname)))
+                            sizes[round(item.size, 1)] = sizes.get(round(item.size, 1), 0) + 1
+                        elif isinstance(item, LTAnno):
+                            style = runs[-1][1:] if runs else (False, False)
+                        else:
+                            continue
+                        character = item.get_text()
+                        if runs and runs[-1][1:] == style:
+                            runs[-1] = (runs[-1][0] + character, *style)
+                        else:
+                            runs.append((character, *style))
+                    text = re.sub(r"\s+", " ", "".join(run[0] for run in runs)).strip()
+                    if not text or not sizes:
+                        continue
+                    html = ""
+                    for piece, italic, bold in runs:
+                        piece = escape(re.sub(r"\s+", " ", piece), quote=False)
+                        if piece.strip() and italic:
+                            piece = f"<em>{piece}</em>"
+                        if piece.strip() and bold:
+                            piece = f"<strong>{piece}</strong>"
+                        html += piece
+                    lines.append(
+                        _PdfLine(
+                            page=pages,
+                            x0=line.x0,
+                            x1=line.x1,
+                            top=line.y1,
+                            size=max(sizes, key=sizes.get),
+                            html=re.sub(r"\s+", " ", html).strip(),
+                            text=text,
+                            margin=line.y1 > page.height * 0.93 or line.y0 < page.height * 0.07,
+                        )
+                    )
+    except (PDFSyntaxError, ValueError, KeyError, TypeError) as error:
+        raise BookFormatError(f"{path.name} is not a PDF this can read: {error}") from error
+    return lines, pages, pictures
+
+
+def _common(values: list[float], step: float = 1.0) -> float:
+    """The value most of `values` are near."""
+    counts: dict[float, int] = {}
+    for value in values:
+        key = round(value / step) * step
+        counts[key] = counts.get(key, 0) + 1
+    return max(counts, key=counts.get) if counts else 0.0
+
+
+def _without_running_heads(lines: list[_PdfLine], pages: int) -> list[_PdfLine]:
+    """The lines without page numbers and the title repeated at the top or
+    bottom of the pages: what stands in a page's margin band and comes back,
+    digits aside, on a quarter of the pages."""
+    seen: dict[str, set[int]] = {}
+    for line in lines:
+        if line.margin:
+            seen.setdefault(re.sub(r"\d+", "#", line.text.casefold()), set()).add(line.page)
+    repeated = {key for key, where in seen.items() if len(where) >= max(3, pages // 4)}
+    return [
+        line
+        for line in lines
+        if not (line.margin and (re.sub(r"\d+", "#", line.text.casefold()) in repeated or re.fullmatch(r"[\divxlc\s.\-–—]+", line.text.casefold())))
+    ]
+
+
+def _read_pdf(path: Path) -> Book:
+    """A PDF that holds text (not pictures of pages) as headings and paragraphs.
+
+    A PDF has no paragraphs, only lines at places on a page. They are put
+    together again from how a book is set: a new paragraph where a line is
+    indented or follows a wider gap than the lines of a paragraph have, a
+    heading where the type is larger. Running heads and page numbers are left
+    out, and a word divided at the end of a line is joined."""
+    lines, pages, pictures = _pdf_lines(path)
+    if sum(len(line.text) for line in lines) < 40 * max(pages, 1):
+        raise BookFormatError(
+            f"{path.name} has almost no text in it: it looks like scanned pages, which need OCR first"
+        )
+    if pictures * 2 > pages:
+        # A scan with the text a machine read off it laid underneath: that
+        # text has the machine's misreadings and no paragraphs to find.
+        raise BookFormatError(
+            f"{path.name} is scanned pages ({pictures} of {pages} are pictures of a page); "
+            "a scanned PDF is not read, even with a text layer under the pictures"
+        )
+    lines = _without_running_heads(lines, pages)
+    body = _common([line.size for line in lines for _ in range(len(line.text))], step=0.1)
+    plain = [line for line in lines if abs(line.size - body) <= body * 0.06]
+    left = _common([line.x0 for line in plain])
+    right = max((line.x1 for line in plain), default=0.0)
+    gaps = [
+        before.top - after.top
+        for before, after in zip(plain, plain[1:])
+        if before.page == after.page and 0 < before.top - after.top < body * 3
+    ]
+    gap = _common(gaps, step=0.5) or body * 1.2
+    indented = sum(line.x0 > left + body * 0.5 for line in plain) >= len(plain) * 0.03
+    # Words of the book as they stand whole in a line, to tell "exam-/ple" from "three-/dimensional".
+    words = {word.casefold() for line in lines for word in re.findall(r"[^\W\d_]+(?:-[^\W\d_]+)*", line.text)}
+
+    paragraphs: list[list[_PdfLine]] = []
+    for line in lines:
+        previous = paragraphs[-1][-1] if paragraphs else None
+        if previous is None:
+            new = True
+        elif abs(line.size - previous.size) > body * 0.08:
+            new = True  # the type changes: into or out of a heading
+        elif line.page == previous.page and previous.top - line.top > gap * 1.2 * max(1.0, line.size / body):
+            new = True  # more room than between the lines of a paragraph (larger type has more of its own)
+        elif line.page == previous.page and line.top > previous.top:
+            new = True  # further up the page: another column or a box
+        elif abs(line.size - body) <= body * 0.08 and line.x0 > left + body * 0.5 and line.x0 > previous.x0 + body * 0.5:
+            new = True  # a first line set in (a heading's lines are centred, each where it falls)
+        elif not indented and previous.x1 < right - body * 4 and _SENTENCE_STOP.search(previous.text):
+            new = True  # no indents in this book: a short line that ends a sentence ends a paragraph
+        else:
+            new = False
+        if new:
+            paragraphs.append([line])
+        else:
+            paragraphs[-1].append(line)
+
+    larger = sorted({round(group[0].size, 1) for group in paragraphs if group[0].size > body * 1.15}, reverse=True)
+    blocks: list[Block] = []
+    for group in paragraphs:
+        html = group[0].html
+        for before, line in zip(group, group[1:]):
+            divided = re.search(r"([^\W\d_]+)-$", before.text)
+            first = re.match(r"[^\W\d_]+", line.text)
+            if divided and first and first.group(0)[:1].islower():
+                whole = (divided.group(1) + first.group(0)).casefold()
+                kept = f"{divided.group(1)}-{first.group(0)}".casefold()
+                # Joined without its hyphen when the book has that word whole and not the hyphenated one.
+                html = html[:-1] + line.html if whole in words and kept not in words else html + line.html
+            elif before.text.endswith("-") or (_UNSPACED.match(before.text[-1:]) and _UNSPACED.match(line.text[:1])):
+                html += line.html
+            else:
+                html += " " + line.html
+        for tag in ("em", "strong"):
+            html = re.sub(rf"</{tag}>(\s*)<{tag}>", r"\1", html)
+        html = re.sub(r"\s+", " ", html)
+        text = _plain(html).strip()
+        size = round(group[0].size, 1)
+        if size in larger and len(text) <= 200:
+            kind = f"h{min(larger.index(size) + 1, 6)}"
+            html = re.sub(r"</?(?:strong|em)>", "", html)
+        elif len(group) == 1 and len(text) <= 80 and _CHAPTER_HEADING.match(text):
+            kind = "h2"
+            html = re.sub(r"</?(?:strong|em)>", "", html)
+        else:
+            kind = "p"
+        blocks.append(Block(kind, html.strip()))
+
+    # A contents page names every chapter before the chapter does: of two
+    # headings that read the same, the later one is the heading.
+    last = {_plain(block.html).casefold().strip(): index for index, block in enumerate(blocks) if block.kind != "p"}
+    blocks = [
+        Block("p", block.html) if block.kind != "p" and last[_plain(block.html).casefold().strip()] != index else block
+        for index, block in enumerate(blocks)
+    ]
+    book = Book(blocks=blocks)
+    try:
+        book.title, book.author = pdf_title_and_author(path)
+    except BookFormatError:
+        pass  # the title is a nicety; the text has been read
+    return book
+
+
+def pdf_title_and_author(path: str | Path) -> tuple[str, str]:
+    """The title and author a PDF records about itself; "" for what it does not."""
+    try:
+        from pdfminer.pdfdocument import PDFDocument
+        from pdfminer.pdfparser import PDFParser
+    except ImportError as error:
+        raise BookFormatError("reading a PDF needs the pdfminer.six package: pip install pdfminer.six") from error
+
+    def field(info: dict, name: str) -> str:
+        value = info.get(name, b"")
+        if isinstance(value, bytes):
+            value = value.decode("utf-16" if value.startswith((b"\xfe\xff", b"\xff\xfe")) else "latin-1", errors="replace")
+        return str(value).strip()
+
+    try:
+        with Path(path).open("rb") as handle:
+            for info in PDFDocument(PDFParser(handle)).info:
+                return field(info, "Title"), field(info, "Author")
+    except Exception as error:  # noqa: BLE001 - whatever is wrong with the file, it has no title to give
+        raise BookFormatError(f"{Path(path).name} is not a PDF this can read: {error}") from error
+    return "", ""
 
 
 # -- the EPUB package a converted book becomes ---------------------------------------------------

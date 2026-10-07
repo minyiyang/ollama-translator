@@ -28,6 +28,7 @@ from ..text_edits import (
     unresolved_review_gate,
 )
 from ..translation import TranslatedDocument
+from ..subtitles import cue_views
 from ..workspace import JobWorkspace
 from ..stages.audit import load_document_audits
 from ..stages.audit_consistency import load_consistency_issues
@@ -343,6 +344,7 @@ def text_chapter(workspace: JobWorkspace, document_id: str) -> dict[str, Any]:
         if translation is not None
         else {}
     )
+    reading, cues = cue_views(workspace.source_file, [source], translated_by_id)
     segments = []
     for segment in source.segments:
         pipeline_text = translated_by_id.get(segment.segment_id, "")
@@ -368,9 +370,12 @@ def text_chapter(workspace: JobWorkspace, document_id: str) -> dict[str, Any]:
                 "flagged": flagged,
                 "in_review_queue": segment.segment_id in review_queue_ids,
                 "last_edit": _last_edit_summary(status.last_event),
+                # A subtitle job: the passage's cue. A book's passage has none.
+                **({"cue": cues[segment.segment_id]} if segment.segment_id in cues else {}),
             }
         )
     return {
+        **({"reading": reading} if reading else {}),
         "document_id": document_id,
         "title": chapter.title if chapter is not None else document_id,
         "order": source.order,

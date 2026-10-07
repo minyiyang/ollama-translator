@@ -22,7 +22,9 @@ from .manual_review import (
 )
 from .pipeline_state import WorkflowStage
 from .stages.compile import load_compiled_epub_path
-from .stages.validate_repaired import load_repaired_validation_report
+from .stages.preprocess import load_preprocessed_documents
+from .stages.validate_repaired import load_repaired_validation_report, load_validated_repaired_documents
+from .subtitles import cue_views, job_type
 from .state import connect_state, get_stage_status
 from .text_edits import current_draft_revision
 from .workflow import (
@@ -70,7 +72,20 @@ class ReviewSession:
                         }
                     )
         context = {item["segment_id"]: item for item in segments.get("segments", [])}
+        reading = None
+        if context and job_type(self.workspace.source_file) == "subtitles":
+            # A subtitle job: each passage's cue, so an edit can be checked for its time and room as it is typed.
+            draft_texts = {
+                segment.segment_id: segment.translated_text
+                for document in load_validated_repaired_documents(self.workspace)
+                for segment in document.document.segments
+            }
+            reading, cues = cue_views(self.workspace.source_file, load_preprocessed_documents(self.workspace), draft_texts)
+            for segment_id, item in context.items():
+                if segment_id in cues:
+                    item["cue"] = cues[segment_id]
         return {
+            **({"reading": reading} if reading else {}),
             "worksheet": worksheet,
             "context": context,
             "stale": stale,

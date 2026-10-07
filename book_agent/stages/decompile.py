@@ -15,7 +15,9 @@ from ..epub import (
     safe_extract_epub,
 )
 from ..book_formats import CONVERTED_SUFFIXES, read_book, write_source_package
+from ..config import AppConfig
 from ..hashing import sha256_file
+from ..languages import profile
 from ..subtitles import JOB_SOURCE_NAMES, SUBTITLE_SUFFIXES, inspect_subtitle_file
 from ..rtf import inspect_rtf_document
 from ..pipeline_state import (
@@ -49,14 +51,27 @@ def render_document_segments(document: ChapterDocument) -> str:
     ) + ("\n" if document.segments else "")
 
 
+def _source_language(workspace: JobWorkspace) -> str:
+    """The job's source language as a language tag, or "" when the job has no readable config."""
+    try:
+        config = AppConfig.model_validate_json(workspace.config_file.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return ""
+    return profile(config.translation.direction.source_language).code
+
+
 def run_decompile_stage(workspace: JobWorkspace) -> EpubPackageManifest:
     """Inspect and atomically publish the source book's document inventory."""
     connection = connect_state(workspace.state_file)
     try:
         initialize_state(connection)
         source_hash = sha256_file(workspace.source_file)
+        converted = workspace.source_file.suffix.casefold() in CONVERTED_SUFFIXES
+        # A text, Markdown, HTML, or Word file seldom says what language it is
+        # in; the job does. An EPUB says so itself, and its hash is as it was.
+        language = _source_language(workspace) if converted else ""
         input_hash = build_stage_input_hash(
-            {"source": source_hash, "stage_version": DECOMPILE_STAGE_VERSION}
+            {"source": source_hash, "stage_version": DECOMPILE_STAGE_VERSION, **({"language": language} if converted else {})}
         )
         if stage_is_current(
             connection,
@@ -97,7 +112,9 @@ def run_decompile_stage(workspace: JobWorkspace) -> EpubPackageManifest:
             elif source_format in CONVERTED_SUFFIXES:
                 # Text, Markdown, HTML, Word: written as an EPUB package, and an EPUB from here on.
                 package_root = staging / "package"
-                write_source_package(read_book(workspace.source_file), package_root, source_hash)
+                book = read_book(workspace.source_file)
+                book.language = book.language or language
+                write_source_package(book, package_root, source_hash)
                 manifest = inspect_epub_package(package_root, source_hash)
             else:
                 raise ValueError(f"source must be {JOB_SOURCE_NAMES}")

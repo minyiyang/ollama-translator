@@ -1424,8 +1424,9 @@ def _audit_reading(source: PreprocessedDocument, translated: TranslatedDocument)
     for number, passages in by_cue.items():
         duration, speakers = seconds[number]
         texts = [text for _, text in passages]
-        lines = texts if speakers else wrap_cue(" ".join(texts), limits)
-        count = sum(len("".join(line.split())) for line in lines)
+        # Each speaker's line is written with a dash and a space before it.
+        lines = [f"- {text}" for text in texts] if speakers else wrap_cue(" ".join(texts), limits)
+        count = sum(len("".join(text.split())) for text in texts)
         # The finding goes to the cue's longest passage: that is the one to shorten.
         segment_id = max(passages, key=lambda passage: len(passage[1]))[0]
         if duration > 0 and count > limits.characters_per_second * duration:
@@ -1438,7 +1439,8 @@ def _audit_reading(source: PreprocessedDocument, translated: TranslatedDocument)
                 f"where about {int(limits.characters_per_second * duration)} can be read; say it more briefly",
                 UNREADABLE_SUBTITLE,
             ))
-        elif len(lines) > limits.lines or any(len(line) > limits.line_characters for line in lines):
+        # Its room is another matter than its time: a cue may fail either, or both.
+        if len(lines) > limits.lines or any(len(line) > limits.line_characters for line in lines):
             issues.append(_issue(
                 segment_id,
                 AuditCategory.READABILITY,

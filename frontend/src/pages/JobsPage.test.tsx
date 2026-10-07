@@ -338,13 +338,13 @@ describe("Jobs page", () => {
       expect(api.requested("/api/uploads?name=crusoe.RTF")).toBe(true);
     });
 
-    it("refuses a PDF, which is not a book it can read, without uploading it", async () => {
+    it("refuses a Kindle file, which is not a book it can read, without uploading it", async () => {
       const api = jobsApi();
       const user = renderJobs();
       const dialog = await openDialog(user);
-      fireEvent.drop(within(dialog).getByText(/Drop a book .* or a subtitle file .* here, or/), { dataTransfer: { files: [new File(["x"], "notes.pdf")] } });
+      fireEvent.drop(within(dialog).getByText(/Drop a book .* or a subtitle file .* here, or/), { dataTransfer: { files: [new File(["x"], "notes.mobi")] } });
 
-      expect(await screen.findByRole("status")).toHaveTextContent("Choose a book (EPUB, RTF, text, Markdown, HTML, Word .docx) or a subtitle file (.srt, .vtt, .ass).");
+      expect(await screen.findByRole("status")).toHaveTextContent("Choose a book (EPUB, RTF, text, Markdown, HTML, Word .docx, PDF) or a subtitle file (.srt, .vtt, .ass).");
       expect(api.calls.some((c) => c.path.startsWith("/api/uploads"))).toBe(false);
       expect(within(dialog).getByText(/Drop a book .* or a subtitle file .* here, or/)).toBeInTheDocument();
     });
@@ -586,14 +586,14 @@ describe("Jobs page: a translator's day", () => {
     expect(window.location.pathname).toBe("/jobs/sign-of-four-en-de/glossary");
   });
 
-  it("drops a PDF by mistake, is told what the page takes, and drops the EPUB instead", async () => {
+  it("drops a Kindle file by mistake, is told what the page takes, and drops the EPUB instead", async () => {
     const api = signApi();
     const user = renderJobs();
     const dialog = await openDialog(user);
     const zone = within(dialog).getByText(/Drop a book .* or a subtitle file .* here, or/);
 
-    fireEvent.drop(zone, { dataTransfer: { files: [new File(["%PDF"], "the-sign-of-the-four.pdf")] } });
-    expect(await screen.findByRole("status")).toHaveTextContent("Choose a book (EPUB, RTF, text, Markdown, HTML, Word .docx) or a subtitle file (.srt, .vtt, .ass).");
+    fireEvent.drop(zone, { dataTransfer: { files: [new File(["BOOKMOBI"], "the-sign-of-the-four.mobi")] } });
+    expect(await screen.findByRole("status")).toHaveTextContent("Choose a book (EPUB, RTF, text, Markdown, HTML, Word .docx, PDF) or a subtitle file (.srt, .vtt, .ass).");
     expect(within(dialog).getByRole("button", { name: "Create job" })).toBeDisabled();
 
     fireEvent.drop(zone, { dataTransfer: { files: [signEpub()] } });

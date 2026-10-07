@@ -10,6 +10,7 @@ import { Chip } from "../components/ui";
 import { ImportPreviewCard, LastImportCard } from "../components/XliffImport";
 import { diffChars } from "../lib/diff";
 import { xliffExportUrl } from "../lib/format";
+import { cueLabel, readingProblems, type Cue, type ReadingLimits } from "../lib/subtitles";
 import { FALLBACK_PAIR, langAttr, pairCodes } from "../lib/languages";
 import { matchesTextQuery, matchesTextView, retainTextDocumentId, textRowClass, type TextView } from "../lib/text";
 import {
@@ -59,8 +60,14 @@ type Segment = {
   flagged: boolean;
   in_review_queue: boolean;
   last_edit: LastEdit | null;
+  /** A subtitle job: the cue this passage belongs to. */
+  cue?: Cue;
 };
-type ChapterDetail = { document_id: string; title: string; order: number; editable: boolean; segments: Segment[] };
+type ChapterDetail = {
+  document_id: string; title: string; order: number; editable: boolean; segments: Segment[];
+  /** A subtitle job: what fits a cue and can be read in its time. */
+  reading?: ReadingLimits;
+};
 type EditEvent = {
   event_id: string;
   at: string;
@@ -503,6 +510,9 @@ export function TextPage() {
           <div className="row">
             <button className="small" onClick={() => setEditText(segment.pipeline_text)}>Reset to pipeline text</button>
             <span className="meta">{[...editText].length} chars</span>
+            {readingProblems(editText, segment.cue, detail?.reading).map((problem) => (
+              <span key={problem} className="lint">{problem}</span>
+            ))}
             <span className="meta"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> save · <kbd>Esc</kbd> cancel · <kbd>Alt</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd> move</span>
           </div>
           {checkResult && (checkResult.hard.length > 0 || checkResult.overridable.length > 0) && (
@@ -799,7 +809,10 @@ export function TextPage() {
                           key={segment.segment_id}
                           className={textRowClass(segment)}
                         >
-                          <td className="sid mono">{segment.segment_id}</td>
+                          <td className="sid mono">
+                            {segment.segment_id}
+                            {segment.cue && <div className="meta" title={`Cue ${segment.cue.number}: when it comes on screen, and for how long`}>{cueLabel(segment.cue)}</div>}
+                          </td>
                           <td lang={sourceLang}>{segment.source}</td>
                           <td lang={targetLang}>
                             {outline.editable ? (

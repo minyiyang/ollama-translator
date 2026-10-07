@@ -10,6 +10,7 @@ import pytest
 
 from book_agent.audit import AuditCategory, AuditIssue, AuditSeverity
 from book_agent.config import AppConfig
+from book_agent.languages import LanguagePair
 from book_agent.ollama_client import GenerationMetrics, GenerationResult
 from book_agent.stages.audit import load_document_audits, run_translation_audit_stage
 from book_agent.stages.compile import load_compiled_epub_path, run_epub_compile_stage
@@ -213,16 +214,47 @@ def test_the_audit_finds_a_cue_that_cannot_be_read_in_its_time():
         # One cue says far more than can be read in its second on screen. The short
         # answers the two languages share ("Ja." twice, "Watson!") are not findings.
         issues = [issue for audit in load_document_audits(workspace) for issue in audit.issues]
+        # It is found twice over: for its time, and for the three lines it would need.
         assert [(issue.segment_id, issue.category, issue.severity, issue.code) for issue in issues] == [
             ("D0000-S000008", AuditCategory.READABILITY, AuditSeverity.MEDIUM, "unreadable_subtitle"),
+            ("D0000-S000008", AuditCategory.READABILITY, AuditSeverity.MEDIUM, "unreadable_subtitle"),
         ]
-        assert issues[0].message.startswith("subtitle is too long to read in its time: 98 characters in 1.2 seconds, where about 24")
+        messages = sorted(issue.message for issue in issues)
+        assert messages[0].startswith("subtitle does not fit the screen: 4 lines")
+        assert messages[1].startswith("subtitle is too long to read in its time: 98 characters in 1.2 seconds, where about 24")
         # A job set to a slower reader finds the first cue too: 34 characters in two and a half seconds.
         slow = AppConfig.model_validate({**CONFIG, "subtitles": {"characters_per_second": 10}})
     with tempfile.TemporaryDirectory() as directory:
         workspace = _translated(Path(directory), SCENE, slow)
         found = {issue.segment_id for audit in load_document_audits(workspace) for issue in audit.issues}
         assert {"D0000-S000001", "D0000-S000008"} <= found
+
+
+def test_a_speakers_line_too_long_for_the_screen_is_found():
+    from book_agent.audit import _audit_reading
+    from book_agent.preprocessing import PreprocessedDocument, PreprocessedSegment
+    from book_agent.translation import TranslatedDocument, TranslatedSegment
+
+    # A cue of two speakers on screen for 2.8 seconds, as the model translated it in the Alice run.
+    passages = {"S1": "Ich wage zu sagen, dass es vielleicht einen gibt.", "S2": "Einen, in der Tat!"}
+    source = PreprocessedDocument(
+        order=0, manifest_id="part-0001", archive_path="subtitles/part-0001.txt", source_sha256="x",
+        segments=[PreprocessedSegment(segment_id=key, original_text="x", processed_text="x") for key in passages],
+        cues={key: (164, 2.8, True) for key in passages}, reading_limits=(42, 2, 20.0),
+    )
+    translated = TranslatedDocument(
+        order=0, manifest_id="part-0001", archive_path="subtitles/part-0001.txt",
+        direction=LanguagePair("en>de"), style="literary",
+        segments=[TranslatedSegment(segment_id=key, source_text="x", translated_text=text) for key, text in passages.items()],
+    )
+    found = [(issue.segment_id, issue.severity, issue.message.split(":")[0]) for issue in _audit_reading(source, translated)]
+    # "- Ich wage zu sagen, ..." is 51 characters: speakers' lines are not broken again, so it must be found.
+    assert found == [("S1", AuditSeverity.MEDIUM, "subtitle does not fit the screen")]
+    # Shown a little longer than it takes to read, the same cue fails on both counts.
+    brief = source.model_copy(update={"cues": {key: (164, 2.0, True) for key in passages}})
+    assert [issue.message.split(":")[0] for issue in _audit_reading(brief, translated)] == [
+        "subtitle is too long to read in its time", "subtitle does not fit the screen",
+    ]
 
 
 def test_a_subtitle_file_goes_through_the_pipeline_and_comes_back_a_subtitle_file():
@@ -437,3 +469,20 @@ def test_the_audit_of_subtitles_is_given_little_room_to_run_on_and_no_more_after
         # book's passage may take, and the same again after the failure, not twice as much.
         assert auditor.allowances == [1856, 1856]
         assert [issue for audit in load_document_audits(workspace) for issue in audit.issues] == []
+
+
+def test_a_subtitle_job_is_refused_settings_written_for_a_books_prose():
+    from book_agent.cli import build_dry_run_summary
+    from book_agent.subtitles import book_only_problem, book_only_settings
+
+    plain = AppConfig()
+    story = AppConfig.model_validate({"consistency": {"story_context": {"enabled": True}, "style_sheet": {"enabled": True}}})
+    assert book_only_settings("film.srt", plain) == [] and book_only_problem("film.srt", plain) == ""
+    assert book_only_settings("book.epub", story) == []  # a book may have them
+    assert book_only_settings("film.srt", story) == ["consistency.story_context.enabled", "consistency.style_sheet.enabled"]
+    with tempfile.TemporaryDirectory() as directory:
+        source = Path(directory) / "film.srt"
+        source.write_text(SRT, encoding="utf-8")
+        assert build_dry_run_summary(source, plain, Path(directory) / "runs")["job_type"] == "subtitles"
+        with pytest.raises(ValueError, match="are for a book's chapters and prose; set to false for a subtitle job"):
+            build_dry_run_summary(source, story, Path(directory) / "runs")

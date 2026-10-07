@@ -1,7 +1,8 @@
 # More book formats
 
 Status: **implemented** for text, Markdown, HTML, and Word (.docx), as
-sources and as extra outputs (`book_agent/book_formats.py`). This document
+sources and as extra outputs, and for PDFs that hold text, as sources
+(`book_agent/book_formats.py`). This document
 records what similar projects support, what was decided, how it is built,
 what it was tried on, how subtitle jobs work, and what stands in the way of
 game text.
@@ -35,8 +36,8 @@ reflows the text, drops the page layout, and has no OCR.
 | TXT, Markdown, HTML, DOCX as sources | **Add** |
 | The translated book as TXT, Markdown, HTML, DOCX | **Add**, beside the EPUB |
 | FB2, MOBI, AZW3 | Skip |
-| Scanned PDF | Skip: OCR is a different problem |
-| Text PDF | Not decided. Paragraph and heading reconstruction is unreliable, and the audit works passage by passage |
+| Scanned PDF | Skip: OCR is a different problem. Refused with that reason, also when a text layer lies under the scans |
+| PDF that holds text | **Added** as a source (section 6.1). Never written |
 | Subtitles | **Added** as a job of their own kind (section 7.1) |
 | Game text | Not a book; section 7.2 lists what it would need |
 
@@ -112,13 +113,12 @@ other formats are made from it:
    would need the drawing relationships read.
 2. **Footnotes** in Word documents: dropped, appended to the chapter, or
    turned into EPUB notes.
-3. **The book's language tag.** The decompile stage does not know the job's
-   source language; the package says `und` unless the file names one.
+3. ~~The book's language tag.~~ Settled: a converted book is tagged with
+   the language its file names, or else the job's source language.
 4. **Bilingual output** (source and translation side by side), which several
    of the projects above offer. A separate feature, and a natural one once
    blocks can be written in any format.
-5. **Text PDF**, if wanted at all: as a converter outside the pipeline
-   (PDF to Markdown, reviewed by a person, then in) and not a source format.
+5. ~~Text PDF.~~ Added as a source (section 6.1).
 
 ## 6. What it was tried on
 
@@ -150,10 +150,67 @@ Word lists were plain paragraphs with a typed bullet, and are real lists
 now, each numbered list starting at one; Word links were dropped, and are
 written and read; a monospaced word is read as code.
 
-Not tried: a Word document with footnotes, tables, text boxes, or pictures
-written by an author rather than by this code; an HTML page saved from the
-web with its navigation and advertising; a text file in an encoding other
-than UTF-8, UTF-16, GB18030, or CP1252.
+Later trials, and what they changed:
+
+- **A document typed in Word**, with a title, two headings, italics, a
+  footnote, a numbered list, a table, a comment, a sentence typed with
+  tracked changes on, and a text box (`tests/data/word-authored.docx`). It
+  read as expected, the footnote and the comment left out, but the text box
+  came out twice: Word stores one as a drawing and again as a fallback for
+  older programs. The fallback is passed over now.
+- **A page saved from the web**: Project Gutenberg's HTML of *Alice*, 820
+  blocks and fifteen chapters, with the site's own lines before the first.
+- **Series and XLIFF.** A finished subtitle job was added to a series and
+  exported as XLIFF (230 units, a file for each part of the film).
+
+Not tried: any of the four book formats with a model (the seven sample
+files of `lang_benchmark/make_format_samples.py` are there for that); a
+Word document with pictures; a text file in an encoding other than UTF-8,
+UTF-16, GB18030, or CP1252.
+
+### 6.1 PDF
+
+A PDF that holds text is a source like the other four; one that is pictures
+of pages is refused. It needs a library, `pdfminer.six` (MIT), the one
+dependency this document's formats add: a PDF's text is compressed, encoded
+font by font, and placed on the page glyph by glyph.
+
+A PDF has no paragraphs, only lines at places on a page. The reader puts
+them together again from how books are set:
+
+- **Paragraphs.** A new one where a line is set in from the margin, where
+  more room is left than between a paragraph's lines, or where the type
+  changes. A book set without indents is broken where a short line ends a
+  sentence. A paragraph runs on over a page break.
+- **Headings.** Lines in type more than 15% larger than the body's, the
+  largest size the highest level; and a short line that reads as a chapter
+  heading. A heading on two lines is one heading. Of two headings that read
+  the same, the later is the heading and the earlier a line of the contents
+  page.
+- **Left out.** Page numbers, and whatever stands at the top or bottom of
+  a quarter of the pages.
+- **Divided words.** "exam-" at the end of a line and "ple" on the next
+  are joined when the book has "example" elsewhere and not "exam-ple";
+  otherwise the hyphen stays, as in "three-dimensional".
+- **Emphasis.** Italic and bold are read from the font's name.
+
+**Limits.** Two columns, footnotes, tables, captions, and marginal notes are
+read as paragraphs wherever the page puts them. Pictures are not carried
+over. A scan with a text layer is refused when most pages are one large
+picture; a scan made some other way would give that layer's misreadings.
+Nothing is written as PDF: the translation is an EPUB, which
+`book-agent export` writes in the other formats.
+
+**Tried on:** two PDFs of the kind an ebook program makes, a novel of 60
+pages and one of 62, each read in about five seconds: of the 854 paragraphs
+read from *Alice's Adventures in Wonderland*, 759 were word for word a
+paragraph of the EPUB of the same book, and its sixteen chapters were found.
+(Those two files were a publisher's edition with its own terms, and were not
+kept.) Two Google Books scans with a text layer were refused. A PDF saved by
+Word from a short excerpt reads back exactly, and is the sample and the test
+data (`tests/data/sign-of-the-four.pdf`). **Not tried:** a typeset book
+with running heads and hyphenation, two columns, any language but English,
+and a run with a model.
 
 ## 7. Subtitles and game text
 
@@ -199,9 +256,34 @@ speech, narration, and two-speaker lines (`lang_benchmark/make_subtitles.py`),
 its first sixty kept as test data (`tests/test_subtitles.py`,
 `frontend/e2e/subtitles.e2e.ts`). That real text found two faults in the
 line breaking, both fixed: a second line longer than the limit, and a word
-broken in two. **Not tried:** a whole film's file, a file made by a
-subtitling tool, and a run with a model. The reading limits are the published guidelines' and have not been
-checked against real translations.
+broken in two.
+
+**A run with the models** (English into German, translategemma for the
+translation, gemma4:31b for audit and repair) took that scene to a finished
+file: 214 cues at their times, markup and two-speaker cues intact, three
+cues shortened by hand in the final review. What four runs of it changed:
+
+- The audit read one cue to a call and took 2 hours 23 minutes. It reads
+  eight to a call now, with a small fixed allowance of output, and took 12
+  minutes.
+- The auditor judged cues as a book's prose and repair lengthened them. Both
+  are told they are reading subtitles, and repair not to make a cue longer.
+- A batch the model could not answer for cost every cue in it a false
+  finding. It is audited again in halves.
+- A speaker's line too long for the screen was missed when the cue was also
+  slow to read. The two are separate findings.
+
+**The models' own weaknesses**, recorded and left: the glossary chose
+"Maus" for Dormouse; repair wrote German that is not grammatical ("reingetan
+sollen", "mit Rätsel") and the verifier passed it; and a call now and then
+repeats itself until its allowance runs out, which the fixed allowance
+bounds but does not prevent. When the GPU's memory is short the same model
+runs at a fifth of its speed without saying so.
+
+**Not tried:** a whole film's file, a file made by a subtitling tool,
+WebVTT or ASS with a model, and subtitles into Chinese, Japanese, or
+Korean. The reading limits are the published guidelines' as remembered and
+have not been checked against a source or against real translations.
 
 ### 7.2 Game text
 

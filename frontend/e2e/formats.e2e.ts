@@ -2,13 +2,13 @@ import { expect, test } from "@playwright/test";
 import { readFile } from "node:fs/promises";
 
 test.describe("A translator works with files that are not EPUBs", () => {
-  test("is told which kinds of book can be added, and that a PDF is not one of them", async ({ page }) => {
+  test("is told which kinds of book can be added, and that a Kindle file is not one of them", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("button", { name: "+ Add new job" }).click();
     const dialog = page.getByRole("dialog", { name: "New translation job" });
     await expect(dialog.getByText(/Drop a book .* or a subtitle file .* here, or/)).toBeVisible();
-    await dialog.locator("input[type=file]").setInputFiles({ name: "notes.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.7") });
-    await expect(page.getByRole("status")).toContainText("Choose a book (EPUB, RTF, text, Markdown, HTML, Word .docx) or a subtitle file (.srt, .vtt, .ass).");
+    await dialog.locator("input[type=file]").setInputFiles({ name: "notes.mobi", mimeType: "application/x-mobipocket-ebook", buffer: Buffer.from("BOOKMOBI") });
+    await expect(page.getByRole("status")).toContainText("Choose a book (EPUB, RTF, text, Markdown, HTML, Word .docx, PDF) or a subtitle file (.srt, .vtt, .ass).");
     await expect(dialog.getByRole("button", { name: "Create job" })).toBeDisabled();
   });
 

@@ -29,7 +29,7 @@ from .pipeline_state import WorkflowStage
 from .ollama_client import GenerationProgressEvent, OllamaClient, PauseRequested
 from .styles import TranslationStyle
 from .book_formats import EXPORT_FORMATS, export_book
-from .subtitles import JOB_SOURCE_NAMES, JOB_SOURCE_SUFFIXES, job_type
+from .subtitles import JOB_SOURCE_NAMES, JOB_SOURCE_SUFFIXES, book_only_problem, job_type
 from .languages import LanguagePair, language_support
 from .stages.compile import load_compiled_epub_path
 from .schemas import DEFAULT_GLOSSARY_PAIR
@@ -190,7 +190,7 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("styles", help="list available prose-style names")
 
     run_parser = subparsers.add_parser("run", help="create and run a translation job")
-    run_parser.add_argument("source", help="source book (EPUB, RTF, .txt, .md, .html, .docx) or subtitle file (.srt, .vtt, .ass)")
+    run_parser.add_argument("source", help="source book (EPUB, RTF, .txt, .md, .html, .docx, .pdf) or subtitle file (.srt, .vtt, .ass)")
     run_parser.add_argument("--config", dest="config_file", help="YAML configuration path")
     run_parser.add_argument("--runs", help="override the run-workspace directory")
     run_parser.add_argument("--job-id", help="explicit safe workspace name")
@@ -775,6 +775,8 @@ def build_dry_run_summary(source: str | Path, config: AppConfig, runs: str | Pat
     source_format = source_path.suffix.casefold().lstrip(".")
     if source_path.suffix.casefold() not in JOB_SOURCE_SUFFIXES:
         raise ValueError(f"source must be {JOB_SOURCE_NAMES}")
+    if book_only_problem(source_path, config):
+        raise ValueError(book_only_problem(source_path, config))
     return {
         "dry_run": True,
         "source": str(source_path),
@@ -1358,6 +1360,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             if args.dry_run:
                 print(format_json(build_dry_run_summary(args.source, config, runs)))
                 return ExitCode.COMPLETE
+            if book_only_problem(args.source, config):
+                raise ValueError(book_only_problem(args.source, config))
             workspace = create_job_workspace(
                 args.source,
                 runs,

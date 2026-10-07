@@ -35,6 +35,19 @@ test.describe("A subtitler works on a film's subtitles", () => {
     await expect(page.getByRole("cell", { name: "Who are you?", exact: true })).toBeVisible();
     await expect(page.getByRole("cell", { name: "Ich weiß es kaum, mein Herr.", exact: true })).toBeVisible();
     await expect(page.getByText("5 of 5 segments")).toBeVisible();
+    // Each passage says when its cue comes on screen and for how long.
+    await expect(page.getByRole("row", { name: /Alice began to cry again/ })).toContainText("0:00:14 · 3.0 s");
+  });
+
+  test("is warned while rewording a cue that it has become too long to read or to fit", async ({ page }) => {
+    await page.goto("/jobs/alice-film/review");
+    await expect(page.getByText("0:00:01 · 3.0 s")).toBeVisible();
+    const editor = page.getByRole("textbox").first();
+    await editor.fill("Alice öffnete um 3 Uhr die kleine Tür und blickte durch den Gang in den schönsten Garten, den man je gesehen hat.");
+    await expect(page.getByText(/too long to read in 3\.0 s: \d+ characters, about 60 can be read/)).toBeVisible();
+    await expect(page.getByText(/does not fit 2 lines of 42: \d+ characters/)).toBeVisible();
+    await editor.fill("Alice öffnete die kleine Tür um 3 Uhr.");
+    await expect(page.getByText(/too long to read|does not fit/)).toHaveCount(0);
   });
 
   test("corrects a cue in the final review, compiles, and gets the subtitle file back with its times untouched", async ({ page }) => {

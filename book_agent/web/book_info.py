@@ -7,7 +7,7 @@ import zipfile
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from ..book_formats import CONVERTED_SUFFIXES, read_book
+from ..book_formats import CONVERTED_SUFFIXES, pdf_title_and_author, read_book
 from ..subtitles import JOB_SOURCE_SUFFIXES, SUBTITLE_SUFFIXES, format_time, read_subtitles
 from ..epub import EpubError, local_name, parse_xml, validate_archive_path
 
@@ -93,6 +93,14 @@ def book_info(path: Path) -> dict[str, Any]:
             info.update(title=path.stem, cues=len(cues), duration=format_time(cues[-1].end))
         except (ValueError, OSError) as error:
             info["warning"] = f"could not read the subtitle file: {error}"
+        return info
+    if path.suffix.lower() == ".pdf":
+        # Its title and author as the file records them; reading the whole book takes seconds.
+        try:
+            info.update(zip(("title", "authors"), pdf_title_and_author(path)))
+            info["authors"] = [info["authors"]] if info["authors"] else []
+        except (ValueError, OSError) as error:
+            info["warning"] = f"could not read the PDF: {error}"
         return info
     if path.suffix.lower() in CONVERTED_SUFFIXES:
         try:

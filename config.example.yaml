@@ -172,3 +172,11 @@ workflow:
 paths:
   runs: runs
   prompts: prompts
+
+# Only for a subtitle job (.srt, .vtt, .ass). Left out, each limit is the usual
+# one for the language translated into: 42 characters a line and 20 a second
+# for most languages, 16 and 9 for Chinese and Japanese, 16 and 12 for Korean.
+# subtitles:
+#   line_characters: 42
+#   lines: 2
+#   characters_per_second: 20

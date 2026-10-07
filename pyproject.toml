@@ -11,6 +11,7 @@ license = { file = "LICENSE" }
 dependencies = [
     "beautifulsoup4>=4.12",
     "ollama>=0.6.2",
+    "pdfminer.six>=20221105",
     "pydantic>=2.10",
     "PyYAML>=6.0",
     "rich>=13.0",

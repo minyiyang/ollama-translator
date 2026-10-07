@@ -8,6 +8,7 @@ import { useToast } from "../components/Toast";
 import { Chip, Highlight } from "../components/ui";
 import { diffChars } from "../lib/diff";
 import { FALLBACK_PAIR, langAttr, leftoverSourceText, pairCodes } from "../lib/languages";
+import { cueLabel, readingProblems, type Cue, type ReadingLimits } from "../lib/subtitles";
 import type { WorkflowStatus } from "../lib/stages";
 
 type Decision = "pending" | "accept" | "replace";
@@ -31,9 +32,15 @@ type Context = {
   next_source_context?: string;
   findings?: Finding[];
   translation_versions?: { stage: string; text: string }[];
+  /** A subtitle job: the cue this passage belongs to. */
+  cue?: Cue;
 };
 type CompileState = { state: string; events: { stage: string; status: string; message: string }[]; result: { result: string; message?: string; output?: string } | null };
-type Payload = { worksheet: Worksheet | null; context: Record<string, Context>; stale: boolean; status: WorkflowStatus; compile: CompileState; compile_limit?: number };
+type Payload = {
+  worksheet: Worksheet | null; context: Record<string, Context>; stale: boolean; status: WorkflowStatus; compile: CompileState; compile_limit?: number;
+  /** A subtitle job: what fits a cue and can be read in its time. */
+  reading?: ReadingLimits;
+};
 type Blocking = { category: string; severity: string; message: string };
 type Item = { res: Resolution; edit: string; custom: string; customOn: boolean; check?: { key: string; blocking: Blocking[] } };
 
@@ -433,6 +440,7 @@ export function ReviewPage() {
     <SideLayout sidebar={sidebar} storageKey="sidebar-collapsed:review" label="Segments" navRef={navRef}>
         <div className="seghead">
           <span className="title">{it.res.segment_id}</span>
+          {ctx.cue && <span className="meta" title={`Cue ${ctx.cue.number}: when it comes on screen, and for how long`}>{cueLabel(ctx.cue)}</span>}
           {ctx.chapter_title && <Chip>{ctx.chapter_title}</Chip>}
           {ctx.review_kind && <Chip>{ctx.review_kind}</Chip>}
           <span className="meta">{order.indexOf(index) + 1} of {items.length} · <kbd>Alt</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd> to move</span>
@@ -457,7 +465,7 @@ export function ReviewPage() {
             <button className="small" onClick={() => setEdit(it.res.current_translation)}>Reset to current</button>
             <span className="meta">{[...it.edit].length} chars (current {[...it.res.current_translation].length})</span>
             <button className="small" onClick={() => runCheck(index)}>Check</button>
-            <span className="lint">{lint(it, pair).join(" · ")}</span>
+            <span className="lint">{[...lint(it, pair), ...readingProblems(it.edit, ctx.cue, data.reading)].join(" · ")}</span>
           </div>
           {check && it.res.decision !== "pending" && (
             check.blocking.length ? (
