@@ -9,7 +9,8 @@
 A local, resumable book-translation pipeline for English-to-Chinese and
 Chinese-to-English literary prose. It takes an EPUB, RTF, text, Markdown,
 HTML, or Word (.docx) file and produces a translated EPUB, which can also be
-written as Word, HTML, Markdown, or text. It runs entirely against local Ollama models: no cloud API,
+written as Word, HTML, Markdown, or text. It also translates subtitle files
+(.srt, .vtt, .ass), cue by cue, keeping their timing. It runs entirely against local Ollama models: no cloud API,
 no MCP server, and no agent framework such as LangGraph or AutoGen.
 
 Long-form translation fails in ways one model call cannot fix. A character's
@@ -299,6 +300,47 @@ chapter. A Word file is read for its heading styles, so a book whose
 headings are only bold text becomes one chapter. PDF is not read.
 [docs/FORMAT_SUPPORT.md](docs/FORMAT_SUPPORT.md) has the design and the
 limits.
+
+### Subtitles
+
+A subtitle file (`.srt`, `.vtt`, `.ass`, `.ssa`) makes a job of another kind.
+It runs through the same stages, and gives back the same file with each cue's
+text translated: the same cues, at the same times, with the markup around
+them (italics, a position code, a speaker's tag) where it was.
+
+```powershell
+book-agent run "D:\films\the-sign-of-the-four.srt" --config .\my-film.yaml
+```
+
+- A cue is one passage. Two lines that each open with a dash are two
+  speakers, and are two passages. Music and other cues without words are
+  left as they are.
+- The model is told it is writing subtitles (spoken, brief, each cue on its
+  own), whatever prose style the config names.
+- The translation's lines are broken again to fit the screen, at a space or
+  after punctuation.
+- The audit adds one check: a cue that cannot be read in its time on screen,
+  or does not fit it, is a `readability` finding. Repair is asked to say it
+  more briefly; what it cannot shorten waits in the final review. A little
+  over the reading speed is a low finding and does not hold the job up.
+- The limits are the target language's: 42 characters a line and 20 a second
+  for most; 16 and 9 for Chinese, Japanese, and other scripts written
+  without spaces; 16 and 12 for Korean; two lines a cue. A job's config can
+  set its own:
+
+  ```yaml
+  subtitles:
+    line_characters: 37
+    lines: 2
+    characters_per_second: 17
+  ```
+
+In the dashboard the Jobs list names each job's kind, Book or Subtitles; the
+Text tab lists parts of the film (by their times) where a book has chapters;
+and Download gives the subtitle file. Markup inside a cue (one word in
+italics) is dropped from a translated cue, a sentence that runs over several
+cues is translated cue by cue, and the timing is never changed.
+[docs/FORMAT_SUPPORT.md](docs/FORMAT_SUPPORT.md) has the design and the limits.
 
 The command prints the workspace path. Save it; all later commands operate on
 that directory. `--runs` overrides the configured workspace parent and

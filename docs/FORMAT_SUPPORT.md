@@ -3,7 +3,8 @@
 Status: **implemented** for text, Markdown, HTML, and Word (.docx), as
 sources and as extra outputs (`book_agent/book_formats.py`). This document
 records what similar projects support, what was decided, how it is built,
-what it was tried on, and what stands in the way of subtitles and game text.
+what it was tried on, how subtitle jobs work, and what stands in the way of
+game text.
 
 ## 1. What similar projects support
 
@@ -36,7 +37,8 @@ reflows the text, drops the page layout, and has no OCR.
 | FB2, MOBI, AZW3 | Skip |
 | Scanned PDF | Skip: OCR is a different problem |
 | Text PDF | Not decided. Paragraph and heading reconstruction is unreliable, and the audit works passage by passage |
-| Subtitles, game text | Not books; section 7 lists what they would need |
+| Subtitles | **Added** as a job of their own kind (section 7.1) |
+| Game text | Not a book; section 7.2 lists what it would need |
 
 ## 3. Sources: design
 
@@ -153,28 +155,53 @@ written by an author rather than by this code; an HTML page saved from the
 web with its navigation and advertising; a text file in an encoding other
 than UTF-8, UTF-16, GB18030, or CP1252.
 
-## 7. Subtitles and game text: what stands in the way
+## 7. Subtitles and game text
 
 Both are text to translate, and both break assumptions this pipeline makes
-about a book.
+about a book. Subtitles are implemented, as a job of their own kind; game
+text is not.
 
-### 7.1 Subtitles (SRT, ASS, VTT)
+### 7.1 Subtitle jobs
 
-What carries over: the glossary, the translation contract, the language and
-number checks, repair, the review queue, XLIFF export.
+**Implemented** for SubRip (`.srt`), WebVTT (`.vtt`), and Advanced SubStation
+(`.ass`, `.ssa`) in `book_agent/subtitles.py`. A job's kind follows from its
+source file; the server reports it as `job_type`, `book` or `subtitles`.
 
-| Gap | Why it matters |
+What a subtitle job reuses unchanged: the glossary, chunked translation and
+its contract, the language and number checks, repair, the review queue, the
+Text tab and its edits, XLIFF.
+
+| What stood in the way | What was done |
 |---|---|
-| The unit is a cue, not a paragraph | A sentence runs over several cues of one or two short lines. Translating cue by cue reads badly; translating the sentence means cutting it back into the same cues afterwards, which is a new alignment step |
-| Hard limits on length | Characters a line, lines a cue, characters a second of screen time. The pipeline's length check compares a passage with what is usual in its document; it has no hard limit |
-| Timing and markup must survive exactly | Timestamps, cue count, ASS override codes (`{\an8}`), positions. The inline-marker mechanism could protect them, but a contract for each format is needed |
-| The output is not an EPUB | The compile and validate stages are written for one. Subtitles need their own writer and their own validation (same cues, same times), as RTF has |
-| The rules for prose misfire | No chapters or headings; a dash marks a change of speaker; quotation conventions, the heading check, and the story summary do not apply |
-| Less context | No narration and no speaker names; who is speaking, and to whom, decides the form of address in most languages |
+| The unit is a cue, not a paragraph | A cue is one segment; its lines are joined to translate and broken again to write. Two lines that each open with a dash are two speakers and two segments. A cue without a letter in it (music) is not a segment and is written back as it was. A sentence over several cues is translated cue by cue: neighbouring cues are in the same chunk, so the model sees the sentence, and it is told never to move words between cues |
+| Hard limits on length | `ReadingLimits`: characters a line, lines a cue, characters a second, by target language or from `subtitles:` in the config. The audit's new `readability` finding (code `unreadable_subtitle`) says a cue cannot be read in its time or does not fit the screen. Up to 1.3 times the reading speed it is a low finding; beyond, or when the lines do not fit, a medium one that goes to repair and then to review |
+| Timing and markup must survive exactly | The file is kept as the pieces it is made of, and only a cue's text is replaced. Markup around a whole cue is put back around its translation. The validate stage reads the written file back: the same number of cues, each at its time, with its markup and the accepted text |
+| The output is not an EPUB | The compile and validate stages have a third branch beside EPUB and RTF. The output is a file of the kind that went in; there is no export to other formats |
+| The rules for prose misfire | A scene of ten cues with short answers ("Yes.", "Yeah.", a name alone) gave no finding from the existing rules. The translation prompt replaces the config's prose style with one for subtitles. The story context, the style sheet, and the prose rewrite are not adapted and are best left off |
+| Less context | Not addressed. Who is speaking is not known, apart from a WebVTT voice tag, which is kept but not used |
 
-Size: a new source adapter, one new stage-level check, a writer, and a
-review view by cue. Roughly a phase of work, with most of the pipeline
-reused.
+Where a book has chapters, a subtitle file has parts: a new one after four
+seconds without a cue once a part has forty cues, and at a hundred and fifty
+at the latest. They are named by their times.
+
+**Limits.** Markup inside a cue (one word in italics, a karaoke timing) is
+dropped from a translated cue. Timing is never changed, so a translation
+that needs longer on screen can only be shortened. The reading check counts
+characters, not their width. An `.ass` file's `Format` line must name `Text`
+last, as the format requires. Two files for one film (a forced-narrative
+track) are two jobs. No bilingual output.
+
+**Tried on:** hand-written files in the three formats, round-tripped
+unchanged byte for byte; a ten-cue scene through the fixture pipeline; in
+the browser, a subtitle job reviewed, compiled, and downloaded; and "A Mad
+Tea-Party" from *Alice's Adventures in Wonderland* cut into 214 cues of
+speech, narration, and two-speaker lines (`lang_benchmark/make_subtitles.py`),
+its first sixty kept as test data (`tests/test_subtitles.py`,
+`frontend/e2e/subtitles.e2e.ts`). That real text found two faults in the
+line breaking, both fixed: a second line longer than the limit, and a word
+broken in two. **Not tried:** a whole film's file, a file made by a
+subtitling tool, and a run with a model. The reading limits are the published guidelines' and have not been
+checked against real translations.
 
 ### 7.2 Game text
 

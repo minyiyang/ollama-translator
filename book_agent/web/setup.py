@@ -12,7 +12,7 @@ import yaml
 from pydantic import ValidationError
 
 from ..atomic_io import atomic_write_text
-from ..book_formats import SOURCE_SUFFIXES
+from ..subtitles import JOB_SOURCE_NAMES, JOB_SOURCE_SUFFIXES
 from ..cli import resolve_config_paths
 from ..config import AppConfig
 from ..languages import LanguagePair, language_catalog, language_support
@@ -125,8 +125,8 @@ def validate_setup(
         problems.append("choose a source book")
     elif not source_path.is_file():
         problems.append(f"source file not found: {source_path}")
-    elif source_path.suffix.casefold() not in SOURCE_SUFFIXES:
-        problems.append("source must be an EPUB, RTF, text, Markdown, HTML, or Word (.docx) file")
+    elif source_path.suffix.casefold() not in JOB_SOURCE_SUFFIXES:
+        problems.append(f"source must be {JOB_SOURCE_NAMES}")
     readable = f"{slugify_job_name(source_path.stem)}-{config.translation.direction.slug}" if source else ""
     job = job_id or (readable if readable and not (runs / readable).exists() else build_job_id(source_path) if source else "")
     try:
@@ -193,6 +193,7 @@ _SECTION_TITLES = {
     "consistency": "Book consistency",
     "workflow": "Workflow gates",
     "paths": "Paths",
+    "subtitles": "Subtitles",
 }
 
 

@@ -407,6 +407,14 @@ def translation_model(config: "AppConfig") -> str:
     return config.translation.model or config.ollama.model
 
 
+class SubtitleConfig(StrictModel):
+    """Limits for a subtitle job; each is the target language's usual one when unset."""
+
+    line_characters: int | None = Field(default=None, ge=8, le=120)
+    lines: int | None = Field(default=None, ge=1, le=4)
+    characters_per_second: float | None = Field(default=None, gt=0, le=60)
+
+
 class AppConfig(StrictModel):
     ollama: OllamaConfig = OllamaConfig()
     budget: BudgetConfig = BudgetConfig()
@@ -419,6 +427,15 @@ class AppConfig(StrictModel):
     consistency: ConsistencyConfig = ConsistencyConfig()
     workflow: WorkflowConfig = WorkflowConfig()
     paths: PathsConfig = PathsConfig()
+    subtitles: SubtitleConfig = SubtitleConfig()
+
+    @model_serializer(mode="wrap")
+    def _omit_unset_subtitles(self, handler):
+        # A book's config, and its hashes, read as they did before there were subtitle jobs.
+        data = handler(self)
+        if isinstance(data, dict) and not any(value is not None for value in (data.get("subtitles") or {}).values()):
+            data.pop("subtitles", None)
+        return data
 
     @model_validator(mode="after")
     def validate_context_budget(self) -> "AppConfig":

@@ -64,10 +64,10 @@ describe("A book's card", () => {
   it("offers to choose another book only when it can be changed", async () => {
     const onChange = vi.fn();
     const { rerender } = render(<BookCard book={book()} />);
-    expect(screen.queryByRole("button", { name: "Choose another book…" })).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Choose another file…" })).not.toBeInTheDocument();
 
     rerender(<BookCard book={book()} onChange={onChange} />);
-    await userEvent.setup().click(screen.getByRole("button", { name: "Choose another book…" }));
+    await userEvent.setup().click(screen.getByRole("button", { name: "Choose another file…" }));
     expect(onChange).toHaveBeenCalledOnce();
   });
 

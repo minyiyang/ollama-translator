@@ -104,7 +104,7 @@ class ResourceRecord(BaseModel):
 
 class EpubPackageManifest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    source_format: Literal["epub", "rtf"] = "epub"
+    source_format: Literal["epub", "rtf", "subtitle"] = "epub"
     source_sha256: str
     opf_path: str
     package_version: str

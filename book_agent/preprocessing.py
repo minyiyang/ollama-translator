@@ -83,6 +83,12 @@ class PreprocessedDocument(BaseModel):
     relevant_style: StyleSheet | None = None
     # "Story so far" for this document (docs/BOOK_CONSISTENCY.md, phase 3).
     story_context: str | None = None
+    # A subtitle job only. `cues`: for each segment, the number of the cue it
+    # belongs to, that cue's seconds on screen, and whether the cue is two
+    # speakers' lines. `reading_limits`: characters a line, lines a cue,
+    # characters a second.
+    cues: dict[str, tuple[int, float, bool]] | None = None
+    reading_limits: tuple[int, int, float] | None = None
 
     @model_validator(mode="wrap")
     @classmethod
@@ -98,7 +104,7 @@ class PreprocessedDocument(BaseModel):
         # field existed, so preprocessing reruns do not retranslate the book.
         data = handler(self)
         if isinstance(data, dict):
-            for key in ("relevant_style", "story_context"):
+            for key in ("relevant_style", "story_context", "cues", "reading_limits"):
                 if data.get(key) is None:
                     data.pop(key, None)
         return data

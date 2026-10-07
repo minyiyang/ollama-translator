@@ -16,6 +16,7 @@ from ..epub import (
 )
 from ..book_formats import CONVERTED_SUFFIXES, read_book, write_source_package
 from ..hashing import sha256_file
+from ..subtitles import JOB_SOURCE_NAMES, SUBTITLE_SUFFIXES, inspect_subtitle_file
 from ..rtf import inspect_rtf_document
 from ..pipeline_state import (
     WorkflowStage,
@@ -91,13 +92,15 @@ def run_decompile_stage(workspace: JobWorkspace) -> EpubPackageManifest:
                 manifest = inspect_epub_package(package_root, source_hash)
             elif source_format == ".rtf":
                 manifest = inspect_rtf_document(workspace.source_file, source_hash)
+            elif source_format in SUBTITLE_SUFFIXES:
+                manifest = inspect_subtitle_file(workspace.source_file, source_hash)
             elif source_format in CONVERTED_SUFFIXES:
                 # Text, Markdown, HTML, Word: written as an EPUB package, and an EPUB from here on.
                 package_root = staging / "package"
                 write_source_package(read_book(workspace.source_file), package_root, source_hash)
                 manifest = inspect_epub_package(package_root, source_hash)
             else:
-                raise ValueError("source must be an EPUB, RTF, text, Markdown, HTML, or Word (.docx) file")
+                raise ValueError(f"source must be {JOB_SOURCE_NAMES}")
             chapters_root = staging / "chapters"
             chapters_root.mkdir()
             for document in manifest.documents:

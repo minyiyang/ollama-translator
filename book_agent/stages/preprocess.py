@@ -55,6 +55,7 @@ from ..story_context import story_context_by_document
 from ..style_sheet import select_relevant_style
 from ..workspace import JobWorkspace
 from ..schemas import GlossaryResult, normalize_term
+from ..subtitles import cue_of, read_subtitles, subtitle_limits
 from .decompile import load_decompile_manifest
 from .glossary import load_approved_glossary, load_style_sheet
 from .story_context import load_story_summaries
@@ -74,6 +75,14 @@ def run_preprocessing_stage(
         decompile = _require_completed(connection, WorkflowStage.DECOMPILE)
         approval = _require_completed(connection, WorkflowStage.APPROVE_GLOSSARY)
         manifest = load_decompile_manifest(workspace, connection=connection)
+        # A subtitle job: each cue's time on screen goes with its text, for the audit.
+        cue_times: dict[int, tuple[int, float, bool]] = {}
+        limits = subtitle_limits(config)
+        if manifest.source_format == "subtitle":
+            cue_times = {
+                cue.number: (cue.number, cue.duration, cue.speakers)
+                for cue in read_subtitles(workspace.source_file).cues
+            }
         glossary, series_hashes = _load_effective_glossary(workspace, config)
         # The approved style sheet, when switched on; only then does it touch any hash.
         style = load_style_sheet(workspace) if config.consistency.style_sheet.enabled else None
@@ -210,6 +219,17 @@ def run_preprocessing_stage(
                         else None
                     ),
                     story_context=story_blocks.get(source_document.manifest_id) or None,
+                    cues=(
+                        {
+                            segment.segment_id: cue_times[cue_of(segment.element_path)]
+                            for segment in source_document.segments
+                        }
+                        if cue_times
+                        else None
+                    ),
+                    reading_limits=(
+                        (limits.line_characters, limits.lines, limits.characters_per_second) if cue_times else None
+                    ),
                 )
                 atomic_write_text(json_path, document.model_dump_json(indent=2))
                 atomic_write_text(text_path, render_preprocessed_document(document))

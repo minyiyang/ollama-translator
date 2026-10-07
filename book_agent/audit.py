@@ -47,6 +47,7 @@ from .numeric_adjudication import (
 )
 from .ollama_client import estimate_request_tokens
 from .preprocessing import PreprocessedDocument, select_relevant_glossary_entries
+from .subtitles import ReadingLimits, wrap_cue
 from .quantities import (
     QuantityComparison,
     QuantityMismatch,
@@ -70,10 +71,12 @@ class AuditCategory(str, Enum):
     PUNCTUATION = "punctuation"
     # Book-level drift found by audit_consistency (book_agent/consistency.py), never by a model.
     CONSISTENCY = "consistency"
+    # A subtitle that cannot be read in its time or does not fit the screen (book_agent/subtitles.py).
+    READABILITY = "readability"
 
 
 # Categories only the pipeline assigns; hidden from the semantic auditor's response schema.
-PIPELINE_ONLY_CATEGORIES = frozenset({AuditCategory.CONSISTENCY.value})
+PIPELINE_ONLY_CATEGORIES = frozenset({AuditCategory.CONSISTENCY.value, AuditCategory.READABILITY.value})
 
 
 class AuditSeverity(str, Enum):
@@ -437,6 +440,9 @@ def audit_translated_document(
                 )
             )
 
+    if source.cues and source.reading_limits:
+        issues.extend(_audit_reading(source, translated))
+
     if numeric_rulings:
         issues = apply_numeric_rulings(
             issues,
@@ -787,6 +793,7 @@ def build_semantic_audit_prompt(
         "contain source_quote and/or translation_quote copied verbatim from that same "
         "segment; provide both whenever both sides contain the relevant wording. Never copy "
         "evidence from a neighboring segment. Do not score the translation. "
+            f"{SUBTITLE_AUDIT_NOTE if source.cues is not None else ''}"
             f"Allowed IDs: {allowed}{glossary}\n\n" + "\n\n".join(blocks)
         )
 
@@ -1384,6 +1391,63 @@ def _is_preserved_titlecase_literal(source: str, phrase: str) -> bool:
         and phrase in source
         and all(word[0].isupper() for word in words)
     )
+
+
+# Added to the audit prompt of a subtitle job: what is a fault in a book is the craft here.
+SUBTITLE_AUDIT_NOTE = (
+    "These segments are subtitle cues, each on screen for a few seconds, and a sentence "
+    "often runs on from one cue into the next: read a cue together with the cues before "
+    "and after it before judging it. A subtitle is condensed on purpose. Do not report a "
+    "dropped filler word, emphasis, or repetition, a phrase said more briefly, or wording "
+    "that anticipates the next cue; report only a changed or lost fact, a wrong meaning, or "
+    "a real error of the target language. A suggested fix must not be longer than the "
+    "translation it replaces. Explain each issue in one sentence. "
+)
+
+# Subtitles run a little over the reading speed all the time, and a viewer
+# keeps up; past this much over, the line is cut off for most of them.
+READING_SPEED_TOLERANCE = 1.3
+UNREADABLE_SUBTITLE = "unreadable_subtitle"
+
+
+def _audit_reading(source: PreprocessedDocument, translated: TranslatedDocument) -> list[AuditIssue]:
+    """A subtitle job: each cue's translation against its time on screen and the room on it."""
+    limits = ReadingLimits(*source.reading_limits)
+    by_cue: dict[int, list[tuple[str, str]]] = {}
+    seconds: dict[int, tuple[float, bool]] = {}
+    for item in translated.segments:
+        if item.segment_id in source.cues:
+            number, duration, speakers = source.cues[item.segment_id]
+            by_cue.setdefault(number, []).append((item.segment_id, _INLINE_MARKER.sub("", item.translated_text)))
+            seconds[number] = (duration, speakers)
+    issues: list[AuditIssue] = []
+    for number, passages in by_cue.items():
+        duration, speakers = seconds[number]
+        texts = [text for _, text in passages]
+        lines = texts if speakers else wrap_cue(" ".join(texts), limits)
+        count = sum(len("".join(line.split())) for line in lines)
+        # The finding goes to the cue's longest passage: that is the one to shorten.
+        segment_id = max(passages, key=lambda passage: len(passage[1]))[0]
+        if duration > 0 and count > limits.characters_per_second * duration:
+            over = count / (limits.characters_per_second * duration)
+            issues.append(_issue(
+                segment_id,
+                AuditCategory.READABILITY,
+                AuditSeverity.MEDIUM if over > READING_SPEED_TOLERANCE else AuditSeverity.LOW,
+                f"subtitle is too long to read in its time: {count} characters in {duration:.1f} seconds, "
+                f"where about {int(limits.characters_per_second * duration)} can be read; say it more briefly",
+                UNREADABLE_SUBTITLE,
+            ))
+        elif len(lines) > limits.lines or any(len(line) > limits.line_characters for line in lines):
+            issues.append(_issue(
+                segment_id,
+                AuditCategory.READABILITY,
+                AuditSeverity.MEDIUM,
+                f"subtitle does not fit the screen: {len(lines)} lines, the longest of {max(len(line) for line in lines)} "
+                f"characters, where {limits.lines} of {limits.line_characters} fit; say it more briefly",
+                UNREADABLE_SUBTITLE,
+            ))
+    return issues
 
 
 def _audit_length(segment_id, source, target, config, issues) -> None:

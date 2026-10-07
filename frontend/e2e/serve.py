@@ -32,6 +32,7 @@ from book_agent.stages.repair_review import run_review_repair_stage  # noqa: E40
 from book_agent.stages.review_repaired import run_repaired_review_stage  # noqa: E402
 from book_agent.stages.translate import run_translation_stage  # noqa: E402
 from book_agent.stages.validate_repaired import run_repaired_validation_stage  # noqa: E402
+from book_agent.subtitles import cue_passages, parse_subtitles  # noqa: E402
 from book_agent.web import serve_ui  # noqa: E402
 from book_agent.workflow import approve_glossary, default_stage_runners, run_workflow  # noqa: E402
 from book_agent.workspace import create_job_workspace  # noqa: E402
@@ -83,11 +84,24 @@ HOLMES_CHAPTER = (
 ).encode("utf-8")
 
 
+# The same scene as a film's subtitles: (start, end, the cue's text, its German passage by passage).
+FILM = [
+    ("00:00:01,000", "00:00:04,000", "Alice opened the little door\nat 3 o'clock.", ["Alice öffnete die kleine Tür um 5 Uhr."]),
+    ("00:00:05,000", "00:00:08,000", "- Who are you?\n- I hardly know, sir.", ["Wer bist du?", "Ich weiß es kaum, mein Herr."]),
+    ("00:00:09,000", "00:00:11,500", "<i>The White Rabbit came trotting back.</i>", ["Das Weiße Kaninchen kam zurückgetrabt."]),
+    ("00:00:12,000", "00:00:13,000", "\u266a \u266a", []),
+    ("00:00:14,000", "00:00:17,000", "Alice began to cry again.", ["Alice fing wieder an zu weinen."]),
+]
+SUBTITLES = "".join(f"{number}\n{start} --> {end}\n{text}\n\n" for number, (start, end, text, _) in enumerate(FILM, start=1))
+
+
 class BookTranslator:
     """Answers the translate stage with the book's own translation of each passage."""
 
     def __init__(self, column: int, wrong_hour: bool):
         self.translations = {passage[0]: passage[column] for passage in PASSAGES}
+        for cue, (_, _, _, german) in zip(parse_subtitles(SUBTITLES, "srt").cues, FILM):
+            self.translations.update(zip(cue_passages(cue), german))
         if not wrong_hour:
             self.translations = {source: text.replace("5", "3") for source, text in self.translations.items()}
 
@@ -186,6 +200,10 @@ def main() -> None:
         make_epub(UPLOAD, opf=HOLMES, chapter=HOLMES_CHAPTER)
         for job_id, (pair, wrong_hour) in JOBS.items():
             build_job(base, job_id, pair, wrong_hour)
+        # Two subtitle jobs: one waiting for its reviewer, one finished.
+        (base / "books" / "alice-film.srt").write_text(SUBTITLES, encoding="utf-8")
+        build_job(base, "alice-film", "en>de", True, "alice-film.srt")
+        build_job(base, "alice-film-finished", "en>de", False, "alice-film.srt")
         # The same chapter as its translator might keep it: a Markdown manuscript.
         manuscript = "\n\n".join(["# " + PASSAGES[0][0], *(passage[0] for passage in PASSAGES[1:])]) + "\n"
         (base / "books" / "alice-manuscript.md").write_text(manuscript, encoding="utf-8")

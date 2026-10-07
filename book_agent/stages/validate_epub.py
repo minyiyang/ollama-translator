@@ -20,6 +20,7 @@ from ..pipeline_state import (
     stage_is_current,
 )
 from ..rtf import validate_compiled_rtf
+from ..subtitles import validate_compiled_subtitles
 from ..state import (
     StageStatus,
     connect_state,
@@ -97,7 +98,9 @@ def run_epub_validation_stage(
             raise FileNotFoundError("decompile manifest is not recorded")
         package_root = workspace.directory(manifest_relative).parent / "package"
         report = (
-            validate_compiled_rtf(output_path, manifest, repaired)
+            validate_compiled_subtitles(output_path, workspace.source_file, manifest, repaired)
+            if manifest.source_format == "subtitle"
+            else validate_compiled_rtf(output_path, manifest, repaired)
             if manifest.source_format == "rtf"
             else validate_compiled_epub(
                 output_path,

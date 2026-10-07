@@ -7,7 +7,8 @@ import zipfile
 from pathlib import Path, PurePosixPath
 from typing import Any
 
-from ..book_formats import CONVERTED_SUFFIXES, SOURCE_SUFFIXES, read_book
+from ..book_formats import CONVERTED_SUFFIXES, read_book
+from ..subtitles import JOB_SOURCE_SUFFIXES, SUBTITLE_SUFFIXES, format_time, read_subtitles
 from ..epub import EpubError, local_name, parse_xml, validate_archive_path
 
 # Raster only: an SVG from an untrusted book could run script on the dashboard's origin.
@@ -20,7 +21,7 @@ def allowed_book(path: str, roots: list[Path]) -> Path:
     candidate = Path(path).resolve()
     if (
         not candidate.is_file()
-        or candidate.suffix.lower() not in SOURCE_SUFFIXES
+        or candidate.suffix.lower() not in JOB_SOURCE_SUFFIXES
         or not any(root.resolve() in candidate.parents for root in roots)
     ):
         raise ValueError("unknown book file")
@@ -84,6 +85,14 @@ def book_info(path: Path) -> dict[str, Any]:
             if match:
                 value = match[1].strip()
                 info[field] = [value] if field == "authors" else value
+        return info
+    if path.suffix.lower() in SUBTITLE_SUFFIXES:
+        try:
+            cues = read_subtitles(path).cues
+            # A subtitle file has no title of its own; say how much there is of it.
+            info.update(title=path.stem, cues=len(cues), duration=format_time(cues[-1].end))
+        except (ValueError, OSError) as error:
+            info["warning"] = f"could not read the subtitle file: {error}"
         return info
     if path.suffix.lower() in CONVERTED_SUFFIXES:
         try:

@@ -87,9 +87,9 @@ def read_book(path: str | Path) -> Book:
     elif kind == "html":
         book = _read_html(data)
     elif kind == "md":
-        book = _read_markdown(_decode(data))
+        book = _read_markdown(decode_text(data))
     else:
-        book = _read_text(_decode(data))
+        book = _read_text(decode_text(data))
     book.blocks = [block for block in book.blocks if block.kind == "hr" or _plain(block.html).strip()]
     if not any(block.kind != "hr" for block in book.blocks):
         raise BookFormatError(f"{source.name} contains no text")
@@ -99,7 +99,7 @@ def read_book(path: str | Path) -> Book:
     return book
 
 
-def _decode(data: bytes) -> str:
+def decode_text(data: bytes) -> str:
     """Text as its bytes say: a byte-order mark, UTF-8, then the encodings
     Chinese and Western European text files are most often saved in."""
     for mark, encoding in ((b"\xef\xbb\xbf", "utf-8-sig"), (b"\xff\xfe", "utf-16"), (b"\xfe\xff", "utf-16")):

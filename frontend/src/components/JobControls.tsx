@@ -77,7 +77,10 @@ export function JobControls() {
           </button>
         </span>
       )}
-      {info.downloadable && (
+      {info.downloadable && info.job_type === "subtitles" && (
+        <a className="button primary" href={outputUrl(jobId)} download title="Download the translated subtitles">⤓ Download</a>
+      )}
+      {info.downloadable && info.job_type !== "subtitles" && (
         <>
           <select className="small" aria-label="Download format" value={format} onChange={(e) => setFormat(e.target.value)}
             title="The EPUB keeps the book's layout and pictures; the others carry its text, headings, and emphasis.">

@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Any
 
 from ..pipeline_state import WorkflowStage
+from ..subtitles import job_type
 from ..workflow import load_workspace_config, workflow_status
 from ..workspace import JobWorkspace, open_job_workspace, validate_job_id
 
@@ -83,6 +84,7 @@ def list_jobs(runs: Path, config_dir: Path | None = None) -> list[dict[str, Any]
                 "job_id": path.name,
                 "overall": status["overall"],
                 "source": workspace.source_file.name,
+                "job_type": job_type(workspace.source_file),
                 "direction": job_direction(workspace),
                 "downloadable": status["overall"] == "complete",
                 "current_stage": current["name"] if current else "",
@@ -104,6 +106,7 @@ def list_jobs(runs: Path, config_dir: Path | None = None) -> list[dict[str, Any]
                 "job_id": draft["job_id"],
                 "overall": "starting" if draft.get("launched") else "draft",
                 "source": Path(draft["source"]).name,
+                "job_type": job_type(draft["source"]),
                 "direction": draft_direction(config_dir, draft["config"]),
                 "downloadable": False,
                 "current_stage": "",

@@ -287,7 +287,7 @@ def test_a_text_file_job_is_named_as_a_source_the_pipeline_takes():
         pdf = base / "alice.pdf"
         pdf.write_bytes(b"%PDF-1.7")
         other = create_job_workspace(pdf, base / "runs", AppConfig(), job_id="alice-pdf")
-        with pytest.raises(ValueError, match="EPUB, RTF, text, Markdown, HTML, or Word"):
+        with pytest.raises(ValueError, match="a book .EPUB, RTF, text, Markdown, HTML, Word"):
             run_decompile_stage(other)
 
 

@@ -35,9 +35,14 @@ export function directionLabel(direction: string | undefined): string {
 }
 
 /** The files a job can be made from, as the file picker's `accept` and as a test of a name. */
-export const SOURCE_ACCEPT = ".epub,.rtf,.txt,.md,.markdown,.html,.htm,.xhtml,.docx";
-export const isSourceBook = (name: string) => /\.(epub|rtf|txt|md|markdown|html?|xhtml|docx)$/i.test(name);
-export const SOURCE_KINDS = "EPUB, RTF, text, Markdown, HTML, or Word (.docx)";
+export const SOURCE_ACCEPT = ".epub,.rtf,.txt,.md,.markdown,.html,.htm,.xhtml,.docx,.srt,.vtt,.ass,.ssa";
+export const isSubtitleFile = (name: string) => /\.(srt|vtt|ass|ssa)$/i.test(name);
+export const isSourceBook = (name: string) => /\.(epub|rtf|txt|md|markdown|html?|xhtml|docx)$/i.test(name) || isSubtitleFile(name);
+export const SOURCE_KINDS = "a book (EPUB, RTF, text, Markdown, HTML, Word .docx) or a subtitle file (.srt, .vtt, .ass)";
+
+/** The two kinds of job, as the server names them and as the dashboard shows them. */
+export type JobType = "book" | "subtitles";
+export const JOB_TYPE_LABELS: Record<JobType, string> = { book: "Book", subtitles: "Subtitles" };
 
 /** What a translated book can be downloaded as: the EPUB the pipeline builds, or its text in another format. */
 export const OUTPUT_FORMATS: [string, string][] = [

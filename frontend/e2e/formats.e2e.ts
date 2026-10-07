@@ -6,9 +6,9 @@ test.describe("A translator works with files that are not EPUBs", () => {
     await page.goto("/");
     await page.getByRole("button", { name: "+ Add new job" }).click();
     const dialog = page.getByRole("dialog", { name: "New translation job" });
-    await expect(dialog.getByText(/Drop a book here \(EPUB, RTF, text, Markdown, HTML, or Word \(\.docx\)\)/)).toBeVisible();
+    await expect(dialog.getByText(/Drop a book .* or a subtitle file .* here, or/)).toBeVisible();
     await dialog.locator("input[type=file]").setInputFiles({ name: "notes.pdf", mimeType: "application/pdf", buffer: Buffer.from("%PDF-1.7") });
-    await expect(page.getByRole("status")).toContainText("Choose an EPUB, RTF, text, Markdown, HTML, or Word (.docx) file.");
+    await expect(page.getByRole("status")).toContainText("Choose a book (EPUB, RTF, text, Markdown, HTML, Word .docx) or a subtitle file (.srt, .vtt, .ass).");
     await expect(dialog.getByRole("button", { name: "Create job" })).toBeDisabled();
   });
 

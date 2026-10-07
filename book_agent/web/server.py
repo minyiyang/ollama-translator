@@ -49,6 +49,7 @@ from . import setup as setup_api
 from .glossary_view import glossary_payload, write_reviewed_glossary, write_reviewed_style_sheet
 from ..book_formats import EXPORT_MEDIA_TYPES, export_book
 from ..stages.compile import load_compiled_epub_path
+from ..subtitles import SUBTITLE_MEDIA_TYPES, job_type
 from .jobs import ProgressReader, draft_direction, job_direction, job_path, list_jobs, open_job
 from .text_view import text_chapter, text_outline
 from ..xliff_export import export_xliff
@@ -74,7 +75,7 @@ from ..text_edits import (
 _MAX_BODY_BYTES = 8 * 1024 * 1024
 _MAX_UPLOAD_BYTES = 1024 * 1024 * 1024
 _PAGES = {"config", "progress", "glossary", "review", "text"}
-_DOWNLOAD_TYPES = {".epub": "application/epub+zip", ".rtf": "application/rtf"}
+_DOWNLOAD_TYPES = {".epub": "application/epub+zip", ".rtf": "application/rtf", **SUBTITLE_MEDIA_TYPES}
 _ASSET_TYPES = {
     ".js": "text/javascript; charset=utf-8",
     ".css": "text/css; charset=utf-8",
@@ -229,6 +230,7 @@ class UiApp:
                 "kind": "job",
                 "overall": overall,
                 "source": workspace.source_file.name,
+                "job_type": job_type(workspace.source_file),
                 "source_path": str(workspace.source_file),
                 "config": Path(status["configuration"]["source_path"] or "").name,
                 "direction": job_direction(workspace),
@@ -249,6 +251,7 @@ class UiApp:
             "kind": "draft",
             "overall": "starting" if process_running else "draft",
             "source": Path(draft["source"]).name,
+            "job_type": job_type(draft["source"]),
             "source_path": draft["source"],
             "config": draft["config"],
             "direction": draft_direction(self.config_dir, draft["config"]),
@@ -816,7 +819,7 @@ def make_handler(app: UiApp, port_ref: list[int]) -> type[BaseHTTPRequestHandler
                 try:
                     validate_job_id(parts[2])
                     output = app.job_output(parts[2])
-                    if wanted != "epub":
+                    if wanted != "epub" and output.suffix.lower() == ".epub":
                         # The same book in another format, made from the EPUB as it is asked for.
                         with tempfile.TemporaryDirectory() as directory:
                             exported = export_book(output, Path(directory) / f"{output.stem}.{wanted}", wanted)

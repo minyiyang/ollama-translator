@@ -29,6 +29,21 @@ missing and says which sources it could not find; `--force` rebuilds.
 
 The character counts are of the excerpt's text as a reader would see it.
 
+## Subtitles
+
+There is no film here, so the subtitle file is made from a book:
+`python lang_benchmark/make_subtitles.py` cuts "A Mad Tea-Party" (chapter VII
+of *Alice's Adventures in Wonderland*, the same Project Gutenberg ebook 11)
+into `lang_benchmark/books/alice-tea-party.srt`. What a character says is a
+cue; what the narrator describes is a cue in italics; "said Alice" is left
+out; two short lines by two speakers share a cue. Each cue is on screen for
+as long as it takes to read at 17 characters a second. It comes to 214 cues
+over twelve minutes. `--heading` picks another chapter, `--book` another
+book, `--format vtt` WebVTT.
+
+The first sixty cues are in the repository as `tests/data/alice-mad-tea-party.srt`,
+for the tests.
+
 ## Rights
 
 Each work is in the public domain in the United States, and each author died more than seventy

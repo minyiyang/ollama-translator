@@ -33,7 +33,7 @@ from .preprocessing import (
 from .ollama_client import estimate_request_tokens
 from .quantities import compare_quantity_texts
 from .style_sheet import format_relevant_style, select_relevant_style
-from .styles import build_style_prompt, load_style_instruction
+from .styles import SUBTITLE_INSTRUCTION, build_style_prompt, load_style_instruction
 from .translation import (
     TranslatedDocument,
     TranslatedSegment,
@@ -343,8 +343,10 @@ def build_repair_prompt(
             f"[{neighbor}] {role}\nSOURCE: {source_by_id[neighbor]}\nCURRENT: {target_by_id[neighbor]}"
         )
     diagnostics = "\n".join(_format_repair_diagnostic(item) for item in issues)
-    instruction = load_style_instruction(
-        config.translation.style, config.translation.custom_style_file
+    instruction = (
+        SUBTITLE_INSTRUCTION
+        if source.cues is not None
+        else load_style_instruction(config.translation.style, config.translation.custom_style_file)
     )
     style = build_style_prompt(
         instruction,
@@ -403,6 +405,12 @@ def build_repair_prompt(
                 source_by_id[segment_id],
                 max_entries=config.consistency.style_sheet.max_entries_per_chunk,
             )
+        )
+    if source.cues is not None:
+        task += (
+            " This segment is a subtitle cue, on screen for a few seconds. The corrected text "
+            "must be no longer than the current one unless a missing fact has to go back in, "
+            "and shorter when a finding says it cannot be read in its time."
         )
     return (
         f"{style}\n\n{task}\n\n"

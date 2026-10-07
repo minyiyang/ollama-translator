@@ -22,6 +22,7 @@ from ..pipeline_state import (
 )
 from ..book_formats import CONVERTED_SUFFIXES, export_book
 from ..rtf import compile_rtf_document
+from ..subtitles import compile_subtitle_file, subtitle_limits
 from ..text_edits import (
     active_edit_texts,
     compiled_consistency_issues,
@@ -152,10 +153,20 @@ def run_epub_compile_stage(
         package_root = workspace.directory(manifest_relative).parent / "package"
         # Keep downloads distinguishable across reviewed revisions while the
         # complete input hash remains the authoritative build identity.
-        output_name = f"{workspace.source_file.stem}.translated-{input_hash[:6]}.epub"
+        # A subtitle job gives back a subtitle file of the kind it was given.
+        suffix = workspace.source_file.suffix.casefold() if manifest.source_format == "subtitle" else ".epub"
+        output_name = f"{workspace.source_file.stem}.translated-{input_hash[:6]}{suffix}"
         output_path = workspace.directory("output") / output_name
         report = (
-            compile_rtf_document(manifest, repaired, output_path)
+            compile_subtitle_file(
+                workspace.source_file,
+                manifest,
+                repaired,
+                output_path,
+                subtitle_limits(config),
+            )
+            if manifest.source_format == "subtitle"
+            else compile_rtf_document(manifest, repaired, output_path)
             if manifest.source_format == "rtf"
             else compile_epub_package(
                 package_root,

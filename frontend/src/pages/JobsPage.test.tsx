@@ -263,7 +263,7 @@ describe("Jobs page", () => {
       jobsApi();
       const user = renderJobs();
       const dialog = await openDialog(user);
-      expect(within(dialog).getByText(/Drop a book here .*, or/)).toBeInTheDocument();
+      expect(within(dialog).getByText(/Drop a book .* or a subtitle file .* here, or/)).toBeInTheDocument();
       expect(within(dialog).getByLabelText("Config file name")).toHaveValue("");
       expect(within(dialog).getByText("Pick a source to get a suggested name.")).toBeInTheDocument();
       expect(within(dialog).getByLabelText("Job ID")).toHaveValue("");
@@ -326,7 +326,7 @@ describe("Jobs page", () => {
       const api = jobsApi();
       const user = renderJobs();
       const dialog = await openDialog(user);
-      const zone = within(dialog).getByText(/Drop a book here .*, or/);
+      const zone = within(dialog).getByText(/Drop a book .* or a subtitle file .* here, or/);
 
       fireEvent.dragOver(zone);
       expect(zone).toHaveClass("over");
@@ -342,11 +342,11 @@ describe("Jobs page", () => {
       const api = jobsApi();
       const user = renderJobs();
       const dialog = await openDialog(user);
-      fireEvent.drop(within(dialog).getByText(/Drop a book here .*, or/), { dataTransfer: { files: [new File(["x"], "notes.pdf")] } });
+      fireEvent.drop(within(dialog).getByText(/Drop a book .* or a subtitle file .* here, or/), { dataTransfer: { files: [new File(["x"], "notes.pdf")] } });
 
-      expect(await screen.findByRole("status")).toHaveTextContent("Choose an EPUB, RTF, text, Markdown, HTML, or Word (.docx) file.");
+      expect(await screen.findByRole("status")).toHaveTextContent("Choose a book (EPUB, RTF, text, Markdown, HTML, Word .docx) or a subtitle file (.srt, .vtt, .ass).");
       expect(api.calls.some((c) => c.path.startsWith("/api/uploads"))).toBe(false);
-      expect(within(dialog).getByText(/Drop a book here .*, or/)).toBeInTheDocument();
+      expect(within(dialog).getByText(/Drop a book .* or a subtitle file .* here, or/)).toBeInTheDocument();
     });
 
     it("shows why an upload failed and lets the user try again", async () => {
@@ -372,7 +372,7 @@ describe("Jobs page", () => {
       const dialog = await openDialog(user);
       await pick(user, dialog, epub());
       await within(dialog).findByText(BOOK.title);
-      expect(within(dialog).getByRole("button", { name: "Choose another book…" })).toBeInTheDocument();
+      expect(within(dialog).getByRole("button", { name: "Choose another file…" })).toBeInTheDocument();
 
       fireEvent.drop(within(dialog).getByText(BOOK.title), { dataTransfer: { files: [epub("crusoe.epub")] } });
       expect(await within(dialog).findByText("Robinson Crusoe")).toBeInTheDocument();
@@ -571,12 +571,12 @@ describe("Jobs page: a translator's day", () => {
     ], { "GET /api/jobs/sign-of-four-en-de/info": jobInfo({ job_id: "sign-of-four-en-de", overall: "paused" }) });
     const user = renderJobs();
 
-    // One glance tells each book's languages and where it stands.
+    // One glance tells each job's kind, its languages, and where it stands.
     await screen.findByRole("link", { name: "alice-en-zh" });
-    const glance = (id: string) => within(rowOf(id)).getAllByRole("cell").slice(1, 5).map((cell) => cell.textContent);
-    expect(glance("alice-en-zh")).toEqual(["alice.epub", "EN → ZH", "complete", "—"]);
-    expect(glance("sign-of-four-en-de")).toEqual(["the-sign-of-the-four.epub", "EN → DE", "paused", "Approve glossaryReview glossary →"]);
-    expect(glance("ah-q-zh-ja")).toEqual(["阿Q正传.epub", "ZH → JA", "running", "Translate"]);
+    const glance = (id: string) => within(rowOf(id)).getAllByRole("cell").slice(1, 6).map((cell) => cell.textContent);
+    expect(glance("alice-en-zh")).toEqual(["alice.epub", "Book", "EN → ZH", "complete", "—"]);
+    expect(glance("sign-of-four-en-de")).toEqual(["the-sign-of-the-four.epub", "Book", "EN → DE", "paused", "Approve glossaryReview glossary →"]);
+    expect(glance("ah-q-zh-ja")).toEqual(["阿Q正传.epub", "Book", "ZH → JA", "running", "Translate"]);
     expect(within(rowOf("alice-en-zh")).getByText("9 h ago")).toBeInTheDocument();
     expect(within(rowOf("ah-q-zh-ja")).getByText("just now")).toBeInTheDocument();
 
@@ -590,10 +590,10 @@ describe("Jobs page: a translator's day", () => {
     const api = signApi();
     const user = renderJobs();
     const dialog = await openDialog(user);
-    const zone = within(dialog).getByText(/Drop a book here .*, or/);
+    const zone = within(dialog).getByText(/Drop a book .* or a subtitle file .* here, or/);
 
     fireEvent.drop(zone, { dataTransfer: { files: [new File(["%PDF"], "the-sign-of-the-four.pdf")] } });
-    expect(await screen.findByRole("status")).toHaveTextContent("Choose an EPUB, RTF, text, Markdown, HTML, or Word (.docx) file.");
+    expect(await screen.findByRole("status")).toHaveTextContent("Choose a book (EPUB, RTF, text, Markdown, HTML, Word .docx) or a subtitle file (.srt, .vtt, .ass).");
     expect(within(dialog).getByRole("button", { name: "Create job" })).toBeDisabled();
 
     fireEvent.drop(zone, { dataTransfer: { files: [signEpub()] } });

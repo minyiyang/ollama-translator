@@ -33,7 +33,7 @@ from .schemas import (
     is_preservable_technical_identifier,
     normalize_term,
 )
-from .styles import build_style_prompt, load_style_instruction
+from .styles import SUBTITLE_INSTRUCTION, build_style_prompt, load_style_instruction
 
 
 class TranslationOutputError(ValueError):
@@ -371,11 +371,14 @@ def build_translation_prompt(
     config: AppConfig,
     style_text: str = "",
     story_text: str = "",
+    subtitles: bool = False,
 ) -> str:
-    """Assemble direction, style, naturalness, glossary, and marker constraints."""
-    instruction = load_style_instruction(
-        config.translation.style,
-        config.translation.custom_style_file,
+    """Assemble direction, style, naturalness, glossary, and marker constraints.
+    `subtitles`: the passages are subtitle cues, and are translated as such."""
+    instruction = (
+        SUBTITLE_INSTRUCTION
+        if subtitles
+        else load_style_instruction(config.translation.style, config.translation.custom_style_file)
     )
     style_prompt = build_style_prompt(
         instruction,

@@ -431,6 +431,7 @@ def _build_chunk_prompt(
         config,
         chunk_style_text(document, chunk, config),
         _story_text(document, config),
+        subtitles=document.cues is not None,
     )
     if config.translation.boundary_context != "adjacent-read-only":
         return prompt

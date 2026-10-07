@@ -28,7 +28,8 @@ from .manual_review import (
 from .pipeline_state import WorkflowStage
 from .ollama_client import GenerationProgressEvent, OllamaClient, PauseRequested
 from .styles import TranslationStyle
-from .book_formats import EXPORT_FORMATS, SOURCE_SUFFIXES, export_book
+from .book_formats import EXPORT_FORMATS, export_book
+from .subtitles import JOB_SOURCE_NAMES, JOB_SOURCE_SUFFIXES, job_type
 from .languages import LanguagePair, language_support
 from .stages.compile import load_compiled_epub_path
 from .schemas import DEFAULT_GLOSSARY_PAIR
@@ -189,7 +190,7 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("styles", help="list available prose-style names")
 
     run_parser = subparsers.add_parser("run", help="create and run a translation job")
-    run_parser.add_argument("source", help="source book: EPUB, RTF, .txt, .md, .html, or .docx")
+    run_parser.add_argument("source", help="source book (EPUB, RTF, .txt, .md, .html, .docx) or subtitle file (.srt, .vtt, .ass)")
     run_parser.add_argument("--config", dest="config_file", help="YAML configuration path")
     run_parser.add_argument("--runs", help="override the run-workspace directory")
     run_parser.add_argument("--job-id", help="explicit safe workspace name")
@@ -772,12 +773,13 @@ def build_dry_run_summary(source: str | Path, config: AppConfig, runs: str | Pat
     if not source_path.is_file():
         raise FileNotFoundError(source_path)
     source_format = source_path.suffix.casefold().lstrip(".")
-    if source_path.suffix.casefold() not in SOURCE_SUFFIXES:
-        raise ValueError("source must be an EPUB, RTF, text, Markdown, HTML, or Word (.docx) file")
+    if source_path.suffix.casefold() not in JOB_SOURCE_SUFFIXES:
+        raise ValueError(f"source must be {JOB_SOURCE_NAMES}")
     return {
         "dry_run": True,
         "source": str(source_path),
         "source_format": source_format,
+        "job_type": job_type(source_path),
         "runs": str(Path(runs).resolve()),
         "direction": config.translation.direction.value,
         "languages": language_support(config.translation.direction),
@@ -1405,6 +1407,8 @@ def main(argv: Sequence[str] | None = None) -> int:
             return ExitCode.COMPLETE
         if args.command == "export":
             compiled = Path(load_compiled_epub_path(open_job_workspace(args.workspace)))
+            if compiled.suffix.casefold() != ".epub":
+                raise ValueError("a subtitle job has one output, its subtitle file; there is no book to export")
             target = Path(args.out) if args.out else compiled.with_suffix(f".{args.format}")
             print(export_book(compiled, target, args.format))
             return ExitCode.COMPLETE
