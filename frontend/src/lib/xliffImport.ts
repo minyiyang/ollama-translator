@@ -3,6 +3,8 @@
 // filters follow the opt-in checkboxes live. The server re-applies the rule
 // (and re-checks) when the import is applied.
 
+import { t, type MessageKey } from "../i18n";
+
 export type ImportCategory =
   | "unknown_id"
   | "unsupported_markup"
@@ -69,18 +71,21 @@ export const NO_OPT_INS: ImportOptions = { include_stale: false, include_edited:
 
 export type ImportFilter = "will_import" | "skipped" | "unchanged" | "not_in_file" | "all";
 
-export const CATEGORY_LABELS: Record<ImportCategory, string> = {
-  unknown_id: "unknown ID",
-  unsupported_markup: "unsupported markup",
-  source_differs: "source differs",
-  no_target: "no translation",
-  unchanged: "unchanged",
-  edited_since_export: "edited since export",
-  stale: "stale",
-  fails_checks: "fails checks",
-  needs_override: "needs override",
-  import: "import",
+const CATEGORY_KEYS: Record<ImportCategory, MessageKey> = {
+  unknown_id: "jobs.import.category.unknownId",
+  unsupported_markup: "jobs.import.category.unsupportedMarkup",
+  source_differs: "jobs.import.category.sourceDiffers",
+  no_target: "jobs.import.category.noTarget",
+  unchanged: "jobs.import.category.unchanged",
+  edited_since_export: "jobs.import.category.editedSinceExport",
+  stale: "jobs.import.category.stale",
+  fails_checks: "jobs.import.category.failsChecks",
+  needs_override: "jobs.import.category.needsOverride",
+  import: "jobs.import.category.import",
 };
+
+/** Why a unit is or is not imported, in the interface language; a category this build does not know shows as nothing. */
+export const categoryLabel = (category: ImportCategory): string => (CATEGORY_KEYS[category] ? t(CATEGORY_KEYS[category]) : "");
 
 const ELIGIBLE = new Set<ImportCategory>(["import", "needs_override", "stale", "edited_since_export"]);
 

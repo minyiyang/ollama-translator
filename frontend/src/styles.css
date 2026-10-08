@@ -51,6 +51,7 @@ header.shell nav.tabs a.on { background: var(--bg); color: var(--ink); font-weig
 header.shell nav.tabs a .pip { display: inline-block; width: 7px; height: 7px; border-radius: 50%; background: var(--warn); margin-left: 6px; vertical-align: middle; }
 header.shell .spacer { flex: 1; }
 header.shell .tools { display: flex; gap: 12px; align-items: center; flex-wrap: wrap; }
+header.shell .language-menu { width: auto; }
 main.page { padding: 20px; max-width: 1400px; margin: 0 auto; }
 
 /* Building blocks */

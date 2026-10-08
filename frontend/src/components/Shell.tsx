@@ -1,5 +1,6 @@
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { Link, NavLink } from "react-router-dom";
+import { LOCALES, setLocale, useLocale, useT, type Locale, type MessageKey } from "../i18n";
 import { directionLabel } from "../lib/format";
 import { isGeneric } from "../lib/languages";
 import { tabStates } from "../lib/stages";
@@ -8,12 +9,24 @@ import { JobControls } from "./JobControls";
 
 // Pipeline order: config, then the glossary gate, then translation progress.
 const TABS = [
-  ["config", "Config"],
-  ["glossary", "Glossary"],
-  ["progress", "Progress"],
-  ["text", "Text"],
-  ["review", "Final review"],
-] as const;
+  ["config", "shell.tab.config"],
+  ["glossary", "shell.tab.glossary"],
+  ["progress", "shell.tab.progress"],
+  ["text", "shell.tab.text"],
+  ["review", "shell.tab.review"],
+] as const satisfies readonly (readonly [string, MessageKey])[];
+
+/** The interface-language menu; each language is named in its own language. */
+function LanguageMenu() {
+  const t = useT();
+  const locale = useLocale();
+  return (
+    <select className="language-menu" aria-label={t("shell.language")} title={t("shell.language")} value={locale}
+      onChange={(event) => void setLocale(event.target.value as Locale).catch(() => undefined)}>
+      {LOCALES.map(({ code, name }) => <option key={code} value={code} lang={code}>{name}</option>)}
+    </select>
+  );
+}
 
 /** Sticky header with job tabs; publishes its height as --header-h for sticky children. */
 export function Shell({
@@ -28,6 +41,7 @@ export function Shell({
   tools?: ReactNode;
   children: ReactNode;
 }) {
+  const t = useT();
   const header = useRef<HTMLElement>(null);
   const { info } = useJob();
   const dots = jobId && info ? tabStates(info.kind, info.overall, info.stages) : {};
@@ -48,32 +62,32 @@ export function Shell({
         <Link className="brand" to="/">Ollama Translator</Link>
         {!jobId && (
           <nav className="tabs">
-            <NavLink to="/" end className={({ isActive }) => (isActive ? "on" : "")}>Jobs</NavLink>
-            <NavLink to="/series" className={({ isActive }) => (isActive ? "on" : "")}>Series</NavLink>
+            <NavLink to="/" end className={({ isActive }) => (isActive ? "on" : "")}>{t("shell.jobs")}</NavLink>
+            <NavLink to="/series" className={({ isActive }) => (isActive ? "on" : "")}>{t("shell.series")}</NavLink>
           </nav>
         )}
         {(jobId || crumb) && <span className={jobId ? "crumb mono" : "crumb"}>{jobId ?? crumb}</span>}
         {jobId && info?.languages && isGeneric(info.languages) && (
           <span className="chip warn" title={[
-            `${info.languages.source.name} (${info.languages.source.tier}) → ${info.languages.target.name} (${info.languages.target.tier}).`,
-            ...info.languages.skipped.map((item) => `Skipped: ${item.check} (${item.reason}).`),
+            t("shell.pairTiers", { source: info.languages.source.name, sourceTier: info.languages.source.tier, target: info.languages.target.name, targetTier: info.languages.target.tier }),
+            ...info.languages.skipped.map((item) => t("shell.skipped", { check: item.check, reason: item.reason })),
           ].join("\n")}>
-            {directionLabel(info.direction)} · {info.languages.skipped.length} {info.languages.skipped.length === 1 ? "check" : "checks"} skipped
+            {t("shell.checksSkipped", { direction: directionLabel(info.direction), count: info.languages.skipped.length })}
           </span>
         )}
         {jobId && info?.series && (
           <Link className="chip series-chip" to={`/series/${encodeURIComponent(info.series.series_id)}`}
-            title={info.series.version ? `Pinned to series glossary ${info.series.version}` : "In this series; not pinned to a version yet"}>
-            Series {info.series.name} · {info.series.version ?? "not pinned"}
+            title={info.series.version ? t("shell.seriesPinned", { version: info.series.version }) : t("shell.seriesNotPinned")}>
+            {t("shell.seriesChip", { name: info.series.name, version: info.series.version ?? t("shell.notPinned") })}
           </Link>
         )}
         {jobId && (
           <nav className="tabs">
             {TABS.map(([key, label]) => (
               <NavLink key={key} to={`/jobs/${encodeURIComponent(jobId)}/${key}`} className={({ isActive }) => (isActive ? "on" : "")}>
-                {label}
+                {t(label)}
                 {dots[key] && (
-                  <span className={`pip ${dots[key]}`} title={dots[key] === "running" ? "Running now" : "Waiting for you"} aria-label={dots[key] === "running" ? "running" : "waiting for you"} />
+                  <span className={`pip ${dots[key]}`} title={dots[key] === "running" ? t("shell.pip.running") : t("shell.pip.waiting")} aria-label={dots[key] === "running" ? t("shell.pip.runningLabel") : t("shell.pip.waitingLabel")} />
                 )}
               </NavLink>
             ))}
@@ -83,6 +97,7 @@ export function Shell({
         <div className="tools">
           {tools}
           {jobId && <JobControls />}
+          <LanguageMenu />
         </div>
       </header>
       {children}

@@ -4,15 +4,18 @@
  * them beside the passages, editable the same way (book_agent/book_edits.py).
  */
 
+import type { MessageKey } from "../i18n";
+
 export type BookItemKind = "title" | "contents" | "note" | "description";
 
 export const BOOK_DOCUMENT = "BOOK";
 
-export const KIND_LABELS: Record<BookItemKind, string> = {
-  title: "Book title",
-  contents: "Contents entry",
-  note: "Note",
-  description: "Picture description",
+/** Each kind's name, as a message to translate where it is shown. */
+export const KIND_LABELS: Record<BookItemKind, MessageKey> = {
+  title: "text.kind.title",
+  contents: "text.kind.contents",
+  note: "text.kind.note",
+  description: "text.kind.description",
 };
 
 /** An item the title stage left in the source language, as the review page lists it. */

@@ -1,4 +1,5 @@
 import { useRef, useState } from "react";
+import { useT } from "../i18n";
 
 export type SyntaxError_ = { message: string; line: number | null; column: number | null; context_line: number | null };
 
@@ -20,6 +21,7 @@ export function CodeEditor({
   readOnly?: boolean;
   error: SyntaxError_ | null;
 }) {
+  const t = useT();
   const area = useRef<HTMLTextAreaElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const lines = Math.max(1, value.split("\n").length);
@@ -69,13 +71,13 @@ export function CodeEditor({
       </div>
       {error ? (
         <div className="code-error" role="alert">
-          <b>Syntax error{error.line ? ` on line ${error.line}${error.column ? `, column ${error.column}` : ""}` : ""}:</b> {error.message}
-          {error.context_line && <> (the construct starts on line {error.context_line})</>}
-          {error.line && <button type="button" className="small" onClick={() => goTo(error.line!)}>Go to line {error.line}</button>}
+          <b>{!error.line ? t("config.yaml.syntaxError") : error.column ? t("config.yaml.syntaxErrorAt", { line: error.line, column: error.column }) : t("config.yaml.syntaxErrorOnLine", { line: error.line })}</b> {error.message}
+          {error.context_line && <> {t("config.yaml.constructStarts", { line: error.context_line })}</>}
+          {error.line && <button type="button" className="small" onClick={() => goTo(error.line!)}>{t("config.yaml.goToLine", { line: error.line })}</button>}
         </div>
       ) : (
         <div className="meta" style={{ marginTop: 6 }}>
-          YAML syntax is valid. {readOnly ? "" : "Values are checked when you validate."}
+          {t("config.yaml.valid")} {readOnly ? "" : t("config.yaml.checkedOnValidate")}
         </div>
       )}
     </div>

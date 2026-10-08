@@ -1,4 +1,5 @@
 import { useState, type ReactNode, type Ref } from "react";
+import { useT } from "../i18n";
 
 function readCollapsed(key: string) {
   try { return localStorage.getItem(key) === "1"; } catch { return false; }
@@ -21,7 +22,10 @@ export function SideLayout({
   label: string;
   navRef?: Ref<HTMLElement>;
 }) {
+  const t = useT();
   const [collapsed, setCollapsed] = useState(() => readCollapsed(storageKey));
+  // English lower-cases the label mid-sentence; a language that must not can use {label} as given.
+  const named = { label, labelLower: label.toLowerCase() };
   const toggle = () => {
     setCollapsed((value) => {
       try { localStorage.setItem(storageKey, value ? "0" : "1"); } catch { /* per-tab only */ }
@@ -32,7 +36,7 @@ export function SideLayout({
     <div className={`side-layout ${collapsed ? "collapsed" : ""}`}>
       <aside className="sidenav" ref={navRef} aria-label={label}>
         <button type="button" className="collapse-btn" onClick={toggle} aria-expanded={!collapsed}
-          title={collapsed ? `Show ${label.toLowerCase()}` : `Hide ${label.toLowerCase()}`}>
+          title={collapsed ? t("ui.sidebar.show", named) : t("ui.sidebar.hide", named)}>
           {collapsed ? "»" : "«"}
           {!collapsed && <span>{label}</span>}
         </button>

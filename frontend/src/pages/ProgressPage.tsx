@@ -8,6 +8,7 @@ import { StageTip } from "../components/StageTip";
 import { NotStarted, useJob } from "../components/JobContext";
 import { useToast } from "../components/Toast";
 import { Bar, Card, Chip } from "../components/ui";
+import { getLocale, rich, useT, type MessageKey, type Translate } from "../i18n";
 import { count, duration, relativeTime, roughDuration, shortTimestamp } from "../lib/format";
 import { attentionFrom, lastStageAction, stageActions, stageLabel, type Stage, type WorkflowStatus } from "../lib/stages";
 
@@ -28,13 +29,6 @@ type Process = {
   outcome: "running" | "completed" | "paused" | "cancelled" | "failed";
   started: string;
   output_tail: string;
-};
-const OUTCOME_TEXT: Record<Process["outcome"], string> = {
-  running: "running",
-  completed: "finished",
-  paused: "paused, waiting for you",
-  cancelled: "stopped",
-  failed: "failed",
 };
 type Snapshot = {
   status: WorkflowStatus;
@@ -57,6 +51,7 @@ type Estimate = {
 
 /** "About 1 h 20 min left": how the number was made is shown right under it. */
 function EstimatePanel({ estimate, running }: { estimate: Estimate; running: boolean }) {
+  const t = useT();
   if (estimate.complete) return null;
   const later = estimate.pending.reduce((sum, p) => sum + p.seconds, 0);
   const cur = estimate.current;
@@ -64,28 +59,29 @@ function EstimatePanel({ estimate, running }: { estimate: Estimate; running: boo
     <div className="estimate">
       <div className="estimate-main">
         {estimate.remaining_seconds !== null ? (
-          <>≈ {roughDuration(estimate.remaining_seconds)} <span>left{running ? "" : " once resumed"}</span></>
+          rich(running ? "progress.estimate.left" : "progress.estimate.leftOnceResumed", { time: roughDuration(estimate.remaining_seconds), span: (chunks) => <span>{chunks}</span> })
         ) : (
-          <span>Not enough data to estimate yet</span>
+          <span>{t("progress.estimate.notEnoughData")}</span>
         )}
       </div>
-      <div className="meta">{roughDuration(estimate.elapsed_seconds)} of pipeline time so far</div>
+      <div className="meta">{t("progress.estimate.elapsed", { time: roughDuration(estimate.elapsed_seconds) })}</div>
       <ul className="estimate-parts">
         {cur && (
           <li>
-            <b>{stageLabel(cur.stage)}</b>: ~{roughDuration(cur.remaining_seconds)} ({cur.done}/{cur.total} units done; {cur.basis})
+            {rich("progress.estimate.current", { b: (chunks) => <b>{chunks}</b>, stage: stageLabel(cur.stage), time: roughDuration(cur.remaining_seconds), done: cur.done, total: cur.total, basis: cur.basis })}
           </li>
         )}
         {later > 0 && (
           <li>
-            Later stages: ~{roughDuration(later)}, from {estimate.history_jobs} previous job{estimate.history_jobs === 1 ? "" : "s"}
-            {estimate.segments ? ` scaled to ${estimate.segments.toLocaleString()} segments` : ""}
+            {estimate.segments
+              ? t("progress.estimate.laterScaled", { time: roughDuration(later), jobs: estimate.history_jobs, segments: estimate.segments.toLocaleString(getLocale()) })
+              : t("progress.estimate.later", { time: roughDuration(later), jobs: estimate.history_jobs })}
           </li>
         )}
         {estimate.unknown_stages.length > 0 && (
-          <li>Not estimated (no history yet): {estimate.unknown_stages.map(stageLabel).join(", ")}</li>
+          <li>{t("progress.estimate.notEstimated", { stages: estimate.unknown_stages.map(stageLabel).join(", ") })}</li>
         )}
-        {estimate.excludes.length > 0 && <li>Excludes waiting for you: {estimate.excludes.map((g) => (g.includes(" ") ? g : stageLabel(g))).join("; ")}</li>}
+        {estimate.excludes.length > 0 && <li>{t("progress.estimate.excludes", { gates: estimate.excludes.map((g) => (g.includes(" ") ? g : stageLabel(g))).join("; ") })}</li>}
       </ul>
     </div>
   );
@@ -94,11 +90,12 @@ function EstimatePanel({ estimate, running }: { estimate: Estimate; running: boo
 const ICONS: Record<string, string> = { completed: "✓", failed: "✕", paused: "❚❚", pending: "○", skipped: "–" };
 
 function WorkCell({ stage, activity }: { stage: Stage; activity?: Activity }) {
+  const t = useT();
   if (!activity) return null;
   const pair = activity.counter ?? activity.segments;
   const parts = [
-    activity.tasks ? `${activity.tasks} LLM task${activity.tasks === 1 ? "" : "s"}` : "",
-    pair ? `${activity.counter ? "unit" : "segment"} ${pair[0]}/${pair[1]}` : "",
+    activity.tasks ? t("progress.work.tasks", { count: activity.tasks }) : "",
+    pair ? t(activity.counter ? "progress.work.unit" : "progress.work.segment", { done: pair[0], total: pair[1] }) : "",
   ].filter(Boolean);
   const done = stage.status === "completed";
   return (
@@ -109,17 +106,27 @@ function WorkCell({ stage, activity }: { stage: Stage; activity?: Activity }) {
   );
 }
 
+const RESULT_STATE: Record<string, MessageKey> = {
+  completed: "progress.result.completed",
+  running: "progress.result.running",
+  paused: "progress.result.paused",
+  failed: "progress.result.failed",
+  pending: "progress.result.pending",
+};
+
 /** Live one-paragraph result for the stage tooltip. */
-function stageResult(stage: Stage, activity?: Activity): string {
-  const state = { completed: "Completed", running: "Running", paused: "Paused", failed: "Failed", pending: "Not started yet" }[stage.status] ?? stage.status;
-  const parts: string[] = [state];
+function stageResult(t: Translate, stage: Stage, activity?: Activity): string {
+  const parts: string[] = [RESULT_STATE[stage.status] ? t(RESULT_STATE[stage.status]) : stage.status];
   const pair = activity?.counter ?? activity?.segments;
-  if (pair) parts.push(`${pair[0]}/${pair[1]} ${activity?.counter ? "units" : "segments"}`);
+  if (pair) parts.push(t(activity?.counter ? "progress.result.units" : "progress.result.segments", { done: pair[0], total: pair[1] }));
   if (activity?.llm_calls) {
-    parts.push(`${activity.llm_calls} LLM call${activity.llm_calls === 1 ? "" : "s"}${activity.avg_call_seconds ? `, avg ${activity.avg_call_seconds}s` : ""}`);
+    parts.push(activity.avg_call_seconds
+      ? t("progress.result.callsAvg", { count: activity.llm_calls, seconds: activity.avg_call_seconds })
+      : t("progress.result.calls", { count: activity.llm_calls }));
   }
-  if (activity?.first && activity.last && stage.status !== "pending") parts.push(`${duration(activity.first, activity.last)} this session`);
-  return parts.join(" · ") + (stage.message ? `. ${stage.message}` : ".");
+  if (activity?.first && activity.last && stage.status !== "pending") parts.push(t("progress.result.thisSession", { time: duration(activity.first, activity.last) }));
+  const summary = parts.join(" · ");
+  return stage.message ? t("progress.result.summaryWithMessage", { summary, message: stage.message }) : t("progress.result.summary", { summary });
 }
 
 type RerunPreview = {
@@ -132,6 +139,7 @@ type RerunPreview = {
 
 /** Resume where the run stopped, or rerun a stage from scratch after a warning. */
 function StageActionButtons({ stage, live, onLaunched }: { stage: Stage; live: boolean; onLaunched: () => void }) {
+  const t = useT();
   const { jobId, refresh } = useJob();
   const ask = useDialog();
   const toast = useToast();
@@ -165,44 +173,40 @@ function StageActionButtons({ stage, live, onLaunched }: { stage: Stage; live: b
     const ran = preview.stages.filter((s) => s.status !== "pending");
     const later = preview.stages.length - ran.length;
     const choice = await ask(
-      `Rerun from ${stageLabel(stage.name)}?`,
+      t("progress.rerun.title", { stage: stageLabel(stage.name) }),
       <>
-        {stopped && <p>Resume would keep this stage's finished work; a rerun starts it over.</p>}
-        <p>
-          {ran.length === 1
-            ? "This stage is reset and runs again; its finished work is discarded:"
-            : "These stages are reset and run again; their finished work is discarded:"}
-        </p>
+        {stopped && <p>{t("progress.rerun.resumeKeeps")}</p>}
+        <p>{t("progress.rerun.resets", { count: ran.length })}</p>
         <ol className="rerun-stages">
           {ran.map((s) => (
             <li key={s.name}>
               {stageLabel(s.name)}
-              {s.seconds ? <span className="meta"> · took ~{roughDuration(s.seconds)}</span> : null}
+              {s.seconds ? <span className="meta"> · {t("progress.rerun.took", { time: roughDuration(s.seconds) })}</span> : null}
             </li>
           ))}
         </ol>
-        {later > 0 && <p className="meta">The run then continues through the {later} later stage{later === 1 ? " that has" : "s that have"} not run yet.</p>}
-        {preview.previous_seconds ? <p className="meta">These stages took about {roughDuration(preview.previous_seconds)} so far.</p> : null}
+        {later > 0 && <p className="meta">{t("progress.rerun.continues", { count: later })}</p>}
+        {preview.previous_seconds ? <p className="meta">{t("progress.rerun.tookSoFar", { time: roughDuration(preview.previous_seconds) })}</p> : null}
         {preview.warnings.map((w) => <div key={w.code} className="banner warn">{w.message}</div>)}
       </>,
       [
-        { value: "cancel", label: "Cancel", primary: true },
-        { value: "rerun", label: "Rerun", danger: true },
+        { value: "cancel", label: t("common.cancel"), primary: true },
+        { value: "rerun", label: t("progress.rerun.confirm"), danger: true },
       ],
     );
-    if (choice === "rerun") await launch("rerun", { stage: stage.name }, `Rerunning from ${stageLabel(stage.name)}.`);
+    if (choice === "rerun") await launch("rerun", { stage: stage.name }, t("progress.rerun.started", { stage: stageLabel(stage.name) }));
   };
 
-  const blocked = live ? "The job is running; pause or stop it first." : "";
+  const blocked = live ? t("progress.action.blocked") : "";
   return (
     <span className="stage-actions">
       {actions.includes("resume") && (
-        <button className="small" disabled={busy || live} title={blocked || "Continues from the last checkpoint; finished work is kept."}
-          onClick={() => launch("resume", {}, "Resumed.")}>Resume</button>
+        <button className="small" disabled={busy || live} title={blocked || t("progress.action.resumeHint")}
+          onClick={() => launch("resume", {}, t("progress.action.resumed"))}>{t("progress.action.resume")}</button>
       )}
       {actions.includes("rerun") && (
-        <button className="small" disabled={busy || live} title={blocked || "Resets this stage and every later stage, then runs them again."}
-          onClick={rerun}>{actions.includes("resume") ? "Rerun" : "Rerun from here"}</button>
+        <button className="small" disabled={busy || live} title={blocked || t("progress.action.rerunHint")}
+          onClick={rerun}>{actions.includes("resume") ? t("progress.action.rerun") : t("progress.action.rerunFromHere")}</button>
       )}
     </span>
   );
@@ -221,13 +225,14 @@ function LastChange({ stage }: { stage: Stage }) {
   if (!action || !stage.updated_at) return null;
   const at = new Date(stage.updated_at);
   return (
-    <span title={`${at.toLocaleString()} (${relativeTime(stage.updated_at)})`}>
+    <span title={`${at.toLocaleString(getLocale())} (${relativeTime(stage.updated_at)})`}>
       <span className="meta">{action}</span> <span className="mono">{shortTimestamp(stage.updated_at)}</span>
     </span>
   );
 }
 
 export function ProgressPage() {
+  const t = useT();
   const { jobId, info } = useJob();
   const started = info?.kind === "job";
   const [data, setData] = useState<Snapshot | null>(null);
@@ -295,10 +300,10 @@ export function ProgressPage() {
   const base = `/jobs/${encodeURIComponent(jobId)}`;
   const stageEstimate = (name: string, stageStatus: string) => {
     if (!estimate || stageStatus === "completed") return "";
-    if (estimate.current?.stage === name) return `~${roughDuration(estimate.current.remaining_seconds)} left`;
+    if (estimate.current?.stage === name) return t("progress.stageEstimate.left", { time: roughDuration(estimate.current.remaining_seconds) });
     const planned = estimate.pending.find((p) => p.stage === name);
     if (planned) return planned.seconds < 1 ? "" : `~${roughDuration(planned.seconds)}`;
-    if (estimate.excludes.includes(name)) return "your review";
+    if (estimate.excludes.includes(name)) return t("progress.stageEstimate.yourReview");
     return estimate.unknown_stages.includes(name) ? "?" : "";
   };
 
@@ -307,51 +312,51 @@ export function ProgressPage() {
       <main className="page">
         {info?.kind === "draft" && <NotStarted what="progress" />}
         {error && <div className="banner bad">{error}</div>}
-        {started && !data && !error && <p className="meta">Loading…</p>}
+        {started && !data && !error && <p className="meta">{t("common.loading")}</p>}
         {data && status && (
           <>
             <section className="card summary">
               <div>
                 <Chip kind={status.overall}>{status.overall}</Chip>
                 <span className="meta" style={{ marginLeft: 6 }}>{data.source}</span>
-                <div className="big">{current ? stageLabel(current.name) : "All stages complete"}</div>
+                <div className="big">{current ? stageLabel(current.name) : t("progress.summary.allComplete")}</div>
                 {current?.message && <div className="meta">{current.message}</div>}
                 <Bar percent={(100 * done) / stages.length} running={status.overall !== "complete"} />
-                <span className="meta">{done} of {stages.length} stages complete</span>
+                <span className="meta">{t("progress.summary.stagesComplete", { done, total: stages.length })}</span>
                 {proc && (
                   <div className="meta" style={{ marginTop: 6 }}>
-                    Dashboard-launched <b>{proc.label}</b> started {proc.started} — {OUTCOME_TEXT[proc.outcome] ?? `exited with code ${proc.exit_code}`}
+                    {rich("progress.summary.process", { b: (chunks) => <b>{chunks}</b>, label: proc.label, started: proc.started, outcome: proc.outcome, code: String(proc.exit_code) })}
                   </div>
                 )}
                 {proc?.outcome === "failed" && (
-                  <div className="banner bad" style={{ marginTop: 10 }}>The {proc.label} command failed (exit code {proc.exit_code}):<pre>{proc.output_tail}</pre></div>
+                  <div className="banner bad" style={{ marginTop: 10 }}>{t("progress.summary.commandFailed", { label: proc.label, code: proc.exit_code })}<pre>{proc.output_tail}</pre></div>
                 )}
               </div>
               <div className="summary-side">
                 {estimate && <EstimatePanel estimate={estimate} running={live} />}
                 <div className="row" style={{ margin: 0, justifyContent: "flex-end" }}>
                 {attention.glossary ? (
-                  <Link to={`${base}/glossary`}><button className="primary">Review glossary</button></Link>
+                  <Link to={`${base}/glossary`}><button className="primary">{t("progress.summary.reviewGlossary")}</button></Link>
                 ) : attention.review ? (
-                  <Link to={`${base}/review`}><button className="primary">Open final review</button></Link>
+                  <Link to={`${base}/review`}><button className="primary">{t("progress.summary.openFinalReview")}</button></Link>
                 ) : null}
                 </div>
               </div>
             </section>
 
             {live && data.progress.last_llm && (
-              <Card title="Now">
+              <Card title={t("progress.now.title")}>
                 <div className="now">
                   {data.progress.last_llm}
-                  {data.progress.last_rate ? `\nlast completed call: ${data.progress.last_rate} tok/s` : ""}
+                  {data.progress.last_rate ? `\n${t("progress.now.lastRate", { rate: data.progress.last_rate })}` : ""}
                 </div>
               </Card>
             )}
 
-            <Card title="Pipeline">
+            <Card title={t("progress.pipeline.title")}>
               <table className="grid stages">
                 <thead>
-                  <tr><th /><th>Stage</th><th>Work (this session)</th><th className="num">LLM calls</th><th className="num">Output tokens</th><th className="num">Time</th><th className="num">Estimate</th><th className="num">Attempts</th><th>Last change</th><th /></tr>
+                  <tr><th /><th>{t("progress.pipeline.stage")}</th><th>{t("progress.pipeline.work")}</th><th className="num">{t("progress.pipeline.llmCalls")}</th><th className="num">{t("progress.pipeline.outputTokens")}</th><th className="num">{t("progress.pipeline.time")}</th><th className="num">{t("progress.pipeline.estimate")}</th><th className="num">{t("progress.pipeline.attempts")}</th><th>{t("progress.pipeline.lastChange")}</th><th /></tr>
                 </thead>
                 <tbody>
                   {stages.map((stage) => {
@@ -360,13 +365,13 @@ export function ProgressPage() {
                       <tr key={stage.name} className={stage.status}>
                         <td className={`icon ${stage.status}`}>{stage.status === "running" ? <span>◐</span> : ICONS[stage.status] ?? "○"}</td>
                         <td>
-                          <b>{stageLabel(stage.name)}</b> <StageTip stage={stage.name} result={stageResult(stage, activity)} />{" "}
+                          <b>{stageLabel(stage.name)}</b> <StageTip stage={stage.name} result={stageResult(t, stage, activity)} />{" "}
                           <span className="meta mono">{stage.name}</span>
                           {stage.message && <div className="msg">{stage.message}</div>}
                           {stage.name === "translate_title" && leftInSource.length > 0 && (
                             <div className="msg">
                               <Link to={`${base}/text?view=untranslated`}>
-                                {leftInSource.length} left in the source language: translate on Text →
+                                {t("progress.pipeline.leftInSource", { count: leftInSource.length })}
                               </Link>
                             </div>
                           )}
@@ -374,7 +379,7 @@ export function ProgressPage() {
                         <td className="work"><WorkCell stage={stage} activity={activity} /></td>
                         <td className="num">
                           {count(activity?.llm_calls)}
-                          {activity?.avg_call_seconds ? <div className="meta">avg {activity.avg_call_seconds}s</div> : null}
+                          {activity?.avg_call_seconds ? <div className="meta">{t("progress.pipeline.avgCall", { seconds: activity.avg_call_seconds })}</div> : null}
                         </td>
                         <td className="num">{count(activity?.output_tokens)}</td>
                         <td className="num meta">{activity ? duration(activity.first, activity.last) : ""}</td>
@@ -391,15 +396,15 @@ export function ProgressPage() {
 
             <section className="card">
               <div className="row" style={{ margin: "0 0 10px", justifyContent: "space-between" }}>
-                <h2 style={{ margin: 0 }}>Session log <span className="meta mono" style={{ textTransform: "none" }}>{data.progress.log}</span></h2>
+                <h2 style={{ margin: 0 }}>{t("progress.log.title")} <span className="meta mono" style={{ textTransform: "none" }}>{data.progress.log}</span></h2>
                 <span className="row" style={{ margin: 0 }}>
-                  <label className="meta"><input type="checkbox" checked={hideHeartbeat} onChange={(e) => setHideHeartbeat(e.target.checked)} /> hide streaming heartbeats</label>
-                  <label className="meta"><input type="checkbox" checked={hideSegments} onChange={(e) => setHideSegments(e.target.checked)} /> hide per-segment results</label>
-                  <label className="meta"><input type="checkbox" checked={follow} onChange={(e) => setFollow(e.target.checked)} /> follow</label>
+                  <label className="meta"><input type="checkbox" checked={hideHeartbeat} onChange={(e) => setHideHeartbeat(e.target.checked)} /> {t("progress.log.hideHeartbeats")}</label>
+                  <label className="meta"><input type="checkbox" checked={hideSegments} onChange={(e) => setHideSegments(e.target.checked)} /> {t("progress.log.hideSegments")}</label>
+                  <label className="meta"><input type="checkbox" checked={follow} onChange={(e) => setFollow(e.target.checked)} /> {t("progress.log.follow")}</label>
                 </span>
               </div>
               <div className="log logview" ref={logBox}>
-                {shown.length ? shown.map((line, i) => <div key={i} className={lineClass(line)}>{line}</div>) : <span className="meta">No log lines yet.</span>}
+                {shown.length ? shown.map((line, i) => <div key={i} className={lineClass(line)}>{line}</div>) : <span className="meta">{t("progress.log.empty")}</span>}
               </div>
             </section>
           </>

@@ -6,6 +6,7 @@ import { useToast } from "../components/Toast";
 import { LanguagePairPicker } from "../components/LanguagePairPicker";
 import { Card, Chip } from "../components/ui";
 import { directionLabel, relativeTime } from "../lib/format";
+import { rich, useT, type MessageKey } from "../i18n";
 import { FALLBACK_PAIR, langAttr, pairCodes, type GlossaryPair } from "../lib/languages";
 import { seriesIdFromName } from "../lib/series";
 import { NewJobDialog, type Setup } from "./JobsPage";
@@ -31,15 +32,16 @@ type Entry = { source: string; target: string; category: string };
 const seriesApi = <T,>(id: string, path: string, body?: unknown) =>
   api<T>(`/api/series/${encodeURIComponent(id)}/${path}`, body);
 
-const GLOSSARY_STATE: Record<string, [string, string]> = {
-  approved: ["completed", "approved"],
-  resolved: ["paused", "at glossary gate"],
-  "not ready": ["pending", "glossary not ready"],
-  draft: ["draft", "draft · not started"],
-  missing: ["failed", "job missing"],
+const GLOSSARY_STATE: Record<string, [string, MessageKey]> = {
+  approved: ["completed", "series.glossaryState.approved"],
+  resolved: ["paused", "series.glossaryState.resolved"],
+  "not ready": ["pending", "series.glossaryState.notReady"],
+  draft: ["draft", "series.glossaryState.draft"],
+  missing: ["failed", "series.glossaryState.missing"],
 };
 
 function NewSeriesDialog({ directions, onClose }: { directions: string[]; onClose: () => void }) {
+  const t = useT();
   const toast = useToast();
   const navigate = useNavigate();
   const [name, setName] = useState("");
@@ -69,24 +71,24 @@ function NewSeriesDialog({ directions, onClose }: { directions: string[]; onClos
   return (
     <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <section className="card modal" role="dialog" aria-modal="true" aria-labelledby="new-series-title">
-        <h2 id="new-series-title">New series</h2>
+        <h2 id="new-series-title">{t("series.new.title")}</h2>
         <div className="field">
-          <label htmlFor="series-name">Name</label>
-          <input id="series-name" type="text" value={name} placeholder="The Qel Cycle" onChange={(e) => setName(e.target.value)} autoFocus />
+          <label htmlFor="series-name">{t("series.new.name")}</label>
+          <input id="series-name" type="text" value={name} placeholder={t("series.new.namePlaceholder")} onChange={(e) => setName(e.target.value)} autoFocus />
         </div>
         <div className="field">
-          <label htmlFor="series-id">Series ID</label>
+          <label htmlFor="series-id">{t("series.new.id")}</label>
           <input id="series-id" type="text" className="mono" value={seriesId} onChange={(e) => { setIdTouched(true); setSeriesId(e.target.value); }} />
-          <span className="hint">Letters, digits, dot, dash, underscore. Stored under <span className="mono">runs/.series/{seriesId || "…"}</span>.</span>
+          <span className="hint">{rich("series.new.idHint", { path: (chunks) => <span className="mono">{chunks}</span>, id: seriesId || "…" })}</span>
         </div>
         <div className="field">
-          <span className="label-text">Languages</span>
+          <span className="label-text">{t("series.new.languages")}</span>
           <LanguagePairPicker value={direction} onChange={setDirection} />
-          <span className="hint">Every book in the series must translate between these languages.</span>
+          <span className="hint">{t("series.new.languagesHint")}</span>
         </div>
         <div className="row dialog-actions">
-          <button onClick={onClose}>Cancel</button>
-          <button className="primary" disabled={busy || !idOk || !name.trim()} onClick={create}>Create series</button>
+          <button onClick={onClose}>{t("common.cancel")}</button>
+          <button className="primary" disabled={busy || !idOk || !name.trim()} onClick={create}>{t("series.new.create")}</button>
         </div>
       </section>
     </div>
@@ -94,6 +96,7 @@ function NewSeriesDialog({ directions, onClose }: { directions: string[]; onClos
 }
 
 export function SeriesListPage() {
+  const t = useT();
   const [rows, setRows] = useState<SeriesRow[] | null>(null);
   const [directions, setDirections] = useState<string[]>([]);
   const [error, setError] = useState("");
@@ -107,31 +110,28 @@ export function SeriesListPage() {
   return (
     <Shell>
       <main className="page">
-        <Card title="Series">
-          <p className="meta">
-            A series shares one versioned glossary across its books. Each book pins a version, so a later volume
-            never changes an already translated book.
-          </p>
+        <Card title={t("series.list.title")}>
+          <p className="meta">{t("series.list.intro")}</p>
           {error && <div className="banner bad">{error}</div>}
-          {!rows && !error && <p className="meta">Loading…</p>}
-          {rows && !rows.length && <p className="meta">No series yet.</p>}
+          {!rows && !error && <p className="meta">{t("common.loading")}</p>}
+          {rows && !rows.length && <p className="meta">{t("series.list.empty")}</p>}
           {rows && rows.length > 0 && (
             <table className="grid">
-              <thead><tr><th>Series</th><th>Type</th><th className="num">Books</th><th>Latest version</th><th>Workbench</th></tr></thead>
+              <thead><tr><th>{t("series.list.column.series")}</th><th>{t("series.list.column.type")}</th><th className="num">{t("series.list.column.books")}</th><th>{t("series.list.column.latest")}</th><th>{t("series.list.column.workbench")}</th></tr></thead>
               <tbody>
                 {rows.map((row) => (
                   <tr key={row.series_id}>
                     <td><Link to={`/series/${encodeURIComponent(row.series_id)}`}>{row.name}</Link> <span className="meta mono">{row.series_id}</span></td>
                     <td className="mono nowrap">{directionLabel(row.direction)}</td>
                     <td className="num">{row.books}</td>
-                    <td>{row.latest ?? <span className="meta">none published</span>}</td>
-                    <td>{row.pending === null ? <span className="meta">—</span> : row.pending ? <Chip kind="warn">{row.pending} pending</Chip> : <Chip kind="ok">ready to publish</Chip>}</td>
+                    <td>{row.latest ?? <span className="meta">{t("series.list.nonePublished")}</span>}</td>
+                    <td>{row.pending === null ? <span className="meta">—</span> : row.pending ? <Chip kind="warn">{t("series.pendingCount", { count: row.pending })}</Chip> : <Chip kind="ok">{t("series.list.readyToPublish")}</Chip>}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           )}
-          <button className="add-job" disabled={!directions.length} onClick={() => setAdding(true)}>+ New series</button>
+          <button className="add-job" disabled={!directions.length} onClick={() => setAdding(true)}>{t("series.list.new")}</button>
         </Card>
       </main>
       {adding && <NewSeriesDialog directions={directions} onClose={() => setAdding(false)} />}
@@ -140,6 +140,7 @@ export function SeriesListPage() {
 }
 
 function BooksTab({ detail, onChange, onCurate }: { detail: Detail; onChange: (d: Detail) => void; onCurate: () => void }) {
+  const t = useT();
   const toast = useToast();
   const [picked, setPicked] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
@@ -167,13 +168,14 @@ function BooksTab({ detail, onChange, onCurate }: { detail: Detail; onChange: (d
 
   return (
     <>
-      <Card title={`Books (${detail.books.length})`}>
-        {detail.books.length === 0 ? <p className="meta">No books yet. Add jobs below.</p> : (
+      <Card title={t("series.books.title", { count: detail.books.length })}>
+        {detail.books.length === 0 ? <p className="meta">{t("series.books.empty")}</p> : (
           <table className="grid">
-            <thead><tr><th className="num">Vol.</th><th>Job</th><th>Glossary</th><th>Pinned version</th><th /></tr></thead>
+            <thead><tr><th className="num">{t("series.books.column.volume")}</th><th>{t("series.books.column.job")}</th><th>{t("series.books.column.glossary")}</th><th>{t("series.books.column.pinned")}</th><th /></tr></thead>
             <tbody>
               {detail.books.map((book) => {
-                const [kind, label] = GLOSSARY_STATE[book.glossary] ?? ["pending", book.glossary];
+                const state = GLOSSARY_STATE[book.glossary];
+                const [kind, label] = state ? [state[0], t(state[1])] : ["pending", book.glossary];
                 return (
                   <tr key={book.job_id}>
                     <td className="num">{book.volume ?? ""}</td>
@@ -181,14 +183,14 @@ function BooksTab({ detail, onChange, onCurate }: { detail: Detail; onChange: (d
                     <td><Chip kind={kind}>{label}</Chip></td>
                     <td>
                       {book.version ?? (book.glossary === "resolved" && latest
-                        ? <Link to={`/jobs/${encodeURIComponent(book.job_id)}/glossary`}>approve with {latest} →</Link>
-                        : <span className="meta">not pinned</span>)}
-                      {book.version && latest && book.version !== latest && <span className="meta"> · {latest} available</span>}
+                        ? <Link to={`/jobs/${encodeURIComponent(book.job_id)}/glossary`}>{t("series.books.approveWith", { version: latest })}</Link>
+                        : <span className="meta">{t("series.books.notPinned")}</span>)}
+                      {book.version && latest && book.version !== latest && <span className="meta"> · {t("series.books.versionAvailable", { version: latest })}</span>}
                     </td>
                     <td>
                       {!book.version && (
-                        <button className="small" disabled={busy} title="Only a book not pinned to a version can leave the series"
-                          onClick={() => run("books/remove", { job_id: book.job_id }, `${book.job_id} removed.`)}>Remove</button>
+                        <button className="small" disabled={busy} title={t("series.books.removeHint")}
+                          onClick={() => run("books/remove", { job_id: book.job_id }, t("series.books.removed", { job: book.job_id }))}>{t("common.remove")}</button>
                       )}
                     </td>
                   </tr>
@@ -197,16 +199,16 @@ function BooksTab({ detail, onChange, onCurate }: { detail: Detail; onChange: (d
             </tbody>
           </table>
         )}
-        <h2 style={{ marginTop: 16 }}>Add books</h2>
+        <h2 style={{ marginTop: 16 }}>{t("series.books.addHeading")}</h2>
         <div className="row">
-          <button className="primary" onClick={newBook}>+ New book</button>
-          <span className="meta">Upload a book: it becomes a new job in this series, then you validate and start it on its Config tab.</span>
+          <button className="primary" onClick={newBook}>{t("series.books.new")}</button>
+          <span className="meta">{t("series.books.newHint")}</span>
         </div>
         {detail.addable.length === 0 ? (
-          <p className="meta">No existing {directionLabel(detail.direction)} jobs outside a series to add.</p>
+          <p className="meta">{t("series.books.noneAddable", { direction: directionLabel(detail.direction) })}</p>
         ) : (
           <>
-            <p className="meta">Or add existing jobs:</p>
+            <p className="meta">{t("series.books.addExisting")}</p>
           <>
             <div className="pick-list">
               {detail.addable.map((job) => (
@@ -219,10 +221,10 @@ function BooksTab({ detail, onChange, onCurate }: { detail: Detail; onChange: (d
             </div>
             <div className="row">
               <button className="primary" disabled={busy || !picked.length}
-                onClick={() => run("books", { job_ids: picked }, `Added ${picked.length} book${picked.length === 1 ? "" : "s"}.`).then((added) => { if (added) setPicked([]); })}>
-                Add {picked.length || ""} as next volume{picked.length === 1 ? "" : "s"}
+                onClick={() => run("books", { job_ids: picked }, t("series.books.added", { count: picked.length })).then((added) => { if (added) setPicked([]); })}>
+                {t("series.books.addAsNext", { count: picked.length })}
               </button>
-              <span className="meta">Volumes follow the order you tick them.</span>
+              <span className="meta">{t("series.books.orderHint")}</span>
             </div>
           </>
           </>
@@ -232,27 +234,28 @@ function BooksTab({ detail, onChange, onCurate }: { detail: Detail; onChange: (d
         )}
       </Card>
 
-      <Card title="Candidate glossary">
+      <Card title={t("series.candidate.title")}>
         <p className="meta">
-          Collects the glossaries of books at the glossary gate (resolved) or already approved. Terms agreed by 2+ books are
-          kept, disagreements wait for a decision, single-book terms stay in their book.
-          {latest && ` Terms of ${latest} are carried and locked.`}
+          {t("series.candidate.intro")}
+          {latest && ` ${t("series.candidate.carried", { version: latest })}`}
         </p>
         {wb ? (
           <p>
-            Built {relativeTime(wb.built_at)}{wb.based_on ? ` on top of ${wb.based_on}` : ""}:{" "}
-            <b>{wb.terms}</b> terms, <b>{wb.keep}</b> kept, {wb.pending ? <Chip kind="warn">{wb.pending} pending</Chip> : "none pending"}.
+            {rich(wb.based_on ? "series.candidate.builtOnTop" : "series.candidate.built", {
+              ago: relativeTime(wb.built_at), base: wb.based_on, terms: wb.terms, keep: wb.keep, pending: wb.pending,
+              b: (chunks) => <b>{chunks}</b>, chip: (chunks) => <Chip kind="warn">{chunks}</Chip>,
+            })}
           </p>
-        ) : <p className="meta">Not built yet.</p>}
+        ) : <p className="meta">{t("series.candidate.notBuilt")}</p>}
         <div className="row">
           <button className="primary" disabled={busy || !ready}
-            title={ready ? "Deterministic, no LLM calls" : "No book has a resolved or approved glossary yet"}
-            onClick={() => run("build", {}, "Candidate built.")}>{wb ? "Rebuild candidate" : "Build candidate"}</button>
-          <span className="meta">{ready} of {detail.books.length} books ready.</span>
+            title={ready ? t("series.candidate.buildHint") : t("series.candidate.buildBlocked")}
+            onClick={() => run("build", {}, t("series.candidate.builtToast"))}>{wb ? t("series.candidate.rebuild") : t("series.candidate.build")}</button>
+          <span className="meta">{t("series.candidate.ready", { ready, total: detail.books.length })}</span>
         </div>
         {wb && (
           <p className="meta">
-            Review the candidate and publish it on the <button className="linklike" onClick={onCurate}>Workbench</button> tab.
+            {rich("series.candidate.review", { tab: (chunks) => <button className="linklike" onClick={onCurate}>{chunks}</button> })}
           </p>
         )}
       </Card>
@@ -261,6 +264,7 @@ function BooksTab({ detail, onChange, onCurate }: { detail: Detail; onChange: (d
 }
 
 function VersionsTab({ detail }: { detail: Detail }) {
+  const t = useT();
   const toast = useToast();
   const [open, setOpen] = useState<string | null>(null);
   const [entries, setEntries] = useState<Entry[]>([]);
@@ -277,30 +281,30 @@ function VersionsTab({ detail }: { detail: Detail }) {
       toast("bad", (e as Error).message, 0);
     }
   };
-  if (!detail.versions.length) return <Card title="Versions"><p className="meta">Nothing published yet.</p></Card>;
+  if (!detail.versions.length) return <Card title={t("series.versions.title")}><p className="meta">{t("series.versions.empty")}</p></Card>;
   return (
-    <Card title="Versions">
-      <p className="meta">Published versions are never changed. Each book keeps the version it is pinned to.</p>
+    <Card title={t("series.versions.title")}>
+      <p className="meta">{t("series.versions.intro")}</p>
       <table className="grid">
-        <thead><tr><th>Version</th><th>Published</th><th className="num">Terms</th><th>From books</th><th>Pinned by</th><th /></tr></thead>
+        <thead><tr><th>{t("series.versions.column.version")}</th><th>{t("series.versions.column.published")}</th><th className="num">{t("series.versions.column.terms")}</th><th>{t("series.versions.column.fromBooks")}</th><th>{t("series.versions.column.pinnedBy")}</th><th /></tr></thead>
         <tbody>
           {[...detail.versions].reverse().map((v) => (
             <tr key={v.version}>
               <td className="mono">{v.version}{v.based_on && <span className="meta"> ← {v.based_on}</span>}</td>
               <td className="meta">{relativeTime(v.created_at)}</td>
               <td className="num">{v.term_count}</td>
-              <td className="meta">{v.source_jobs.join(", ") || "imported"}</td>
+              <td className="meta">{v.source_jobs.join(", ") || t("series.versions.imported")}</td>
               <td className="meta">{pins(v.version).join(", ") || "—"}</td>
-              <td><button className="small" onClick={() => toggle(v.version)}>{open === v.version ? "Hide" : "Terms"}</button></td>
+              <td><button className="small" onClick={() => toggle(v.version)}>{open === v.version ? t("series.versions.hideTerms") : t("series.versions.showTerms")}</button></td>
             </tr>
           ))}
         </tbody>
       </table>
       {open && (
         <>
-          <h2 style={{ marginTop: 16 }}>{open} terms ({entries.length})</h2>
+          <h2 style={{ marginTop: 16 }}>{t("series.versions.termsHeading", { version: open, count: entries.length })}</h2>
           <table className="grid">
-            <thead><tr><th>{pair.source}</th><th>{pair.target}</th><th>Category</th></tr></thead>
+            <thead><tr><th>{pair.source}</th><th>{pair.target}</th><th>{t("series.versions.column.category")}</th></tr></thead>
             <tbody>
               {entries.map((e) => (
                 <tr key={e.source}><td lang={langAttr(pairCodes(pair.pair)[0])}>{e.source}</td><td lang={langAttr(pairCodes(pair.pair)[1])}>{e.target}</td><td className="meta">{e.category}</td></tr>
@@ -314,6 +318,7 @@ function VersionsTab({ detail }: { detail: Detail }) {
 }
 
 export function SeriesPage() {
+  const t = useT();
   const { seriesId = "" } = useParams();
   const [detail, setDetail] = useState<Detail | null>(null);
   const [error, setError] = useState("");
@@ -336,20 +341,20 @@ export function SeriesPage() {
     <Shell crumb={detail?.name ?? seriesId}>
       <main className="page">
         {error && <div className="banner bad">{error}</div>}
-        {!detail && !error && <p className="meta">Loading…</p>}
+        {!detail && !error && <p className="meta">{t("common.loading")}</p>}
         {detail && (
           <>
             <div className="seghead">
               <span className="title">{detail.name}</span>
               <span className="meta mono">{detail.series_id}</span>
               <Chip>{directionLabel(detail.direction)}</Chip>
-              <Chip kind={detail.versions.length ? "ok" : undefined}>{detail.versions.at(-1)?.version ?? "no version yet"}</Chip>
+              <Chip kind={detail.versions.length ? "ok" : undefined}>{detail.versions.at(-1)?.version ?? t("series.noVersionYet")}</Chip>
             </div>
             <div className="segmented" role="tablist" style={{ marginBottom: 12 }}>
-              <button role="tab" aria-selected={tab === "books"} className={tab === "books" ? "on" : ""} onClick={() => setTab("books")}>Books</button>
-              <button role="tab" aria-selected={tab === "workbench"} className={tab === "workbench" ? "on" : ""} disabled={!detail.workbench} title={detail.workbench ? "" : "Build the candidate on the Books tab first"}
-                onClick={() => setTab("workbench")}>Workbench{detail.workbench?.pending ? ` (${detail.workbench.pending} pending)` : ""}</button>
-              <button role="tab" aria-selected={tab === "versions"} className={tab === "versions" ? "on" : ""} onClick={() => setTab("versions")}>Versions ({detail.versions.length})</button>
+              <button role="tab" aria-selected={tab === "books"} className={tab === "books" ? "on" : ""} onClick={() => setTab("books")}>{t("series.tab.books")}</button>
+              <button role="tab" aria-selected={tab === "workbench"} className={tab === "workbench" ? "on" : ""} disabled={!detail.workbench} title={detail.workbench ? "" : t("series.tab.workbenchDisabled")}
+                onClick={() => setTab("workbench")}>{t("series.tab.workbench", { pending: detail.workbench?.pending ?? 0 })}</button>
+              <button role="tab" aria-selected={tab === "versions"} className={tab === "versions" ? "on" : ""} onClick={() => setTab("versions")}>{t("series.tab.versions", { count: detail.versions.length })}</button>
             </div>
             {tab === "books" && <BooksTab detail={detail} onChange={setDetail} onCurate={() => setTab("workbench")} />}
             {tab === "workbench" && detail.workbench && (

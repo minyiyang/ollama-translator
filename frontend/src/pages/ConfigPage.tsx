@@ -7,11 +7,13 @@ import { useJob } from "../components/JobContext";
 import { Shell } from "../components/Shell";
 import { useToast } from "../components/Toast";
 import { Card } from "../components/ui";
+import { rich, useT } from "../i18n";
 
 type JobConfig = { editable: boolean; name: string; text: string; validated: boolean };
 
 /** First job tab: edit and validate a draft's config, or view a started job's captured config. */
 export function ConfigPage() {
+  const t = useT();
   const { jobId, info, refresh } = useJob();
   const toast = useToast();
   const [config, setConfig] = useState<JobConfig | null>(null);
@@ -49,53 +51,52 @@ export function ConfigPage() {
       await refresh();
     } catch (e) {
       setCheck(null);
-      toast("bad", <>Not saved:<pre>{(e as Error).message}</pre></>, 0);
+      toast("bad", <>{t("config.page.notSaved")}<pre>{(e as Error).message}</pre></>, 0);
     } finally {
       setBusy(false);
     }
   };
 
   const status = !editable ? null
-    : dirty ? <div className="banner warn">Unsaved changes. Validate saves them; until then the job would start with the last validated file.</div>
-    : info?.validated ? <div className="banner ok">Validated. <b>Start translation</b> at the top is ready.</div>
-    : <div className="banner info">Not validated yet. Validate to enable <b>Start translation</b>.</div>;
+    : dirty ? <div className="banner warn">{t("config.page.unsaved")}</div>
+    : info?.validated ? <div className="banner ok">{rich("config.page.validated", { b: (chunks) => <b>{chunks}</b> })}</div>
+    : <div className="banner info">{rich("config.page.notValidated", { b: (chunks) => <b>{chunks}</b> })}</div>;
 
   return (
     <Shell jobId={jobId}>
       <main className="page">
         {error && <div className="banner bad">{error}</div>}
         {info?.kind === "draft" && info.process?.outcome === "failed" && (
-          <div className="banner bad">The last start failed before the job workspace was created:<pre>{info.process.output_tail}</pre></div>
+          <div className="banner bad">{t("config.page.startFailed")}<pre>{info.process.output_tail}</pre></div>
         )}
-        {!config && !error && <p className="meta">Loading…</p>}
+        {!config && !error && <p className="meta">{t("common.loading")}</p>}
         {config && info && (
           <div className="jobs-layout">
-            <Card title={editable ? "Configuration" : "Configuration used by this run"}>
+            <Card title={editable ? t("config.page.title") : t("config.page.titleReadOnly")}>
               <div style={{ marginBottom: 14 }}>
                 {book ? (
-                  <BookCard book={book} compact extra={[["Config", config.name]]} />
+                  <BookCard book={book} compact extra={[[t("config.page.bookConfig"), config.name]]} />
                 ) : (
                   <div className="row" style={{ marginTop: 0, gap: 16 }}>
-                    <span><span className="meta">Source </span><span className="mono">{info.source_path ?? info.source}</span></span>
-                    <span><span className="meta">Config file </span><span className="mono">{config.name}</span></span>
+                    <span><span className="meta">{t("config.page.source")} </span><span className="mono">{info.source_path ?? info.source}</span></span>
+                    <span><span className="meta">{t("config.page.configFile")} </span><span className="mono">{config.name}</span></span>
                   </div>
                 )}
               </div>
               {!editable && (
-                <p className="meta">The run captured this configuration when it started; it is read-only. To change it, create a new job.</p>
+                <p className="meta">{t("config.page.readOnly")}</p>
               )}
               <ConfigEditor text={text} onTextChange={setText} hasComments={/(^|\n)\s*#/.test(saved)} readOnly={!editable} />
             </Card>
             {editable && (
               <div className="sticky-side">
-                <Card title="Validate">
+                <Card title={t("config.page.validate")}>
                   {status}
                   <div className="row" style={{ marginTop: 0 }}>
-                    <button className="primary" onClick={validate} disabled={busy}>{busy ? "Validating…" : dirty ? "Save & validate" : "Validate"}</button>
+                    <button className="primary" onClick={validate} disabled={busy}>{busy ? t("config.page.validating") : dirty ? t("config.page.saveAndValidate") : t("config.page.validate")}</button>
                   </div>
                   <p className="meta">
-                    Saves <span className="mono">{config.name}</span>, checks every setting, dry-runs the job, and asks Ollama which models are installed.
-                    Editing the config after validating requires validating again.
+                    {rich("config.page.validateHelp", { name: <span className="mono">{config.name}</span> })}
                   </p>
                   {check && <CheckResult check={check} />}
                 </Card>

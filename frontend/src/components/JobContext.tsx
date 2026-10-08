@@ -1,6 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import { Outlet, useParams } from "react-router-dom";
 import { jobApi } from "../api";
+import { rich, useT, type MessageKey } from "../i18n";
 import type { LanguageSupport } from "../lib/languages";
 import type { Stage } from "../lib/stages";
 
@@ -79,15 +80,24 @@ export function JobLayout() {
 
 export const useJob = () => useContext(JobContext);
 
+// One whole sentence per tab, so a translation can inflect around the thing that is missing.
+const NOT_STARTED = {
+  glossary: "jobs.notStarted.glossary",
+  progress: "jobs.notStarted.progress",
+  review: "jobs.notStarted.reviewQueue",
+  text: "jobs.notStarted.bookText",
+} as const satisfies Record<string, MessageKey>;
+
 /** Shown on tabs that only have content once a draft job has started. */
-export function NotStarted({ what }: { what: string }) {
+export function NotStarted({ what }: { what: keyof typeof NOT_STARTED }) {
+  const t = useT();
   const { info } = useJob();
   if (info?.overall === "starting") {
-    return <div className="banner info">Starting the run; this page fills in once the job workspace exists.</div>;
+    return <div className="banner info">{t("jobs.notStarted.starting")}</div>;
   }
   return (
     <div className="banner info">
-      This job has not started yet, so there is no {what} to show. Validate the configuration on the <b>Config</b> tab, then use <b>Start translation</b> at the top.
+      {rich(NOT_STARTED[what], { b: (chunks) => <b>{chunks}</b> })}
     </div>
   );
 }

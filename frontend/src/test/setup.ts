@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { cleanup } from "@testing-library/react";
 import { afterEach, vi } from "vitest";
+import { resetLocale } from "../i18n";
 
 // jsdom has no ResizeObserver; Shell uses one to publish the header height.
 class ResizeObserverStub {
@@ -15,4 +16,5 @@ afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
   window.localStorage.clear();
+  resetLocale();
 });

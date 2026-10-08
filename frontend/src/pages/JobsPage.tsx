@@ -5,7 +5,8 @@ import { BookCard, type BookInfo } from "../components/BookCard";
 import { Shell } from "../components/Shell";
 import { useToast } from "../components/Toast";
 import { Bar, Card, Chip } from "../components/ui";
-import { directionLabel, isSourceBook, JOB_TYPE_LABELS, outputUrl, relativeTime, SOURCE_ACCEPT, SOURCE_KINDS, type JobType } from "../lib/format";
+import { rich, useT } from "../i18n";
+import { directionLabel, isSourceBook, jobTypeLabel, outputUrl, relativeTime, SOURCE_ACCEPT, sourceKinds, type JobType } from "../lib/format";
 import { stageLabel } from "../lib/stages";
 
 type Job = {
@@ -21,58 +22,64 @@ const fileName = (path: string) => path.split(/[\\/]/).pop() ?? path;
 const stem = (name: string) => name.replace(/\.ya?ml$/i, "");
 
 function Pager({ page, pages, onPage }: { page: number; pages: number; onPage: (page: number) => void }) {
+  const t = useT();
   const [draft, setDraft] = useState(String(page));
   useEffect(() => setDraft(String(page)), [page]);
   const go = (value: number) => onPage(Math.min(pages, Math.max(1, value)));
   return (
     <div className="pages">
-      <button className="small" disabled={page <= 1} onClick={() => go(1)} title="First page">«</button>
-      <button className="small" disabled={page <= 1} onClick={() => go(page - 1)} title="Previous page">‹</button>
-      <span className="meta">Page</span>
-      <input type="number" min={1} max={pages} value={draft} aria-label="Page number"
-        onChange={(e) => setDraft(e.target.value)}
-        onKeyDown={(e) => { if (e.key === "Enter") go(Number(draft) || 1); }}
-        onBlur={() => go(Number(draft) || 1)} />
-      <span className="meta">of {pages}</span>
-      <button className="small" disabled={page >= pages} onClick={() => go(page + 1)} title="Next page">›</button>
-      <button className="small" disabled={page >= pages} onClick={() => go(pages)} title="Last page">»</button>
+      <button className="small" disabled={page <= 1} onClick={() => go(1)} title={t("jobs.pager.first")}>«</button>
+      <button className="small" disabled={page <= 1} onClick={() => go(page - 1)} title={t("jobs.pager.previous")}>‹</button>
+      {rich("jobs.pager.pageOf", {
+        pages,
+        meta: (chunks) => <span className="meta">{chunks}</span>,
+        input: (
+          <input type="number" min={1} max={pages} value={draft} aria-label={t("jobs.pager.pageNumber")}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") go(Number(draft) || 1); }}
+            onBlur={() => go(Number(draft) || 1)} />
+        ),
+      })}
+      <button className="small" disabled={page >= pages} onClick={() => go(page + 1)} title={t("jobs.pager.next")}>›</button>
+      <button className="small" disabled={page >= pages} onClick={() => go(pages)} title={t("jobs.pager.last")}>»</button>
     </div>
   );
 }
 
 function JobsTable({ jobs }: { jobs: Job[] }) {
+  const t = useT();
   return (
     <table className="grid">
       <thead>
-        <tr><th>Job</th><th>Source</th><th>Kind</th><th>Languages</th><th>Status</th><th>Stage</th><th>Progress</th><th>Updated</th><th /></tr>
+        <tr><th>{t("jobs.table.job")}</th><th>{t("jobs.table.source")}</th><th>{t("jobs.table.kind")}</th><th>{t("jobs.table.languages")}</th><th>{t("jobs.table.status")}</th><th>{t("jobs.table.stage")}</th><th>{t("jobs.table.progress")}</th><th>{t("jobs.table.updated")}</th><th /></tr>
       </thead>
       <tbody>
         {jobs.map((job) => {
           const base = `/jobs/${encodeURIComponent(job.job_id)}`;
           const draft = job.overall === "draft" || job.overall === "starting";
           const waiting =
-            job.overall === "paused" && job.current_stage === "approve_glossary" ? ["glossary", "Review glossary →"]
-            : job.overall === "paused" && job.current_stage === "compile" ? ["review", "Open final review →"]
+            job.overall === "paused" && job.current_stage === "approve_glossary" ? ["glossary", t("jobs.table.reviewGlossary")]
+            : job.overall === "paused" && job.current_stage === "compile" ? ["review", t("jobs.table.openFinalReview")]
             : null;
           return (
             <tr key={job.job_id}>
               <td><Link className="mono" to={`${base}/${draft ? "config" : "progress"}`}>{job.job_id}</Link></td>
               <td>{job.source}</td>
-              <td>{JOB_TYPE_LABELS[job.job_type ?? "book"]}</td>
-              <td className="mono nowrap" title={job.direction || "direction not set"}>{directionLabel(job.direction)}</td>
+              <td>{jobTypeLabel(job.job_type ?? "book")}</td>
+              <td className="mono nowrap" title={job.direction || t("jobs.table.directionNotSet")}>{directionLabel(job.direction)}</td>
               <td><Chip kind={job.overall}>{job.overall}</Chip></td>
               <td>
-                {draft ? <span className="meta">not started</span> : job.current_stage ? stageLabel(job.current_stage) : "—"}
+                {draft ? <span className="meta">{t("jobs.table.notStarted")}</span> : job.current_stage ? stageLabel(job.current_stage) : "—"}
                 {waiting && <div><Link to={`${base}/${waiting[0]}`}>{waiting[1]}</Link></div>}
               </td>
               <td style={{ minWidth: 140 }}>
                 <Bar percent={(100 * job.completed) / job.total} />
-                <span className="meta">{job.completed}/{job.total} stages</span>
+                <span className="meta">{t("jobs.table.stagesDone", { completed: job.completed, total: job.total })}</span>
               </td>
               <td className="meta">{relativeTime(job.updated)}</td>
               <td>
                 {job.downloadable && (
-                  <a className="button small" href={outputUrl(job.job_id)} download title={job.job_type === "subtitles" ? "Download the translated subtitles" : "Download the translated book"}>⤓ Download</a>
+                  <a className="button small" href={outputUrl(job.job_id)} download title={job.job_type === "subtitles" ? t("jobs.downloadSubtitles") : t("jobs.downloadBook")}>{t("jobs.download")}</a>
                 )}
               </td>
             </tr>
@@ -89,6 +96,7 @@ export function NewJobDialog({ setup, series, onClose }: {
   series?: { series_id: string; name: string };
   onClose: () => void;
 }) {
+  const t = useT();
   const toast = useToast();
   const navigate = useNavigate();
   const [source, setSource] = useState("");
@@ -114,8 +122,8 @@ export function NewJobDialog({ setup, series, onClose }: {
         setSuggestedId(seriesId ? `${seriesId}-${s.job_id}` : "");
       })
       // The names can still be typed by hand.
-      .catch((e: Error) => toast("bad", `No name could be suggested: ${e.message}`, 0));
-  }, [source, configTouched, seriesId, toast]);
+      .catch((e: Error) => toast("bad", t("jobs.new.noSuggestion", { error: e.message }), 0));
+  }, [source, configTouched, seriesId, toast, t]);
   // Job ID: from the config name, or for a series book from the book (the config is shared).
   useEffect(() => {
     if (!jobTouched) setJobId(seriesId ? suggestedId : stem(configName));
@@ -128,7 +136,7 @@ export function NewJobDialog({ setup, series, onClose }: {
 
   const upload = async (file: File | undefined) => {
     if (!file) return;
-    if (!isSourceBook(file.name)) { toast("bad", `Choose ${SOURCE_KINDS}.`); return; }
+    if (!isSourceBook(file.name)) { toast("bad", t("jobs.new.chooseKinds", { kinds: sourceKinds() })); return; }
     setUploading(true);
     try {
       const path = await uploadSource(file);
@@ -146,13 +154,16 @@ export function NewJobDialog({ setup, series, onClose }: {
     onDrop: (e: DragEvent) => { e.preventDefault(); setOver(false); upload(e.dataTransfer.files[0]); },
   };
 
+  const template = fileName(setup.template);
   const create = async () => {
     setBusy(true);
     try {
       const draft = await api<{ job_id: string; created_config: boolean }>("/api/jobs/new", {
         source, config: configName, job_id: jobId, series_id: series?.series_id ?? "",
       });
-      toast("ok", draft.created_config ? `Created ${configName} from ${fileName(setup.template) || "an empty config"}.` : `Using existing ${configName}.`);
+      toast("ok", !draft.created_config ? t("jobs.new.usingExisting", { config: configName })
+        : template ? t("jobs.new.created", { config: configName, template })
+        : t("jobs.new.createdEmpty", { config: configName }));
       navigate(`/jobs/${encodeURIComponent(draft.job_id)}/config`);
     } catch (e) {
       toast("bad", (e as Error).message, 0);
@@ -167,16 +178,13 @@ export function NewJobDialog({ setup, series, onClose }: {
   return (
     <div className="modal-backdrop" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose(); }}>
       <section className="card modal" role="dialog" aria-modal="true" aria-labelledby="new-job-title">
-        <h2 id="new-job-title">{series ? `New book in ${series.name}` : "New translation job"}</h2>
+        <h2 id="new-job-title">{series ? t("jobs.new.titleInSeries", { series: series.name }) : t("jobs.new.title")}</h2>
         {series && (
-          <p className="meta">
-            The job joins the series as its next volume. Its config must pause at the glossary gate
-            (the default) so the book can approve the series glossary; validation checks this.
-          </p>
+          <p className="meta">{t("jobs.new.seriesNote")}</p>
         )}
 
         <div className="field">
-          <label>Source book or subtitle file</label>
+          <label>{t("jobs.new.source")}</label>
           <input ref={picker} type="file" accept={SOURCE_ACCEPT} hidden onChange={(e) => { upload(e.target.files?.[0]); e.target.value = ""; }} />
           {book && !uploading ? (
             <div {...dropHandlers} className={over ? "drop-over" : ""}>
@@ -184,40 +192,41 @@ export function NewJobDialog({ setup, series, onClose }: {
             </div>
           ) : (
             <div {...dropHandlers} className={`dropzone ${over ? "over" : ""}`}>
-              {uploading ? "Uploading and reading the book…" : <>Drop {SOURCE_KINDS} here, or{" "}
-                <button type="button" className="small" onClick={() => picker.current?.click()}>Browse…</button></>}
+              {uploading ? t("jobs.new.uploading") : rich("jobs.new.dropHint", {
+                kinds: sourceKinds(),
+                browse: (chunks) => <button type="button" className="small" onClick={() => picker.current?.click()}>{chunks}</button>,
+              })}
             </div>
           )}
-          <span className="hint">The browser uploads a copy into the dashboard's runs folder; the path shown is that copy.</span>
+          <span className="hint">{t("jobs.new.uploadHint")}</span>
         </div>
 
         <div className="field">
-          <label htmlFor="config-name">Config file name</label>
-          <input id="config-name" type="text" value={configName} spellCheck={false} placeholder="my-book.yaml"
+          <label htmlFor="config-name">{t("jobs.new.configName")}</label>
+          <input id="config-name" type="text" value={configName} spellCheck={false} placeholder={t("jobs.new.configPlaceholder")}
             onChange={(e) => { setConfigTouched(true); setConfigName(e.target.value); }} />
           <span className="hint">
-            {!configName ? "Pick a source to get a suggested name."
-              : !nameOk ? "Use a simple file name ending in .yaml."
-              : existing ? `${configName} already exists in ${setup.config_dir}; the job uses it as is${series ? " (shared by the series' books)" : ""}.`
-              : `A new ${configName} is created in ${setup.config_dir} from ${fileName(setup.template) || "an empty config"}; you adjust it on the Config tab.`}
+            {!configName ? t("jobs.new.configPickSource")
+              : !nameOk ? t("jobs.new.configBadName")
+              : existing ? t(series ? "jobs.new.configExistsSeries" : "jobs.new.configExists", { config: configName, dir: setup.config_dir })
+              : template ? t("jobs.new.configNew", { config: configName, dir: setup.config_dir, template })
+              : t("jobs.new.configNewEmpty", { config: configName, dir: setup.config_dir })}
           </span>
         </div>
 
         <div className="field">
-          <label htmlFor="job-id">Job ID</label>
+          <label htmlFor="job-id">{t("jobs.new.jobId")}</label>
           <input id="job-id" type="text" value={jobId} spellCheck={false}
             onChange={(e) => { setJobTouched(true); setJobId(e.target.value); }} />
           <span className="hint">
-            {taken ? "A job with this ID already exists."
-              : series ? "Defaults to the series ID plus the book name. Used as the workspace folder name."
-              : "Defaults to the config file name. Used as the workspace folder name."}
+            {taken ? t("jobs.new.jobIdTaken") : series ? t("jobs.new.jobIdHintSeries") : t("jobs.new.jobIdHint")}
           </span>
         </div>
 
         <div className="row" style={{ justifyContent: "flex-end" }}>
-          <button onClick={onClose}>Cancel</button>
+          <button onClick={onClose}>{t("common.cancel")}</button>
           <button className="primary" disabled={busy || uploading || !source || !nameOk || !jobId || taken} onClick={create}>
-            Create job
+            {t("jobs.new.create")}
           </button>
         </div>
       </section>
@@ -226,6 +235,7 @@ export function NewJobDialog({ setup, series, onClose }: {
 }
 
 export function JobsPage() {
+  const t = useT();
   const [setup, setSetup] = useState<Setup | null>(null);
   const [error, setError] = useState("");
   const [page, setPage] = useState(1);
@@ -249,20 +259,20 @@ export function JobsPage() {
   return (
     <Shell>
       <main className="page">
-        <Card title="Jobs">
+        <Card title={t("jobs.title")}>
           {error && <div className="banner bad">{error}</div>}
-          {!setup && !error && <p className="meta">Loading…</p>}
-          {setup && !jobs.length && <p className="meta">No jobs yet in <span className="mono">{setup.runs}</span>.</p>}
+          {!setup && !error && <p className="meta">{t("common.loading")}</p>}
+          {setup && !jobs.length && <p className="meta">{rich("jobs.empty", { runs: setup.runs, path: (chunks) => <span className="mono">{chunks}</span> })}</p>}
           {shown.length > 0 && <JobsTable jobs={shown} />}
           {jobs.length > 0 && (
             <div className="pager">
               <span className="meta">
-                {(current - 1) * PAGE_SIZE + 1}–{(current - 1) * PAGE_SIZE + shown.length} of {jobs.length} jobs
+                {t("jobs.range", { from: (current - 1) * PAGE_SIZE + 1, to: (current - 1) * PAGE_SIZE + shown.length, total: jobs.length })}
               </span>
               <Pager page={current} pages={pages} onPage={setPage} />
             </div>
           )}
-          <button className="add-job" disabled={!setup} onClick={() => setAdding(true)}>+ Add new job</button>
+          <button className="add-job" disabled={!setup} onClick={() => setAdding(true)}>{t("jobs.add")}</button>
         </Card>
       </main>
       {adding && setup && <NewJobDialog setup={setup} onClose={() => setAdding(false)} />}

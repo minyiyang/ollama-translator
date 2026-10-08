@@ -1,4 +1,5 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from "react";
+import { useT } from "../i18n";
 
 export type DialogAction<T extends string> = { value: T; label: string; primary?: boolean; danger?: boolean };
 type Request = {
@@ -94,13 +95,14 @@ export const useDialog = () => useContext(DialogContext);
 
 /** Yes/no confirmation; resolves true only for the confirming action. */
 export function useConfirm() {
+  const t = useT();
   const ask = useDialog();
   return useCallback(
-    async (title: string, body: ReactNode, confirmLabel = "Continue", danger = false) =>
+    async (title: string, body: ReactNode, confirmLabel: string = t("ui.dialog.continue"), danger = false) =>
       (await ask(title, body, [
-        { value: "cancel", label: "Cancel" },
+        { value: "cancel", label: t("common.cancel") },
         { value: "ok", label: confirmLabel, primary: !danger, danger },
       ])) === "ok",
-    [ask],
+    [ask, t],
   );
 }

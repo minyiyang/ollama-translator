@@ -1,3 +1,5 @@
+import { t } from "../i18n";
+
 /** A subtitle job's limits: what fits on the screen and can be read in the time. */
 export type ReadingLimits = { line_characters: number; lines: number; characters_per_second: number };
 
@@ -16,7 +18,7 @@ export type Cue = {
 const squeezed = (text: string) => text.replace(/\s+/g, "");
 
 /** "0:12:03 · 2.5 s": where a cue stands in the film and how long it is on screen. */
-export const cueLabel = (cue: Cue) => `${cue.start} · ${cue.seconds.toFixed(1)} s`;
+export const cueLabel = (cue: Cue) => t("text.subtitles.cueLabel", { start: cue.start, seconds: cue.seconds.toFixed(1) });
 
 /**
  * What a viewer could not read of a cue with this text: too much for its time
@@ -29,15 +31,15 @@ export function readingProblems(text: string, cue: Cue | undefined, limits: Read
   const characters = squeezed(text).length + cue.other_characters;
   const readable = Math.floor(limits.characters_per_second * cue.seconds);
   if (cue.seconds > 0 && characters > readable) {
-    problems.push(`too long to read in ${cue.seconds.toFixed(1)} s: ${characters} characters, about ${readable} can be read`);
+    problems.push(t("text.subtitles.tooLong", { seconds: cue.seconds.toFixed(1), characters, readable }));
   }
   const length = text.trim().length;
   if (cue.speakers) {
     // A speaker's line is written with a dash and a space before it, and is not broken again.
-    if (length + 2 > limits.line_characters) problems.push(`line too long: ${length + 2} characters, ${limits.line_characters} fit`);
+    if (length + 2 > limits.line_characters) problems.push(t("text.subtitles.lineTooLong", { length: length + 2, fit: limits.line_characters }));
   } else {
     const needed = linesNeeded(text, limits.line_characters);
-    if (needed > limits.lines) problems.push(`does not fit ${limits.lines} lines of ${limits.line_characters}: it needs ${needed}`);
+    if (needed > limits.lines) problems.push(t("text.subtitles.doesNotFit", { lines: limits.lines, width: limits.line_characters, needed }));
   }
   return problems;
 }

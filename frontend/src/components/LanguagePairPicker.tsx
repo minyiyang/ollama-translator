@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
+import { useT, type MessageKey } from "../i18n";
 import {
-  TIER_HELP,
+  tierHelp,
   isGeneric,
   loadLanguages,
   pairCodes,
@@ -12,12 +13,13 @@ import { Chip } from "./ui";
 
 /** What a pair supports: tiers, the model notice, and the checks its languages cannot run. */
 export function LanguageNotes({ support, open = false }: { support: LanguageSupport; open?: boolean }) {
+  const t = useT();
   return (
     <div className="language-notes">
       <div className="row" style={{ margin: 0 }}>
-        <span>{support.source.name} → {support.target.name}</span>
+        <span>{t("jobs.languages.pair", { source: support.source.name, target: support.target.name })}</span>
         {[support.source, support.target].map((side, i) => (
-          <Chip key={i} kind={side.tier === "tuned" ? "ok" : "warn"} title={TIER_HELP[side.tier]}>
+          <Chip key={i} kind={side.tier === "tuned" ? "ok" : "warn"} title={tierHelp(side.tier)}>
             {side.code}: {side.tier}
           </Chip>
         ))}
@@ -25,9 +27,7 @@ export function LanguageNotes({ support, open = false }: { support: LanguageSupp
       {support.notice && <div className="banner warn">{support.notice}</div>}
       {support.skipped.length > 0 && (
         <details open={open}>
-          <summary className="meta">
-            {support.skipped.length} check{support.skipped.length === 1 ? "" : "s"} skipped for this pair
-          </summary>
+          <summary className="meta">{t("jobs.languages.checksSkipped", { count: support.skipped.length })}</summary>
           <ul className="skipped-checks">
             {support.skipped.map((item) => (
               <li key={item.check}><b>{item.check}</b>: <span className="meta">{item.reason}</span></li>
@@ -52,6 +52,7 @@ export function LanguagePairPicker({
   disabled?: boolean;
   showNotes?: boolean;
 }) {
+  const t = useT();
   const [codes, setCodes] = useState<[string, string]>(() => pairCodes(value));
   const [languages, setLanguages] = useState<Language[]>([]);
   const [support, setSupport] = useState<LanguageSupport | null>(null);
@@ -87,13 +88,13 @@ export function LanguagePairPicker({
   };
   const nameOf = (code: string) => languages.find((language) => language.code === code)?.name ?? "";
 
-  const input = (side: 0 | 1, label: string) => (
+  const input = (side: 0 | 1, label: MessageKey, name: MessageKey) => (
     <label className="pair-side">
-      <span className="meta">{label}</span>
+      <span className="meta">{t(label)}</span>
       <input
         type="text"
         list="language-codes"
-        aria-label={`${label} language`}
+        aria-label={t(name)}
         value={codes[side]}
         disabled={disabled}
         placeholder={side === 0 ? "en" : "ja"}
@@ -113,10 +114,10 @@ export function LanguagePairPicker({
         ))}
       </datalist>
       <div className="row" style={{ margin: 0, alignItems: "flex-start" }}>
-        {input(0, "From")}
-        <button type="button" className="small" disabled={disabled} title="Swap the languages" aria-label="Swap the languages"
+        {input(0, "jobs.languages.from", "jobs.languages.fromLabel")}
+        <button type="button" className="small" disabled={disabled} title={t("jobs.languages.swap")} aria-label={t("jobs.languages.swap")}
           onClick={() => commit([codes[1], codes[0]])}>⇄</button>
-        {input(1, "Into")}
+        {input(1, "jobs.languages.into", "jobs.languages.intoLabel")}
       </div>
       {error && <div className="error">{error}</div>}
       {showNotes && support && !error && (isGeneric(support) || support.skipped.length > 0) && <LanguageNotes support={support} />}
