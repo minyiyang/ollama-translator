@@ -93,7 +93,9 @@ book as it treats any EPUB.
    text. A note stands once, in the chapter that first refers to it; a later
    chapter that refers to it again links into that chapter's file
    (`chapter-0001.xhtml#note-1`), and an export, which reads the chapters
-   back as one book, has the one note with both references to it. The
+   back as one book, has the one note with both references to it (the
+   stage's hash says where a book has such a reference, so that a job made
+   when it led nowhere is made again, and no other is). The
    decompile stage's hash takes in the pictures and whether there
    are notes only where there are, so a job without either is not made
    again for them.

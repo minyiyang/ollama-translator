@@ -30,6 +30,7 @@ from .text_edits import current_draft_revision
 from .workflow import (
     ProgressEvent,
     approve_final_draft,
+    final_approval_awaited,
     load_workspace_config,
     run_workflow,
     workflow_status,
@@ -89,6 +90,8 @@ class ReviewSession:
             "worksheet": worksheet,
             "context": context,
             "stale": stale,
+            # The draft waits for approval and can be given it, whatever is in the queue.
+            "approval_required": final_approval_awaited(self.workspace),
             "draft_saved": bool(draft),
             "status": _jsonable(workflow_status(self.workspace)),
             "compile": self.compile_state(),
@@ -171,6 +174,18 @@ class ReviewSession:
                 approve_final_draft(self.workspace)
                 approved = True
         return {"report": json.loads(report.model_dump_json()), "approved": approved}
+
+    def approve(self) -> dict[str, Any]:
+        """Approve the final draft as it stands, with no decision to apply.
+
+        For a draft nothing was queued for, or one changed since it was
+        approved (a passage, the title, a note): `apply` approves only with a
+        queue's decisions.  Refused, as there, while more segments are
+        unresolved than the compile limit allows.
+        """
+        with self._lock:
+            approve_final_draft(self.workspace)
+        return {"approved": True}
 
     def start_compile(self) -> dict[str, Any]:
         """Resume the workflow (compile + validate_epub) on a background thread."""

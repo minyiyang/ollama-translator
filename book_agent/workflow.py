@@ -777,6 +777,19 @@ def _final_review_is_required(workspace: JobWorkspace, config: AppConfig) -> boo
         connection.close()
 
 
+def final_approval_awaited(workspace: JobWorkspace) -> bool:
+    """Whether the final draft, as it stands, waits for a person's approval and
+    can be given it: the job compiles only an approved draft, this one is not
+    the one approved (none was, or a passage, the title, the contents, or a
+    note changed since), and no more review segments are unresolved than the
+    compile allows. Then `approve_final_draft` approves it, with or without a
+    decision to apply."""
+    config = load_workspace_config(workspace)
+    return _final_review_is_required(workspace, config) and not _unresolved_compile_review_message(
+        workspace, config
+    )
+
+
 def _unresolved_compile_review_message(
     workspace: JobWorkspace, config: AppConfig
 ) -> str:

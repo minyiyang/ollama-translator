@@ -256,13 +256,15 @@ class BookAuditor(FakeAuditClient):
 
 
 def build_job(
-    base: Path, job_id: str, pair: str, wrong_hour: bool = True, book: str = "alice-in-wonderland.epub", logged: bool = False
+    base: Path, job_id: str, pair: str, wrong_hour: bool = True, book: str = "alice-in-wonderland.epub", logged: bool = False,
+    final_review: bool = False,
 ) -> None:
     """One job, run as `book-agent run` runs it, with stand-ins for the models.
     With `wrong_hour` the translation has a mistake the repair model cannot fix,
     so the run stops for the final review; without, it completes. A `logged`
     run is logged as the command logs it, and its title stage is asked through
-    the run's own client, of a stand-in for Ollama's API."""
+    the run's own client, of a stand-in for Ollama's API. With `final_review`
+    the job compiles only a draft a person has approved, and stops for that."""
     german = pair.endswith("de")
     seed = base / f"{job_id}-glossary.json"
     terms = [
@@ -273,7 +275,7 @@ def build_job(
         "translation": {"direction": pair},
         "audit": {"semantic_enabled": True},
         "glossary": {"extraction_enabled": False, "seed_glossaries": [str(seed)]},
-        "workflow": {"require_glossary_review": False},
+        "workflow": {"require_glossary_review": False, "require_final_review": final_review},
     })
     seed.write_text(
         json.dumps({"pair": glossary_pair(config.translation.direction).value, "entries": terms}, ensure_ascii=False),
@@ -374,6 +376,10 @@ def main() -> None:
         # A book that is not on the dashboard yet, for the test that adds one.
         UPLOAD.parent.mkdir(exist_ok=True)
         make_epub(UPLOAD, opf=HOLMES, chapter=HOLMES_CHAPTER)
+        # A book with nothing for its reviewer to decide, whose config asks for a person's approval all
+        # the same. Built first, to be the oldest job: the Jobs page lists ten, newest first, and its
+        # tests look for the others on it (review-approval.e2e.ts runs after them).
+        build_job(base, "alice-german-approval", "en>de", False, "alice-annotated.epub", final_review=True)
         for job_id, (pair, wrong_hour) in JOBS.items():
             built = build_job(base, job_id, pair, wrong_hour, *(["alice-annotated.epub"] if job_id == "alice-german-finished" else []))
             if job_id == "alice-german-finished":

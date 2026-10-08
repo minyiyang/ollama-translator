@@ -380,7 +380,9 @@ descriptions. They are shown and edited on the Text tab as passages are
   anew. The passages' revision is as it was, so a Final review worksheet
   goes stale only when a passage changes. An approval given before that hash
   was kept stands for the book as it was last compiled, or, never compiled,
-  as it is: it does not lapse because the job was upgraded.
+  as it is: it does not lapse because the job was upgraded. An item's edit
+  queues no passage, so the Final review page offers the approval on its
+  own (**Approve final draft**, docs/STAGE_CONTROL.md, section 4).
 - **Left in the source language.** What the title stage could not translate
   (no answer; a note answered without its markers) is flagged
   "untranslated", with a Text filter, a card on the Final review page

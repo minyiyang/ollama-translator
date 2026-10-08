@@ -89,7 +89,10 @@ segment shows the source with
 neighboring context, the findings (click one to highlight the quoted words),
 earlier pipeline versions, and an editor with a live diff and the same
 deterministic check that `resolve-review` applies. Applying the decisions
-approves the draft; the desk then compiles and validates the EPUB.
+approves the draft; the desk then compiles and validates the EPUB. A draft
+that waits for approval with nothing in the queue (none was flagged, or its
+title or a note was corrected after it was approved) is approved there on
+its own, with **Approve final draft**.
 
 **5. Read and edit the whole book.** The **Text** tab shows every chapter as
 paired source and translation rows. Any segment can be edited in place, with

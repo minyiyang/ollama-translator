@@ -236,6 +236,32 @@ def test_the_configs_title_is_the_title_of_a_book_named_as_one_of_its_passages_i
         assert "<dc:title>第一章</dc:title>" in _package(workspace)
 
 
+def _compiled_from(workspace) -> str:
+    connection = connect_state(workspace.state_file)
+    try:
+        return get_stage_status(connection, WorkflowStage.COMPILE.value)["input_hash"]
+    finally:
+        connection.close()
+
+
+def test_a_book_compiled_when_its_title_gave_way_to_a_passage_is_compiled_again_and_no_other_is(monkeypatch):
+    from book_agent.stages import compile as compile_stage
+
+    config = AppConfig.model_validate({**CONFIG, "translation": {"translated_title": "第一章"}})
+    # "Chapter One" is the fixture's heading, a passage; no passage reads "Oliver Twist".
+    for title, again in ((b"Chapter One", True), (b"Oliver Twist", False)):
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = _book(Path(directory), title, config)
+            run_title_stage(workspace, config, Publisher())
+            # Compiled as it was hashed before the title was given precedence over a passage.
+            with monkeypatch.context() as before:
+                before.setattr(compile_stage, "_passage_translation", lambda *_: "")
+                run_epub_compile_stage(workspace, config)
+            then = _compiled_from(workspace)
+            run_epub_compile_stage(workspace, config)
+            assert (_compiled_from(workspace) != then) is again, title
+
+
 def test_a_title_the_model_cannot_give_does_not_stop_the_book():
     config = AppConfig.model_validate(CONFIG)
 

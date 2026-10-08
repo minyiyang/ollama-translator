@@ -1265,6 +1265,33 @@ def _chapter_body(
     return "\n".join(lines)
 
 
+def _note_homes(chapters: list[list[Block]]) -> dict[str, str]:
+    """The document each note stands in, by the note's id. A note stands in
+    the chapter that first refers to it: one that refers to it again finds
+    it there."""
+    return {
+        block.src: f"chapter-{number:04d}.xhtml"
+        for number, chapter in enumerate(chapters, start=1)
+        for block in chapter
+        if block.kind == "note"
+    }
+
+
+def refers_across_chapters(book: Book) -> bool:
+    """Whether a chapter of the book refers to a note another chapter holds:
+    the book whose package has a reference that leads into another document."""
+    chapters = split_chapters(book.blocks)
+    homes = _note_homes(chapters)
+    for chapter in chapters:
+        own = {block.src for block in chapter if block.kind == "note"}
+        for block in chapter:
+            if block.kind != "note" and any(
+                match[1] in homes and match[1] not in own for match in _NOTE_REFERENCE.finditer(block.html)
+            ):
+                return True
+    return False
+
+
 def write_source_package(book: Book, root: str | Path, identifier: str) -> None:
     """Write `book` under `root` as the files of an EPUB 3 (not zipped: the
     pipeline works on the unpacked package). The same book gives the same
@@ -1275,13 +1302,7 @@ def write_source_package(book: Book, root: str | Path, identifier: str) -> None:
     title = escape(book.title or "Untitled", quote=False)
     files: dict[str, str] = {"mimetype": "application/epub+zip", "META-INF/container.xml": _CONTAINER, "OEBPS/styles.css": _STYLES}
     items, spine, toc = [], [], []
-    # A note stands in the chapter that first refers to it: one that refers to it again finds it there.
-    homes = {
-        block.src: f"chapter-{number:04d}.xhtml"
-        for number, chapter in enumerate(chapters, start=1)
-        for block in chapter
-        if block.kind == "note"
-    }
+    homes = _note_homes(chapters)
     for number, chapter in enumerate(chapters, start=1):
         name = f"chapter-{number:04d}"
         heading = next((block for block in chapter if re.fullmatch(r"h[1-6]", block.kind)), None)

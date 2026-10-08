@@ -24,7 +24,7 @@ from ..book_formats import CONVERTED_SUFFIXES, EXPORT_FORMATS, export_book
 from ..languages import profile
 from ..rtf import compile_rtf_document
 from ..book_edits import book_approved, settled_book
-from .title import settled_texts
+from .title import _passage_translation, settled_texts
 from ..subtitles import compile_subtitle_file, subtitle_limits
 from ..text_edits import (
     active_edit_texts,
@@ -142,6 +142,13 @@ def run_epub_compile_stage(
                 **(
                     {"notes": json.dumps(settled_title["notes"], ensure_ascii=False, sort_keys=True)}
                     if settled_title["notes"]
+                    else {}
+                ),
+                # A settled title that a passage also reads as: it once gave way to the passage's
+                # translation. Only such a book, compiled then, is compiled again.
+                **(
+                    {"title_over_passage": "1"}
+                    if settled_title["translated"] and _passage_translation(workspace, settled_title["source"])
                     else {}
                 ),
                 # A subtitle file is written again when the limits its lines are broken by change.

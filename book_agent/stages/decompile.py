@@ -16,7 +16,7 @@ from ..epub import (
     inspect_epub_package,
     safe_extract_epub,
 )
-from ..book_formats import CONVERTED_SUFFIXES, Book, read_book, write_source_package
+from ..book_formats import CONVERTED_SUFFIXES, Book, read_book, refers_across_chapters, write_source_package
 from ..config import AppConfig
 from ..hashing import sha256_bytes, sha256_file, sha256_text
 from ..languages import profile
@@ -64,6 +64,10 @@ def _carried(book: Book) -> dict[str, str]:
         )
     if any(block.kind == "note" for block in book.blocks):
         carried["notes"] = _NOTES_APART
+        # A note that two chapters refer to: the second reference once led nowhere in its own
+        # chapter. Only such a book is made again, the reference leading to where the note is.
+        if refers_across_chapters(book):
+            carried["note_links"] = "across chapters"
     return carried
 
 

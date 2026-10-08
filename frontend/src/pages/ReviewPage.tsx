@@ -39,6 +39,8 @@ type Context = {
 type CompileState = { state: string; events: { stage: string; status: string; message: string }[]; result: { result: string; message?: string; output?: string } | null };
 type Payload = {
   worksheet: Worksheet | null; context: Record<string, Context>; stale: boolean; status: WorkflowStatus; compile: CompileState; compile_limit?: number;
+  /** The final draft waits for approval and can be given it, whatever is in the queue. */
+  approval_required?: boolean;
   /** A subtitle job: what fits a cue and can be read in its time. */
   reading?: ReadingLimits;
 };
@@ -314,6 +316,20 @@ export function ReviewPage() {
     }
   };
 
+  // Approval on its own: for a draft with no decision to apply with it.
+  const approveDraft = async () => {
+    setBusy(true);
+    try {
+      await jobApi(jobId, "review/approve", {});
+      toast("ok", "Final draft approved.");
+      await load();
+    } catch (e) {
+      toast("bad", <>Approval refused; nothing was changed.<br />{(e as Error).message}</>, 0);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault(); if (active) save(); }
@@ -363,6 +379,8 @@ export function ReviewPage() {
           ) : (
             <div className="banner warn">Applied, but {applied.remaining.length} segment(s) still need review: {applied.remaining.join(", ")}. Compile to regenerate the worksheet.</div>
           )
+        ) : data.approval_required ? (
+          <div className="banner warn">The final draft is waiting for approval. No passage is waiting for a decision.</div>
         ) : complete ? (
           <div className="banner ok">This job is complete; there is nothing left to review.</div>
         ) : (
@@ -371,6 +389,16 @@ export function ReviewPage() {
               : data.stale ? "The review queue has been resolved or the draft changed since this worksheet was written. Compile to regenerate reports."
               : "The review queue is empty."}
           </div>
+        )}
+        {data.approval_required && (
+          <section className="card" aria-label="Approve final draft">
+            <h2>Approve final draft</h2>
+            <p className="meta">
+              This job compiles only a draft a person has approved. The draft as it stands has not been: it was never approved, or its text, title,
+              contents, or notes changed since it was. Approve it here, then compile.
+            </p>
+            <div className="row"><button className="primary" disabled={busy} onClick={approveDraft}>Approve final draft</button></div>
+          </section>
         )}
         <LeftInSourceCard jobId={jobId} items={leftInSource} />
         {!complete && <CompileCard jobId={jobId} initial={data.compile} />}

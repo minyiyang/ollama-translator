@@ -812,6 +812,10 @@ class EndpointCoverageTests(ServerTests):
                 assert status == 200 and check["blocking"] == []
                 status, applied = post(f"/api/jobs/{job}/review/apply", {"worksheet": worksheet, "partial": True})
                 assert status == 422 and "compile limit" in applied["error"]
+                # Approval on its own is refused as well while the queue is over the limit.
+                assert not review["approval_required"]
+                status, refused = post(f"/api/jobs/{job}/review/approve", {})
+                assert status == 422 and "resolve them before final approval" in refused["error"]
                 assert get(f"/api/jobs/{job}/review/compile")[1]["state"] == "idle"
                 with patch.object(ReviewSession, "start_compile", return_value={"state": "running"}):
                     assert post(f"/api/jobs/{job}/review/compile", {})[1] == {"state": "running"}
@@ -1015,6 +1019,27 @@ class EndpointCoverageTests(ServerTests):
                 with urllib.request.urlopen(f"{call.base}/api/jobs/{job}/text/picture?path=OEBPS%2Fplan.png") as response:
                     assert response.headers["Content-Type"] == "image/png" and response.read() == _map()
                 assert call(f"/api/jobs/{job}/text/picture?path=OEBPS%2Fcontent.opf")[0] == 404
+            finally:
+                server.shutdown()
+                server.server_close()
+
+    def test_a_final_draft_with_nothing_queued_is_approved_over_http(self):
+        from tests.test_epub_notes import CONFIG as BOOK, _translated_job
+
+        config = AppConfig.model_validate({**BOOK, "workflow": {"require_final_review": True}})
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = _translated_job(Path(directory), config)
+            job = workspace.root.name
+            app = UiApp(workspace.root.parent, Path(directory), [])
+            server, call = self.serve(app)
+            try:
+                # No passage was queued for a decision, and the draft waits for a person all the same.
+                review = json.loads(call(f"/api/jobs/{job}/review")[1])
+                assert review["worksheet"] is None and review["approval_required"]
+                assert call(f"/api/jobs/{job}/review/approve", {})[0] == 403  # no token
+                status, body = call(f"/api/jobs/{job}/review/approve", {}, {"X-UI-Token": app.token})
+                assert (status, json.loads(body)) == (200, {"approved": True})
+                assert not json.loads(call(f"/api/jobs/{job}/review")[1])["approval_required"]
             finally:
                 server.shutdown()
                 server.server_close()

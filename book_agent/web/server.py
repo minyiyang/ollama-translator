@@ -686,6 +686,7 @@ def make_handler(app: UiApp, port_ref: list[int]) -> type[BaseHTTPRequestHandler
             ("POST", "review/apply"): lambda q, b: app.review(job_id).apply(
                 b["worksheet"], bool(b.get("approve_final")), bool(b.get("partial"))
             ),
+            ("POST", "review/approve"): lambda q, b: app.review(job_id).approve(),
             ("GET", "review/compile"): lambda q, b: app.review(job_id).compile_state(),
             ("POST", "review/compile"): lambda q, b: app.review(job_id).start_compile(),
             ("GET", "text"): lambda q, b: text_outline(workspace()),

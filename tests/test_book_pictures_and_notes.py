@@ -184,6 +184,11 @@ def test_a_note_two_chapters_refer_to_is_found_from_both():
             "[^lodge]: Pondicherry Lodge stood in Upper Norwood, south of London.\n",
             encoding="utf-8",
         )
+        # A job made when the second reference led nowhere is made again: only such a book's hash says so.
+        from book_agent.stages.decompile import _carried
+
+        assert _carried(read_book(source)) == {"notes": "apart", "note_links": "across chapters"}
+        assert "note_links" not in _carried(read_book(WORD))
         workspace = prepare_workspace(base, config, source=source, translator=KeepsWhatInlineElementsHold())
         run_title_stage(workspace, config, NoteTranslator())
         # On the Text tab, the note names the passage of each chapter that refers to it.
