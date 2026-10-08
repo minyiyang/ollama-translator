@@ -7,6 +7,8 @@ import zipfile
 from pathlib import Path, PurePosixPath
 from typing import Any
 
+from ..book_formats import CONVERTED_SUFFIXES, pdf_title_and_author, read_book
+from ..subtitles import JOB_SOURCE_SUFFIXES, SUBTITLE_SUFFIXES, format_time, read_subtitles
 from ..epub import EpubError, local_name, parse_xml, validate_archive_path
 
 # Raster only: an SVG from an untrusted book could run script on the dashboard's origin.
@@ -15,11 +17,11 @@ _MAX_COVER_BYTES = 20 * 1024 * 1024
 
 
 def allowed_book(path: str, roots: list[Path]) -> Path:
-    """Only EPUB/RTF books under the dashboard's runs or sample folders may be inspected."""
+    """Only books under the dashboard's runs or sample folders may be inspected."""
     candidate = Path(path).resolve()
     if (
         not candidate.is_file()
-        or candidate.suffix.lower() not in {".epub", ".rtf"}
+        or candidate.suffix.lower() not in JOB_SOURCE_SUFFIXES
         or not any(root.resolve() in candidate.parents for root in roots)
     ):
         raise ValueError("unknown book file")
@@ -83,6 +85,29 @@ def book_info(path: Path) -> dict[str, Any]:
             if match:
                 value = match[1].strip()
                 info[field] = [value] if field == "authors" else value
+        return info
+    if path.suffix.lower() in SUBTITLE_SUFFIXES:
+        try:
+            cues = read_subtitles(path).cues
+            # A subtitle file has no title of its own; say how much there is of it.
+            info.update(title=path.stem, cues=len(cues), duration=format_time(cues[-1].end))
+        except (ValueError, OSError) as error:
+            info["warning"] = f"could not read the subtitle file: {error}"
+        return info
+    if path.suffix.lower() == ".pdf":
+        # Its title and author as the file records them; reading the whole book takes seconds.
+        try:
+            info.update(zip(("title", "authors"), pdf_title_and_author(path)))
+            info["authors"] = [info["authors"]] if info["authors"] else []
+        except (ValueError, OSError) as error:
+            info["warning"] = f"could not read the PDF: {error}"
+        return info
+    if path.suffix.lower() in CONVERTED_SUFFIXES:
+        try:
+            book = read_book(path)
+            info.update(title=book.title, authors=[book.author] if book.author else [], language=book.language)
+        except (ValueError, OSError, KeyError) as error:
+            info["warning"] = f"could not read the book: {error}"
         return info
     try:
         with zipfile.ZipFile(path) as archive:

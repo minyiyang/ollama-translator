@@ -104,7 +104,7 @@ def run_review_repair_stage(
             attempts=attempts, input_hash=input_hash,
         )
 
-        sources = {item.manifest_id: item for item in load_preprocessed_documents(workspace)}
+        sources = {item.manifest_id: item for item in load_preprocessed_documents(workspace, config)}
         reviewed = load_repaired_review_results(workspace)
         documents = load_post_repair_documents(workspace, config)
         stage_root = workspace.directory(f"repaired/{input_hash[:16]}-review-repair")

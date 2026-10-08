@@ -22,6 +22,7 @@ export const STAGE_LABELS: Record<string, string> = {
   review_repaired: "Review repairs",
   repair_review: "Repair review feedback",
   validate_repaired: "Validate draft",
+  translate_title: "Translate title",
   compile: "Compile EPUB",
   validate_epub: "Validate EPUB",
 };

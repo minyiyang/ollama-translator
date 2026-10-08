@@ -117,6 +117,53 @@ class ReviewSessionTests:
             assert not session.draft_path.exists()
 
 
+class ApprovalWithoutAQueueTests:
+    """The final draft approved on its own: there is no decision to apply it with."""
+
+    def test_a_draft_nothing_is_queued_for_is_approved_and_again_after_its_title_is_corrected(self):
+        from book_agent.book_edits import TITLE_ID, apply_book_edit
+        from book_agent.hashing import sha256_text
+        from tests.test_epub_notes import CONFIG as BOOK, _translated_job
+
+        config = AppConfig.model_validate({**BOOK, "workflow": {"require_final_review": True}})
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = _translated_job(Path(directory), config)
+            session = ReviewSession(workspace)
+            # No passage was queued, so no worksheet was written: the draft still waits for a person.
+            payload = session.payload()
+            assert payload["worksheet"] is None and payload["approval_required"]
+            with pytest.raises(FinalDraftApprovalRequired):
+                run_epub_compile_stage(workspace, config)
+            assert session.approve() == {"approved": True}
+            assert not session.payload()["approval_required"]
+            run_epub_compile_stage(workspace, config)
+            # Its title corrected on the Text tab, it waits again, and is approved the same way.
+            apply_book_edit(
+                workspace, item_id=TITLE_ID, text="四签名之谜", reason="as the series names it", base_target_sha256=sha256_text("四签名"),
+            )
+            assert session.payload()["approval_required"]
+            session.approve()
+            assert not session.payload()["approval_required"]
+            run_epub_compile_stage(workspace, config)
+
+    def test_a_job_that_asks_for_no_approval_is_not_waiting_for_one(self):
+        with tempfile.TemporaryDirectory() as directory:
+            session = ReviewSession(paused_workspace(directory))
+            assert not session.payload()["approval_required"]
+
+    def test_a_draft_with_more_unresolved_than_the_compile_allows_is_not_offered_approval(self):
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = paused_workspace(directory)
+            config = AppConfig.model_validate_json(workspace.config_file.read_text(encoding="utf-8"))
+            config.workflow.require_final_review = True
+            workspace.config_file.write_text(config.model_dump_json(), encoding="utf-8")
+            session = ReviewSession(workspace)
+            # The queue comes first: its decisions are applied, and the draft approved, together.
+            assert not session.payload()["approval_required"]
+            with pytest.raises(ValueError, match="resolve them before final approval"):
+                session.approve()
+
+
 def raise_compile_limit(workspace, limit):
     config = AppConfig.model_validate_json(workspace.config_file.read_text(encoding="utf-8"))
     config.workflow.compile_max_unresolved_review_segments = limit

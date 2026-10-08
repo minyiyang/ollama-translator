@@ -114,6 +114,11 @@ class TranslationConfig(StrictModel):
     context_multiplier: float = Field(default=3.0, ge=1.0, le=8.0)
     boundary_context: Literal["none", "adjacent-read-only"] = "none"
 
+    # The book's title in the target language, for the compiled book. Unset, the
+    # title is its passage's translation where it is a passage of the book,
+    # and is translated by one short model call where it is not.
+    translated_title: str | None = Field(default=None, max_length=300)
+
     @model_validator(mode="after")
     def validate_languages(self) -> "TranslationConfig":
         if self.source_language is not None or self.target_language is not None:
@@ -135,7 +140,7 @@ class TranslationConfig(StrictModel):
     def _omit_restated_languages(self, handler):
         data = handler(self)
         if isinstance(data, dict):
-            for key in ("source_language", "target_language", "model"):
+            for key in ("source_language", "target_language", "model", "translated_title"):
                 if data.get(key) is None:
                     data.pop(key, None)
         return data
@@ -407,6 +412,14 @@ def translation_model(config: "AppConfig") -> str:
     return config.translation.model or config.ollama.model
 
 
+class SubtitleConfig(StrictModel):
+    """Limits for a subtitle job; each is the target language's usual one when unset."""
+
+    line_characters: int | None = Field(default=None, ge=8, le=120)
+    lines: int | None = Field(default=None, ge=1, le=4)
+    characters_per_second: float | None = Field(default=None, gt=0, le=60)
+
+
 class AppConfig(StrictModel):
     ollama: OllamaConfig = OllamaConfig()
     budget: BudgetConfig = BudgetConfig()
@@ -419,6 +432,15 @@ class AppConfig(StrictModel):
     consistency: ConsistencyConfig = ConsistencyConfig()
     workflow: WorkflowConfig = WorkflowConfig()
     paths: PathsConfig = PathsConfig()
+    subtitles: SubtitleConfig = SubtitleConfig()
+
+    @model_serializer(mode="wrap")
+    def _omit_unset_subtitles(self, handler):
+        # A book's config, and its hashes, read as they did before there were subtitle jobs.
+        data = handler(self)
+        if isinstance(data, dict) and not any(value is not None for value in (data.get("subtitles") or {}).values()):
+            data.pop("subtitles", None)
+        return data
 
     @model_validator(mode="after")
     def validate_context_budget(self) -> "AppConfig":

@@ -28,7 +28,10 @@ from .manual_review import (
 from .pipeline_state import WorkflowStage
 from .ollama_client import GenerationProgressEvent, OllamaClient, PauseRequested
 from .styles import TranslationStyle
+from .book_formats import EXPORT_FORMATS, export_book
+from .subtitles import JOB_SOURCE_NAMES, JOB_SOURCE_SUFFIXES, job_type, subtitle_config
 from .languages import LanguagePair, language_support
+from .stages.compile import load_compiled_epub_path
 from .schemas import DEFAULT_GLOSSARY_PAIR
 from .series import (
     add_books,
@@ -126,6 +129,12 @@ _STAGE_ROLE_SUBSECTIONS: dict[str, tuple[str, ...]] = {
         "audit.quantity.base",
         "audit.quantity.escalation",
     ),
+    WorkflowStage.TRANSLATE_TITLE.value: (
+        "title.book",
+        "title.contents",
+        "title.notes",
+        "title.descriptions",
+    ),
 }
 
 
@@ -187,7 +196,7 @@ def build_parser() -> argparse.ArgumentParser:
     subparsers.add_parser("styles", help="list available prose-style names")
 
     run_parser = subparsers.add_parser("run", help="create and run a translation job")
-    run_parser.add_argument("source", help="source EPUB or RTF path")
+    run_parser.add_argument("source", help="source book (EPUB, RTF, .txt, .md, .html, .docx, .pdf) or subtitle file (.srt, .vtt, .ass)")
     run_parser.add_argument("--config", dest="config_file", help="YAML configuration path")
     run_parser.add_argument("--runs", help="override the run-workspace directory")
     run_parser.add_argument("--job-id", help="explicit safe workspace name")
@@ -197,6 +206,14 @@ def build_parser() -> argparse.ArgumentParser:
     resume_parser = subparsers.add_parser("resume", help="continue an existing job")
     resume_parser.add_argument("workspace", help="job workspace path")
     resume_parser.add_argument("--plain", action="store_true", help="disable styled progress output")
+
+    export_parser = subparsers.add_parser(
+        "export",
+        help="write a completed job's translated book as text, Markdown, HTML, or a Word document",
+    )
+    export_parser.add_argument("workspace", help="job workspace directory")
+    export_parser.add_argument("--format", required=True, choices=EXPORT_FORMATS, help="format to write")
+    export_parser.add_argument("--out", help="output path (default: next to the compiled EPUB)")
 
     status_parser = subparsers.add_parser("status", help="show current job state")
     status_parser.add_argument("workspace", help="job workspace path")
@@ -762,12 +779,15 @@ def build_dry_run_summary(source: str | Path, config: AppConfig, runs: str | Pat
     if not source_path.is_file():
         raise FileNotFoundError(source_path)
     source_format = source_path.suffix.casefold().lstrip(".")
-    if source_format not in {"epub", "rtf"}:
-        raise ValueError("source must be an EPUB or RTF file")
+    if source_path.suffix.casefold() not in JOB_SOURCE_SUFFIXES:
+        raise ValueError(f"source must be {JOB_SOURCE_NAMES}")
+    config, note = subtitle_config(source_path, config)
     return {
+        **({"note": note} if note else {}),
         "dry_run": True,
         "source": str(source_path),
         "source_format": source_format,
+        "job_type": job_type(source_path),
         "runs": str(Path(runs).resolve()),
         "direction": config.translation.direction.value,
         "languages": language_support(config.translation.direction),
@@ -1346,6 +1366,9 @@ def main(argv: Sequence[str] | None = None) -> int:
             if args.dry_run:
                 print(format_json(build_dry_run_summary(args.source, config, runs)))
                 return ExitCode.COMPLETE
+            config, note = subtitle_config(args.source, config)
+            if note:
+                print(note, file=sys.stderr)
             workspace = create_job_workspace(
                 args.source,
                 runs,
@@ -1392,6 +1415,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "pause":
             request_pause(open_job_workspace(args.workspace))
             print("Pause requested; the run stops after its current model call. Use `resume` to continue.")
+            return ExitCode.COMPLETE
+        if args.command == "export":
+            compiled = Path(load_compiled_epub_path(open_job_workspace(args.workspace)))
+            if compiled.suffix.casefold() != ".epub":
+                raise ValueError("a subtitle job has one output, its subtitle file; there is no book to export")
+            target = Path(args.out) if args.out else compiled.with_suffix(f".{args.format}")
+            print(export_book(compiled, target, args.format))
             return ExitCode.COMPLETE
         if args.command == "status":
             snapshot = workflow_status(open_job_workspace(args.workspace))

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { jobApi } from "../api";
 import { useDialog } from "../components/Dialog";
+import { useLeftInSource } from "../components/LeftInSource";
 import { Shell } from "../components/Shell";
 import { StageTip } from "../components/StageTip";
 import { NotStarted, useJob } from "../components/JobContext";
@@ -284,6 +285,9 @@ export function ProgressPage() {
   const attention = attentionFrom(status);
   const stages = status?.stages ?? [];
   const done = stages.filter((s) => s.status === "completed").length;
+  // What the title stage left in the source language, once it has run: its row says so, and where to fix it.
+  const titleDone = stages.some((s) => s.name === "translate_title" && s.status === "completed");
+  const leftInSource = useLeftInSource(jobId, started && titleDone);
   const current = stages.find((s) => ["running", "paused", "failed"].includes(s.status)) ?? stages.find((s) => s.status === "pending");
   const proc = data?.process;
   const live = status?.overall === "running" || !!proc?.running;
@@ -359,6 +363,13 @@ export function ProgressPage() {
                           <b>{stageLabel(stage.name)}</b> <StageTip stage={stage.name} result={stageResult(stage, activity)} />{" "}
                           <span className="meta mono">{stage.name}</span>
                           {stage.message && <div className="msg">{stage.message}</div>}
+                          {stage.name === "translate_title" && leftInSource.length > 0 && (
+                            <div className="msg">
+                              <Link to={`${base}/text?view=untranslated`}>
+                                {leftInSource.length} left in the source language: translate on Text →
+                              </Link>
+                            </div>
+                          )}
                         </td>
                         <td className="work"><WorkCell stage={stage} activity={activity} /></td>
                         <td className="num">

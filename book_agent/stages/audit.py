@@ -65,12 +65,25 @@ from ..quantities import (
     build_quantity_audit_prompt,
     validate_quantity_audit_scope,
 )
-from .preprocess import load_preprocessed_documents
+from .preprocess import limit_fields, load_preprocessed_documents
 from .rescue import load_rescue_report
 from .translate import load_translated_documents, load_translation_report
 
 
 AUDIT_STAGE_VERSION = "20"
+
+
+# How many subtitle cues the audit model reads in one call.
+SUBTITLE_AUDIT_CUES = 8
+# Output allowed the audit model for each cue of a batch. Over the Alice scene a
+# whole answer took 20 tokens a cue on average and 60 at most; the calls that
+# ran to 3,000 and 6,000 were the model repeating itself.
+SUBTITLE_AUDIT_OUTPUT_TOKENS = 160
+# The same for a book's passage: a whole answer is a few hundred tokens (the
+# longest of a 106-passage chapter was 445). One that reaches this is the model
+# listing the same issue over and over; given twice the room, it does so for
+# twice as long (a chapter's audit spent 22 of its 27 minutes so).
+BOOK_AUDIT_OUTPUT_TOKENS = 640
 
 
 def run_translation_audit_stage(
@@ -96,6 +109,8 @@ def run_translation_audit_stage(
             "preprocessing": str(preprocessing["output_hash"]),
             "translation": str(translation["output_hash"]),
             "audit": config.audit.checkpoint_json(),
+            # A subtitle job is audited again when the limits its cues are read by change.
+            **limit_fields(workspace, config),
             "model": config.audit.model if config.audit.semantic_enabled else "disabled",
             "stage_version": AUDIT_STAGE_VERSION,
         }
@@ -123,7 +138,7 @@ def run_translation_audit_stage(
             input_hash=input_hash,
         )
 
-        sources = load_preprocessed_documents(workspace)
+        sources = load_preprocessed_documents(workspace, config)
         translated = {item.manifest_id: item for item in load_translated_documents(workspace)}
         translation_report = load_translation_report(workspace, connection=connection)
         # Passages the rescue redrafted successfully are no longer deferred.
@@ -182,7 +197,12 @@ def run_translation_audit_stage(
                 config.audit.semantic_batch_source_tokens,
                 max_request_context=semantic_context_hard_maximum,
                 max_candidates_per_batch=(
-                    config.audit.semantic_max_candidates_per_batch
+                    # A cue is a line or two: one to a call, as a book's passages
+                    # are audited, would take hours over a film, and a cue is
+                    # judged better beside the cues around it.
+                    max(config.audit.semantic_max_candidates_per_batch or 0, SUBTITLE_AUDIT_CUES)
+                    if source.cues is not None
+                    else config.audit.semantic_max_candidates_per_batch
                 ),
             )
             audit_plans.append((source, target, deterministic, batches))
@@ -441,6 +461,16 @@ def run_translation_audit_stage(
                 document_index=task["document_index"],
                 total_documents=len(audit_plans),
                 context_bucket=int(task["bucket"]),
+                # A batch that cannot be answered for is audited in halves, and what
+                # still fails alone escalated; each answer has a fixed allowance.
+                rebuild_prompt=(
+                    lambda ids, source=source, target=target: build_semantic_audit_prompt(source, target, ids)
+                ),
+                output_tokens=(
+                    (SUBTITLE_AUDIT_OUTPUT_TOKENS if source.cues is not None else BOOK_AUDIT_OUTPUT_TOKENS)
+                    * len(task["allowed_ids"])
+                    + 256
+                ),
             )
             batch_number = int(str(task["unit_id"]).rsplit("-", 1)[1])
             semantic_results[(source.manifest_id, batch_number)] = result
@@ -807,7 +837,13 @@ def _run_semantic_batch(
     document_index,
     total_documents,
     context_bucket=None,
+    rebuild_prompt=None,
+    output_tokens=None,
 ):
+    """`rebuild_prompt`: the audit prompt for a part of this batch's passages,
+    for auditing it in halves when no answer can be had for the whole.
+    `output_tokens`: a fixed output allowance in place of the configured one
+    that grows with each failed attempt."""
     attempts = config.workflow.max_retries + 1
     last_error = ""
     last_failure_was_structured = False
@@ -833,6 +869,12 @@ def _run_semantic_batch(
                 config.audit.semantic_max_output_tokens
                 * (2 ** structured_failure_count),
             )
+            if output_tokens is not None:
+                # A whole answer is a few hundred tokens a passage, so one
+                # that reaches this allowance is the model repeating itself,
+                # and more room only gives it longer to do so. The same
+                # request again usually comes back whole.
+                output_token_limit = min(output_tokens, config.audit.semantic_max_output_tokens)
             generated = client.generate_structured(
                 request_prompt,
                 SemanticAuditResult,
@@ -958,8 +1000,9 @@ def _run_semantic_batch(
         )
         return result
     if last_failure_was_structured:
-        result = SemanticAuditResult(
-            issues=[
+
+        def undecided(segment_ids) -> list[AuditIssue]:
+            return [
                 AuditIssue(
                     segment_id=segment_id,
                     category=AuditCategory.MISTRANSLATION,
@@ -977,9 +1020,48 @@ def _run_semantic_batch(
                     source_quote=source_text_by_id.get(segment_id, "")[:240],
                     translation_quote=translation_text_by_id.get(segment_id, "")[:240],
                 )
-                for segment_id in allowed_ids
+                for segment_id in segment_ids
             ]
-        )
+
+        def halved(segment_ids) -> list[AuditIssue]:
+            """The audit of these passages in halves, and halves of those: one
+            passage that sends the model round in circles should not cost its
+            neighbours a verdict. Only what still fails alone is undecided."""
+            if len(segment_ids) < 2 or rebuild_prompt is None:
+                return undecided(segment_ids)
+            issues: list[AuditIssue] = []
+            middle = len(segment_ids) // 2
+            for half in (segment_ids[:middle], segment_ids[middle:]):
+                try:
+                    generated = client.generate_structured(
+                        rebuild_prompt(half),
+                        SemanticAuditResult,
+                        model=config.audit.model,
+                        context_maximum=(context_bucket or config.audit.max_num_ctx),
+                        think=config.audit.thinking,
+                        progress_label=(
+                            f"batch={batch_index}/{total_batches} id={unit_id} "
+                            f"document={document_index}/{total_documents} split={len(half)}"
+                        ),
+                        **llm_role_kwargs(client, "audit.semantic"),
+                        max_output_tokens=output_token_limit,
+                        max_attempts=1,
+                    )
+                    issues.extend(
+                        validate_semantic_audit_scope(
+                            generated.value,
+                            half,
+                            source_text_by_id,
+                            translation_text_by_id,
+                            quantity_enabled=config.audit.quantity.enabled,
+                            direction=config.translation.direction,
+                        ).issues
+                    )
+                except (StructuredOutputError, ValueError):
+                    issues.extend(halved(half))
+            return issues
+
+        result = SemanticAuditResult(issues=halved(list(allowed_ids)))
         atomic_write_text(path, result.model_dump_json(indent=2))
         set_work_unit_status(
             connection,

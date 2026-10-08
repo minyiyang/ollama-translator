@@ -144,6 +144,75 @@ describe("Final review tab", () => {
       expect(screen.getByRole("button", { name: "Compile now" })).toBeEnabled();
       expect(screen.queryByRole("button", { name: "Apply decisions" })).not.toBeInTheDocument();
       expect(screen.queryByRole("heading", { name: "Your translation" })).not.toBeInTheDocument();
+      // Nothing waits for approval either.
+      expect(screen.queryByRole("button", { name: "Approve final draft" })).not.toBeInTheDocument();
+    });
+
+    it("approves a draft that waits for it with no passage queued, and can then compile", async () => {
+      // As after a title corrected on the Text tab: approval is asked for again, and the queue is empty.
+      let waiting = true;
+      const api = reviewApi({
+        [`GET ${BASE}`]: () => review({ worksheet: worksheet([]), approval_required: waiting }),
+        [`POST ${BASE}/approve`]: () => { waiting = false; return { approved: true }; },
+      });
+      const user = await renderReviewTab();
+      expect(await screen.findByText("The final draft is waiting for approval. No passage is waiting for a decision.")).toBeInTheDocument();
+      const card = within(screen.getByRole("region", { name: "Approve final draft" }));
+      expect(card.getByText(/its text, title,\s+contents, or notes changed since/)).toBeInTheDocument();
+
+      await user.click(card.getByRole("button", { name: "Approve final draft" }));
+      expect(await screen.findByText("Final draft approved.")).toBeInTheDocument();
+      expect(api.posted(`${BASE}/approve`)).toEqual([{}]);
+      // Approved: the card is gone, and the book can be compiled.
+      await waitFor(() => expect(screen.queryByRole("region", { name: "Approve final draft" })).not.toBeInTheDocument());
+      expect(screen.getByText("The review queue is empty.")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Compile now" })).toBeEnabled();
+    });
+
+    it("offers the approval on a finished job too, whose title was corrected after it was compiled", async () => {
+      reviewApi({
+        "GET /api/jobs/demo/info": jobInfo(),
+        [`GET ${BASE}`]: review({
+          worksheet: null, approval_required: true,
+          status: { job_id: "demo", overall: "complete", stages: [], configuration: { source_path: "" } },
+        }),
+      });
+      await renderReviewTab();
+      expect(await screen.findByRole("button", { name: "Approve final draft" })).toBeEnabled();
+      expect(screen.queryByText("This job is complete; there is nothing left to review.")).not.toBeInTheDocument();
+    });
+
+    it("says why an approval was refused, and keeps the draft waiting", async () => {
+      reviewApi({
+        [`GET ${BASE}`]: review({ worksheet: worksheet([]), approval_required: true }),
+        [`POST ${BASE}/approve`]: apiError("2 unresolved defect(s) exceed the compile limit of 0", 400),
+      });
+      const user = await renderReviewTab();
+      await user.click(await screen.findByRole("button", { name: "Approve final draft" }));
+      expect(await screen.findByText(/Approval refused; nothing was changed\./)).toBeInTheDocument();
+      expect(screen.getByText(/2 unresolved defect\(s\) exceed the compile limit of 0/)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Approve final draft" })).toBeEnabled();
+    });
+
+    it("lists what the title stage left in the source language, each with a way to translate it", async () => {
+      reviewApi({
+        "GET /api/jobs/demo/info": jobInfo(),
+        [`GET ${BASE}`]: review({ worksheet: null, status: { job_id: "demo", overall: "complete", stages: [], configuration: { source_path: "" } } }),
+        "GET /api/jobs/demo/text/untranslated": {
+          items: [
+            { item_id: "D0000-N000001", kind: "note", document_id: "chapter", chapter: "The Science of Deduction", source: "Mrs. Hudson kept the house." },
+            { item_id: "BOOK-C0123456789ab", kind: "contents", document_id: "BOOK", chapter: "Title and contents", source: "Endnotes" },
+          ],
+        },
+      });
+      await renderReviewTab();
+      const card = within(await screen.findByRole("region", { name: "Left in the source language" }));
+      expect(card.getByRole("heading")).toHaveTextContent("Left in the source language (2)");
+      // It does not hold the book back; it says where to fix it.
+      expect(card.getByText(/do not stop the book from compiling/)).toBeInTheDocument();
+      const links = card.getAllByRole("link", { name: "Translate on Text →" });
+      expect(links[0]).toHaveAttribute("href", "/jobs/demo/text?chapter=chapter&item=D0000-N000001");
+      expect(card.getByText("Contents entry")).toBeInTheDocument();
     });
 
     it("says a complete job has nothing left, with no compile card", async () => {

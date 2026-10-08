@@ -4,7 +4,7 @@ import re
 import shutil
 from dataclasses import dataclass
 from datetime import datetime, timezone
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 from .atomic_io import atomic_copy_file, atomic_write_text
 from .config import AppConfig
@@ -13,6 +13,8 @@ from .pipeline_state import initialize_pipeline_stages
 from .state import connect_state, initialize_state, set_job_metadata
 
 
+# Where a job keeps the pictures its Markdown or HTML source names beside it.
+PICTURES_DIRECTORY = "source-pictures"
 WORKSPACE_DIRECTORIES = (
     "logs",
     "source",
@@ -85,6 +87,13 @@ def create_job_workspace(
             (root / relative).mkdir(parents=True, exist_ok=False)
         captured_source = root / "source" / source_path.name
         atomic_copy_file(source_path, captured_source)
+        # The pictures a Markdown or HTML file names beside it are kept with
+        # the job's copy, under the paths it names them by, so that the book
+        # has them however long after, and wherever the file has gone.
+        from .book_formats import capture_pictures
+
+        for relative, picture in capture_pictures(source_path).items():
+            atomic_copy_file(picture, root.joinpath(PICTURES_DIRECTORY, *PurePosixPath(relative).parts))
         config_text = config.model_dump_json(indent=2)
         config_file = atomic_write_text(root / "config.resolved.json", config_text)
         state_file = root / "state.sqlite3"

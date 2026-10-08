@@ -20,6 +20,7 @@ also blocks compile like an unresolved review segment until unblocked with
 from __future__ import annotations
 
 import getpass
+import re
 import sys
 import threading
 from collections import OrderedDict
@@ -59,6 +60,16 @@ from .stages.validate_repaired import load_validated_repaired_documents
 from .workspace import JobWorkspace
 
 LOG_RELATIVE = "edits/segment-edits.jsonl"
+# What the book says of itself shares the log under ids of its own
+# (book_agent.book_edits): a note's paragraph (D0001-N000002), and the title,
+# a contents entry, a picture's description (BOOK-...), which stand in no chapter.
+BOOK_DOCUMENT = "BOOK"
+_NOTE_ID = re.compile(r"D\d{4}-N\d{6}")
+
+
+def is_book_item(segment_id: str) -> bool:
+    """Whether an id in the log is one of the book's own items rather than a passage."""
+    return segment_id.startswith("BOOK-") or bool(_NOTE_ID.fullmatch(segment_id))
 
 
 class EditAction(str, Enum):
@@ -236,8 +247,9 @@ def segment_status(
 
 
 def edited_segment_statuses(workspace: JobWorkspace) -> dict[str, SegmentEditStatus]:
-    """Every segment with any event, keyed by id, with its live derived status."""
-    grouped = events_by_segment(workspace)
+    """Every segment with any event, keyed by id, with its live derived status.
+    A passage's: the book's own items are book_agent.book_edits's."""
+    grouped = {segment_id: events for segment_id, events in events_by_segment(workspace).items() if not is_book_item(segment_id)}
     if not grouped:
         return {}
     source_by_id = {
@@ -279,7 +291,7 @@ def latest_human_texts(workspace: JobWorkspace) -> dict[str, str]:
     stage that runs before ``validate_repaired`` (including during a rerun) can
     treat a human decision as the reference (docs/BOOK_CONSISTENCY.md, 7.4).
     """
-    grouped = events_by_segment(workspace)
+    grouped = {segment_id: events for segment_id, events in events_by_segment(workspace).items() if not is_book_item(segment_id)}
     if not grouped:
         return {}
     source_by_id = {

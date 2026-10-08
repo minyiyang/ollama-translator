@@ -5,11 +5,13 @@ import { BookCard, type BookInfo } from "../components/BookCard";
 import { Shell } from "../components/Shell";
 import { useToast } from "../components/Toast";
 import { Bar, Card, Chip } from "../components/ui";
-import { directionLabel, outputUrl, relativeTime } from "../lib/format";
+import { directionLabel, isSourceBook, JOB_TYPE_LABELS, outputUrl, relativeTime, SOURCE_ACCEPT, SOURCE_KINDS, type JobType } from "../lib/format";
 import { stageLabel } from "../lib/stages";
 
 type Job = {
   job_id: string; overall: string; source: string; direction: string; downloadable: boolean;
+  /** A book, or a subtitle file; a server from before subtitle jobs does not say. */
+  job_type?: JobType;
   current_stage: string; completed: number; total: number; updated: string;
 };
 export type Setup = { configs: { name: string }[]; config_dir: string; runs: string; template: string; jobs: Job[] };
@@ -42,7 +44,7 @@ function JobsTable({ jobs }: { jobs: Job[] }) {
   return (
     <table className="grid">
       <thead>
-        <tr><th>Job</th><th>Source</th><th>Type</th><th>Status</th><th>Stage</th><th>Progress</th><th>Updated</th><th /></tr>
+        <tr><th>Job</th><th>Source</th><th>Kind</th><th>Languages</th><th>Status</th><th>Stage</th><th>Progress</th><th>Updated</th><th /></tr>
       </thead>
       <tbody>
         {jobs.map((job) => {
@@ -56,6 +58,7 @@ function JobsTable({ jobs }: { jobs: Job[] }) {
             <tr key={job.job_id}>
               <td><Link className="mono" to={`${base}/${draft ? "config" : "progress"}`}>{job.job_id}</Link></td>
               <td>{job.source}</td>
+              <td>{JOB_TYPE_LABELS[job.job_type ?? "book"]}</td>
               <td className="mono nowrap" title={job.direction || "direction not set"}>{directionLabel(job.direction)}</td>
               <td><Chip kind={job.overall}>{job.overall}</Chip></td>
               <td>
@@ -69,7 +72,7 @@ function JobsTable({ jobs }: { jobs: Job[] }) {
               <td className="meta">{relativeTime(job.updated)}</td>
               <td>
                 {job.downloadable && (
-                  <a className="button small" href={outputUrl(job.job_id)} download title="Download the translated book">⤓ Download</a>
+                  <a className="button small" href={outputUrl(job.job_id)} download title={job.job_type === "subtitles" ? "Download the translated subtitles" : "Download the translated book"}>⤓ Download</a>
                 )}
               </td>
             </tr>
@@ -125,7 +128,7 @@ export function NewJobDialog({ setup, series, onClose }: {
 
   const upload = async (file: File | undefined) => {
     if (!file) return;
-    if (!/\.(epub|rtf)$/i.test(file.name)) { toast("bad", "Choose an .epub or .rtf file."); return; }
+    if (!isSourceBook(file.name)) { toast("bad", `Choose ${SOURCE_KINDS}.`); return; }
     setUploading(true);
     try {
       const path = await uploadSource(file);
@@ -173,15 +176,15 @@ export function NewJobDialog({ setup, series, onClose }: {
         )}
 
         <div className="field">
-          <label>Source EPUB or RTF</label>
-          <input ref={picker} type="file" accept=".epub,.rtf" hidden onChange={(e) => { upload(e.target.files?.[0]); e.target.value = ""; }} />
+          <label>Source book or subtitle file</label>
+          <input ref={picker} type="file" accept={SOURCE_ACCEPT} hidden onChange={(e) => { upload(e.target.files?.[0]); e.target.value = ""; }} />
           {book && !uploading ? (
             <div {...dropHandlers} className={over ? "drop-over" : ""}>
               <BookCard book={book} onChange={() => picker.current?.click()} />
             </div>
           ) : (
             <div {...dropHandlers} className={`dropzone ${over ? "over" : ""}`}>
-              {uploading ? "Uploading and reading the book…" : <>Drop an EPUB or RTF here, or{" "}
+              {uploading ? "Uploading and reading the book…" : <>Drop {SOURCE_KINDS} here, or{" "}
                 <button type="button" className="small" onClick={() => picker.current?.click()}>Browse…</button></>}
             </div>
           )}

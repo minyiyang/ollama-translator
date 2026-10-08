@@ -11,6 +11,9 @@ export type BookInfo = {
   language: string;
   has_cover: boolean;
   warning?: string;
+  /** A subtitle file: how many cues it has, and the time its last one ends. */
+  cues?: number;
+  duration?: string;
 };
 
 /** Full-screen view of a cover; any click or Escape dismisses it (and only it). */
@@ -62,7 +65,7 @@ export function BookCard({
 }) {
   const [coverFailed, setCoverFailed] = useState(false);
   const [zoomed, setZoomed] = useState(false);
-  const title = book.title || book.name.replace(/\.(epub|rtf)$/i, "");
+  const title = book.title || book.name.replace(/\.[a-z]+$/i, "");
   const authors = book.authors.join(", ");
   const showCover = book.has_cover && !coverFailed;
   const coverSrc = `/api/book/cover?path=${encodeURIComponent(book.path)}`;
@@ -82,7 +85,9 @@ export function BookCard({
       </div>
       <div className="book-meta">
         <div className="book-title">{title}</div>
-        {authors ? <div className="book-author">{authors}</div> : <div className="meta">Author not recorded</div>}
+        {book.cues !== undefined ? (
+          <div className="book-author">{book.cues.toLocaleString()} {book.cues === 1 ? "cue" : "cues"}, to {book.duration}</div>
+        ) : authors ? <div className="book-author">{authors}</div> : <div className="meta">Author not recorded</div>}
         <div className="row" style={{ margin: "8px 0" }}>
           <span className="chip">{book.format.toUpperCase()}</span>
           {book.language && <span className="chip">{book.language}</span>}
@@ -96,7 +101,7 @@ export function BookCard({
           ))}
         </dl>
         {book.warning && <div className="meta" style={{ color: "var(--warn)" }}>{book.warning}</div>}
-        {onChange && <button type="button" className="small" onClick={onChange}>Choose another book…</button>}
+        {onChange && <button type="button" className="small" onClick={onChange}>Choose another file…</button>}
       </div>
       {zoomed && showCover && <CoverZoom src={coverSrc} title={title} onClose={() => setZoomed(false)} />}
     </div>

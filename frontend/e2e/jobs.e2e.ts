@@ -15,7 +15,7 @@ test.describe("A translator opens the dashboard", () => {
     await page.goto("/");
     await page.getByRole("row", { name: /^alice-german / }).getByRole("link", { name: /Open final review/ }).click();
     await expect(page).toHaveURL(/\/jobs\/alice-german\/review$/);
-    await expect(page.getByRole("heading", { name: "Source" })).toBeVisible();
+    await expect(page.getByRole("heading", { name: "Source", exact: true })).toBeVisible();
     await expect(page.getByText("3 o'clock").first()).toBeVisible();
   });
 

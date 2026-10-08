@@ -29,6 +29,7 @@ class WorkflowStage(str, Enum):
     REVIEW_REPAIRED = "review_repaired"
     REPAIR_REVIEW = "repair_review"
     VALIDATE_REPAIRED = "validate_repaired"
+    TRANSLATE_TITLE = "translate_title"
     COMPILE = "compile"
     VALIDATE_EPUB = "validate_epub"
 
@@ -50,7 +51,8 @@ STAGE_DEPENDENCIES: dict[WorkflowStage, tuple[WorkflowStage, ...]] = {
     WorkflowStage.REVIEW_REPAIRED: (WorkflowStage.REPROSE_TRANSLATION,),
     WorkflowStage.REPAIR_REVIEW: (WorkflowStage.REVIEW_REPAIRED,),
     WorkflowStage.VALIDATE_REPAIRED: (WorkflowStage.REPAIR_REVIEW,),
-    WorkflowStage.COMPILE: (WorkflowStage.VALIDATE_REPAIRED,),
+    WorkflowStage.TRANSLATE_TITLE: (WorkflowStage.VALIDATE_REPAIRED,),
+    WorkflowStage.COMPILE: (WorkflowStage.VALIDATE_REPAIRED, WorkflowStage.TRANSLATE_TITLE),
     WorkflowStage.VALIDATE_EPUB: (WorkflowStage.COMPILE,),
 }
 
@@ -63,6 +65,8 @@ ADDED_LATER_MESSAGE = "added after this job had passed this point; rerun from he
 _ADDED_STAGES = {
     WorkflowStage.AUDIT_CONSISTENCY: (WorkflowStage.REPAIR_TRANSLATION, ADDED_AFTER_REPAIR_MESSAGE),
     WorkflowStage.BUILD_STORY_CONTEXT: (WorkflowStage.PREPROCESS, ADDED_LATER_MESSAGE),
+    # A book compiled before titles were translated keeps the title it was compiled with.
+    WorkflowStage.TRANSLATE_TITLE: (WorkflowStage.COMPILE, ADDED_LATER_MESSAGE),
 }
 
 

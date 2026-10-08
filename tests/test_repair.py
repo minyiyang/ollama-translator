@@ -417,6 +417,32 @@ class RepairCoreTests:
         assert "without changing what they measure" in prompt
         assert "CURRENT: 甲。" not in prompt
 
+    def test_the_verifier_of_subtitles_is_told_a_cue_is_condensed_and_may_hold_part_of_a_sentence(self):
+        source = source_document()
+        repaired = RepairedDocument(
+            document=translated_document(),
+            repairs=[
+                SegmentRepair(
+                    segment_id="D0001-S000001",
+                    disposition=RepairDisposition.REPAIRED,
+                    original_translation="错误译文。",
+                    repaired_translation="你好，世界。",
+                    issues=[audit_issue()],
+                    attempts=1,
+                )
+            ],
+        )
+        film = source.model_copy(
+            update={"cues": {segment.segment_id: (1, 3.0, False) for segment in source.segments}, "reading_limits": (16, 2, 9.0)}
+        )
+        prompt = build_repair_verification_prompt(film, repaired, ["D0001-S000001"])
+        # A shorter line that says the same is the better subtitle, not an omission.
+        assert "A subtitle is condensed on purpose" in prompt
+        assert "the shorter is the better subtitle" in prompt
+        assert "never as incomplete for leaving the rest of the sentence to the next cue" in prompt
+        # A book's verifier is asked as it always was.
+        assert "subtitle" not in build_repair_verification_prompt(source, repaired, ["D0001-S000001"])
+
     def test_repair_verification_prompt_and_exact_scope(self):
         source = source_document()
         draft = translated_document()

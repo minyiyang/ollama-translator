@@ -56,7 +56,7 @@ from ..state import (
 )
 from ..stage_artifacts import list_active_stage_artifacts
 from ..workspace import JobWorkspace
-from .preprocess import load_preprocessed_documents
+from .preprocess import limit_fields, load_preprocessed_documents
 from .reprose import load_post_repair_documents
 
 
@@ -90,6 +90,7 @@ def run_repaired_review_stage(
             {
                 "repair": str(repair_stage["output_hash"]),
                 "audit": config.audit.checkpoint_json(),
+                **limit_fields(workspace, config),
                 "reprose": config.reprose.model_dump_json(),
                 "model": config.audit.verifier_model or config.audit.model,
                 "stage_version": REVIEW_REPAIRED_STAGE_VERSION,
@@ -112,7 +113,7 @@ def run_repaired_review_stage(
             attempts=attempts, input_hash=input_hash,
         )
 
-        sources = {item.manifest_id: item for item in load_preprocessed_documents(workspace)}
+        sources = {item.manifest_id: item for item in load_preprocessed_documents(workspace, config)}
         repaired_documents = load_post_repair_documents(workspace, config)
         numeric_rulings = rule_numeric_findings(
             workspace,

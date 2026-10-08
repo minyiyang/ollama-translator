@@ -20,7 +20,12 @@ from ..pipeline_state import (
     invalidate_stage_and_dependents,
     stage_is_current,
 )
+from ..book_formats import CONVERTED_SUFFIXES, EXPORT_FORMATS, export_book
+from ..languages import profile
 from ..rtf import compile_rtf_document
+from ..book_edits import book_approved, settled_book
+from .title import _passage_translation, settled_texts
+from ..subtitles import compile_subtitle_file, subtitle_limits
 from ..text_edits import (
     active_edit_texts,
     compiled_consistency_issues,
@@ -42,7 +47,7 @@ from ..state import (
 )
 from ..workspace import JobWorkspace
 from .decompile import load_decompile_manifest
-from .preprocess import load_preprocessed_documents
+from .preprocess import limit_fields, load_preprocessed_documents
 from .audit import load_document_audits
 from .repair import load_repaired_documents
 from .reprose import load_reprosed_documents
@@ -75,9 +80,15 @@ def run_epub_compile_stage(
         validation_report = load_repaired_validation_report(workspace)
         active_edits = active_edit_texts(workspace)
         edit_hash = hash_active_edits(active_edits)
+        # What the title stage settled, with a person's corrections of the title,
+        # the contents, the notes, and the pictures' descriptions on top of it.
+        settled_title, book_edits = settled_book(workspace, connection=connection)
         if config.workflow.require_final_review:
             revision = draft_revision_hash(str(validated["output_hash"]), edit_hash)
-            if get_job_metadata(connection, "final_review_approved_for") != revision:
+            # What is approved is what is compiled: the passages, and what the book says of itself.
+            if get_job_metadata(connection, "final_review_approved_for") != revision or not book_approved(
+                connection, settled_title
+            ):
                 raise FinalDraftApprovalRequired("final draft approval required")
         gate = unresolved_review_gate(workspace, validation_report)
         unresolved_limit = config.workflow.compile_max_unresolved_review_segments
@@ -121,6 +132,27 @@ def run_epub_compile_stage(
                     config.epub.chapter_heading_labels
                 ),
                 "active_edits": edit_hash,
+                # A book whose title was settled by the title stage is compiled again when that changes.
+                **({"title": settled_title["translated"]} if settled_title["translated"] else {}),
+                **(
+                    {"contents": json.dumps(settled_texts(settled_title), ensure_ascii=False, sort_keys=True)}
+                    if settled_texts(settled_title)
+                    else {}
+                ),
+                **(
+                    {"notes": json.dumps(settled_title["notes"], ensure_ascii=False, sort_keys=True)}
+                    if settled_title["notes"]
+                    else {}
+                ),
+                # A settled title that a passage also reads as: it once gave way to the passage's
+                # translation. Only such a book, compiled then, is compiled again.
+                **(
+                    {"title_over_passage": "1"}
+                    if settled_title["translated"] and _passage_translation(workspace, settled_title["source"])
+                    else {}
+                ),
+                # A subtitle file is written again when the limits its lines are broken by change.
+                **limit_fields(workspace, config),
                 "stage_version": COMPILE_STAGE_VERSION,
             }
         )
@@ -151,10 +183,20 @@ def run_epub_compile_stage(
         package_root = workspace.directory(manifest_relative).parent / "package"
         # Keep downloads distinguishable across reviewed revisions while the
         # complete input hash remains the authoritative build identity.
-        output_name = f"{workspace.source_file.stem}.translated-{input_hash[:6]}.epub"
+        # A subtitle job gives back a subtitle file of the kind it was given.
+        suffix = workspace.source_file.suffix.casefold() if manifest.source_format == "subtitle" else ".epub"
+        output_name = f"{workspace.source_file.stem}.translated-{input_hash[:6]}{suffix}"
         output_path = workspace.directory("output") / output_name
         report = (
-            compile_rtf_document(manifest, repaired, output_path)
+            compile_subtitle_file(
+                workspace.source_file,
+                manifest,
+                repaired,
+                output_path,
+                subtitle_limits(config),
+            )
+            if manifest.source_format == "subtitle"
+            else compile_rtf_document(manifest, repaired, output_path)
             if manifest.source_format == "rtf"
             else compile_epub_package(
                 package_root,
@@ -168,11 +210,22 @@ def run_epub_compile_stage(
                     config.epub.insert_missing_chapter_headings
                 ),
                 chapter_heading_labels=config.epub.chapter_heading_labels,
+                source_language=profile(config.translation.direction.source_language).code,
+                target_language=profile(config.translation.direction.target_language).code,
+                title=(settled_title["source"], settled_title["translated"]),
+                labels=settled_texts(settled_title),
+                notes=settled_title["notes"],
             )
         )
         report_path = workspace.directory("reports") / f"compile-{input_hash[:16]}.json"
         atomic_write_text(report_path, report.model_dump_json(indent=2))
         _record_file(connection, workspace, output_path, "compiled_epub")
+        # A book that came as text, Markdown, HTML, or a Word document is also
+        # written in the format it came in, next to the EPUB.
+        export_format = CONVERTED_SUFFIXES.get(workspace.source_file.suffix.casefold())
+        if export_format in EXPORT_FORMATS:  # a PDF is read, never written
+            exported = export_book(output_path, output_path.with_suffix(f".{export_format}"), export_format)
+            _record_file(connection, workspace, exported, "compiled_export")
         _record_file(connection, workspace, report_path, "epub_compilation_report")
         set_job_metadata(
             connection,
@@ -200,6 +253,9 @@ def run_epub_compile_stage(
             "\n".join(validation_report.review_segment_ids),
         )
         set_job_metadata(connection, "compiled_active_edit_hash", edit_hash)
+        # What the book says of itself as compiled, edits in, for the validate stage to check against.
+        set_job_metadata(connection, "compiled_book_edits", json.dumps(book_edits, ensure_ascii=False, sort_keys=True))
+        set_job_metadata(connection, "compiled_settled_title", json.dumps(settled_title, ensure_ascii=False, sort_keys=True))
         set_job_metadata(
             connection,
             "compiled_active_edits",

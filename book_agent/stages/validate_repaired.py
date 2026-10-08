@@ -95,7 +95,7 @@ from ..translation import (
     build_single_inline_marker_placement_prompt,
     supports_single_inline_marker_placement,
 )
-from .preprocess import load_preprocessed_documents
+from .preprocess import limit_fields, load_preprocessed_documents
 from .audit import load_document_audits
 
 
@@ -138,6 +138,7 @@ def run_repaired_validation_stage(
             {
                 "repair_review": str(repair_stage["output_hash"]),
                 "audit": config.audit.checkpoint_json(),
+                **limit_fields(workspace, config),
                 "model": config.audit.verifier_model or config.audit.model,
                 "consistency": config.consistency.model_dump_json(),
                 "stage_version": VALIDATE_REPAIRED_STAGE_VERSION,
@@ -164,7 +165,7 @@ def run_repaired_validation_stage(
             input_hash=input_hash,
         )
 
-        sources = {item.manifest_id: item for item in load_preprocessed_documents(workspace)}
+        sources = {item.manifest_id: item for item in load_preprocessed_documents(workspace, config)}
         from .reprose import load_post_repair_documents
         from .repair_review import load_review_repaired_documents
         from .review_repaired import load_repaired_review_results

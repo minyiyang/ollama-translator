@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { jobApi } from "../api";
 import { useConfirm, useDialog } from "../components/Dialog";
+import { LeftInSourceCard, useLeftInSource } from "../components/LeftInSource";
 import { NotStarted, useJob } from "../components/JobContext";
 import { Shell } from "../components/Shell";
 import { SideLayout } from "../components/SideLayout";
@@ -8,6 +9,7 @@ import { useToast } from "../components/Toast";
 import { Chip, Highlight } from "../components/ui";
 import { diffChars } from "../lib/diff";
 import { FALLBACK_PAIR, langAttr, leftoverSourceText, pairCodes } from "../lib/languages";
+import { cueLabel, readingProblems, type Cue, type ReadingLimits } from "../lib/subtitles";
 import type { WorkflowStatus } from "../lib/stages";
 
 type Decision = "pending" | "accept" | "replace";
@@ -31,9 +33,17 @@ type Context = {
   next_source_context?: string;
   findings?: Finding[];
   translation_versions?: { stage: string; text: string }[];
+  /** A subtitle job: the cue this passage belongs to. */
+  cue?: Cue;
 };
 type CompileState = { state: string; events: { stage: string; status: string; message: string }[]; result: { result: string; message?: string; output?: string } | null };
-type Payload = { worksheet: Worksheet | null; context: Record<string, Context>; stale: boolean; status: WorkflowStatus; compile: CompileState; compile_limit?: number };
+type Payload = {
+  worksheet: Worksheet | null; context: Record<string, Context>; stale: boolean; status: WorkflowStatus; compile: CompileState; compile_limit?: number;
+  /** The final draft waits for approval and can be given it, whatever is in the queue. */
+  approval_required?: boolean;
+  /** A subtitle job: what fits a cue and can be read in its time. */
+  reading?: ReadingLimits;
+};
 type Blocking = { category: string; severity: string; message: string };
 type Item = { res: Resolution; edit: string; custom: string; customOn: boolean; check?: { key: string; blocking: Blocking[] } };
 
@@ -127,6 +137,8 @@ function CompileCard({ jobId, initial }: { jobId: string; initial?: CompileState
 export function ReviewPage() {
   const { jobId, info } = useJob();
   const started = info?.kind === "job";
+  // What the title stage left in the source language: listed here, translated on the Text tab.
+  const leftInSource = useLeftInSource(jobId, started);
   const toast = useToast();
   const ask = useDialog();
   const confirm = useConfirm();
@@ -304,6 +316,20 @@ export function ReviewPage() {
     }
   };
 
+  // Approval on its own: for a draft with no decision to apply with it.
+  const approveDraft = async () => {
+    setBusy(true);
+    try {
+      await jobApi(jobId, "review/approve", {});
+      toast("ok", "Final draft approved.");
+      await load();
+    } catch (e) {
+      toast("bad", <>Approval refused; nothing was changed.<br />{(e as Error).message}</>, 0);
+    } finally {
+      setBusy(false);
+    }
+  };
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "s") { e.preventDefault(); if (active) save(); }
@@ -353,6 +379,8 @@ export function ReviewPage() {
           ) : (
             <div className="banner warn">Applied, but {applied.remaining.length} segment(s) still need review: {applied.remaining.join(", ")}. Compile to regenerate the worksheet.</div>
           )
+        ) : data.approval_required ? (
+          <div className="banner warn">The final draft is waiting for approval. No passage is waiting for a decision.</div>
         ) : complete ? (
           <div className="banner ok">This job is complete; there is nothing left to review.</div>
         ) : (
@@ -362,6 +390,17 @@ export function ReviewPage() {
               : "The review queue is empty."}
           </div>
         )}
+        {data.approval_required && (
+          <section className="card" aria-label="Approve final draft">
+            <h2>Approve final draft</h2>
+            <p className="meta">
+              This job compiles only a draft a person has approved. The draft as it stands has not been: it was never approved, or its text, title,
+              contents, or notes changed since it was. Approve it here, then compile.
+            </p>
+            <div className="row"><button className="primary" disabled={busy} onClick={approveDraft}>Approve final draft</button></div>
+          </section>
+        )}
+        <LeftInSourceCard jobId={jobId} items={leftInSource} />
         {!complete && <CompileCard jobId={jobId} initial={data.compile} />}
       </main>,
     );
@@ -433,6 +472,7 @@ export function ReviewPage() {
     <SideLayout sidebar={sidebar} storageKey="sidebar-collapsed:review" label="Segments" navRef={navRef}>
         <div className="seghead">
           <span className="title">{it.res.segment_id}</span>
+          {ctx.cue && <span className="meta" title={`Cue ${ctx.cue.number}: when it comes on screen, and for how long`}>{cueLabel(ctx.cue)}</span>}
           {ctx.chapter_title && <Chip>{ctx.chapter_title}</Chip>}
           {ctx.review_kind && <Chip>{ctx.review_kind}</Chip>}
           <span className="meta">{order.indexOf(index) + 1} of {items.length} · <kbd>Alt</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd> to move</span>
@@ -457,7 +497,7 @@ export function ReviewPage() {
             <button className="small" onClick={() => setEdit(it.res.current_translation)}>Reset to current</button>
             <span className="meta">{[...it.edit].length} chars (current {[...it.res.current_translation].length})</span>
             <button className="small" onClick={() => runCheck(index)}>Check</button>
-            <span className="lint">{lint(it, pair).join(" · ")}</span>
+            <span className="lint">{[...lint(it, pair), ...readingProblems(it.edit, ctx.cue, data.reading)].join(" · ")}</span>
           </div>
           {check && it.res.decision !== "pending" && (
             check.blocking.length ? (
@@ -530,6 +570,7 @@ export function ReviewPage() {
             )) : <p className="meta">No alternative versions recorded.</p>}
           </section>
         </div>
+        <LeftInSourceCard jobId={jobId} items={leftInSource} />
     </SideLayout>,
   );
 }

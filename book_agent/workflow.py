@@ -37,6 +37,7 @@ from .state import (
     set_job_metadata,
     set_stage_status,
 )
+from .book_edits import book_approved, record_book_approval, settled_book
 from .text_edits import current_draft_revision, unresolved_review_gate
 from .workspace import JobWorkspace
 from .stages.audit import run_translation_audit_stage
@@ -48,6 +49,7 @@ from .stages.compile import (
     write_unresolved_review_report,
 )
 from .stages.decompile import run_decompile_stage
+from .stages.title import run_title_stage
 from .stages.glossary import (
     GlossaryApprovalRequired,
     run_glossary_approval_stage,
@@ -161,6 +163,9 @@ def default_stage_runners() -> dict[WorkflowStage, StageRunner]:
             workspace, config, _require_client(client)
         ),
         WorkflowStage.VALIDATE_REPAIRED: lambda workspace, config, client: run_repaired_validation_stage(
+            workspace, config, client
+        ),
+        WorkflowStage.TRANSLATE_TITLE: lambda workspace, config, client: run_title_stage(
             workspace, config, client
         ),
         WorkflowStage.COMPILE: lambda workspace, config, client: run_document_compile_stage(
@@ -282,7 +287,10 @@ def run_workflow(
                 )
             if pause_requested(workspace):
                 raise PauseRequested(PAUSED_ON_REQUEST)
-            if _stage_uses_ollama(stage, resolved_config) and shared_client is None:
+            # The title stage gets the run's client too, so its calls are logged and
+            # counted as every stage's are; it goes on without Ollama, so the
+            # models are not checked for it.
+            if (_stage_uses_ollama(stage, resolved_config) or stage is WorkflowStage.TRANSLATE_TITLE) and shared_client is None:
                 shared_client = OllamaClient(
                     resolved_config.ollama,
                     progress=generation_progress,
@@ -523,6 +531,8 @@ def approve_final_draft(workspace: JobWorkspace) -> str:
             raise ValueError("the repaired validation output hash is missing")
         revision = current_draft_revision(workspace, validated_output_hash)
         set_job_metadata(connection, "final_review_approved_for", revision)
+        # And, with the passages, the title, contents, notes, and descriptions as they stand.
+        record_book_approval(connection, workspace)
         compile_record = get_stage_status(connection, WorkflowStage.COMPILE.value)
         if compile_record and compile_record["status"] == StageStatus.PAUSED.value:
             set_stage_status(connection, WorkflowStage.COMPILE.value, StageStatus.PENDING)
@@ -758,9 +768,26 @@ def _final_review_is_required(workspace: JobWorkspace, config: AppConfig) -> boo
         if validated is None or validated["status"] != StageStatus.COMPLETED.value:
             return False
         revision = current_draft_revision(workspace, str(validated["output_hash"]))
-        return get_job_metadata(connection, "final_review_approved_for") != revision
+        if get_job_metadata(connection, "final_review_approved_for") != revision:
+            return True
+        # The passages are as approved: so must be what the book says of itself.
+        settled, _ = settled_book(workspace, connection=connection)
+        return not book_approved(connection, settled)
     finally:
         connection.close()
+
+
+def final_approval_awaited(workspace: JobWorkspace) -> bool:
+    """Whether the final draft, as it stands, waits for a person's approval and
+    can be given it: the job compiles only an approved draft, this one is not
+    the one approved (none was, or a passage, the title, the contents, or a
+    note changed since), and no more review segments are unresolved than the
+    compile allows. Then `approve_final_draft` approves it, with or without a
+    decision to apply."""
+    config = load_workspace_config(workspace)
+    return _final_review_is_required(workspace, config) and not _unresolved_compile_review_message(
+        workspace, config
+    )
 
 
 def _unresolved_compile_review_message(

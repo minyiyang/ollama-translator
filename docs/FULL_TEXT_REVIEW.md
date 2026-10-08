@@ -122,7 +122,8 @@ The full history of a segment is every event for its ID, oldest first.
   states) on the validated draft. The compile input hash includes a hash of
   the active edits, so any change to them makes the compiled book outdated.
   When final review is required, compile rechecks that this exact validated
-  draft plus captured edit snapshot is the approved revision.
+  draft plus captured edit snapshot is the approved revision, and that what
+  the book says of itself is as it was approved (section 12.1).
 - **Conflicts block compile like unresolved segments:**
   - they are added to the compile gate's unresolved list and count against
     `workflow.compile_max_unresolved_review_segments`;
@@ -238,6 +239,9 @@ user name on the server.
 - `book_agent/workflow.py`: the pre-compile pause (`_unresolved_compile_review_message`)
   and `approve_final_draft` use the same gate. Final approval and Final-review
   worksheet staleness are bound to a composite validated-draft + active-edit revision.
+  Final approval also keeps what the book says of itself
+  (`book_edits.record_book_approval`, section 12.1); the worksheet does not
+  depend on that.
 - `book_agent/web/text_view.py`: outline and chapter payloads; `in_review_queue`
   and `flagged` are dynamic (excluded once a segment has an active edit).
 - `book_agent/xliff_export.py`: `export_xliff` — one `.xlf` for the book, one
@@ -313,7 +317,10 @@ user name on the server.
   prevents an entire Final-review edit batch from being appended.
 - Approval revision (`tests/test_review_ui.py`): applying a worksheet advances
   its revision, a later Text-tab edit requires final approval again, and an
-  already-open worksheet cannot save over that edit.
+  already-open worksheet cannot save over that edit. For the book's own
+  items (`tests/test_epub_notes.py`): a title settled anew, or corrected,
+  after the approval requires it again; an approval recorded before those
+  items were kept with it stands until one of them changes.
 - XLIFF export (`tests/test_xliff_export.py`): one `<file>` per chapter,
   `<I000>` markers round-trip through `<pc>`, an active edit exports
   `state="reviewed"` with its edited text.
@@ -323,6 +330,65 @@ user name on the server.
   content type, attachment name, an edited unit exported `reviewed`, and the
   404 / 400 refusals. The Text tab test checks the link's URL, `download`
   attribute, placement in the totals card, and absence when read-only.
+
+## 12.1 What the book says of itself
+
+The title stage settles what is no passage: the book's title, the contents
+entries that read as no heading, the paragraphs of the notes (an EPUB's
+footnotes and endnotes, a Word or Markdown book's), and the pictures'
+descriptions. They are shown and edited on the Text tab as passages are
+(`book_agent/book_edits.py`):
+
+- **Where.** A "Title and contents" entry before the chapters holds the
+  title and the contents entries. A chapter's notes follow its passages
+  under "Notes"; a picture is a row after the passage it follows, with a
+  thumbnail served from the book's own package (`GET
+  /api/jobs/<id>/text/picture?path=`, a file the package lists as a picture,
+  nothing else). The tab opens at the first chapter, not at the entry.
+- **Notes and their references.** A passage whose link points at a note (an
+  href to the note's id, or to an element within it) shows a "Note 2" button:
+  the note is shown under the passage, or, an endnote in a document of its
+  own, its chapter is opened at it. A note lists the passages that refer to
+  it, each a link back. A converted book's note that two chapters refer to
+  stands in the first of them and lists the passages of both
+  (docs/FORMAT_SUPPORT.md, section 3).
+- **The log.** Their edits go in `edits/segment-edits.jsonl` with the
+  passages', under ids of their own: a note's paragraph by its id
+  (`D0001-N000002`), the title `BOOK-T`, a contents entry `BOOK-C` and a
+  picture's description `BOOK-P` and a hash of the words, so the same words
+  are one item wherever they stand. The "pipeline text" is what the title
+  stage settled, or the source where it settled nothing; edited, conflict,
+  revert, keep, and take-the-new-text work as for a passage, through the same
+  endpoints (`text/check`, `text/edit`, `text/revert`, `text/conflict`). The
+  passage-side functions pass these ids over.
+- **Checks.** A note keeps its markers, each once and in order, so that the
+  compile can put it back with its link and emphasis; the rest is one line;
+  none is empty. No reason waives them.
+- **Compile.** The active edits are put on top of the title stage's record;
+  the compile's input hash follows, so an edit is compiled again, and the
+  record as compiled is stored (`compiled_settled_title`) for the validate
+  stage to check against. An item's conflict does not block the compile.
+  The title as it is settled (by the config, the model, or an edit) is the
+  book's title wherever the package has it, whatever a passage that reads
+  the same was translated as.
+- **Approval.** Where `workflow.require_final_review` is on, the approval is
+  for these items as well as the passages. `approve_final_draft` keeps a
+  hash of them as the compile would give them, edits in
+  (`final_review_approved_book`, beside `final_review_approved_for`), and
+  the pre-compile pause and the compile ask for approval again when it no
+  longer matches: after an edit of one, or after the title stage settles one
+  anew. The passages' revision is as it was, so a Final review worksheet
+  goes stale only when a passage changes. An approval given before that hash
+  was kept stands for the book as it was last compiled, or, never compiled,
+  as it is: it does not lapse because the job was upgraded. An item's edit
+  queues no passage, so the Final review page offers the approval on its
+  own (**Approve final draft**, docs/STAGE_CONTROL.md, section 4).
+- **Left in the source language.** What the title stage could not translate
+  (no answer; a note answered without its markers) is flagged
+  "untranslated", with a Text filter, a card on the Final review page
+  listing each with a link to it (`GET text/untranslated`), and a link from
+  the title stage's row on Progress. It does not stop the compile: the book
+  keeps those words as they are until someone translates them.
 
 ## 13. Open questions
 

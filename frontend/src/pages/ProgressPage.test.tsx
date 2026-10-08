@@ -200,6 +200,33 @@ describe("Progress tab", () => {
   });
 
   describe("pipeline table", () => {
+    it("points from the title stage to the notes it left in English, and not before it has run", async () => {
+      const titled = [
+        stage("validate_repaired", "completed"),
+        stage("translate_title", "completed", { message: "四签名; 1 of 2 notes translated" }),
+        stage("compile", "completed"),
+      ];
+      const api = progressApi({
+        "GET /api/jobs/demo/info": jobInfo({ overall: "complete", stages: titled }),
+        "GET /api/jobs/demo/progress": snapshot({ status: { job_id: "demo", overall: "complete", stages: titled, configuration: { source_path: "" } } }),
+        "GET /api/jobs/demo/text/untranslated": {
+          items: [{ item_id: "D0000-N000001", kind: "note", document_id: "chapter", chapter: "Chapter I", source: "Mrs. Hudson kept the house." }],
+        },
+      });
+      renderProgressTab();
+      const link = await within(await pipeline()).findByRole("link", { name: "1 left in the source language: translate on Text →" });
+      expect(link).toHaveAttribute("href", "/jobs/demo/text?view=untranslated");
+      expect(rowOf("translate_title")).toContainElement(link);
+      expect(api.requested("/api/jobs/demo/text/untranslated")).toBe(true);
+    });
+
+    it("does not ask what the title stage left before it has run", async () => {
+      const api = progressApi();
+      renderProgressTab();
+      await pipeline();
+      expect(api.requested("/api/jobs/demo/text/untranslated")).toBe(false);
+    });
+
     it("lists every stage with its label, raw name, and message", async () => {
       progressApi();
       renderProgressTab();

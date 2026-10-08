@@ -53,6 +53,15 @@ STYLE_INSTRUCTIONS: dict[TranslationStyle, str] = {
     ),
 }
 
+# For a subtitle job, in place of the prose style: a book's style does not fit a cue.
+SUBTITLE_INSTRUCTION = (
+    "These are the subtitles of a film or a programme. Each passage is one cue, on screen "
+    "for a few seconds, and is spoken aloud by someone. Write what a speaker of the target "
+    "language would say, as briefly as the meaning allows: a filler word may go, a fact may "
+    "not. Keep each passage a passage of its own; never move words from one cue into the "
+    "next, even when a sentence runs across them."
+)
+
 DE_AI_INSTRUCTIONS = {
     "conservative": (
         "Preserve the author's idiolect and natural sentence variation. Avoid adding formulaic "

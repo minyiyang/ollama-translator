@@ -86,6 +86,12 @@
 .text-pairs tr.conflict td { background: var(--bad-bg); }
 .text-pairs .editable-text { cursor: text; border-radius: 4px; padding: 2px 4px; margin: -2px -4px; }
 .text-pairs .editable-text:hover { background: var(--bg); outline: 1px dashed var(--line); }
+/* What the book says of itself, beside its passages: its notes, its pictures. */
+.text-pairs tr.group-head td { font-weight: 600; color: var(--muted); background: var(--bg); text-transform: uppercase; font-size: 11px; letter-spacing: .04em; }
+.text-pairs tr.note-peek td { background: var(--bg); border-top: 0; font-size: 13px; }
+.text-pairs tr.focus > td:first-child { box-shadow: inset 3px 0 0 var(--accent, var(--ok)); }
+.text-pairs img.thumb { display: block; max-width: 110px; max-height: 80px; margin-top: 6px; border: 1px solid var(--line); border-radius: 4px; }
+.text-pairs .note-refs { gap: 4px; }
 .editor-row td { background: var(--bg); }
 .text-editor .editor { min-height: 120px; }
 .text-history { display: flex; flex-direction: column; gap: 10px; }

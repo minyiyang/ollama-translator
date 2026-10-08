@@ -9,10 +9,12 @@ from __future__ import annotations
 import re
 import threading
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from ..pipeline_state import WorkflowStage
+from ..subtitles import job_type
 from ..workflow import load_workspace_config, workflow_status
 from ..workspace import JobWorkspace, open_job_workspace, validate_job_id
 
@@ -83,6 +85,7 @@ def list_jobs(runs: Path, config_dir: Path | None = None) -> list[dict[str, Any]
                 "job_id": path.name,
                 "overall": status["overall"],
                 "source": workspace.source_file.name,
+                "job_type": job_type(workspace.source_file),
                 "direction": job_direction(workspace),
                 "downloadable": status["overall"] == "complete",
                 "current_stage": current["name"] if current else "",
@@ -104,6 +107,7 @@ def list_jobs(runs: Path, config_dir: Path | None = None) -> list[dict[str, Any]
                 "job_id": draft["job_id"],
                 "overall": "starting" if draft.get("launched") else "draft",
                 "source": Path(draft["source"]).name,
+                "job_type": job_type(draft["source"]),
                 "direction": draft_direction(config_dir, draft["config"]),
                 "downloadable": False,
                 "current_stage": "",
@@ -113,8 +117,18 @@ def list_jobs(runs: Path, config_dir: Path | None = None) -> list[dict[str, Any]
                 "updated": draft.get("launched") or draft["created"],
             }
         )
-    jobs.sort(key=lambda job: job["updated"], reverse=True)
+    jobs.sort(key=lambda job: _moment(job["updated"]), reverse=True)
     return jobs
+
+
+def _moment(stamp: str) -> datetime:
+    """When a job was last changed. A draft's time is the local time and a
+    stage's is UTC, so their texts do not sort as their moments do."""
+    try:
+        moment = datetime.fromisoformat(stamp)
+    except ValueError:
+        return datetime.min.replace(tzinfo=timezone.utc)
+    return moment if moment.tzinfo else moment.replace(tzinfo=timezone.utc)
 
 
 @dataclass

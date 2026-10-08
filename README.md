@@ -7,8 +7,10 @@
 **English** | [简体中文](README.zh-CN.md)
 
 A local, resumable book-translation pipeline for English-to-Chinese and
-Chinese-to-English literary prose. It takes an EPUB or RTF and produces a
-translated EPUB, running entirely against local Ollama models: no cloud API,
+Chinese-to-English literary prose. It takes an EPUB, RTF, text, Markdown,
+HTML, Word (.docx), or text PDF file and produces a translated EPUB, which can also be
+written as Word, HTML, Markdown, or text. It also translates subtitle files
+(.srt, .vtt, .ass), cue by cue, keeping their timing. It runs entirely against local Ollama models: no cloud API,
 no MCP server, and no agent framework such as LangGraph or AutoGen.
 
 Long-form translation fails in ways one model call cannot fix. A character's
@@ -26,7 +28,7 @@ decompile
   -> audit_translation -> audit_consistency -> repair_translation
   -> reprose_translation
   -> review_repaired -> repair_review -> validate_repaired
-  -> compile -> validate_epub
+  -> translate_title -> compile -> validate_epub
 ```
 
 Every stage checkpoints its artifacts under `runs/<job-id>/`. `resume` skips
@@ -87,7 +89,10 @@ segment shows the source with
 neighboring context, the findings (click one to highlight the quoted words),
 earlier pipeline versions, and an editor with a live diff and the same
 deterministic check that `resolve-review` applies. Applying the decisions
-approves the draft; the desk then compiles and validates the EPUB.
+approves the draft; the desk then compiles and validates the EPUB. A draft
+that waits for approval with nothing in the queue (none was flagged, or its
+title or a note was corrected after it was approved) is approved there on
+its own, with **Approve final draft**.
 
 **5. Read and edit the whole book.** The **Text** tab shows every chapter as
 paired source and translation rows. Any segment can be edited in place, with
@@ -143,6 +148,7 @@ reasoning to justify the additional runtime.
 - [Full-text review and tracked manual edits](docs/FULL_TEXT_REVIEW.md)
 - [XLIFF import](docs/XLIFF_IMPORT.md)
 - [Series glossary in the dashboard plan](docs/SERIES_GLOSSARY_UI.md)
+- [Text, Markdown, HTML, and Word books](docs/FORMAT_SUPPORT.md)
 - [Working plan](docs/PLAN.md)
 - [Unrun inference-framework benchmark plan](docs/FRAMEWORK_BENCHMARK_PLAN.md)
 
@@ -276,6 +282,96 @@ EPUB 3 with those accepted translations; source-specific fonts, styling,
 embedded objects, headers, and metadata are intentionally not reproduced.
 RTF parsing uses the lightweight `striprtf` package under a bounded input
 contract; rendering and parse-back validation remain deterministic.
+
+A text (`.txt`), Markdown (`.md`), HTML (`.html`), or Word (`.docx`) file
+uses the same command too. It is read for its text and structure, turned into
+an EPUB inside the job, and translated as any EPUB is; the translated book is
+written as an EPUB and, next to it, in the format it came in.
+
+```powershell
+book-agent run "D:\books\manuscript.docx" --config .\my-book.yaml
+book-agent export .\runs\manuscript-en-zh --format docx   # or html, md, txt; any completed job
+```
+
+What is kept from these files is headings, paragraphs, lists, quotations,
+emphasis, links, pictures, and notes. Page layout, fonts, tables as tables,
+and comments are not; a deletion under tracked changes is left out and an
+insertion kept.
+
+Pictures are the same files throughout: a Word document's own, and those a
+Markdown or HTML file names beside it (or holds as data URIs). A job keeps a
+copy of those beside the file when it is made (`source-pictures/` in the
+job's folder), so they need not stay where they were. A picture outside the
+file's folder, on the web, or missing is its description instead, a passage
+to translate; so is every picture of a Markdown or HTML file added through
+the dashboard, which arrives alone. The compiled EPUB, and a Word, HTML, or
+Markdown export, carries them (the HTML and Markdown in the file itself, as
+data URIs). A picture's description (its alt text, in any EPUB too) is
+translated by the `translate_title` stage.
+
+Notes are a Word document's footnotes and endnotes and a Markdown file's
+`[^1]` notes, numbered through the book and kept at the end of the chapter
+that first refers to them (a later chapter that refers to one again links to
+it there). They are not passages: like the table of contents, they
+are translated by the `translate_title` stage, and a Word export makes them
+Word's own footnotes again. A note is kept as plain text. An EPUB's own
+footnotes and endnotes (`epub:type` footnote, endnote, rearnote, note, or
+role `doc-footnote`/`doc-endnote`) are translated the same way, their links
+and emphasis kept. In a text file, a blank line separates
+paragraphs when the lines are wrapped at a fixed width, and otherwise every
+line is a paragraph; a short line such as "Chapter 3" or "第一章" starts a
+chapter. A Word file is read for its heading styles, so a book whose
+headings are only bold text becomes one chapter.
+
+A PDF (`.pdf`) is read too, when it holds text and is not pictures of
+pages. Its paragraphs and headings are put together again from where the
+lines stand on the page and how large the type is, so a book set in two
+columns, or with footnotes and tables, comes out less well than a plain
+novel; look at the Text tab before trusting it. A scanned PDF is refused.
+The translation is an EPUB; nothing is written as PDF.
+[docs/FORMAT_SUPPORT.md](docs/FORMAT_SUPPORT.md) has the design and the
+limits.
+
+### Subtitles
+
+A subtitle file (`.srt`, `.vtt`, `.ass`, `.ssa`) makes a job of another kind.
+It runs through the same stages, and gives back the same file with each cue's
+text translated: the same cues, at the same times, with the markup around
+them (italics, a position code, a speaker's tag) where it was.
+
+```powershell
+book-agent run "D:\films\the-sign-of-the-four.srt" --config .\my-film.yaml
+```
+
+- A cue is one passage. Two lines that each open with a dash are two
+  speakers, and are two passages. Music and other cues without words are
+  left as they are.
+- The model is told it is writing subtitles (spoken, brief, each cue on its
+  own), whatever prose style the config names.
+- The translation's lines are broken again to fit the screen, at a space or
+  after punctuation.
+- The audit adds one check: a cue that cannot be read in its time on screen,
+  or does not fit it, is a `readability` finding. Repair is asked to say it
+  more briefly; what it cannot shorten waits in the final review. A little
+  over the reading speed is a low finding and does not hold the job up.
+- The limits are the target language's: 42 characters a line and 20 a second
+  for most; 16 and 9 for Chinese, Japanese, and other scripts written
+  without spaces; 16 and 12 for Korean; two lines a cue. A job's config can
+  set its own:
+
+  ```yaml
+  subtitles:
+    line_characters: 37
+    lines: 2
+    characters_per_second: 17
+  ```
+
+In the dashboard the Jobs list names each job's kind, Book or Subtitles; the
+Text tab lists parts of the film (by their times) where a book has chapters;
+and Download gives the subtitle file. Markup inside a cue (one word in
+italics) is dropped from a translated cue, a sentence that runs over several
+cues is translated cue by cue, and the timing is never changed.
+[docs/FORMAT_SUPPORT.md](docs/FORMAT_SUPPORT.md) has the design and the limits.
 
 The command prints the workspace path. Save it; all later commands operate on
 that directory. `--runs` overrides the configured workspace parent and
@@ -602,7 +698,8 @@ leaving LLM review disabled performs no independent review.
 
 - **Jobs** lists jobs with their translation direction (for example
   `EN → ZH`) and creates new ones; a completed job has a *Download* button for
-  its translated book, also in the job header. Each job's **Config** tab edits,
+  its translated book, also in the job header, where a format can be chosen
+  (EPUB, Word, HTML, Markdown, or text). Each job's **Config** tab edits,
   validates, and starts it; its *Languages* setting takes any two language
   codes, lists the tuned ones first, and for a generic pair shows the tiers,
   a model-quality notice, and the checks that will be skipped (options those
@@ -832,9 +929,11 @@ validation and before EPUB compilation:
 book-agent approve "D:\runs\my-job" --final --resume
 ```
 
-Final approval applies only to the current repaired-validation hash. If the
-translation or repair changes, approval is required again. Approval cannot
-override unresolved validation or human-review issues.
+Final approval applies only to the draft as it was approved: the current
+repaired-validation hash with its manual edits, and the book's title,
+contents, notes, and picture descriptions. If the translation or repair
+changes, or any of those is edited or translated anew, approval is required
+again. Approval cannot override unresolved validation or human-review issues.
 
 When unresolved cases block compilation, the workflow now writes a complete
 review package under `reports/`:
@@ -868,11 +967,40 @@ decision is recorded as an event in `edits/segment-edits.jsonl` rather than
 rewriting the validated draft, so it survives a rerun and appears in the
 dashboard's Text tab history; compile applies it on top of the draft.
 
+The Text tab also shows what the book says of itself, as the title stage
+translated it: the title and the contents entries under "Title and
+contents", each chapter's notes after its passages, and each picture (with
+its description) after the passage it follows. A passage that refers to a
+note has a button that shows the note under it, or opens the endnotes at
+it. They are edited, reverted, and resolved like passages, in the same edit
+log; a note's edit must keep its link and emphasis markers. What the title
+stage left in the source language is marked "untranslated", listed on the
+Final review page, and linked from the title stage's row on Progress; it
+does not stop the compile (docs/FULL_TEXT_REVIEW.md, 12.1).
+
 Post-repair processing uses three resumable stages so Ollama does not switch
 models for every rejected document:
 
 - `review_repaired`: Gemma reviews all repaired drafts and collects failures.
 - `repair_review`: Qwen repairs the complete collected batch.
+- `translate_title`: settles the book's title in the target language for the
+  compiled book. `translation.translated_title` in the config is used when
+  set, whatever a passage that reads the same was translated as; otherwise a
+  title that is a passage of the book takes that passage's
+  translation, and any other is translated by one short model call. The table of
+  contents is settled here too: an entry that reads the same as a passage (a
+  chapter's heading) follows that passage, and the entries that are no
+  passage of the book ("Chapter 7" for a heading "CHAPTER VII. A Mad
+  Tea-Party") are translated in batches, with the book's translated headings
+  shown to the model. The book's footnotes and endnotes (an EPUB's, a Word
+  or Markdown book's) are translated here too, a paragraph to a numbered
+  line, links and emphasis kept as inline markers, and so are the pictures'
+  descriptions. If no model answers, the book keeps
+  its title, those entries, and its notes as they were, and the stage says
+  so. Its calls go through the run's client like every stage's, so the
+  run's log, its summary (by part: `title.book`, `title.contents`,
+  `title.notes`, `title.descriptions`), and the dashboard's Progress page
+  count them.
 - `validate_repaired`: deterministic checks run over every final draft, while
   Gemma independently verifies only problem segments changed by
   `repair_review`; repairs that already passed review are skipped. Review state

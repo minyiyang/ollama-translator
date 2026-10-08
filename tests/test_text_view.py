@@ -6,7 +6,7 @@ from book_agent.config import AppConfig
 from book_agent.hashing import sha256_text
 from book_agent.text_edits import apply_edit, apply_revert
 from book_agent.web.text_view import text_chapter, text_outline
-from tests.test_compile_stages import CompileStageTests, _retarget_pipeline_text
+from tests.test_compile_stages import _retarget_pipeline_text, prepare_workspace
 
 
 class TextOutlineTests:
@@ -45,7 +45,7 @@ class TextOutlineTests:
     def test_outline_and_chapter_after_a_clean_validated_draft(self):
         config = AppConfig.model_validate({"audit": {"semantic_enabled": False}})
         with tempfile.TemporaryDirectory() as directory:
-            workspace = CompileStageTests().prepare_workspace(Path(directory), config)
+            workspace = prepare_workspace(Path(directory), config)
 
             outline = text_outline(workspace)
             assert outline["available"]
@@ -75,7 +75,7 @@ class TextOutlineTests:
             {"audit": {"semantic_sample_every": 2}, "workflow": {"max_retries": 0}}
         )
         with tempfile.TemporaryDirectory() as directory:
-            workspace = CompileStageTests().prepare_workspace(
+            workspace = prepare_workspace(
                 Path(directory), config, unresolved=True
             )
 
@@ -93,7 +93,7 @@ class TextOutlineTests:
     def test_active_edit_clears_dynamic_flagged_state(self):
         config = AppConfig.model_validate({"audit": {"semantic_enabled": False}})
         with tempfile.TemporaryDirectory() as directory:
-            workspace = CompileStageTests().prepare_workspace(Path(directory), config)
+            workspace = prepare_workspace(Path(directory), config)
             chapter = text_outline(workspace)["chapters"][0]
             initial = text_chapter(workspace, chapter["document_id"])
             candidate = initial["segments"][0]
@@ -123,7 +123,7 @@ class TextOutlineTests:
     def test_edited_segment_is_reflected_in_outline_and_chapter(self):
         config = AppConfig.model_validate({"audit": {"semantic_enabled": False}})
         with tempfile.TemporaryDirectory() as directory:
-            workspace = CompileStageTests().prepare_workspace(Path(directory), config)
+            workspace = prepare_workspace(Path(directory), config)
             chapter = text_outline(workspace)["chapters"][0]
             detail = text_chapter(workspace, chapter["document_id"])
             assert detail["editable"] is True
@@ -155,7 +155,7 @@ class TextOutlineTests:
     def test_conflict_when_pipeline_text_changes_under_an_edit(self):
         config = AppConfig.model_validate({"audit": {"semantic_enabled": False}})
         with tempfile.TemporaryDirectory() as directory:
-            workspace = CompileStageTests().prepare_workspace(Path(directory), config)
+            workspace = prepare_workspace(Path(directory), config)
             chapter = text_outline(workspace)["chapters"][0]
             detail = text_chapter(workspace, chapter["document_id"])
             segment = next(s for s in detail["segments"] if s["source"] == "Chapter One")
@@ -188,7 +188,7 @@ class TextOutlineTests:
     def test_conflict_base_is_pipeline_text_after_multiple_manual_edits(self):
         config = AppConfig.model_validate({"audit": {"semantic_enabled": False}})
         with tempfile.TemporaryDirectory() as directory:
-            workspace = CompileStageTests().prepare_workspace(Path(directory), config)
+            workspace = prepare_workspace(Path(directory), config)
             chapter = text_outline(workspace)["chapters"][0]
             segment = next(
                 item
@@ -226,7 +226,7 @@ class TextOutlineTests:
 
         config = AppConfig.model_validate({"audit": {"semantic_enabled": False}})
         with tempfile.TemporaryDirectory() as directory:
-            workspace = CompileStageTests().prepare_workspace(Path(directory), config)
+            workspace = prepare_workspace(Path(directory), config)
             # No compile yet: never show the badge, even with edits pending.
             chapter = text_outline(workspace)["chapters"][0]
             detail = text_chapter(workspace, chapter["document_id"])
@@ -276,7 +276,7 @@ class TextOutlineTests:
     def test_chapter_rejects_an_unknown_document(self):
         config = AppConfig.model_validate({"audit": {"semantic_enabled": False}})
         with tempfile.TemporaryDirectory() as directory:
-            workspace = CompileStageTests().prepare_workspace(Path(directory), config)
+            workspace = prepare_workspace(Path(directory), config)
             try:
                 text_chapter(workspace, "does-not-exist")
                 assert False, "expected ValueError"

@@ -22,12 +22,15 @@ from .manual_review import (
 )
 from .pipeline_state import WorkflowStage
 from .stages.compile import load_compiled_epub_path
-from .stages.validate_repaired import load_repaired_validation_report
+from .stages.preprocess import load_preprocessed_documents
+from .stages.validate_repaired import load_repaired_validation_report, load_validated_repaired_documents
+from .subtitles import cue_views, job_type
 from .state import connect_state, get_stage_status
 from .text_edits import current_draft_revision
 from .workflow import (
     ProgressEvent,
     approve_final_draft,
+    final_approval_awaited,
     load_workspace_config,
     run_workflow,
     workflow_status,
@@ -70,10 +73,25 @@ class ReviewSession:
                         }
                     )
         context = {item["segment_id"]: item for item in segments.get("segments", [])}
+        reading = None
+        if context and job_type(self.workspace.source_file) == "subtitles":
+            # A subtitle job: each passage's cue, so an edit can be checked for its time and room as it is typed.
+            draft_texts = {
+                segment.segment_id: segment.translated_text
+                for document in load_validated_repaired_documents(self.workspace)
+                for segment in document.document.segments
+            }
+            reading, cues = cue_views(self.workspace.source_file, load_preprocessed_documents(self.workspace), draft_texts)
+            for segment_id, item in context.items():
+                if segment_id in cues:
+                    item["cue"] = cues[segment_id]
         return {
+            **({"reading": reading} if reading else {}),
             "worksheet": worksheet,
             "context": context,
             "stale": stale,
+            # The draft waits for approval and can be given it, whatever is in the queue.
+            "approval_required": final_approval_awaited(self.workspace),
             "draft_saved": bool(draft),
             "status": _jsonable(workflow_status(self.workspace)),
             "compile": self.compile_state(),
@@ -156,6 +174,18 @@ class ReviewSession:
                 approve_final_draft(self.workspace)
                 approved = True
         return {"report": json.loads(report.model_dump_json()), "approved": approved}
+
+    def approve(self) -> dict[str, Any]:
+        """Approve the final draft as it stands, with no decision to apply.
+
+        For a draft nothing was queued for, or one changed since it was
+        approved (a passage, the title, a note): `apply` approves only with a
+        queue's decisions.  Refused, as there, while more segments are
+        unresolved than the compile limit allows.
+        """
+        with self._lock:
+            approve_final_draft(self.workspace)
+        return {"approved": True}
 
     def start_compile(self) -> dict[str, Any]:
         """Resume the workflow (compile + validate_epub) on a background thread."""

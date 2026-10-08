@@ -36,6 +36,9 @@ class ConventionRule:
     # When the slip is one character that is always wrong under the house
     # convention, (slip, correction): repair replaces it without a model call.
     replace: tuple[str, str] | None = None
+    # The same for a slip a pattern finds, (regex, replacement): a plain space,
+    # or none, where a no-break space belongs.
+    substitute: tuple[str, str] | None = None
 
 
 @dataclass(frozen=True)
@@ -446,6 +449,9 @@ PROFILES["fr"] = LanguageProfile(
             slip=rf"(?<![{_NBSP}\d;:!?])[;:!?](?![\d/])",
             message="No no-break space before ; : ! or ? here, but the book uses one ({count} segments).",
             fix="Put a no-break space (U+00A0 or U+202F) before ; : ! and ?.",
+            # A plain space, or none, after a word becomes a no-break space; a time (10:30),
+            # an address (http://), and a second mark (?!) are left as they are.
+            substitute=(rf"(?<=[^{_NBSP}\d;:!?\s]) ?([;:!?])(?![\d/])", " \\1"),
         ),
     ),
     pronouns=("il", "elle"),

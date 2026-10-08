@@ -81,8 +81,16 @@ def _retarget_pipeline_text(workspace, segment_id: str, new_text: str) -> None:
     raise AssertionError(f"segment not found in the validated draft: {segment_id}")
 
 
+
+def prepare_workspace(base, config, *, unresolved=False, source=None, translator=None):
+    """A job validated and ready to compile, for tests elsewhere to start from.
+    Importing this rather than the class keeps pytest from running the class's
+    tests again in every module that imports it."""
+    return CompileStageTests().prepare_workspace(base, config, unresolved=unresolved, source=source, translator=translator)
+
+
 class CompileStageTests:
-    def prepare_workspace(self, base, config, *, unresolved=False, source=None):
+    def prepare_workspace(self, base, config, *, unresolved=False, source=None, translator=None):
         from tests.test_validate_repaired_stage import (
             FakeUnchangedFeedbackClient,
             FakeVerificationClient,
@@ -92,7 +100,7 @@ class CompileStageTests:
         run_decompile_stage(workspace)
         publish_approved_glossary(workspace, [])
         run_preprocessing_stage(workspace, config)
-        run_translation_stage(workspace, config, FakeTranslationClient())
+        run_translation_stage(workspace, config, translator or FakeTranslationClient())
         if config.audit.semantic_enabled:
             run_translation_audit_stage(workspace, config, FakeAuditClient())
             run_translation_repair_stage(

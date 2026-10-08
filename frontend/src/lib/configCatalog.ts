@@ -133,6 +133,21 @@ export const COMMON_GROUPS: CommonGroup[] = [
     ],
   },
   {
+    title: "Book title",
+    options: [
+      { path: "translation.translated_title", label: "Translated title", help: "The book's title in the language translated into. Left empty, the title follows its passage's translation where it is one, and is translated by one short model call where it is not." },
+    ],
+  },
+  {
+    title: "Subtitles",
+    help: "Only for a subtitle job (.srt, .vtt, .ass). Left unset, each limit is the usual one for the language translated into: 42 characters a line and 20 a second for most, fewer for Chinese, Japanese, and Korean.",
+    options: [
+      { path: "subtitles.line_characters", label: "Characters a line", help: "The longest line a cue may have. A translation is broken into lines no longer than this." },
+      { path: "subtitles.lines", label: "Lines a cue", help: "A cue that needs more lines than this is a finding: repair is asked to shorten it, and what it cannot shorten waits for you." },
+      { path: "subtitles.characters_per_second", label: "Reading speed", help: "Characters a viewer can read in a second. A cue with more than this for its time on screen is a finding." },
+    ],
+  },
+  {
     title: "Ollama and context",
     options: [
       { path: "ollama.host", label: "Ollama host" },

@@ -439,7 +439,8 @@ class AuditStageTests:
 
             assert not report.passed
             assert len(client.prompts) == 2
-            assert client.output_token_limits == [1_024, 2_048]
+            # The same room again: an answer that ran out of it was the model repeating itself.
+            assert client.output_token_limits == [1_024, 1_024]
             assert "previous structured result was rejected" in client.prompts[1]
             connection = connect_state(workspace.state_file)
             try:
@@ -448,7 +449,7 @@ class AuditStageTests:
             finally:
                 connection.close()
 
-    def test_exhausted_multi_segment_structured_output_escalates_entire_batch(self):
+    def test_a_batch_that_never_comes_back_whole_is_audited_in_halves_and_what_still_fails_is_escalated(self):
         config = AppConfig.model_validate(
             {
                 "audit": {
@@ -467,7 +468,8 @@ class AuditStageTests:
             report = run_translation_audit_stage(workspace, config, client)
 
             assert not report.passed
-            assert client.output_token_limits == [1_024, 2_048, 4_096]
+            # Three tries at the batch, then each passage on its own, all with the same room.
+            assert client.output_token_limits == [1_024] * 5
             audits = load_document_audits(workspace)
             escalated = [
                 issue
@@ -477,6 +479,24 @@ class AuditStageTests:
             ]
             assert len(escalated) == 2
             assert {issue.segment_id for issue in escalated} == set(report.review_segment_ids)
+
+    def test_a_passage_is_given_room_for_an_answer_and_not_for_the_model_to_run_on(self):
+        config = AppConfig.model_validate(
+            {
+                "audit": {
+                    "semantic_sample_every": 2,
+                    "semantic_max_candidates_per_batch": 1,
+                    "max_semantic_candidates_per_document": 1,
+                },
+            }
+        )
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = self.prepare_workspace(Path(directory), config)
+            # The first answer runs out of room, as a model repeating itself does; the second comes back whole.
+            client = FakeAuditClient(structured_failures=1)
+            run_translation_audit_stage(workspace, config, client)
+            # One passage: 640 tokens and a little over, well under the configured 3,072, and the same again.
+            assert client.output_token_limits == [896, 896]
 
     def test_exhausted_truncated_output_escalates_instead_of_aborting_book(self):
         config = AppConfig.model_validate(

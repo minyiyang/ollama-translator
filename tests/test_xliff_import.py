@@ -25,7 +25,7 @@ from book_agent.xliff_import import (
     start_import,
     will_import,
 )
-from tests.test_compile_stages import CompileStageTests, _retarget_pipeline_text
+from tests.test_compile_stages import _retarget_pipeline_text, prepare_workspace
 
 EN_ZH = TranslationDirection.EN_TO_ZH
 BOOK = "b" * 64
@@ -59,7 +59,7 @@ def _unit(unit_id: str, source: str, target: str | None = "译文") -> str:
 
 def _workspace(directory):
     config = AppConfig.model_validate({"audit": {"semantic_enabled": False}})
-    return CompileStageTests().prepare_workspace(Path(directory), config)
+    return prepare_workspace(Path(directory), config)
 
 
 def _book_hash(workspace) -> str:

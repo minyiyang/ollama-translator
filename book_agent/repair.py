@@ -19,7 +19,7 @@ from .audit import (
     audit_translated_document,
 )
 from .config import AppConfig
-from .languages import TUNED_PROFILES, glossary_pair, profile
+from .languages import TUNED_PROFILES, glossary_pair, glossary_sides, profile
 from .content_policy import (
     is_intentionally_preserved,
     repair_preserves_glossary,
@@ -33,7 +33,7 @@ from .preprocessing import (
 from .ollama_client import estimate_request_tokens
 from .quantities import compare_quantity_texts
 from .style_sheet import format_relevant_style, select_relevant_style
-from .styles import build_style_prompt, load_style_instruction
+from .styles import SUBTITLE_INSTRUCTION, build_style_prompt, load_style_instruction
 from .translation import (
     TranslatedDocument,
     TranslatedSegment,
@@ -151,25 +151,67 @@ class RepairedDocumentValidation(BaseModel):
     approval_segment_ids: list[str] = Field(default_factory=list)
 
 
-def _convention_replacement(issue: AuditIssue, target_language) -> tuple[str, str] | None:
-    """The one-character correction a book-level convention finding asks for, if its rule has one."""
+def _convention_replacement(issue: AuditIssue, target_language):
+    """The convention rule whose mechanical correction a book-level finding asks for, if it has one."""
     if issue.source != "consistency" or target_language is None:
         return None
     for rule in profile(target_language).conventions:
-        if rule.replace and rule.fix == issue.suggested_fix:
-            return rule.replace
+        if (rule.replace or rule.substitute) and rule.fix == issue.suggested_fix:
+            return rule
     return None
 
 
-def apply_convention_replacements(text: str, issues: list[AuditIssue], target_language) -> str:
-    """Correct the convention slips these findings name that are one wrong
-    character (a German quotation closed with ” for “). A model asked to do it
-    often returns the same mark."""
-    for issue in issues:
-        replacement = _convention_replacement(issue, target_language)
-        if replacement:
-            text = text.replace(*replacement)
+def _corrected(text: str, rule) -> str:
+    if rule.replace:
+        text = text.replace(*rule.replace)
+    if rule.substitute:
+        text = re.sub(rule.substitute[0], rule.substitute[1], text)
     return text
+
+
+def apply_convention_replacements(text: str, issues: list[AuditIssue], target_language) -> str:
+    """Correct the convention slips these findings name that are mechanical (a
+    German quotation closed with ” for “, a plain space before a French ?). A
+    model asked to do it often returns the same mark."""
+    for issue in issues:
+        rule = _convention_replacement(issue, target_language)
+        if rule:
+            text = _corrected(text, rule)
+    return text
+
+
+def book_conventions(texts, target_language) -> list:
+    """The conventions with a mechanical correction that the book follows: at
+    least as many of its lines keep the house form as slip from it, as the
+    book-level check counts them."""
+    if target_language is None:
+        return []
+    texts = list(texts)
+    followed = []
+    for rule in profile(target_language).conventions:
+        if not (rule.replace or rule.substitute):
+            continue
+        house = sum(1 for text in texts if re.search(rule.house, text))
+        slips = sum(1 for text in texts if re.search(rule.slip, text))
+        if house and house >= slips:
+            followed.append(rule)
+    return followed
+
+
+def keep_conventions(accepted: str, candidate: str, target_language, followed=()) -> str:
+    """A repair's answer with the conventions the accepted translation kept,
+    and those the book follows (`book_conventions`): a model asked to mend a
+    phrase often writes a plain space where the book has the French no-break
+    space before ; : ! ?, and the book's typography comes apart one repair at a
+    time, a line without a question mark before it no less than one with."""
+    if target_language is None:
+        return candidate
+    for rule in profile(target_language).conventions:
+        if not (rule.replace or rule.substitute):
+            continue
+        if rule in followed or (re.search(rule.house, accepted) and not re.search(rule.slip, accepted)):
+            candidate = _corrected(candidate, rule)
+    return candidate
 
 
 def apply_deterministic_repairs(
@@ -343,8 +385,10 @@ def build_repair_prompt(
             f"[{neighbor}] {role}\nSOURCE: {source_by_id[neighbor]}\nCURRENT: {target_by_id[neighbor]}"
         )
     diagnostics = "\n".join(_format_repair_diagnostic(item) for item in issues)
-    instruction = load_style_instruction(
-        config.translation.style, config.translation.custom_style_file
+    instruction = (
+        SUBTITLE_INSTRUCTION
+        if source.cues is not None
+        else load_style_instruction(config.translation.style, config.translation.custom_style_file)
     )
     style = build_style_prompt(
         instruction,
@@ -404,6 +448,12 @@ def build_repair_prompt(
                 max_entries=config.consistency.style_sheet.max_entries_per_chunk,
             )
         )
+    if source.cues is not None:
+        task += (
+            " This segment is a subtitle cue, on screen for a few seconds. The corrected text "
+            "must be no longer than the current one unless a missing fact has to go back in, "
+            "and shorter when a finding says it cannot be read in its time."
+        )
     return (
         f"{style}\n\n{task}\n\n"
         f"Audit findings:\n{diagnostics}\n\nRelevant glossary:\n{glossary or '(none)'}\n\n"
@@ -443,6 +493,7 @@ def validate_repair_output(
     config: AppConfig,
     relevant_glossary=None,
     trigger_issues: list[AuditIssue] | None = None,
+    followed_conventions=(),
 ) -> tuple[str, TranslationValidation]:
     """Validate one repaired marker and require an actual bounded change."""
     chunk = TranslationChunk(
@@ -465,8 +516,13 @@ def validate_repair_output(
         config.translation.direction,
         relevant_glossary=relevant_glossary,
     )
-    repaired = apply_convention_replacements(
-        translations.get(segment_id, ""), trigger_issues or [], config.translation.direction.target_language
+    repaired = keep_conventions(
+        original_translation,
+        apply_convention_replacements(
+            translations.get(segment_id, ""), trigger_issues or [], config.translation.direction.target_language
+        ),
+        config.translation.direction.target_language,
+        followed_conventions,
     )
     issues = list(validation.issues)
     full_segment_recovery = requires_full_segment_translation(trigger_issues or [])
@@ -495,7 +551,11 @@ def validate_repair_output(
         and not config.audit.quantity.enabled
         and not full_segment_recovery
         and not repair_preserves_numbers(
-            source_text, original_translation, repaired, config.translation.direction
+            source_text,
+            original_translation,
+            repaired,
+            config.translation.direction,
+            [glossary_sides(entry, config.translation.direction)[1] for entry in relevant_glossary or []],
         )
     ):
         issues.append(
@@ -694,6 +754,20 @@ def apply_segment_repairs(
     )
 
 
+# Added to the verification prompt of a subtitle job. Without it the verifier
+# judged a cue as a book's sentence: it kept a long, literal line the viewer
+# cannot read in its time over a short one that says the same, and rejected a
+# cue for carrying only the part of a sentence its own time on screen holds.
+SUBTITLE_VERIFICATION_NOTE = (
+    "These are subtitle cues, each on screen for a few seconds. A subtitle is condensed on "
+    "purpose: a dropped filler word, repetition, or emphasis, or a phrase said more briefly, "
+    "is no omission. A sentence often runs on from one cue into the next: judge a cue only "
+    "for what its own SOURCE says, never as incomplete for leaving the rest of the sentence "
+    "to the next cue. When both translations are faithful, the shorter is the better "
+    "subtitle and is the winner. "
+)
+
+
 def build_repair_verification_prompt(
     source: PreprocessedDocument,
     repaired: RepairedDocument,
@@ -781,6 +855,7 @@ def build_repair_verification_prompt(
         "without adding a new factual proposition. Apply glossary entries by sense: an "
         "adjectival target form is valid when the source occurrence is not the glossary's "
         "named-person or demonym sense. "
+        f"{SUBTITLE_VERIFICATION_NOTE if source.cues is not None else ''}"
         "If evidence is insufficient for either translation, mark that translation "
         f"unacceptable. Relevant glossary:\n{glossary or '(none)'}\n"
         f"Allowed IDs: {', '.join(segment_ids)}\n\n" + "\n\n".join(blocks)

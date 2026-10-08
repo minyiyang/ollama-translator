@@ -27,8 +27,8 @@ from book_agent.web.jobs import LogTracker, ProgressReader, job_path, list_jobs
 from book_agent.web.server import UiApp, make_handler
 from tests.test_glossary_stages import (
     FakeGlossaryClient,
-    GlossaryStageTests,
     entry,
+    make_workspace,
     resolution_result,
 )
 
@@ -47,7 +47,7 @@ LOG = (
 
 
 def paused_glossary_workspace(base: Path):
-    workspace = GlossaryStageTests().make_workspace(base)
+    workspace = make_workspace(base)
     config = AppConfig.model_validate({"glossary": {"extraction_chunk_tokens": 100}})
     candidates = GlossaryResult(
         entries=[
@@ -182,7 +182,8 @@ class ServerTests:
                 headers={"Content-Type": "application/json", **(headers or {})},
             )
             try:
-                with urllib.request.urlopen(request) as response:
+                # A request the machine's network software loses fails here, in 30 seconds, instead of waiting forever.
+                with urllib.request.urlopen(request, timeout=30) as response:
                     return response.status, response.read().decode("utf-8")
             except urllib.error.HTTPError as error:
                 return error.code, error.read().decode("utf-8")
@@ -329,7 +330,8 @@ class ServerTests:
                 assert upload("book.epub", b"one")[1]["path"] == first["path"]
                 second = upload("book.epub", b"two")[1]["path"]
                 assert second != first["path"] and Path(second).read_bytes() == b"two"
-                assert upload("notes.txt", b"x")[0] == 422
+                assert upload("notes.mobi", b"x")[0] == 422
+                assert upload("notes.txt", b"x")[0] == 200  # a text file is a book the pipeline reads
                 assert upload("../evil.epub", b"x")[1]["path"].endswith("evil.epub")  # name only, no traversal
             finally:
                 server.shutdown()
@@ -345,6 +347,29 @@ class ServerTests:
             assert info["kind"] == "job" and not info["can_stop"]
             app.pause_job("fixture")
             assert app.job_info("fixture")["pause_requested"]
+
+
+def test_a_book_just_added_is_listed_before_a_job_last_changed_earlier_whatever_the_clocks_zone():
+    from book_agent import state
+    from book_agent.web import drafts
+
+    with tempfile.TemporaryDirectory() as directory:
+        base = Path(directory)
+        workspace, _ = paused_glossary_workspace(base)
+        # The job's stages last changed at 23:41 UTC; the draft was added at 19:45 in New York, four minutes later.
+        connection = state.connect_state(workspace.state_file)
+        try:
+            connection.execute("UPDATE stages SET updated_at = ?", ("2026-10-07T23:41:00+00:00",))
+            connection.commit()
+        finally:
+            connection.close()
+        source = base / "Hound.epub"
+        source.write_bytes(b"epub")
+        drafts.save_draft(
+            workspace.root.parent,
+            {"job_id": "hound", "source": str(source), "config": "hound.yaml", "created": "2026-10-07T19:45:00-04:00", "launched": ""},
+        )
+        assert [job["job_id"] for job in list_jobs(workspace.root.parent)] == ["hound", workspace.root.name]
 
 
 def test_launch_runs_cli_and_reports_failure_tail():
@@ -787,6 +812,10 @@ class EndpointCoverageTests(ServerTests):
                 assert status == 200 and check["blocking"] == []
                 status, applied = post(f"/api/jobs/{job}/review/apply", {"worksheet": worksheet, "partial": True})
                 assert status == 422 and "compile limit" in applied["error"]
+                # Approval on its own is refused as well while the queue is over the limit.
+                assert not review["approval_required"]
+                status, refused = post(f"/api/jobs/{job}/review/approve", {})
+                assert status == 422 and "resolve them before final approval" in refused["error"]
                 assert get(f"/api/jobs/{job}/review/compile")[1]["state"] == "idle"
                 with patch.object(ReviewSession, "start_compile", return_value={"state": "running"}):
                     assert post(f"/api/jobs/{job}/review/compile", {})[1] == {"state": "running"}
@@ -931,6 +960,86 @@ class EndpointCoverageTests(ServerTests):
                 assert post("/api/jobs/fixture/pause", {}) == (200, {"pause_requested": True})
                 status, stopped = post("/api/jobs/fixture/stop", {})
                 assert status == 422 and "use Pause" in stopped["error"]
+            finally:
+                server.shutdown()
+                server.server_close()
+
+    def test_the_books_notes_pictures_and_title_over_http(self):
+        from book_agent.hashing import sha256_text
+        from tests.test_epub_notes import Annotator, _map, _translated_job
+
+        config = AppConfig.model_validate({"audit": {"semantic_enabled": False}})
+        with tempfile.TemporaryDirectory() as directory:
+            # An EPUB whose footnote the model gave back without its markers: the title stage left it in English.
+            workspace = _translated_job(Path(directory), config, Annotator(drops_markers=True))
+            job = workspace.root.name
+            app = UiApp(workspace.root.parent, Path(directory) / "configs", [])
+            server, call = self.serve(app)
+            token = {"X-UI-Token": app.token}
+
+            def get(path):
+                status, text = call(path)
+                return status, json.loads(text)
+
+            def post(path, body):
+                status, text = call(path, body, token)
+                return status, json.loads(text)
+
+            try:
+                status, left = get(f"/api/jobs/{job}/text/untranslated")
+                assert status == 200 and "D0000-N000001" in {item["item_id"] for item in left["items"]}
+                status, chapter = get(f"/api/jobs/{job}/text/chapter?document_id=chapter")
+                (note,) = chapter["notes"]
+                assert status == 200 and note["untranslated"] and note["referred_from"] == ["D0000-S000003"]
+
+                # The same endpoints as a passage's: checked, saved, and reverted.
+                status, check = post(f"/api/jobs/{job}/text/check", {"segment_id": "D0000-N000001", "text": "哈德森太太在贝克街管家。"})
+                assert status == 200 and check["hard"] and check["overridable"] == []
+                text = "<I000>2</I000> 哈德森太太在<I001>贝克街</I001>管家。"
+                status, edited = post(
+                    f"/api/jobs/{job}/text/edit",
+                    {"segment_id": "D0000-N000001", "text": text, "reason": "Kept its link.", "base_target_sha256": sha256_text(note["pipeline_text"])},
+                )
+                assert status == 200 and edited["action"] == "edit"
+                assert get(f"/api/jobs/{job}/text/untranslated")[1]["items"] == [
+                    item for item in left["items"] if item["item_id"] != "D0000-N000001"
+                ]
+                status, refused = post(
+                    f"/api/jobs/{job}/text/conflict",
+                    {"segment_id": "D0000-N000001", "choice": "keep", "reason": "Not a conflict.", "expected_event_id": edited["event_id"]},
+                )
+                assert status == 422 and "not a conflict" in refused["error"]
+                status, reverted = post(
+                    f"/api/jobs/{job}/text/revert",
+                    {"segment_id": "D0000-N000001", "reason": "Back to the stage's.", "expected_event_id": edited["event_id"]},
+                )
+                assert status == 200 and reverted["action"] == "revert"
+
+                # A picture of the book is served as it is; nothing else of the package is.
+                with urllib.request.urlopen(f"{call.base}/api/jobs/{job}/text/picture?path=OEBPS%2Fplan.png") as response:
+                    assert response.headers["Content-Type"] == "image/png" and response.read() == _map()
+                assert call(f"/api/jobs/{job}/text/picture?path=OEBPS%2Fcontent.opf")[0] == 404
+            finally:
+                server.shutdown()
+                server.server_close()
+
+    def test_a_final_draft_with_nothing_queued_is_approved_over_http(self):
+        from tests.test_epub_notes import CONFIG as BOOK, _translated_job
+
+        config = AppConfig.model_validate({**BOOK, "workflow": {"require_final_review": True}})
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = _translated_job(Path(directory), config)
+            job = workspace.root.name
+            app = UiApp(workspace.root.parent, Path(directory), [])
+            server, call = self.serve(app)
+            try:
+                # No passage was queued for a decision, and the draft waits for a person all the same.
+                review = json.loads(call(f"/api/jobs/{job}/review")[1])
+                assert review["worksheet"] is None and review["approval_required"]
+                assert call(f"/api/jobs/{job}/review/approve", {})[0] == 403  # no token
+                status, body = call(f"/api/jobs/{job}/review/approve", {}, {"X-UI-Token": app.token})
+                assert (status, json.loads(body)) == (200, {"approved": True})
+                assert not json.loads(call(f"/api/jobs/{job}/review")[1])["approval_required"]
             finally:
                 server.shutdown()
                 server.server_close()

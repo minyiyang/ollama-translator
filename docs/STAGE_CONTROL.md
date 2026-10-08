@@ -90,6 +90,13 @@ The compile limit is `workflow.compile_max_unresolved_review_segments`
   listed in the review report; *Compile now* then continues.
 - The server grants final approval whenever the remaining queue fits the
   limit, whether or not every segment was decided.
+- **Approval on its own.** Where the job compiles only an approved draft
+  (`workflow.require_final_review`) and the draft waits for that with no
+  decision to apply, the page shows an **Approve final draft** card: for a
+  draft nothing was queued for, and for one changed since its approval (a
+  passage, or the title, a contents entry, a note, or a picture's
+  description edited on the Text tab). It is not shown while more segments
+  are unresolved than the limit allows; the queue comes first then.
 
 ## 5. Confirmation dialog
 
@@ -106,8 +113,9 @@ review, early approval, and rerun.
 | `GET /api/jobs/<id>/rerun?stage=X` | Preview: `status`, `stages` (name, status, seconds), `warnings` (code, message), `previous_seconds`. Allows completed, failed, and paused stages; refuses unknown, pending, or running stages and the review gates. |
 | `POST /api/jobs/<id>/rerun` `{stage}` | Launches `retry --stage X --resume` (label `rerun`). Refuses while the job runs. |
 | `POST /api/jobs/<id>/resume` | Existing: launches `resume`. |
-| `GET /api/jobs/<id>/review` | Now includes `compile_limit`. |
+| `GET /api/jobs/<id>/review` | Now includes `compile_limit`, and `approval_required`: the draft waits for final approval and can be given it. |
 | `POST /api/jobs/<id>/review/apply` `{worksheet, approve_final, partial}` | `partial: true` applies decided segments only; refused when more are pending than the limit allows. |
+| `POST /api/jobs/<id>/review/approve` | Approves the final draft as it stands, with no decision to apply (`approve_final_draft`); refused while more segments are unresolved than the limit allows. |
 
 The preview reads the pipeline's own dependency map
 (`pipeline_state.downstream_stages`), so the dialog always matches what the

@@ -1,9 +1,11 @@
 """Resumable source-document decompilation stage."""
 
 import os
+import re
 import shutil
 import sqlite3
 import uuid
+import zipfile
 from pathlib import Path
 
 from ..atomic_io import atomic_write_text
@@ -14,7 +16,11 @@ from ..epub import (
     inspect_epub_package,
     safe_extract_epub,
 )
-from ..hashing import sha256_file
+from ..book_formats import CONVERTED_SUFFIXES, Book, read_book, refers_across_chapters, write_source_package
+from ..config import AppConfig
+from ..hashing import sha256_bytes, sha256_file, sha256_text
+from ..languages import profile
+from ..subtitles import JOB_SOURCE_NAMES, SUBTITLE_SUFFIXES, inspect_subtitle_file
 from ..rtf import inspect_rtf_document
 from ..pipeline_state import (
     WorkflowStage,
@@ -33,7 +39,7 @@ from ..state import (
     set_job_metadata,
     set_stage_status,
 )
-from ..workspace import JobWorkspace
+from ..workspace import PICTURES_DIRECTORY, JobWorkspace
 
 
 DECOMPILE_STAGE_VERSION = "5"
@@ -47,14 +53,82 @@ def render_document_segments(document: ChapterDocument) -> str:
     ) + ("\n" if document.segments else "")
 
 
+def _carried(book: Book) -> dict[str, str]:
+    """What a converted book carries besides its text, for the stage's hash:
+    its pictures (which are not in the source file's hash when they are files
+    beside it), and whether it has notes. Empty for a book with neither."""
+    carried: dict[str, str] = {}
+    if book.images:
+        carried["pictures"] = sha256_text(
+            "\n".join(f"{name} {sha256_bytes(data)}" for name, data in sorted(book.images.items()))
+        )
+    if any(block.kind == "note" for block in book.blocks):
+        carried["notes"] = _NOTES_APART
+        # A note that two chapters refer to: the second reference once led nowhere in its own
+        # chapter. Only such a book is made again, the reference leading to where the note is.
+        if refers_across_chapters(book):
+            carried["note_links"] = "across chapters"
+    return carried
+
+
+# Notes are kept apart from the passages, for the title stage to translate.
+_NOTES_APART = "apart"
+# How an EPUB's document marks a note (book_agent.epub.is_note), read from its bytes.
+_EPUB_NOTE = re.compile(
+    rb"""epub:type\s*=\s*["'][^"']*\b(?:foot|end|rear)?notes?\b(?!-|ref)[^"']*["']|role\s*=\s*["']doc-(?:foot|end)notes?["']"""
+)
+
+
+def _epub_notes(source: Path) -> dict[str, str]:
+    """For the stage's hash: whether an EPUB has notes. A book without them
+    hashes as it did before notes were kept apart, so its job is not made
+    again for them; one with them is made again once, its notes out of its
+    passages."""
+    try:
+        with zipfile.ZipFile(source) as archive:
+            for info in archive.infolist():
+                if info.filename.casefold().endswith((".xhtml", ".html", ".htm")) and info.file_size <= 64 * 1024 * 1024:
+                    if _EPUB_NOTE.search(archive.read(info)):
+                        return {"notes": _NOTES_APART}
+    except (zipfile.BadZipFile, OSError):
+        return {}
+    return {}
+
+
+def _source_language(workspace: JobWorkspace) -> str:
+    """The job's source language as a language tag, or "" when the job has no readable config."""
+    try:
+        config = AppConfig.model_validate_json(workspace.config_file.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return ""
+    return profile(config.translation.direction.source_language).code
+
+
 def run_decompile_stage(workspace: JobWorkspace) -> EpubPackageManifest:
-    """Inspect and atomically publish an EPUB or RTF document inventory."""
+    """Inspect and atomically publish the source book's document inventory."""
     connection = connect_state(workspace.state_file)
     try:
         initialize_state(connection)
         source_hash = sha256_file(workspace.source_file)
+        converted = workspace.source_file.suffix.casefold() in CONVERTED_SUFFIXES
+        # A text, Markdown, HTML, or Word file seldom says what language it is
+        # in; the job does. An EPUB says so itself, and its hash is as it was.
+        language = _source_language(workspace) if converted else ""
+        # Read once for the hash too: a book with pictures or notes is made
+        # again when they change. A book without either hashes as it did
+        # before they were carried, so its job is not made again for them.
+        carrying = converted and CONVERTED_SUFFIXES[workspace.source_file.suffix.casefold()] in {"md", "html", "docx"}
+        book = read_book(workspace.source_file, workspace.root / PICTURES_DIRECTORY) if carrying else None
+        carried = _carried(book) if book is not None else {}
+        if workspace.source_file.suffix.casefold() == ".epub":
+            carried = _epub_notes(workspace.source_file)
         input_hash = build_stage_input_hash(
-            {"source": source_hash, "stage_version": DECOMPILE_STAGE_VERSION}
+            {
+                "source": source_hash,
+                "stage_version": DECOMPILE_STAGE_VERSION,
+                **({"language": language} if converted else {}),
+                **carried,
+            }
         )
         if stage_is_current(
             connection,
@@ -90,8 +164,17 @@ def run_decompile_stage(workspace: JobWorkspace) -> EpubPackageManifest:
                 manifest = inspect_epub_package(package_root, source_hash)
             elif source_format == ".rtf":
                 manifest = inspect_rtf_document(workspace.source_file, source_hash)
+            elif source_format in SUBTITLE_SUFFIXES:
+                manifest = inspect_subtitle_file(workspace.source_file, source_hash)
+            elif source_format in CONVERTED_SUFFIXES:
+                # Text, Markdown, HTML, Word: written as an EPUB package, and an EPUB from here on.
+                package_root = staging / "package"
+                book = book or read_book(workspace.source_file, workspace.root / PICTURES_DIRECTORY)
+                book.language = book.language or language
+                write_source_package(book, package_root, source_hash)
+                manifest = inspect_epub_package(package_root, source_hash)
             else:
-                raise ValueError("source must be an EPUB or RTF file")
+                raise ValueError(f"source must be {JOB_SOURCE_NAMES}")
             chapters_root = staging / "chapters"
             chapters_root.mkdir()
             for document in manifest.documents:

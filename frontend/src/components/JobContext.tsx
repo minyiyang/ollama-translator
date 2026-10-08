@@ -7,6 +7,8 @@ import type { Stage } from "../lib/stages";
 export type JobInfo = {
   job_id: string;
   kind: "draft" | "job";
+  /** A book, or a subtitle file; a server from before subtitle jobs does not say. */
+  job_type?: "book" | "subtitles";
   overall: string;
   source: string;
   source_path?: string;
