@@ -9,6 +9,7 @@ from __future__ import annotations
 import re
 import threading
 from dataclasses import dataclass, field
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
@@ -116,8 +117,18 @@ def list_jobs(runs: Path, config_dir: Path | None = None) -> list[dict[str, Any]
                 "updated": draft.get("launched") or draft["created"],
             }
         )
-    jobs.sort(key=lambda job: job["updated"], reverse=True)
+    jobs.sort(key=lambda job: _moment(job["updated"]), reverse=True)
     return jobs
+
+
+def _moment(stamp: str) -> datetime:
+    """When a job was last changed. A draft's time is the local time and a
+    stage's is UTC, so their texts do not sort as their moments do."""
+    try:
+        moment = datetime.fromisoformat(stamp)
+    except ValueError:
+        return datetime.min.replace(tzinfo=timezone.utc)
+    return moment if moment.tzinfo else moment.replace(tzinfo=timezone.utc)
 
 
 @dataclass

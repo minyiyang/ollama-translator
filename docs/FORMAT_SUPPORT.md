@@ -50,8 +50,9 @@ book as it treats any EPUB.
 
 1. **One shape for all four.** A reader per format returns a list of blocks:
    heading (levels 1 to 6), paragraph, bullet, numbered item, quotation,
-   preformatted text, rule. A block's text is inline XHTML: escaped text with
-   `em`, `strong`, `code`, `a href`, `sub`, `sup`, `br`.
+   preformatted text, rule, picture, paragraph of a note. A block's text is
+   inline XHTML: escaped text with `em`, `strong`, `code`, `a href`, `sub`,
+   `sup`, `br`. A book also holds its pictures' bytes, by name.
 2. **Readers.**
    - *Text.* Encoding from a byte-order mark, then UTF-8, GB18030, CP1252. A
      file wrapped at a fixed width (several short lines to a paragraph, blank
@@ -61,32 +62,54 @@ book as it treats any EPUB.
      a chapter heading ("Chapter 3", "第一章", "제1장") is one.
    - *Markdown.* A subset, written here: headings of both kinds, emphasis,
      links, inline code, lists, quotations, fenced code, rules, front matter
-     for title and author. A picture is replaced by its description.
+     for title and author, `[^1]` notes (a definition's indented lines go
+     on with it). A paragraph that is only pictures is those pictures; a
+     picture within a line of text is its description.
    - *HTML.* BeautifulSoup, already a dependency. Scripts, styles, and
      navigation are dropped; a link is kept only if it is http, https,
-     mailto, or within the page; a table's cells become paragraphs.
+     mailto, or within the page; a table's cells become paragraphs. An
+     image standing alone (or alone in a paragraph or a figure) is a
+     picture; a figure's caption is a paragraph.
    - *Word.* The document's XML read directly, with no new dependency.
      Headings are found by the style's name, not its id, since the id is
      whatever the author's copy of Word made it. Runs of the same emphasis
      are joined. A list is a bullet or a numbered list by its numbering
      definition; links come from the document's relationships; text deleted
      under tracked changes is left out and inserted text kept. Title and
-     author come from the document properties.
+     author come from the document properties. A picture (a drawing's, or
+     an older document's VML picture) is read from the document's media by
+     its relationship, with its description; footnotes and endnotes from
+     their parts, each placed after the paragraph that refers to it.
 3. **Chapters.** A new chapter starts at each heading of the level the book
    is divided by: the highest level used more than once, or else the highest
    present. No headings, one chapter.
 4. **The package.** One XHTML file a chapter, a navigation document, a
-   stylesheet, a package document; written unzipped into the decompile
-   stage's folder, with nothing in it that changes from run to run, so stage
-   hashes repeat.
-5. **Where it touches the code.** The decompile stage (one branch); the
+   stylesheet, a package document, the pictures under `images/`; written
+   unzipped into the decompile stage's folder, with nothing in it that
+   changes from run to run, so stage hashes repeat. A chapter's notes are
+   `<aside epub:type="footnote">` at its end, each paragraph marked
+   `data-book-agent-note`, and a reference to one is
+   `<a epub:type="noteref">`, so a reader can show the note beside the
+   text. The decompile stage's hash takes in the pictures and whether there
+   are notes only where there are, so a job without either is not made
+   again for them.
+5. **Pictures and notes through the pipeline.** A Markdown or HTML file's
+   pictures are found under its folder (never outside it, on the web, or by
+   an absolute path) and copied into the job when it is made
+   (`source-pictures/`); decompile reads them from there. The compile keeps
+   the package's pictures as it keeps any resource. A marked note paragraph
+   is no passage: the extractor passes over it, and `translate_title`
+   translates it as it does a contents entry, the compile giving it in
+   translation (`localize_package`) and the validate stage accepting that.
+6. **Where it touches the code.** The decompile stage (one branch); the
    source checks in the CLI, the dashboard's upload and setup, and the book
    card (title and author from the new readers); the upload dialog's file
    types and wording.
 
-**Kept:** text, headings, paragraphs, lists, quotations, emphasis, links.
-**Not kept:** page layout, fonts, pictures, tables as tables, footnote
-anchors, comments, tracked changes. The README must say so.
+**Kept:** text, headings, paragraphs, lists, quotations, emphasis, links,
+pictures, notes (as plain text). **Not kept:** page layout, fonts, tables as
+tables, comments, tracked changes, a converted note's own emphasis. The
+README says so.
 
 ## 4. Other formats out: design
 
@@ -99,6 +122,13 @@ other formats are made from it:
   changes and an EPUB job behaves as it does today.
 - **For a converted source, also at compile.** A book that came as a Word
   document is written as one next to the EPUB, and recorded as an artifact.
+- **Pictures and notes.** Word: pictures as inline drawings, sized from the
+  picture's header at 96 pixels to the inch and no wider than the page's
+  text (an SVG, which older Word cannot show, is its description); notes
+  as Word's own footnotes. HTML: pictures as data URIs, notes at each
+  chapter's end, linked from their references. Markdown: pictures as data
+  URIs, notes as `[^1]: ...`, which the Markdown reader reads back. Text:
+  `[1]` at a reference, the note as `[1] ...`, a picture as its description.
 - **How.** The EPUB is read back into the blocks of section 3, in spine
   order, and each writer walks them. Markdown escapes what it would read as
   markup, and keeps a heading or a list item on one line. The Word writer
@@ -108,11 +138,15 @@ other formats are made from it:
 
 ## 5. Open questions
 
-1. **Pictures.** HTML and Markdown beside their image files could carry
-   them; a file uploaded through the dashboard arrives alone. Word pictures
-   would need the drawing relationships read.
-2. **Footnotes** in Word documents: dropped, appended to the chapter, or
-   turned into EPUB notes.
+1. ~~Pictures.~~ Settled: carried from the source to the exports
+   (sections 3 and 4). Still open: pictures for a Markdown or HTML file
+   added through the dashboard, which arrives alone. A picture's
+   description is translated by the title stage.
+2. ~~Footnotes.~~ Settled: a Word document's footnotes and endnotes and a
+   Markdown file's notes are kept as EPUB notes and translated by the title
+   stage, as part of what the book says about itself rather than as
+   passages. An EPUB's own footnotes and endnotes are too, their links and
+   emphasis kept (docs/GENERIC_LANGUAGES.md).
 3. ~~The book's language tag.~~ Settled: a converted book is tagged with
    the language its file names, or else the job's source language.
 4. **Bilingual output** (source and translation side by side), which several
@@ -172,10 +206,32 @@ Later trials, and what they changed:
   book (docs/GENERIC_LANGUAGES.md, 7.6), and what is exported from it
   follows.
 
-Not tried: text, Markdown, and HTML with a model (the sample files of
-`lang_benchmark/make_format_samples.py` are there for that); a Word
-document with pictures; a text file in an encoding other than UTF-8,
-UTF-16, GB18030, or CP1252.
+- **A Word document with a picture, a footnote, and an endnote**, made by
+  Word itself (`tests/data/word-pictures-and-notes.docx`). It reads as a
+  heading, two paragraphs each followed by its note (numbered 1 and 2
+  through the book), and the picture with the description Word was given;
+  through the pipeline with stand-in models it came back with the same
+  picture, byte for byte, in the EPUB and in the Word document beside it,
+  and the notes translated, as Word's own footnotes there.
+
+- **Text, Markdown, HTML, and the Word document with notes, with the
+  models** (`lang_benchmark/run-format-checks.ps1`): all four completed.
+  The Word document's two notes and its picture's description came back in
+  German, the notes as Word's own footnotes again in the Word document
+  beside the EPUB, the picture byte for byte. The HTML book's title, no
+  passage of it, was translated as its heading is ("疯狂茶会"). The text
+  file set its chapter heading on two lines ("CHAPTER VII." and "A Mad
+  Tea-Party" under it), and the second was read as a paragraph; a short line
+  that ends no sentence under a heading is now read as part of it. The
+  Markdown book's audit spent 22 of its 27 minutes on five calls that ran
+  on to their allowance, each retry given twice the room; a book's audit now
+  has a fixed allowance for each passage (`BOOK_AUDIT_OUTPUT_TOKENS`) and a
+  batch that never comes back whole is audited in halves, as a subtitle
+  job's is. Left as the models' own: "Ein verrückter Teestunde" for the
+  title in German, "Lapin de Mars" for the March Hare in French.
+
+Not tried: a text file in an encoding other than UTF-8, UTF-16, GB18030, or
+CP1252.
 
 ### 6.1 PDF
 
@@ -307,10 +363,32 @@ needed three lines; repair settled all five. The whole job took under three
 minutes: for English and Chinese the audit model reads only the passages
 the rules pick out, two calls here.
 
-**Not tried:** a whole film's file, a file made by a subtitling tool, and
-subtitles into Japanese or Korean. The reading limits are the published
-guidelines' as remembered and have not been checked against a source; the
-Chinese ones held on this one scene.
+**The same scene into Japanese (SubRip) and Korean (WebVTT)**,
+translategemma for the translation, paused for review with 6 and 11 cues
+(18 minutes each). They showed three faults, all fixed since:
+
+- **A cue's translation under the next cue.** The translation model was
+  given about sixty cues to a call and, for runs of lines, put each one's
+  translation under its neighbour ("If you knew Time as well as I do," as
+  "彼は、そう。"). The audit, reading short lines, did not see it, and some
+  reached the final draft unflagged. A subtitle job is now translated twelve
+  passages to a call (`SUBTITLE_PASSAGES_PER_CALL`).
+- **A good repair thrown away.** The repair verifier judged cues as a book's
+  sentences: it kept a 47-character Japanese line over a 16-character repair
+  that said the same, for "omitting the repetition", and rejected a cue for
+  carrying part of a sentence. It is now told that a subtitle is condensed
+  on purpose, that a cue may hold part of a sentence, and that of two
+  faithful lines the shorter is the better subtitle.
+- **A repair refused for a digit.** The approved Korean name of the March
+  Hare is "3월의 토끼" (March, the third month); a repair writing it was
+  refused for changing a number. The repair's number check now passes over
+  digits in the approved glossary renderings that apply.
+
+The reading limits held as limits (no line over them reached a finished
+cue), but most of what waits for review is a line the model could not make
+short enough for 16 characters. **Not tried:** a whole film's file, a file
+made by a subtitling tool. The reading limits are the published guidelines'
+as remembered and have not been checked against a source.
 
 ### 7.2 Game text
 

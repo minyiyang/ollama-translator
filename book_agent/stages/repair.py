@@ -25,6 +25,7 @@ from ..pipeline_state import (
     stage_is_current,
 )
 from ..repair import (
+    book_conventions,
     LocatedRepairResult,
     RepairDisposition,
     RepairedDocument,
@@ -134,6 +135,11 @@ def run_translation_repair_stage(
 
         sources = {item.manifest_id: item for item in load_preprocessed_documents(workspace)}
         translated = {item.manifest_id: item for item in load_translated_documents(workspace)}
+        # The typography the book keeps, for each repair's answer to keep it too.
+        followed = book_conventions(
+            (segment.translated_text for document in translated.values() for segment in document.segments),
+            config.translation.direction.target_language,
+        )
         historical_audits = load_document_audits(workspace)
         numeric_rulings = rule_numeric_findings(workspace, config, None, [])
         audits = [
@@ -283,6 +289,7 @@ def run_translation_repair_stage(
                             None,
                             full_retranslation=full_retranslation,
                             relevant_glossary=source.relevant_glossary,
+                            followed_conventions=followed,
                             existing_attempts=(
                                 int(existing["attempts"]) if existing else 0
                             ),
@@ -337,6 +344,7 @@ def run_translation_repair_stage(
                 client,
                 full_retranslation=bool(task["full_retranslation"]),
                 relevant_glossary=source.relevant_glossary,
+                followed_conventions=followed,
                 existing_attempts=(
                     int(task["existing"]["attempts"]) if task["existing"] else 0
                 ),
@@ -516,6 +524,7 @@ def _run_repair(
     *,
     full_retranslation=False,
     relevant_glossary,
+    followed_conventions=(),
     existing_attempts,
     repair_index,
     total_repairs,
@@ -533,6 +542,7 @@ def _run_repair(
             config,
             relevant_glossary,
             trigger_issues=issues,
+            followed_conventions=followed_conventions,
         )
         record_validation(
             connection,
@@ -631,6 +641,7 @@ def _run_repair(
                     config,
                     relevant_glossary,
                     trigger_issues=issues,
+            followed_conventions=followed_conventions,
                 )
                 generation = generated.generation
             except (StructuredOutputError, TypeError, ValueError):
@@ -659,6 +670,7 @@ def _run_repair(
                 config,
                 relevant_glossary,
                 trigger_issues=issues,
+            followed_conventions=followed_conventions,
             )
         record_validation(
             connection,

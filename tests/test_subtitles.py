@@ -343,6 +343,41 @@ def test_the_scene_is_one_part_of_the_film_with_a_passage_for_each_thing_said():
     assert not any("<i>" in segment.text or "\n" in segment.text for segment in segments)
 
 
+def test_a_film_is_translated_a_few_lines_to_a_call_so_that_each_stays_under_its_own_cue():
+    from book_agent.stages.translate import SUBTITLE_PASSAGES_PER_CALL
+
+    class Echo:
+        """Stands in for the translation model: answers every line it is asked for in German, and counts them."""
+
+        def __init__(self):
+            self.asked: list[int] = []
+            self.lines: set[str] = set()
+
+        def report_progress(self, event):
+            pass
+
+        def generate_text(self, prompt, **_):
+            pieces = re.findall(r"<(D[A-Za-z0-9_-]+)>(.*?)</\1>", prompt.split("Source:\n", 1)[1], flags=re.DOTALL)
+            self.asked.append(len(pieces))
+            self.lines.update(item for item, _ in pieces)
+            content = "\n".join(f"<{item}>Übersetzt.</{item}>" for item, _ in pieces)
+            return GenerationResult(content=content, thinking="", metrics=GenerationMetrics(prompt_eval_count=100, eval_count=20))
+
+    config = AppConfig.model_validate(CONFIG)
+    with tempfile.TemporaryDirectory() as directory:
+        base = Path(directory)
+        workspace = create_job_workspace(TEA_PARTY, base / "runs", config, job_id="tea")
+        run_decompile_stage(workspace)
+        publish_approved_glossary(workspace, [])
+        run_preprocessing_stage(workspace, config)
+        model = Echo()
+        run_translation_stage(workspace, config, model)
+        passages = {segment.segment_id for document in load_preprocessed_documents(workspace) for segment in document.segments}
+    # Sixty lines to a call, a model put one cue's translation under the next for lines at a time.
+    assert max(model.asked) == SUBTITLE_PASSAGES_PER_CALL == 12
+    assert model.lines == passages  # every line of the film, a dozen at a time at most
+
+
 def test_the_audit_model_reads_a_scene_in_a_few_calls_and_is_told_it_is_reading_subtitles():
     from book_agent.ollama_client import StructuredOutputError
     from book_agent.repair import build_repair_prompt

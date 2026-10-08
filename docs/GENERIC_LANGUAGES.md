@@ -457,7 +457,17 @@ What changed:
   majority. Chinese keeps its two rules with the same messages. French adds
   quote style and the no-break space before `; : ! ?`; Japanese adds quote
   style and the ellipsis. The check keeps no-break spaces when it normalizes
-  text. The consistency report's character and convention sections stay
+  text. A slip with a mechanical correction is corrected without a model: a
+  German closing quote (`replace`), and a plain space, or none, before a
+  French `; : ! ?` (`substitute`; a time like 10:30, an address, and a second
+  mark are left alone). A repair keeps a convention its line kept, or the
+  book keeps by the same majority the check counts (`keep_conventions`,
+  `book_conventions`): the repair model wrote plain spaces where the French
+  line had no-break ones, and one run's typography went from 84 to 60 such
+  spaces against 31 to 50 plain ones, 33 lines then queued for a person.
+  Kept for the line only, 7 were still queued: repairs that added a question
+  to a line that had none.
+  The consistency report's character and convention sections stay
   Chinese (`consistency_report`), reported as the separate skips
   "punctuation conventions" and "character report".
 - **Number words.** `number_words` names a parser. English and Chinese still
@@ -947,7 +957,18 @@ Left to the models, and so only as good as they are:
   "CHAPTER VII. A Mad Tea-Party"): batches of 40 to a call, each with the
   glossary and the book's headings as the book translated them, answered as
   a numbered list; a line that is not numbered as an entry is dropped. An
-  entry that is only a number is left alone. If no model answers, the book
+  entry that is only a number is left alone. The book's footnotes and
+  endnotes are settled here too (an EPUB's, marked `epub:type` footnote,
+  endnote, rearnote, note or role `doc-footnote`/`doc-endnote`, and a Word
+  or Markdown book's), kept apart from the passages by the extractor, in
+  batches of 20 paragraphs (or about 4,000 characters) to a call, with their
+  links and emphasis as inline markers; a paragraph answered without its
+  markers in order stays as it was. The compile puts each back by its
+  element path, as it does a passage, and the validate stage checks it. The
+  pictures' descriptions (alt text) are settled here as well. A job whose
+  EPUB has notes is decompiled again once, its notes out of its passages,
+  which renumbers its passages and so translates it again. The stage's calls are logged and counted as every
+  stage's are. If no model answers, the book
   keeps its title and those entries, and the stage says how many it
   translated and how to set a title. The validate stage accepts those
   changes to the package document and the contents, and no others. A job

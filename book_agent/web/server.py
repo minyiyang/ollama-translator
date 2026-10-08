@@ -51,7 +51,7 @@ from ..book_formats import EXPORT_MEDIA_TYPES, export_book
 from ..stages.compile import load_compiled_epub_path
 from ..subtitles import SUBTITLE_MEDIA_TYPES, job_type
 from .jobs import ProgressReader, draft_direction, job_direction, job_path, list_jobs, open_job
-from .text_view import text_chapter, text_outline
+from .text_view import text_chapter, text_outline, text_picture
 from ..xliff_export import export_xliff
 from ..xliff_import import (
     ImportOptions,
@@ -62,9 +62,12 @@ from ..xliff_import import (
     import_state,
     start_import,
 )
+from ..book_edits import apply_book_action, apply_book_edit, check_book_edit, untranslated_items
 from ..text_edits import (
     BlockingCheckError,
+    EditAction,
     apply_edit,
+    is_book_item,
     apply_keep,
     apply_revert,
     apply_take_pipeline,
@@ -627,6 +630,14 @@ def _resolve_conflict(workspace, body: dict[str, Any]) -> dict[str, Any]:
     resolver = {"keep": apply_keep, "take_pipeline": apply_take_pipeline}.get(choice)
     if resolver is None:
         raise ValueError("choice must be 'keep' or 'take_pipeline'")
+    if is_book_item(str(body.get("segment_id", ""))):
+        return apply_book_action(
+            workspace,
+            action=EditAction(choice),
+            item_id=body["segment_id"],
+            reason=body.get("reason", ""),
+            expected_event_id=body.get("expected_event_id"),
+        ).model_dump(mode="json")
     event = resolver(
         workspace,
         segment_id=body["segment_id"],
@@ -683,23 +694,50 @@ def make_handler(app: UiApp, port_ref: list[int]) -> type[BaseHTTPRequestHandler
             ),
             ("POST", "text/check"): lambda q, b: {
                 "segment_id": b["segment_id"],
-                **classify_check(workspace(), b["segment_id"], b["text"]),
+                **(
+                    check_book_edit(workspace(), b["segment_id"], b["text"])
+                    if is_book_item(b["segment_id"])
+                    else classify_check(workspace(), b["segment_id"], b["text"])
+                ),
             },
-            ("POST", "text/edit"): lambda q, b: apply_edit(
-                workspace(),
-                segment_id=b["segment_id"],
-                text=b["text"],
-                reason=b.get("reason", ""),
-                base_target_sha256=b.get("base_target_sha256", ""),
-                override_reason=b.get("override_reason", ""),
-                expected_event_id=b.get("expected_event_id"),
+            # The title, a contents entry, a note, a picture's description: the book's own items.
+            ("POST", "text/edit"): lambda q, b: (
+                apply_book_edit(
+                    workspace(),
+                    item_id=b["segment_id"],
+                    text=b["text"],
+                    reason=b.get("reason", ""),
+                    base_target_sha256=b.get("base_target_sha256", ""),
+                    expected_event_id=b.get("expected_event_id"),
+                )
+                if is_book_item(b["segment_id"])
+                else apply_edit(
+                    workspace(),
+                    segment_id=b["segment_id"],
+                    text=b["text"],
+                    reason=b.get("reason", ""),
+                    base_target_sha256=b.get("base_target_sha256", ""),
+                    override_reason=b.get("override_reason", ""),
+                    expected_event_id=b.get("expected_event_id"),
+                )
             ).model_dump(mode="json"),
-            ("POST", "text/revert"): lambda q, b: apply_revert(
-                workspace(),
-                segment_id=b["segment_id"],
-                reason=b.get("reason", ""),
-                expected_event_id=b.get("expected_event_id"),
+            ("POST", "text/revert"): lambda q, b: (
+                apply_book_action(
+                    workspace(),
+                    action=EditAction.REVERT,
+                    item_id=b["segment_id"],
+                    reason=b.get("reason", ""),
+                    expected_event_id=b.get("expected_event_id"),
+                )
+                if is_book_item(b["segment_id"])
+                else apply_revert(
+                    workspace(),
+                    segment_id=b["segment_id"],
+                    reason=b.get("reason", ""),
+                    expected_event_id=b.get("expected_event_id"),
+                )
             ).model_dump(mode="json"),
+            ("GET", "text/untranslated"): lambda q, b: {"items": untranslated_items(workspace())},
             ("POST", "text/conflict"): lambda q, b: _resolve_conflict(workspace(), b),
             ("GET", "text/history"): lambda q, b: {
                 "segment_id": q.get("segment", [""])[0],
@@ -829,6 +867,15 @@ def make_handler(app: UiApp, port_ref: list[int]) -> type[BaseHTTPRequestHandler
                     return self._json({"error": str(error)}, HTTPStatus.NOT_FOUND)
                 media_type = _DOWNLOAD_TYPES.get(output.suffix.lower(), "application/octet-stream")
                 return self._send(data, media_type, download=output.name)
+            if method == "GET" and len(parts) == 5 and parts[1] == "jobs" and parts[3:] == ["text", "picture"]:
+                try:
+                    validate_job_id(parts[2])
+                    data, media_type = text_picture(
+                        open_job(app.runs, parts[2]), parse_qs(url.query).get("path", [""])[0]
+                    )
+                except (ValueError, OSError) as error:
+                    return self._json({"error": str(error)}, HTTPStatus.NOT_FOUND)
+                return self._send(data, media_type)
             if method == "GET" and len(parts) == 5 and parts[1] == "jobs" and parts[3:] == ["text", "export"]:
                 export_format = parse_qs(url.query).get("format", ["xliff"])[0]
                 if export_format != "xliff":

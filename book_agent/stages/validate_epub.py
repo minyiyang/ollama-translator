@@ -36,7 +36,7 @@ from ..text_edits import overlay_active_edits
 from ..workspace import JobWorkspace
 from .compile import load_compiled_epub_path
 from .decompile import load_decompile_manifest
-from .title import load_translated_title
+from .title import load_translated_title, settled_texts
 from .validate_repaired import load_validated_repaired_documents
 
 
@@ -82,6 +82,10 @@ def run_epub_validation_stage(
         )
         output_path = load_compiled_epub_path(workspace)
         settled_title = load_translated_title(workspace, connection=connection)
+        # As the compile used it: with the edits made to the title, contents, notes, and descriptions.
+        compiled_settled = get_job_metadata(connection, "compiled_settled_title")
+        if compiled_settled:
+            settled_title = {**settled_title, **json.loads(compiled_settled)}
         manifest = load_decompile_manifest(workspace)
         repaired = load_validated_repaired_documents(workspace)
         # Validate against the exact edit snapshot compile consumed, rather
@@ -116,7 +120,8 @@ def run_epub_validation_stage(
                 source_language=profile(resolved_config.translation.direction.source_language).code,
                 target_language=profile(resolved_config.translation.direction.target_language).code,
                 title=(settled_title["source"], settled_title["translated"]),
-                labels=settled_title["labels"],
+                labels=settled_texts(settled_title),
+                notes=settled_title["notes"],
             )
         )
         report_path = workspace.directory("reports") / f"validate-document-{input_hash[:16]}.json"

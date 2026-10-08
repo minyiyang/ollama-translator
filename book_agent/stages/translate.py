@@ -170,6 +170,8 @@ def run_translation_stage(
             chunks = build_translation_chunks(
                 document,
                 min(source_budget, max(1, config.translation.max_prompt_tokens // 2)),
+                # The same split as plan_chunk_tasks, which the rescue stage relies on.
+                SUBTITLE_PASSAGES_PER_CALL if document.cues is not None else None,
             )
             chunks = constrain_translation_chunks_by_prompt(
                 chunks,
@@ -1413,6 +1415,12 @@ def _mark_failed(connection, error) -> None:
     build_inline_marker_placement_prompt,
 
 
+# Passages of a subtitle file translated in one call. Sixty to a call, a model
+# put the translation of one cue under the next for lines at a time, and the
+# audit, reading short lines, did not see it.
+SUBTITLE_PASSAGES_PER_CALL = 12
+
+
 def plan_chunk_tasks(
     workspace: JobWorkspace,
     config: AppConfig,
@@ -1443,6 +1451,8 @@ def plan_chunk_tasks(
         chunks = build_translation_chunks(
             document,
             min(source_budget, max(1, config.translation.max_prompt_tokens // 2)),
+            # A subtitle file: a few lines to a call, so that each translation stays under its own cue.
+            SUBTITLE_PASSAGES_PER_CALL if document.cues is not None else None,
         )
         chunks = constrain_translation_chunks_by_prompt(
             chunks,

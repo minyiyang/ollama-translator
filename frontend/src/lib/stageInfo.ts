@@ -115,11 +115,11 @@ export const STAGE_INFO: Record<string, StageInfo> = {
     model: "audit.verifier_model (default: audit.model)",
   },
   translate_title: {
-    does: "Settles the book's title and its table of contents in the language translated into, for the compiled book to carry. The config's translated_title is used when set; a title or a contents entry that is a passage of the book (a title page's heading, a chapter's heading) takes that passage's translation; the others are translated here by short model calls, with the book's translated headings shown to the model. If no model answers, the book keeps them as they were.",
-    input: "The book's title, its table of contents, the glossary, and the validated draft.",
-    output: "The translated title and contents entries (reports/); the stage's message gives the title and how many entries were translated.",
-    checks: "A title is one line, not empty; a contents entry is taken only from a line numbered as that entry. To set the title yourself, put translation.translated_title in the config and rerun from here.",
-    model: "translation.model (default: ollama.model), only for a title or contents entries that are no passage of the book",
+    does: "Settles what the book says of itself in the language translated into: its title, its table of contents, its footnotes and endnotes (an EPUB's, a Word or Markdown book's), and its pictures' descriptions. The config's translated_title is used when set; a title or a contents entry that is a passage of the book (a title page's heading, a chapter's heading) takes that passage's translation; the rest is translated here by short model calls, with the book's translated headings shown to the model. A note keeps its links and emphasis. If no model answers, the book keeps them as they were.",
+    input: "The book's title, its table of contents, its notes, its pictures' descriptions, the glossary, and the validated draft.",
+    output: "The translated title, contents entries, notes, and descriptions (reports/); the stage's message gives the title and how many of each were translated. Its model calls are counted here like any stage's, and in the run's summary by part: title.book, title.contents, title.notes, title.descriptions.",
+    checks: "A title is one line, not empty; a contents entry, note, or description is taken only from a line numbered as that entry, and a note only with its link and emphasis markers all there, in order. To set the title yourself, put translation.translated_title in the config and rerun from here.",
+    model: "translation.model (default: ollama.model), only for what is no passage of the book",
   },
   compile: {
     does: "Rebuilds the EPUB: translated text goes back into the original markup, markers become the original inline elements, all resources are kept.",

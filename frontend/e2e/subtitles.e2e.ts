@@ -8,7 +8,7 @@ test.describe("A subtitler works on a film's subtitles", () => {
     const film = page.getByRole("row", { name: /^alice-film / });
     await expect(film).toContainText("alice-film.srt");
     await expect(film.getByRole("cell", { name: "Subtitles", exact: true })).toBeVisible();
-    await expect(page.getByRole("row", { name: /^alice-german / }).getByRole("cell", { name: "Book", exact: true })).toBeVisible();
+    await expect(page.getByRole("row", { name: /^alice-manuscript-finished / }).getByRole("cell", { name: "Book", exact: true })).toBeVisible();
   });
 
   test("adds a subtitle file and is told how much there is of it", async ({ page }) => {

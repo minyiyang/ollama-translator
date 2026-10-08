@@ -143,8 +143,11 @@ def render_translated_xhtml(
     translated_document: TranslatedDocument,
     *,
     chapter_heading: str = "",
+    notes: dict[str, str] | None = None,
 ) -> bytes:
-    """Render one translated XHTML document while preserving its element structure."""
+    """Render one translated XHTML document while preserving its element
+    structure. `notes` are the translations of its notes' paragraphs, by id,
+    as the title stage settled them; a paragraph without one stays as it was."""
     if source_document.manifest_id != translated_document.manifest_id:
         raise EpubCompilationError("source and translated document IDs differ")
     expected_ids = [item.segment_id for item in source_document.segments]
@@ -158,6 +161,9 @@ def render_translated_xhtml(
     }
     for segment in source_document.segments:
         apply_segment_translation(root, segment, translations[segment.segment_id])
+    for note in source_document.notes:
+        if (notes or {}).get(note.segment_id):
+            apply_segment_translation(root, note, notes[note.segment_id])
     _strip_orphaned_page_template_links(root)
     if chapter_heading:
         _insert_missing_chapter_heading(root, chapter_heading)
@@ -259,6 +265,9 @@ def _strip_orphaned_page_template_links(document_root: ET.Element) -> None:
 _LANGUAGE_ELEMENT = re.compile(r"(<(?:\w+:)?language\b[^>]*>)[^<]*(</(?:\w+:)?language>)")
 _TITLE_ELEMENT = re.compile(r"(<(?:\w+:)?title\b[^>]*>)([^<]*)(</(?:\w+:)?title>)")
 _LABEL_ELEMENT = re.compile(r"(<(?:a|span|text)\b[^>]*>)([^<]+)(</(?:a|span|text)>)")
+# A paragraph of a note, as a converted book's package marks one (book_formats.NOTE_ATTRIBUTE).
+# A picture's description, as the compile writes a document (double quotes).
+_ALT_ATTRIBUTE = re.compile(r'(<(?:\w+:)?img\b[^>]*?\salt=")([^"]*)(")')
 _HTML_TAG = re.compile(r"<html\b[^>]*>")
 _LANG_ATTRIBUTE = re.compile(r"""(\s(?:xml:)?lang=)(["'])([^"']*)\2""")
 
@@ -293,6 +302,23 @@ def package_labels(package_root: Path, manifest: EpubPackageManifest) -> list[st
     return [label for label in found if label]
 
 
+def package_descriptions(package_root: Path, manifest: EpubPackageManifest) -> list[str]:
+    """The descriptions of the book's pictures (an image's alt text), in the
+    order the book has them. `localize_package` gives them in translation."""
+    found: list[str] = []
+    for document in manifest.documents:
+        path = package_root.joinpath(*PurePosixPath(document.archive_path).parts)
+        if not path.is_file():
+            continue
+        root = parse_content_document(path.read_bytes(), document.archive_path)
+        found.extend(
+            normalize_text(element.attrib.get("alt", ""))
+            for element in root.iter()
+            if local_name(element.tag) == "img"
+        )
+    return [description for description in found if description]
+
+
 def localize_package(
     staging: Path,
     manifest: EpubPackageManifest,
@@ -311,8 +337,8 @@ def localize_package(
     where it reads the same as a passage that was translated (a title page's
     heading, a chapter's heading). Nothing is translated here: `title` is
     the book's title and its translation, and `labels` the contents entries
-    that are no passage of the book with theirs, as the title stage settled
-    them. One it settled nothing for stays as it was. A phrase marked as
+    and the pictures' descriptions that are no passage of the book with
+    theirs, as the title stage settled them. One it settled nothing for stays as it was. A phrase marked as
     being in some third language keeps its mark."""
     renderings: dict[str, str] = {}
     for repaired in repaired_documents:
@@ -372,8 +398,20 @@ def localize_package(
             changed = _TITLE_ELEMENT.sub(rendered, changed)
             if changed != text:
                 package.write_bytes(changed.encode("utf-8", errors="surrogateescape"))
+    def described(match: re.Match[str]) -> str:
+        translated = renderings.get(normalize_text(unescape(match.group(2))).casefold())
+        if translated is None:
+            return match.group(0)
+        return f"{match.group(1)}{escape(translated, quote=True)}{match.group(3)}"
+
     for document in manifest.documents:
-        relabelled(staging.joinpath(*PurePosixPath(document.archive_path).parts), _TITLE_ELEMENT)
+        path = staging.joinpath(*PurePosixPath(document.archive_path).parts)
+        relabelled(path, _TITLE_ELEMENT)
+        if path.is_file():
+            text = path.read_bytes().decode("utf-8", errors="surrogateescape")
+            changed = _ALT_ATTRIBUTE.sub(described, text)
+            if changed != text:
+                path.write_bytes(changed.encode("utf-8", errors="surrogateescape"))
     translated_paths = {document.archive_path for document in manifest.documents}
     for item in manifest.manifest_items:
         if item.archive_path in translated_paths:
@@ -397,6 +435,7 @@ def compile_epub_package(
     target_language: str | None = None,
     title: tuple[str, str] | None = None,
     labels: dict[str, str] | None = None,
+    notes: dict[str, str] | None = None,
 ) -> EpubCompilationReport:
     """Rebuild a translated EPUB atomically from the preserved source package."""
     source_root = Path(package_root)
@@ -415,7 +454,7 @@ def compile_epub_package(
             source_document = source_by_id[document.manifest_id]
             path = staging.joinpath(*PurePosixPath(source_document.archive_path).parts)
             rendered = render_translated_xhtml(
-                path.read_bytes(), source_document, document,
+                path.read_bytes(), source_document, document, notes=notes,
             )
             path.write_bytes(rendered)
         if insert_missing_chapter_headings:
@@ -476,6 +515,7 @@ def validate_compiled_epub(
     target_language: str | None = None,
     title: tuple[str, str] | None = None,
     labels: dict[str, str] | None = None,
+    notes: dict[str, str] | None = None,
 ) -> EpubValidationReport:
     """Validate archive invariants, package structure, resources, and translated text."""
     epub = Path(epub_path)
@@ -515,6 +555,7 @@ def validate_compiled_epub(
         if inspected is not None:
             _compare_package_manifests(source_manifest, inspected, errors)
             _compare_translated_text(inspected, repaired_documents, errors)
+            _compare_notes(source_manifest, inspected, notes or {}, errors)
             _validate_internal_references(
                 root,
                 inspected,
@@ -820,6 +861,24 @@ def _compare_translated_text(inspected, repaired_documents, errors) -> None:
             )
             if actual_text[segment.segment_id] != expected:
                 errors.append(f"translated text differs after compilation: {segment.segment_id}")
+
+
+def _compare_notes(source_manifest, inspected, notes: dict[str, str], errors) -> None:
+    """Each paragraph of a note reads as the title stage translated it, or as it was."""
+    output_by_id = {item.manifest_id: item for item in inspected.documents}
+    for source in source_manifest.documents:
+        actual = output_by_id.get(source.manifest_id)
+        if actual is None or not source.notes:
+            continue
+        if [item.segment_id for item in actual.notes] != [item.segment_id for item in source.notes]:
+            errors.append(f"note paragraphs differ after compilation: {source.manifest_id}")
+            continue
+        actual_text = {item.segment_id: item.text for item in actual.notes}
+        for note in source.notes:
+            translated = notes.get(note.segment_id)
+            expected = normalize_text(unescape(re.sub(r"</?I\d{3}>", "", translated))) if translated else note.text
+            if actual_text[note.segment_id] != expected:
+                errors.append(f"note text differs after compilation: {note.segment_id}")
 
 
 def _validate_internal_references(

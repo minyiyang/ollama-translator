@@ -324,6 +324,48 @@ user name on the server.
   404 / 400 refusals. The Text tab test checks the link's URL, `download`
   attribute, placement in the totals card, and absence when read-only.
 
+## 12.1 What the book says of itself
+
+The title stage settles what is no passage: the book's title, the contents
+entries that read as no heading, the paragraphs of the notes (an EPUB's
+footnotes and endnotes, a Word or Markdown book's), and the pictures'
+descriptions. They are shown and edited on the Text tab as passages are
+(`book_agent/book_edits.py`):
+
+- **Where.** A "Title and contents" entry before the chapters holds the
+  title and the contents entries. A chapter's notes follow its passages
+  under "Notes"; a picture is a row after the passage it follows, with a
+  thumbnail served from the book's own package (`GET
+  /api/jobs/<id>/text/picture?path=`, a file the package lists as a picture,
+  nothing else). The tab opens at the first chapter, not at the entry.
+- **Notes and their references.** A passage whose link points at a note (an
+  href to the note's id, or to an element within it) shows a "Note 2" button:
+  the note is shown under the passage, or, an endnote in a document of its
+  own, its chapter is opened at it. A note lists the passages that refer to
+  it, each a link back.
+- **The log.** Their edits go in `edits/segment-edits.jsonl` with the
+  passages', under ids of their own: a note's paragraph by its id
+  (`D0001-N000002`), the title `BOOK-T`, a contents entry `BOOK-C` and a
+  picture's description `BOOK-P` and a hash of the words, so the same words
+  are one item wherever they stand. The "pipeline text" is what the title
+  stage settled, or the source where it settled nothing; edited, conflict,
+  revert, keep, and take-the-new-text work as for a passage, through the same
+  endpoints (`text/check`, `text/edit`, `text/revert`, `text/conflict`). The
+  passage-side functions pass these ids over.
+- **Checks.** A note keeps its markers, each once and in order, so that the
+  compile can put it back with its link and emphasis; the rest is one line;
+  none is empty. No reason waives them.
+- **Compile.** The active edits are put on top of the title stage's record;
+  the compile's input hash follows, so an edit is compiled again, and the
+  record as compiled is stored (`compiled_settled_title`) for the validate
+  stage to check against. An item's conflict does not block the compile.
+- **Left in the source language.** What the title stage could not translate
+  (no answer; a note answered without its markers) is flagged
+  "untranslated", with a Text filter, a card on the Final review page
+  listing each with a link to it (`GET text/untranslated`), and a link from
+  the title stage's row on Progress. It does not stop the compile: the book
+  keeps those words as they are until someone translates them.
+
 ## 13. Open questions
 
 1. ~~Should the reviewer name be required before the first edit, or silently

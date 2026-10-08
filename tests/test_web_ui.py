@@ -182,7 +182,8 @@ class ServerTests:
                 headers={"Content-Type": "application/json", **(headers or {})},
             )
             try:
-                with urllib.request.urlopen(request) as response:
+                # A request the machine's network software loses fails here, in 30 seconds, instead of waiting forever.
+                with urllib.request.urlopen(request, timeout=30) as response:
                     return response.status, response.read().decode("utf-8")
             except urllib.error.HTTPError as error:
                 return error.code, error.read().decode("utf-8")
@@ -346,6 +347,29 @@ class ServerTests:
             assert info["kind"] == "job" and not info["can_stop"]
             app.pause_job("fixture")
             assert app.job_info("fixture")["pause_requested"]
+
+
+def test_a_book_just_added_is_listed_before_a_job_last_changed_earlier_whatever_the_clocks_zone():
+    from book_agent import state
+    from book_agent.web import drafts
+
+    with tempfile.TemporaryDirectory() as directory:
+        base = Path(directory)
+        workspace, _ = paused_glossary_workspace(base)
+        # The job's stages last changed at 23:41 UTC; the draft was added at 19:45 in New York, four minutes later.
+        connection = state.connect_state(workspace.state_file)
+        try:
+            connection.execute("UPDATE stages SET updated_at = ?", ("2026-10-07T23:41:00+00:00",))
+            connection.commit()
+        finally:
+            connection.close()
+        source = base / "Hound.epub"
+        source.write_bytes(b"epub")
+        drafts.save_draft(
+            workspace.root.parent,
+            {"job_id": "hound", "source": str(source), "config": "hound.yaml", "created": "2026-10-07T19:45:00-04:00", "launched": ""},
+        )
+        assert [job["job_id"] for job in list_jobs(workspace.root.parent)] == ["hound", workspace.root.name]
 
 
 def test_launch_runs_cli_and_reports_failure_tail():
@@ -932,6 +956,65 @@ class EndpointCoverageTests(ServerTests):
                 assert post("/api/jobs/fixture/pause", {}) == (200, {"pause_requested": True})
                 status, stopped = post("/api/jobs/fixture/stop", {})
                 assert status == 422 and "use Pause" in stopped["error"]
+            finally:
+                server.shutdown()
+                server.server_close()
+
+    def test_the_books_notes_pictures_and_title_over_http(self):
+        from book_agent.hashing import sha256_text
+        from tests.test_epub_notes import Annotator, _map, _translated_job
+
+        config = AppConfig.model_validate({"audit": {"semantic_enabled": False}})
+        with tempfile.TemporaryDirectory() as directory:
+            # An EPUB whose footnote the model gave back without its markers: the title stage left it in English.
+            workspace = _translated_job(Path(directory), config, Annotator(drops_markers=True))
+            job = workspace.root.name
+            app = UiApp(workspace.root.parent, Path(directory) / "configs", [])
+            server, call = self.serve(app)
+            token = {"X-UI-Token": app.token}
+
+            def get(path):
+                status, text = call(path)
+                return status, json.loads(text)
+
+            def post(path, body):
+                status, text = call(path, body, token)
+                return status, json.loads(text)
+
+            try:
+                status, left = get(f"/api/jobs/{job}/text/untranslated")
+                assert status == 200 and "D0000-N000001" in {item["item_id"] for item in left["items"]}
+                status, chapter = get(f"/api/jobs/{job}/text/chapter?document_id=chapter")
+                (note,) = chapter["notes"]
+                assert status == 200 and note["untranslated"] and note["referred_from"] == ["D0000-S000003"]
+
+                # The same endpoints as a passage's: checked, saved, and reverted.
+                status, check = post(f"/api/jobs/{job}/text/check", {"segment_id": "D0000-N000001", "text": "哈德森太太在贝克街管家。"})
+                assert status == 200 and check["hard"] and check["overridable"] == []
+                text = "<I000>2</I000> 哈德森太太在<I001>贝克街</I001>管家。"
+                status, edited = post(
+                    f"/api/jobs/{job}/text/edit",
+                    {"segment_id": "D0000-N000001", "text": text, "reason": "Kept its link.", "base_target_sha256": sha256_text(note["pipeline_text"])},
+                )
+                assert status == 200 and edited["action"] == "edit"
+                assert get(f"/api/jobs/{job}/text/untranslated")[1]["items"] == [
+                    item for item in left["items"] if item["item_id"] != "D0000-N000001"
+                ]
+                status, refused = post(
+                    f"/api/jobs/{job}/text/conflict",
+                    {"segment_id": "D0000-N000001", "choice": "keep", "reason": "Not a conflict.", "expected_event_id": edited["event_id"]},
+                )
+                assert status == 422 and "not a conflict" in refused["error"]
+                status, reverted = post(
+                    f"/api/jobs/{job}/text/revert",
+                    {"segment_id": "D0000-N000001", "reason": "Back to the stage's.", "expected_event_id": edited["event_id"]},
+                )
+                assert status == 200 and reverted["action"] == "revert"
+
+                # A picture of the book is served as it is; nothing else of the package is.
+                with urllib.request.urlopen(f"{call.base}/api/jobs/{job}/text/picture?path=OEBPS%2Fplan.png") as response:
+                    assert response.headers["Content-Type"] == "image/png" and response.read() == _map()
+                assert call(f"/api/jobs/{job}/text/picture?path=OEBPS%2Fcontent.opf")[0] == 404
             finally:
                 server.shutdown()
                 server.server_close()

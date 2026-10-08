@@ -129,6 +129,12 @@ _STAGE_ROLE_SUBSECTIONS: dict[str, tuple[str, ...]] = {
         "audit.quantity.base",
         "audit.quantity.escalation",
     ),
+    WorkflowStage.TRANSLATE_TITLE.value: (
+        "title.book",
+        "title.contents",
+        "title.notes",
+        "title.descriptions",
+    ),
 }
 
 

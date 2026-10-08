@@ -291,9 +291,29 @@ book-agent export .\runs\manuscript-en-zh --format docx   # or html, md, txt; an
 ```
 
 What is kept from these files is headings, paragraphs, lists, quotations,
-emphasis, and links. Page layout, fonts, pictures, tables as tables,
-footnotes, and comments are not; a deletion under tracked changes is left
-out and an insertion kept. In a text file, a blank line separates
+emphasis, links, pictures, and notes. Page layout, fonts, tables as tables,
+and comments are not; a deletion under tracked changes is left out and an
+insertion kept.
+
+Pictures are the same files throughout: a Word document's own, and those a
+Markdown or HTML file names beside it (or holds as data URIs). A job keeps a
+copy of those beside the file when it is made (`source-pictures/` in the
+job's folder), so they need not stay where they were. A picture outside the
+file's folder, on the web, or missing is its description instead, a passage
+to translate; so is every picture of a Markdown or HTML file added through
+the dashboard, which arrives alone. The compiled EPUB, and a Word, HTML, or
+Markdown export, carries them (the HTML and Markdown in the file itself, as
+data URIs). A picture's description (its alt text, in any EPUB too) is
+translated by the `translate_title` stage.
+
+Notes are a Word document's footnotes and endnotes and a Markdown file's
+`[^1]` notes, numbered through the book and kept at the end of the chapter
+that refers to them. They are not passages: like the table of contents, they
+are translated by the `translate_title` stage, and a Word export makes them
+Word's own footnotes again. A note is kept as plain text. An EPUB's own
+footnotes and endnotes (`epub:type` footnote, endnote, rearnote, note, or
+role `doc-footnote`/`doc-endnote`) are translated the same way, their links
+and emphasis kept. In a text file, a blank line separates
 paragraphs when the lines are wrapped at a fixed width, and otherwise every
 line is a paragraph; a short line such as "Chapter 3" or "第一章" starts a
 chapter. A Word file is read for its heading styles, so a book whose
@@ -941,6 +961,17 @@ decision is recorded as an event in `edits/segment-edits.jsonl` rather than
 rewriting the validated draft, so it survives a rerun and appears in the
 dashboard's Text tab history; compile applies it on top of the draft.
 
+The Text tab also shows what the book says of itself, as the title stage
+translated it: the title and the contents entries under "Title and
+contents", each chapter's notes after its passages, and each picture (with
+its description) after the passage it follows. A passage that refers to a
+note has a button that shows the note under it, or opens the endnotes at
+it. They are edited, reverted, and resolved like passages, in the same edit
+log; a note's edit must keep its link and emphasis markers. What the title
+stage left in the source language is marked "untranslated", listed on the
+Final review page, and linked from the title stage's row on Progress; it
+does not stop the compile (docs/FULL_TEXT_REVIEW.md, 12.1).
+
 Post-repair processing uses three resumable stages so Ollama does not switch
 models for every rejected document:
 
@@ -954,8 +985,15 @@ models for every rejected document:
   chapter's heading) follows that passage, and the entries that are no
   passage of the book ("Chapter 7" for a heading "CHAPTER VII. A Mad
   Tea-Party") are translated in batches, with the book's translated headings
-  shown to the model. If no model answers, the book keeps its title and
-  those entries as they were, and the stage says so.
+  shown to the model. The book's footnotes and endnotes (an EPUB's, a Word
+  or Markdown book's) are translated here too, a paragraph to a numbered
+  line, links and emphasis kept as inline markers, and so are the pictures'
+  descriptions. If no model answers, the book keeps
+  its title, those entries, and its notes as they were, and the stage says
+  so. Its calls go through the run's client like every stage's, so the
+  run's log, its summary (by part: `title.book`, `title.contents`,
+  `title.notes`, `title.descriptions`), and the dashboard's Progress page
+  count them.
 - `validate_repaired`: deterministic checks run over every final draft, while
   Gemma independently verifies only problem segments changed by
   `repair_review`; repairs that already passed review are skipped. Review state

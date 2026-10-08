@@ -146,6 +146,27 @@ describe("Final review tab", () => {
       expect(screen.queryByRole("heading", { name: "Your translation" })).not.toBeInTheDocument();
     });
 
+    it("lists what the title stage left in the source language, each with a way to translate it", async () => {
+      reviewApi({
+        "GET /api/jobs/demo/info": jobInfo(),
+        [`GET ${BASE}`]: review({ worksheet: null, status: { job_id: "demo", overall: "complete", stages: [], configuration: { source_path: "" } } }),
+        "GET /api/jobs/demo/text/untranslated": {
+          items: [
+            { item_id: "D0000-N000001", kind: "note", document_id: "chapter", chapter: "The Science of Deduction", source: "Mrs. Hudson kept the house." },
+            { item_id: "BOOK-C0123456789ab", kind: "contents", document_id: "BOOK", chapter: "Title and contents", source: "Endnotes" },
+          ],
+        },
+      });
+      await renderReviewTab();
+      const card = within(await screen.findByRole("region", { name: "Left in the source language" }));
+      expect(card.getByRole("heading")).toHaveTextContent("Left in the source language (2)");
+      // It does not hold the book back; it says where to fix it.
+      expect(card.getByText(/do not stop the book from compiling/)).toBeInTheDocument();
+      const links = card.getAllByRole("link", { name: "Translate on Text →" });
+      expect(links[0]).toHaveAttribute("href", "/jobs/demo/text?chapter=chapter&item=D0000-N000001");
+      expect(card.getByText("Contents entry")).toBeInTheDocument();
+    });
+
     it("says a complete job has nothing left, with no compile card", async () => {
       reviewApi({
         "GET /api/jobs/demo/info": jobInfo(),

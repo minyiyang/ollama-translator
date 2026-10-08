@@ -79,6 +79,11 @@ SUBTITLE_AUDIT_CUES = 8
 # whole answer took 20 tokens a cue on average and 60 at most; the calls that
 # ran to 3,000 and 6,000 were the model repeating itself.
 SUBTITLE_AUDIT_OUTPUT_TOKENS = 160
+# The same for a book's passage: a whole answer is a few hundred tokens (the
+# longest of a 106-passage chapter was 445). One that reaches this is the model
+# listing the same issue over and over; given twice the room, it does so for
+# twice as long (a chapter's audit spent 22 of its 27 minutes so).
+BOOK_AUDIT_OUTPUT_TOKENS = 640
 
 
 def run_translation_audit_stage(
@@ -454,15 +459,15 @@ def run_translation_audit_stage(
                 document_index=task["document_index"],
                 total_documents=len(audit_plans),
                 context_bucket=int(task["bucket"]),
-                # A book's batch that cannot be answered for is escalated whole, as
-                # it always was; a subtitle job's, of many short cues, is halved.
+                # A batch that cannot be answered for is audited in halves, and what
+                # still fails alone escalated; each answer has a fixed allowance.
                 rebuild_prompt=(
-                    (lambda ids, source=source, target=target: build_semantic_audit_prompt(source, target, ids))
-                    if source.cues is not None
-                    else None
+                    lambda ids, source=source, target=target: build_semantic_audit_prompt(source, target, ids)
                 ),
                 output_tokens=(
-                    SUBTITLE_AUDIT_OUTPUT_TOKENS * len(task["allowed_ids"]) + 256 if source.cues is not None else None
+                    (SUBTITLE_AUDIT_OUTPUT_TOKENS if source.cues is not None else BOOK_AUDIT_OUTPUT_TOKENS)
+                    * len(task["allowed_ids"])
+                    + 256
                 ),
             )
             batch_number = int(str(task["unit_id"]).rsplit("-", 1)[1])
@@ -863,10 +868,10 @@ def _run_semantic_batch(
                 * (2 ** structured_failure_count),
             )
             if output_tokens is not None:
-                # A subtitle batch: a whole answer is a few hundred tokens, so
-                # one that reaches this allowance is the model repeating
-                # itself, and more room only gives it longer to do so. The
-                # same request again usually comes back whole.
+                # A whole answer is a few hundred tokens a passage, so one
+                # that reaches this allowance is the model repeating itself,
+                # and more room only gives it longer to do so. The same
+                # request again usually comes back whole.
                 output_token_limit = min(output_tokens, config.audit.semantic_max_output_tokens)
             generated = client.generate_structured(
                 request_prompt,

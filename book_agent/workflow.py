@@ -286,7 +286,10 @@ def run_workflow(
                 )
             if pause_requested(workspace):
                 raise PauseRequested(PAUSED_ON_REQUEST)
-            if _stage_uses_ollama(stage, resolved_config) and shared_client is None:
+            # The title stage gets the run's client too, so its calls are logged and
+            # counted as every stage's are; it goes on without Ollama, so the
+            # models are not checked for it.
+            if (_stage_uses_ollama(stage, resolved_config) or stage is WorkflowStage.TRANSLATE_TITLE) and shared_client is None:
                 shared_client = OllamaClient(
                     resolved_config.ollama,
                     progress=generation_progress,

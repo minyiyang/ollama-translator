@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { jobApi } from "../api";
 import { useConfirm, useDialog } from "../components/Dialog";
+import { LeftInSourceCard, useLeftInSource } from "../components/LeftInSource";
 import { NotStarted, useJob } from "../components/JobContext";
 import { Shell } from "../components/Shell";
 import { SideLayout } from "../components/SideLayout";
@@ -134,6 +135,8 @@ function CompileCard({ jobId, initial }: { jobId: string; initial?: CompileState
 export function ReviewPage() {
   const { jobId, info } = useJob();
   const started = info?.kind === "job";
+  // What the title stage left in the source language: listed here, translated on the Text tab.
+  const leftInSource = useLeftInSource(jobId, started);
   const toast = useToast();
   const ask = useDialog();
   const confirm = useConfirm();
@@ -369,6 +372,7 @@ export function ReviewPage() {
               : "The review queue is empty."}
           </div>
         )}
+        <LeftInSourceCard jobId={jobId} items={leftInSource} />
         {!complete && <CompileCard jobId={jobId} initial={data.compile} />}
       </main>,
     );
@@ -538,6 +542,7 @@ export function ReviewPage() {
             )) : <p className="meta">No alternative versions recorded.</p>}
           </section>
         </div>
+        <LeftInSourceCard jobId={jobId} items={leftInSource} />
     </SideLayout>,
   );
 }

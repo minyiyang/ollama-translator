@@ -219,8 +219,12 @@ def calculate_translation_source_budget(
 def build_translation_chunks(
     document: PreprocessedDocument,
     max_source_tokens: int,
+    max_pieces: int | None = None,
 ) -> list[TranslationChunk]:
-    """Cover every preprocessed segment, splitting only segments over budget."""
+    """Cover every preprocessed segment, splitting only segments over budget.
+    `max_pieces` caps the passages of one chunk as well as their tokens: a
+    subtitle file's cues are so short that a token budget alone puts dozens in
+    one call, and a model loses track of which line it is translating."""
     if max_source_tokens <= 0:
         raise ValueError("max_source_tokens must be positive")
     pieces: list[TranslationChunkPiece] = []
@@ -248,7 +252,7 @@ def build_translation_chunks(
     current_tokens = 0
     for piece in pieces:
         tokens = estimate_tokens(piece.source_text)
-        if current and current_tokens + tokens > max_source_tokens:
+        if current and (current_tokens + tokens > max_source_tokens or (max_pieces and len(current) >= max_pieces)):
             chunks.append(
                 TranslationChunk(
                     chunk_id=f"translate-{document.order:04d}-{len(chunks) + 1:05d}",

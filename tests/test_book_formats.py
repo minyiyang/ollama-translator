@@ -146,6 +146,31 @@ def test_a_markdown_book_keeps_its_headings_emphasis_lists_and_quotations():
     ]
 
 
+def test_a_chapter_heading_set_on_two_lines_is_one_heading():
+    with tempfile.TemporaryDirectory() as directory:
+        path = Path(directory) / "alice.txt"
+        # A chapter's number, its name on the line under it, then one line a paragraph, as a
+        # book saved from the web is; a short line of dialogue among them.
+        path.write_text(
+            "CHAPTER VII.\n A Mad Tea-Party\n"
+            "There was a table set out under a tree in front of the house.\n"
+            "“No room! No room!”\n"
+            "CHAPTER VIII.\nThe Queen’s Croquet-Ground\nThe Rose-Tree\n"
+            "A large rose-tree stood near the entrance of the garden.\n",
+            encoding="utf-8",
+        )
+        book = read_book(path)
+    assert [(block.kind, block.html) for block in book.blocks] == [
+        ("h1", "CHAPTER VII. A Mad Tea-Party"),
+        ("p", "There was a table set out under a tree in front of the house."),
+        ("p", "“No room! No room!”"),  # a short line that ends a sentence is a line of its own
+        ("h1", "CHAPTER VIII. The Queen’s Croquet-Ground"),
+        ("p", "The Rose-Tree"),  # a heading takes one line under it, not two
+        ("p", "A large rose-tree stood near the entrance of the garden."),
+    ]
+    assert book.title == "CHAPTER VII. A Mad Tea-Party"
+
+
 def test_a_text_file_is_read_as_wrapped_paragraphs_or_one_paragraph_a_line():
     with tempfile.TemporaryDirectory() as directory:
         base = Path(directory)
@@ -371,7 +396,12 @@ def test_a_document_written_in_word_itself_is_read_for_what_a_translator_needs()
     assert [(block.kind, block.html) for block in book.blocks] == [
         ("h1", "The Sign of the Four"),
         ("h1", "Chapter I. The Science of Deduction"),
-        ("p", "Sherlock Holmes took his bottle from the corner of the <em>mantelpiece</em> and his hypodermic syringe from its neat morocco case."),
+        (
+            "p",
+            "Sherlock Holmes took his bottle from the corner of the <em>mantelpiece</em> and his hypodermic syringe "
+            'from its neat morocco case.<sup><a href="#note-1">1</a></sup>',
+        ),
+        ("note", "A seven-per-cent solution of cocaine."),  # the footnote, after the paragraph that refers to it
         ("p", "Three times a day for many months I had witnessed this performance."),
         ("oli", "the wrist"),
         ("oli", "the forearm"),
@@ -381,8 +411,9 @@ def test_a_document_written_in_word_itself_is_read_for_what_a_translator_needs()
         ("p", "She was a blonde young lady, small and dainty."),  # the tracked insertion
         ("p", "A caption in a text box."),  # once, though Word stores a text box twice
     ]
+    assert book.blocks[3].src == "note-1"
     text = " ".join(block.html for block in book.blocks)
-    assert "seven-per-cent" not in text and "first edition" not in text  # the footnote and the comment are not read
+    assert "first edition" not in text  # the comment is not read
 
 
 def test_a_converted_book_is_tagged_with_the_jobs_source_language_unless_the_file_names_its_own():

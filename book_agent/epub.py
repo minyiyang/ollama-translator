@@ -14,7 +14,7 @@ from xml.etree import ElementTree as ET
 from zipfile import BadZipFile, ZipFile
 
 from bs4 import BeautifulSoup, Comment, NavigableString, Tag
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, model_serializer
 
 from .atomic_io import atomic_write_bytes
 from .hashing import sha256_file
@@ -89,6 +89,17 @@ class ChapterDocument(BaseModel):
     title: str = ""
     source_sha256: str
     segments: list[TextSegment] = Field(default_factory=list)
+    # The paragraphs of the document's footnotes and endnotes: the book's own
+    # words, but no passages. The title stage translates them.
+    notes: list[TextSegment] = Field(default_factory=list)
+
+    @model_serializer(mode="wrap")
+    def _without_empty_notes(self, handler):
+        # A document without notes is recorded as it was before notes were kept apart.
+        data = handler(self)
+        if not self.notes:
+            data.pop("notes", None)
+        return data
 
 
 class ResourceRecord(BaseModel):
@@ -372,16 +383,38 @@ def normalize_text(value: str) -> str:
     return " ".join(value.replace("\u00a0", " ").split())
 
 
+# How an EPUB marks a note: an aside, a list item, a paragraph that is one
+# (epub:type, or the role the DPUB-ARIA vocabulary gives it), or a section of them.
+NOTE_TYPES = {"footnote", "endnote", "rearnote", "note", "footnotes", "endnotes", "rearnotes"}
+NOTE_ROLES = {"doc-footnote", "doc-endnote", "doc-endnotes"}
+_EPUB_TYPE = "{http://www.idpf.org/2007/ops}type"
+
+
+def is_note(element: ET.Element) -> bool:
+    """Whether an element holds a note, or the book's notes."""
+    types = set((element.attrib.get(_EPUB_TYPE) or element.attrib.get("epub:type") or "").split())
+    return bool(types & NOTE_TYPES) or element.attrib.get("role", "").strip() in NOTE_ROLES
+
+
 def extract_text_segments(document: ET.Element, document_order: int) -> list[TextSegment]:
     """Extract leaf block text with stable structural identifiers and XML paths."""
-    segments: list[TextSegment] = []
+    return extract_document_text(document, document_order)[0]
 
-    def visit(element: ET.Element, path: str) -> None:
+
+def extract_document_text(document: ET.Element, document_order: int) -> tuple[list[TextSegment], list[TextSegment]]:
+    """A document's passages, and the paragraphs of its notes, each a leaf
+    block with a stable identifier and XML path: D0001-S000001 for a passage,
+    D0001-N000001 for a paragraph of a note."""
+    segments: list[TextSegment] = []
+    notes: list[TextSegment] = []
+
+    def visit(element: ET.Element, path: str, in_note: bool) -> None:
         tag = local_name(element.tag)
         if element.attrib.get("data-book-agent-generated") == "chapter-heading":
             return
         if tag in _IGNORED_TEXT_TAGS:
             return
+        in_note = in_note or is_note(element)
         descendant_blocks = any(
             local_name(descendant.tag) in _BLOCK_TAGS
             for descendant in _visible_descendants(element)
@@ -389,9 +422,10 @@ def extract_text_segments(document: ET.Element, document_order: int) -> list[Tex
         )
         text = normalize_text("".join(_visible_itertext(element)))
         if tag in _BLOCK_TAGS and not descendant_blocks and text:
-            segment_id = f"D{document_order:04d}-S{len(segments) + 1:06d}"
+            found = notes if in_note else segments
+            segment_id = f"D{document_order:04d}-{'N' if in_note else 'S'}{len(found) + 1:06d}"
             protected_text, inline_markers = build_protected_inline_text(element, path)
-            segments.append(
+            found.append(
                 TextSegment(
                     segment_id=segment_id,
                     element_path=path,
@@ -407,10 +441,10 @@ def extract_text_segments(document: ET.Element, document_order: int) -> list[Tex
             if not child_tag:
                 continue
             counts[child_tag] += 1
-            visit(child, f"{path}/{child_tag}[{counts[child_tag]}]")
+            visit(child, f"{path}/{child_tag}[{counts[child_tag]}]", in_note)
 
-    visit(document, f"/{local_name(document.tag)}[1]")
-    return segments
+    visit(document, f"/{local_name(document.tag)}[1]", False)
+    return segments, notes
 
 
 def build_protected_inline_text(
@@ -540,7 +574,7 @@ def inspect_epub_package(
         if not document_path.is_file():
             raise EpubError(f"spine document is missing: {spine_item.archive_path}")
         document = parse_content_document(document_path.read_bytes(), spine_item.archive_path)
-        segments = extract_text_segments(document, spine_item.order)
+        segments, notes = extract_document_text(document, spine_item.order)
         title = _document_title(document, spine_item, navigation)
         documents.append(
             ChapterDocument(
@@ -552,6 +586,7 @@ def inspect_epub_package(
                 title=title,
                 source_sha256=sha256_file(document_path),
                 segments=segments,
+                notes=notes,
             )
         )
 

@@ -5,6 +5,13 @@ translation stage has produced output (docs/FULL_TEXT_REVIEW.md, phase 1).
 Once ``validate_repaired`` completes, the view is editable: a segment's
 ``state`` and ``text`` then reflect its tracked edit history
 (``book_agent.text_edits``) rather than always mirroring ``pipeline_text``.
+
+Once the title stage has run, what the book says of itself is here too
+(``book_agent.book_edits``): a "Book" entry before the chapters with the
+title and the contents entries that are no passage, and in each chapter its
+notes and its pictures' descriptions, each a row like a passage's, edited
+the same way. A passage that refers to a note names it, and a note the
+passages that refer to it.
 """
 
 from __future__ import annotations
@@ -13,12 +20,22 @@ import json
 from typing import Any
 
 from ..audit import AuditSeverity, DocumentAudit
+from ..book_edits import (
+    BookItem,
+    book_items,
+    book_pictures,
+    book_statuses,
+    note_links,
+)
+from ..epub import guess_media_type
 from ..hashing import sha256_text
 from ..pipeline_state import WorkflowStage
 from ..repair import RepairedDocumentValidation
 from ..state import StageStatus, connect_state, get_job_metadata, get_stage_status
 from ..text_edits import (
+    BOOK_DOCUMENT,
     SegmentEditEvent,
+    SegmentEditStatus,
     SegmentEditState,
     active_edit_texts,
     active_edit_hash,
@@ -157,6 +174,61 @@ def _last_edit_summary(event: SegmentEditEvent | None) -> dict[str, str] | None:
     }
 
 
+_ACTIVE = (SegmentEditState.EDITED, SegmentEditState.CONFLICT)
+BOOK_TITLE = "Title and contents"
+
+
+def _item_row(item: BookItem, status: SegmentEditStatus | None) -> dict[str, Any]:
+    """An item of the book's own as a row of the Text tab, shaped as a passage's."""
+    status = status or SegmentEditStatus(SegmentEditState.PIPELINE, item.pipeline, None)
+    untranslated = not item.translated and status.state not in _ACTIVE
+    return {
+        "segment_id": item.item_id,
+        "kind": item.kind,
+        "source": item.source,
+        "pipeline_text": item.pipeline,
+        "text": status.text,
+        "state": status.state.value,
+        "edit_revision": status.last_event.event_id if status.last_event else "",
+        "base_target_sha256": sha256_text(item.pipeline),
+        "findings": (
+            [{"category": "untranslated", "severity": "medium", "message": "The title stage left this in the source language."}]
+            if untranslated
+            else []
+        ),
+        "flagged": untranslated,
+        "untranslated": untranslated,
+        "in_review_queue": False,
+        "last_edit": _last_edit_summary(status.last_event),
+    }
+
+
+def _book_view(workspace: JobWorkspace, editable: bool) -> tuple[list[BookItem], dict[str, SegmentEditStatus]]:
+    """The book's own items and their edit states; none before they can be edited."""
+    if not editable:
+        return [], {}
+    items = _safe_load(book_items, workspace)
+    return items, (book_statuses(workspace, items) if items else {})
+
+
+def text_picture(workspace: JobWorkspace, archive_path: str) -> tuple[bytes, str]:
+    """A picture of the book, from its source package: only a file the package lists as a picture."""
+    manifest = load_decompile_manifest(workspace)
+    resource = next((item for item in manifest.resources if item.archive_path == archive_path), None)
+    media_type = resource.media_type if resource is not None else ""
+    if not media_type.startswith("image/"):
+        raise ValueError(f"not a picture of the book: {archive_path}")
+    connection = connect_state(workspace.state_file)
+    try:
+        manifest_relative = get_job_metadata(connection, "decompile_manifest")
+    finally:
+        connection.close()
+    if not manifest_relative:
+        raise ValueError("the book has not been decompiled")
+    path = workspace.directory(manifest_relative).parent / "package"
+    return path.joinpath(*archive_path.split("/")).read_bytes(), media_type or guess_media_type(archive_path)
+
+
 def text_outline(workspace: JobWorkspace) -> dict[str, Any]:
     """Chapters in book order with segment, flagged, and review-queue counts."""
     connection = connect_state(workspace.state_file)
@@ -175,6 +247,7 @@ def text_outline(workspace: JobWorkspace) -> dict[str, Any]:
         compiled_edits_json = (
             get_job_metadata(connection, "compiled_active_edits") if compiled else None
         )
+        compiled_book_edits_json = get_job_metadata(connection, "compiled_book_edits") if compiled else None
     finally:
         connection.close()
     available = bool(
@@ -220,6 +293,18 @@ def text_outline(workspace: JobWorkspace) -> dict[str, Any]:
     # Edits are only possible once validate_repaired has completed (they are made
     # against its draft), so there is nothing to look up before then.
     edit_events = events_by_segment(workspace) if editable else {}
+    items, item_statuses = _book_view(workspace, editable)
+
+    def item_counts(document_id: str) -> dict[str, int]:
+        mine = [item for item in items if item.document_id == document_id]
+        states = [item_statuses[item.item_id].state if item.item_id in item_statuses else SegmentEditState.PIPELINE for item in mine]
+        return {
+            "items": len(mine),
+            "notes": sum(1 for item in mine if item.kind == "note"),
+            "untranslated": sum(1 for item, state in zip(mine, states) if not item.translated and state not in _ACTIVE),
+            "edited": sum(1 for state in states if state is SegmentEditState.EDITED),
+            "conflicts": sum(1 for state in states if state is SegmentEditState.CONFLICT),
+        }
 
     chapters: list[dict[str, Any]] = []
     for document_id, source in sources.items():
@@ -255,6 +340,7 @@ def text_outline(workspace: JobWorkspace) -> dict[str, Any]:
             1 for segment_id in segment_ids
             if segment_id in findings and segment_id not in active_ids
         )
+        own = item_counts(document_id)
         chapters.append(
             {
                 "document_id": document_id,
@@ -263,21 +349,50 @@ def text_outline(workspace: JobWorkspace) -> dict[str, Any]:
                 "segment_count": len(segment_ids),
                 "flagged_count": flagged_count,
                 "in_review_queue_count": queue_count,
-                "edited_count": edited_count,
-                "conflict_count": conflict_count,
+                "edited_count": edited_count + own["edited"],
+                "conflict_count": conflict_count + own["conflicts"],
+                "note_count": own["notes"],
+                "untranslated_count": own["untranslated"],
             }
         )
     chapters.sort(key=lambda item: item["order"])
+    book = item_counts(BOOK_DOCUMENT)
+    if book["items"]:
+        # The title and the contents entries that are no passage, before the chapters.
+        chapters.insert(
+            0,
+            {
+                "document_id": BOOK_DOCUMENT,
+                "order": -1,
+                "title": BOOK_TITLE,
+                "segment_count": book["items"],
+                "flagged_count": 0,
+                "in_review_queue_count": 0,
+                "edited_count": book["edited"],
+                "conflict_count": book["conflicts"],
+                "note_count": 0,
+                "untranslated_count": book["untranslated"],
+            },
+        )
+    passages = [item for item in chapters if item["document_id"] != BOOK_DOCUMENT]
     totals = {
-        "documents": len(chapters),
-        "segments": sum(item["segment_count"] for item in chapters),
+        "documents": len(passages),
+        "segments": sum(item["segment_count"] for item in passages),
         "flagged": sum(item["flagged_count"] for item in chapters),
         "in_review_queue": sum(item["in_review_queue_count"] for item in chapters),
         "edited": sum(item["edited_count"] for item in chapters),
         "conflicts": sum(item["conflict_count"] for item in chapters),
+        "notes": sum(item["note_count"] for item in chapters),
+        "untranslated": sum(item["untranslated_count"] for item in chapters),
     }
     uncompiled_edit_count = 0
     current_edits = active_edit_texts(workspace) if editable else {}
+    # The book's own items' edits count as edits not yet compiled too.
+    current_edits.update(
+        {item_id: status.text for item_id, status in item_statuses.items() if status.state in _ACTIVE}
+    )
+    if compiled_edits_json is not None and compiled_book_edits_json:
+        compiled_edits_json = json.dumps({**json.loads(compiled_edits_json), **json.loads(compiled_book_edits_json)})
     if compiled_edits_json is not None:
         compiled_edits = {
             str(key): str(value)
@@ -307,6 +422,8 @@ def text_chapter(workspace: JobWorkspace, document_id: str) -> dict[str, Any]:
     """One chapter's segments, source and translation paired, oldest translation stage last."""
     if not document_id:
         raise ValueError("document_id is required")
+    if document_id == BOOK_DOCUMENT:
+        return _book_chapter(workspace)
     sources = {item.manifest_id: item for item in load_preprocessed_documents(workspace)}
     source = sources.get(document_id)
     if source is None:
@@ -374,6 +491,38 @@ def text_chapter(workspace: JobWorkspace, document_id: str) -> dict[str, Any]:
                 **({"cue": cues[segment.segment_id]} if segment.segment_id in cues else {}),
             }
         )
+    items, item_statuses = _book_view(workspace, editable)
+    notes: list[dict[str, Any]] = []
+    pictures: list[dict[str, Any]] = []
+    mine = [item for item in items if item.document_id == document_id or item.kind == "description"]
+    if mine:
+        links = note_links(workspace)
+        for row in segments:
+            row["notes"] = links.refers.get(row["segment_id"], [])
+        for item in mine:
+            if item.kind != "note":
+                continue
+            note = links.first.get(item.item_id, item.item_id)
+            notes.append(
+                {
+                    **_item_row(item, item_statuses.get(item.item_id)),
+                    # The note this paragraph is of, and, on its first paragraph, the passages that refer to it.
+                    "note": note,
+                    "referred_from": links.referred.get(note, []) if note == item.item_id else [],
+                }
+            )
+        described = {item.source: item for item in mine if item.kind == "description"}
+        for picture in book_pictures(workspace):
+            item = described.get(picture.alt)
+            if picture.document_id != document_id or item is None:
+                continue  # a picture whose description is a passage is corrected as that passage
+            pictures.append(
+                {
+                    **_item_row(item, item_statuses.get(item.item_id)),
+                    "picture_path": picture.archive_path,
+                    "after": picture.after,
+                }
+            )
     return {
         **({"reading": reading} if reading else {}),
         "document_id": document_id,
@@ -381,4 +530,28 @@ def text_chapter(workspace: JobWorkspace, document_id: str) -> dict[str, Any]:
         "order": source.order,
         "editable": editable,
         "segments": segments,
+        "notes": notes,
+        "pictures": pictures,
+    }
+
+
+def _book_chapter(workspace: JobWorkspace) -> dict[str, Any]:
+    """The "Book" entry: the title and the contents entries that are no passage."""
+    connection = connect_state(workspace.state_file)
+    try:
+        validate_stage = get_stage_status(connection, WorkflowStage.VALIDATE_REPAIRED.value)
+    finally:
+        connection.close()
+    editable = bool(validate_stage and validate_stage["status"] == StageStatus.COMPLETED.value)
+    items, statuses = _book_view(workspace, editable)
+    return {
+        "document_id": BOOK_DOCUMENT,
+        "title": BOOK_TITLE,
+        "order": -1,
+        "editable": editable,
+        "segments": [
+            _item_row(item, statuses.get(item.item_id)) for item in items if item.document_id == BOOK_DOCUMENT
+        ],
+        "notes": [],
+        "pictures": [],
     }

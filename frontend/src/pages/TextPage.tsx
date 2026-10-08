@@ -1,5 +1,5 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { ApiError, jobApi } from "../api";
 import { useConfirm } from "../components/Dialog";
 import { NotStarted, useJob } from "../components/JobContext";
@@ -8,6 +8,7 @@ import { SideItem, SideLayout } from "../components/SideLayout";
 import { useToast } from "../components/Toast";
 import { Chip } from "../components/ui";
 import { ImportPreviewCard, LastImportCard } from "../components/XliffImport";
+import { KIND_LABELS, chapterOf, noteNumber, pictureUrl, type BookItemKind } from "../lib/bookItems";
 import { diffChars } from "../lib/diff";
 import { xliffExportUrl } from "../lib/format";
 import { cueLabel, readingProblems, type Cue, type ReadingLimits } from "../lib/subtitles";
@@ -38,12 +39,18 @@ type Chapter = {
   in_review_queue_count: number;
   edited_count: number;
   conflict_count: number;
+  /** The chapter's notes, and what of its notes and pictures' descriptions is still in the source language. */
+  note_count?: number;
+  untranslated_count?: number;
 };
 type Outline = {
   available: boolean;
   editable: boolean;
   chapters: Chapter[];
-  totals: { documents: number; segments: number; flagged: number; in_review_queue: number; edited: number; conflicts: number };
+  totals: {
+    documents: number; segments: number; flagged: number; in_review_queue: number; edited: number; conflicts: number;
+    notes?: number; untranslated?: number;
+  };
   uncompiled_edit_count: number;
 };
 type Finding = { category: string; severity: string; message: string };
@@ -62,12 +69,26 @@ type Segment = {
   last_edit: LastEdit | null;
   /** A subtitle job: the cue this passage belongs to. */
   cue?: Cue;
+  /** One of the book's own items (the title, a contents entry, a note, a picture's description), not a passage. */
+  kind?: BookItemKind;
+  /** Left in the source language by the title stage, and not translated since. */
+  untranslated?: boolean;
+  /** A passage: the notes it refers to, each by its first paragraph's id. */
+  notes?: string[];
 };
+/** A paragraph of a note: which note it is of, and on its first paragraph, the passages that refer to it. */
+type NoteRow = Segment & { note: string; referred_from: string[] };
+/** A picture with its description: where its file is, and the passage it follows ("" at the start). */
+type PictureRow = Segment & { picture_path: string; after: string };
 type ChapterDetail = {
   document_id: string; title: string; order: number; editable: boolean; segments: Segment[];
+  notes?: NoteRow[];
+  pictures?: PictureRow[];
   /** A subtitle job: what fits a cue and can be read in its time. */
   reading?: ReadingLimits;
 };
+/** A row of the chapter's table, in the book's order: passages with their pictures, then the notes. */
+type Row = { segment: Segment; kind: "passage" | "picture" | "note" };
 type EditEvent = {
   event_id: string;
   at: string;
@@ -118,10 +139,17 @@ export function TextPage() {
   const [recompiling, setRecompiling] = useState(false);
   const [outline, setOutline] = useState<Outline | null>(null);
   const [error, setError] = useState("");
-  const [documentId, setDocumentId] = useState("");
+  // Opened from elsewhere (the review page) at one chapter, and at one row of it.
+  const [params] = useSearchParams();
+  const [documentId, setDocumentId] = useState(params.get("chapter") ?? "");
+  /** A row to bring into view once its chapter loads. */
+  const pendingFocus = useRef<string | null>(params.get("item"));
+  const [focusId, setFocusId] = useState<string | null>(null);
+  /** A passage whose note is shown under it. */
+  const [peek, setPeek] = useState<{ passage: string; note: string } | null>(null);
   const [detail, setDetail] = useState<ChapterDetail | null>(null);
   const [detailError, setDetailError] = useState("");
-  const [view, setView] = useState<TextView>("all");
+  const [view, setView] = useState<TextView>(params.get("view") === "untranslated" ? "untranslated" : "all");
   const [query, setQuery] = useState("");
 
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -180,14 +208,51 @@ export function TextPage() {
     setEditingId(null);
     setHistoryId(null);
     setConflictId(null);
+    setPeek(null);
     loadChapter(documentId).then((payload) => {
       const open = pendingOpen.current;
       pendingOpen.current = null;
       const segment = open && payload?.segments.find((s) => s.segment_id === open.segmentId);
       if (open && segment) openForFix(segment, open.text);
+      const focus = pendingFocus.current;
+      pendingFocus.current = null;
+      if (focus) bringIntoView(focus);
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [jobId, documentId]);
+
+  // A row asked for (a note, the passage that refers to it) is shown, and scrolled to.
+  useEffect(() => {
+    if (!focusId) return;
+    document.getElementById(`row-${focusId}`)?.scrollIntoView?.({ block: "center" });
+  }, [focusId, detail]);
+
+  const bringIntoView = (rowId: string) => {
+    setView("all");
+    setQuery("");
+    setFocusId(rowId);
+  };
+
+  /** Go to a row: in this chapter, or in the chapter its id names. */
+  const goToRow = (rowId: string) => {
+    if (allSegments.some((segment) => segment.segment_id === rowId)) {
+      bringIntoView(rowId);
+      return;
+    }
+    const chapter = outline ? chapterOf(rowId, outline.chapters) : "";
+    if (!chapter) return;
+    pendingFocus.current = rowId;
+    setDocumentId(chapter);
+  };
+
+  /** A passage's note: shown under the passage when it is in this chapter, else its own chapter is opened at it. */
+  const openNote = (passageId: string, noteId: string) => {
+    if ((detail?.notes ?? []).some((note) => note.segment_id === noteId)) {
+      setPeek((current) => (current?.passage === passageId && current.note === noteId ? null : { passage: passageId, note: noteId }));
+      return;
+    }
+    goToRow(noteId);
+  };
 
   const loadImportState = () =>
     jobApi<ImportState>(jobId, "text/import").then(setImportState).catch(() => {});
@@ -224,14 +289,32 @@ export function TextPage() {
     return bySegment;
   }, [pending]);
 
-  const visible = useMemo(
+  // The chapter in the book's order: each picture after the passage it follows, the notes last.
+  const rows = useMemo<Row[]>(() => {
+    if (!detail) return [];
+    const pictures = detail.pictures ?? [];
+    const placed: Row[] = pictures.filter((picture) => !picture.after).map((segment) => ({ segment, kind: "picture" }));
+    for (const segment of detail.segments) {
+      placed.push({ segment, kind: "passage" });
+      for (const picture of pictures) if (picture.after === segment.segment_id) placed.push({ segment: picture, kind: "picture" });
+    }
+    for (const note of detail.notes ?? []) placed.push({ segment: note, kind: "note" });
+    return placed;
+  }, [detail]);
+  const allSegments = useMemo(() => rows.map((row) => row.segment), [rows]);
+  const notesById = useMemo(() => new Map((detail?.notes ?? []).map((note) => [note.segment_id, note])), [detail]);
+
+  const visibleRows = useMemo(
     () =>
-      (detail?.segments ?? []).filter((s) =>
-        (reviewing ? matchesImportFilter(importItems.get(s.segment_id), importFilter, importOptions) : matchesTextView(s, view))
+      rows.filter(({ segment: s, kind }) =>
+        (reviewing
+          ? kind === "passage" && matchesImportFilter(importItems.get(s.segment_id), importFilter, importOptions)
+          : matchesTextView(s, view))
         && matchesTextQuery(s, query),
       ),
-    [detail, view, query, reviewing, importItems, importFilter, importOptions],
+    [rows, view, query, reviewing, importItems, importFilter, importOptions],
   );
+  const visible = useMemo(() => visibleRows.map((row) => row.segment), [visibleRows]);
 
   // -- in-place editor --------------------------------------------------------
 
@@ -275,7 +358,7 @@ export function TextPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [editingId, editText]);
 
-  const editingSegment = detail?.segments.find((s) => s.segment_id === editingId) ?? null;
+  const editingSegment = allSegments.find((s) => s.segment_id === editingId) ?? null;
   const hardBlocked = (checkResult?.hard.length ?? 0) > 0;
   const needsOverride = (checkResult?.overridable.length ?? 0) > 0;
   const canSave =
@@ -317,7 +400,7 @@ export function TextPage() {
       .catch((e: Error) => toast("bad", e.message, 0));
   };
   const submitRevert = async (segmentId: string) => {
-    const segment = detail?.segments.find((item) => item.segment_id === segmentId);
+    const segment = allSegments.find((item) => item.segment_id === segmentId);
     if (!segment) return;
     setReverting(true);
     try {
@@ -348,7 +431,7 @@ export function TextPage() {
   };
   const submitConflict = async () => {
     if (!conflictId || !conflictChoice || conflictReason.trim().length < 3) return;
-    const segment = detail?.segments.find((item) => item.segment_id === conflictId);
+    const segment = allSegments.find((item) => item.segment_id === conflictId);
     if (!segment) return;
     setResolvingConflict(true);
     try {
@@ -461,6 +544,19 @@ export function TextPage() {
     [pending, importOptions],
   );
 
+  /** What a chapter's entry says beside its name: what waits for someone, what was done, what it holds. */
+  const chapterNotes = (chapter: Chapter): string[] => {
+    const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
+    return [
+      chapter.conflict_count > 0 ? plural(chapter.conflict_count, "conflict", "conflicts") : "",
+      chapter.in_review_queue_count > 0 ? `${chapter.in_review_queue_count} in review` : "",
+      chapter.flagged_count > 0 ? `${chapter.flagged_count} flagged` : "",
+      (chapter.untranslated_count ?? 0) > 0 ? `${chapter.untranslated_count} untranslated` : "",
+      chapter.edited_count > 0 ? `${chapter.edited_count} edited` : "",
+      (chapter.note_count ?? 0) > 0 ? plural(chapter.note_count ?? 0, "note", "notes") : "",
+    ].filter(Boolean);
+  };
+
   const sidebar = outline?.available ? (
     <>
       <div className="navhead">Chapters</div>
@@ -473,14 +569,7 @@ export function TextPage() {
           sub={reviewing ? (
             (importCounts.get(chapter.document_id) ?? 0) > 0 && <span>{importCounts.get(chapter.document_id)} to import</span>
           ) : (
-            (chapter.conflict_count > 0 || chapter.in_review_queue_count > 0 || chapter.flagged_count > 0 || chapter.edited_count > 0) && (
-              <>
-                {chapter.conflict_count > 0 && <span>{chapter.conflict_count} conflict{chapter.conflict_count === 1 ? "" : "s"}</span>}
-                {chapter.in_review_queue_count > 0 && <span>{chapter.conflict_count > 0 ? " · " : ""}{chapter.in_review_queue_count} in review</span>}
-                {chapter.flagged_count > 0 && <span>{(chapter.conflict_count > 0 || chapter.in_review_queue_count > 0) ? " · " : ""}{chapter.flagged_count} flagged</span>}
-                {chapter.edited_count > 0 && <span>{(chapter.conflict_count > 0 || chapter.in_review_queue_count > 0 || chapter.flagged_count > 0) ? " · " : ""}{chapter.edited_count} edited</span>}
-              </>
-            )
+            chapterNotes(chapter).length > 0 && <span>{chapterNotes(chapter).join(" · ")}</span>
           )}
         >
           {chapter.title || chapter.document_id}
@@ -507,6 +596,9 @@ export function TextPage() {
               else if (e.altKey && e.key === "ArrowUp") { e.preventDefault(); moveEdit(-1); }
             }}
           />
+          {segment.kind === "note" && /<I\d{3}>/.test(segment.source) && (
+            <p className="meta">Keep the markers such as &lt;I000&gt;…&lt;/I000&gt;: they are the note's link back and its emphasis.</p>
+          )}
           <div className="row">
             <button className="small" onClick={() => setEditText(segment.pipeline_text)}>Reset to pipeline text</button>
             <span className="meta">{[...editText].length} chars</span>
@@ -729,6 +821,8 @@ export function TextPage() {
               <div className="stat"><b>{outline.totals.in_review_queue}</b><span>in review queue</span></div>
               <div className="stat"><b>{outline.totals.edited}</b><span>edited</span></div>
               <div className="stat"><b>{outline.totals.conflicts}</b><span>conflicts</span></div>
+              {(outline.totals.notes ?? 0) > 0 && <div className="stat"><b>{outline.totals.notes}</b><span>notes</span></div>}
+              {(outline.totals.untranslated ?? 0) > 0 && <div className="stat"><b>{outline.totals.untranslated}</b><span>untranslated</span></div>}
               {outline.editable && (
                 <div className="stats-actions">
                   <a
@@ -777,6 +871,8 @@ export function TextPage() {
                     ["edited", "Edited"],
                     ["conflict", "Conflicts"],
                     ["consistency", "Consistency"],
+                    // What the title stage left in the source language: shown while there is some.
+                    ...((outline.totals.untranslated ?? 0) > 0 || view === "untranslated" ? [["untranslated", "Untranslated"]] : []),
                   ] as [TextView, string][]
                 ).map(([value, label]) => (
                   <button
@@ -791,7 +887,7 @@ export function TextPage() {
                   </button>
                 ))}
               </div>}
-              {detail && <span className="meta">{visible.length} of {detail.segments.length} segments</span>}
+              {detail && <span className="meta">{visible.length} of {rows.length} segments</span>}
             </div>
             {detailError && <div className="banner bad">{detailError}</div>}
             {detail && (
@@ -800,20 +896,61 @@ export function TextPage() {
                   <tr><th className="sid">#</th><th>Source</th><th>Translation</th><th>Status</th></tr>
                 </thead>
                 <tbody>
-                  {visible.map((segment) => {
+                  {visibleRows.map(({ segment, kind }, index) => {
                     if (reviewing) return importRow(segment, importItems.get(segment.segment_id));
                     const chip = STATE_CHIP[segment.state];
+                    const note = kind === "note" ? (segment as NoteRow) : null;
+                    const picture = kind === "picture" ? (segment as PictureRow) : null;
+                    const peeked = peek?.passage === segment.segment_id ? notesById.get(peek.note) : undefined;
                     return (
                       <Fragment key={segment.segment_id}>
+                        {note && visibleRows[index - 1]?.kind !== "note" && (
+                          <tr className="group-head"><td colSpan={4}>Notes</td></tr>
+                        )}
                         <tr
                           key={segment.segment_id}
-                          className={textRowClass(segment)}
+                          id={`row-${segment.segment_id}`}
+                          className={[textRowClass(segment), focusId === segment.segment_id ? "focus" : ""].filter(Boolean).join(" ")}
                         >
                           <td className="sid mono">
                             {segment.segment_id}
+                            {segment.kind && (
+                              <div><Chip>{segment.kind === "note" && noteNumber(segment.source) ? `Note ${noteNumber(segment.source)}` : KIND_LABELS[segment.kind]}</Chip></div>
+                            )}
+                            {picture && picture.picture_path && (
+                              <img className="thumb" src={pictureUrl(jobId, picture.picture_path)} alt={picture.source} loading="lazy" />
+                            )}
                             {segment.cue && <div className="meta" title={`Cue ${segment.cue.number}: when it comes on screen, and for how long`}>{cueLabel(segment.cue)}</div>}
                           </td>
-                          <td lang={sourceLang}>{segment.source}</td>
+                          <td lang={sourceLang}>
+                            {segment.source}
+                            {(segment.notes ?? []).length > 0 && (
+                              <div className="row note-refs" style={{ marginTop: 4 }}>
+                                {(segment.notes ?? []).map((noteId) => {
+                                  const number = noteNumber(notesById.get(noteId)?.source ?? "");
+                                  return (
+                                    <button
+                                      key={noteId}
+                                      className="small"
+                                      aria-expanded={peek?.passage === segment.segment_id && peek.note === noteId}
+                                      title={notesById.has(noteId) ? "Show the note under this passage" : "Open the note in its chapter"}
+                                      onClick={() => openNote(segment.segment_id, noteId)}
+                                    >
+                                      {number ? `Note ${number}` : "Note"}{notesById.has(noteId) ? "" : " →"}
+                                    </button>
+                                  );
+                                })}
+                              </div>
+                            )}
+                            {note && note.referred_from.length > 0 && (
+                              <div className="row" style={{ marginTop: 4 }}>
+                                <span className="meta">Referred to from</span>
+                                {note.referred_from.map((passageId) => (
+                                  <button key={passageId} className="small" onClick={() => goToRow(passageId)}>↑ {passageId}</button>
+                                ))}
+                              </div>
+                            )}
+                          </td>
                           <td lang={targetLang}>
                             {outline.editable ? (
                               <div className="editable-text" onClick={() => startEdit(segment)} title="Click to edit">
@@ -829,7 +966,11 @@ export function TextPage() {
                                 <Link className="meta" to={`/jobs/${encodeURIComponent(jobId)}/review`}>Open in Final review →</Link>
                               </>
                             )}
-                            {segment.flagged && !segment.in_review_queue && <Chip kind="warn">flagged</Chip>}
+                            {segment.untranslated ? (
+                              <Chip kind="warn">untranslated</Chip>
+                            ) : (
+                              segment.flagged && !segment.in_review_queue && <Chip kind="warn">flagged</Chip>
+                            )}
                             {segment.findings.map((finding, i) => (
                               <div className="meta" key={i}>{finding.message}</div>
                             ))}
@@ -843,6 +984,14 @@ export function TextPage() {
                             </div>
                           </td>
                         </tr>
+                        {peeked && (
+                          <tr className="note-peek">
+                            <td />
+                            <td lang={sourceLang}><span className="meta">Note {noteNumber(peeked.source)}</span> {peeked.source}</td>
+                            <td lang={targetLang}>{peeked.text}</td>
+                            <td><button className="small" onClick={() => { setPeek(null); goToRow(peeked.segment_id); }}>Go to the note</button></td>
+                          </tr>
+                        )}
                         {editingId === segment.segment_id && editorRow(segment)}
                         {historyId === segment.segment_id && historyRow(segment)}
                         {conflictId === segment.segment_id && conflictRow(segment)}

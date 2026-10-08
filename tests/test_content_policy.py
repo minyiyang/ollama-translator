@@ -532,6 +532,20 @@ class ObfuscatedSegmentPolicyTests:
             ))
         assert not numeric_content_matches("Twelve qirks arrived.", "13只奇尔克抵达。")
 
+    def test_a_repair_that_writes_the_approved_name_with_a_digit_in_it_changes_no_number(self):
+        from book_agent.languages import LanguagePair
+
+        korean = LanguagePair("en>ko")
+        # The March Hare is "3월의 토끼" in Korean: March is the third month. The line the model
+        # had put under this cue was another passage's, about butter, with no number at all.
+        source = "The March Hare took the watch and looked at it gloomily:"
+        accepted = "최고의 버터였어요, 아시죠."
+        repaired = "3월의 토끼가 시계를 들고 우울하게 바라보았다:"
+        assert repair_preserves_numbers(source, accepted, repaired, korean, ["3월의 토끼"])
+        assert not repair_preserves_numbers(source, accepted, repaired, korean)  # without the glossary, a new 3
+        # A number of its own is still a changed fact.
+        assert not repair_preserves_numbers(source, accepted, "3월의 토끼가 시계 2개를 들었다:", korean, ["3월의 토끼"])
+
     def test_existing_equivalent_number_form_does_not_block_local_repair(self):
         source = "Five orbs circled at 900,000 velms."
         accepted = "五颗球体在90万维姆处环绕。"

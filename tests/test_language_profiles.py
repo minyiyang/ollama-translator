@@ -361,6 +361,38 @@ def test_a_german_closing_quote_is_corrected_without_a_model():
     assert apply_deterministic_repairs('"Nein", sagte er.', straight, "de") == ('"Nein", sagte er.', [])
 
 
+def test_a_french_line_without_its_no_break_space_is_corrected_without_a_model():
+    from book_agent.repair import keep_conventions
+
+    nb = " "
+    book = _segments(f"Quoi{nb}? Vraiment{nb}!", f"Il dit{nb}: «{nb}Non{nb}!{nb}»", "Vous croyez ? Il est 10:30.")
+    issues = convention_issues(book, ConsistencySettings(target_language="fr"))
+    assert [issue.segment_id for issue in issues] == ["S2"]
+    # The space before the question becomes a no-break space; the time is left as it is.
+    assert apply_deterministic_repairs("Vous croyez ? Il est 10:30.", issues, "fr") == (
+        f"Vous croyez{nb}? Il est 10:30.",
+        ["convention_replacement"],
+    )
+    # A mark with no space at all, a second mark, and an address.
+    assert apply_convention_replacements("Fin; Hein ?! Voir http://x.fr", issues, "fr") == f"Fin{nb}; Hein{nb}?! Voir http://x.fr"
+    # A repair keeps what the line it mends kept: the model wrote plain spaces where the line had no-break ones.
+    accepted = f"Le Chapelier ouvrit de grands yeux{nb}; mais il dit seulement{nb}: «{nb}Pourquoi{nb}?{nb}»"
+    mended = "Le Chapelier écarquilla les yeux ; mais il dit seulement : « Pourquoi ? »"
+    assert keep_conventions(accepted, mended, "fr") == f"Le Chapelier écarquilla les yeux{nb}; mais il dit seulement{nb}: « Pourquoi{nb}? »"
+    # A line that never kept the convention is not taken to have one...
+    assert keep_conventions("Pourquoi ? dit-il.", "Pourquoi ? demanda-t-il.", "fr") == "Pourquoi ? demanda-t-il."
+    # ...unless the book keeps it: then a repair that adds a question to a line without one keeps it too.
+    from book_agent.repair import book_conventions
+
+    followed = book_conventions([f"Quoi{nb}?", f"Non{nb}!", "Vous croyez ?"], "fr")
+    assert [rule.fix for rule in followed] == ["Put a no-break space (U+00A0 or U+202F) before ; : ! and ?."]
+    assert keep_conventions("« Mais que se passe-t-il au début », dit Alice.", "« Mais que se passe-t-il au début ? » dit Alice.", "fr", followed) == (
+        f"« Mais que se passe-t-il au début{nb}? » dit Alice."
+    )
+    # A book that writes a plain space before ? (some publishers do) is left as it writes.
+    assert book_conventions(["Quoi ?", "Non !", f"Vous croyez{nb}?"], "fr") == []
+
+
 def test_words_in_a_third_script_are_found():
     en_ko = LanguagePair("en>ko")
     issues = []

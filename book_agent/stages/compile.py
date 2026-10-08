@@ -23,7 +23,8 @@ from ..pipeline_state import (
 from ..book_formats import CONVERTED_SUFFIXES, EXPORT_FORMATS, export_book
 from ..languages import profile
 from ..rtf import compile_rtf_document
-from .title import load_translated_title
+from ..book_edits import book_edit_texts, book_items, settle_with_edits
+from .title import load_translated_title, settled_texts
 from ..subtitles import compile_subtitle_file, subtitle_limits
 from ..text_edits import (
     active_edit_texts,
@@ -108,6 +109,10 @@ def run_epub_compile_stage(
                 f"Manual review details: {manual_review_path}"
             )
         settled_title = load_translated_title(workspace, connection=connection)
+        # A person's corrections of the title, the contents, the notes, and the
+        # pictures' descriptions, on top of what the title stage settled.
+        book_edits = book_edit_texts(workspace)
+        settled_title = settle_with_edits(settled_title, book_items(workspace) if book_edits else [], book_edits)
         input_hash = build_stage_input_hash(
             {
                 "decompile": str(decompile["output_hash"]),
@@ -129,8 +134,13 @@ def run_epub_compile_stage(
                 # A book whose title was settled by the title stage is compiled again when that changes.
                 **({"title": settled_title["translated"]} if settled_title["translated"] else {}),
                 **(
-                    {"contents": json.dumps(settled_title["labels"], ensure_ascii=False, sort_keys=True)}
-                    if settled_title["labels"]
+                    {"contents": json.dumps(settled_texts(settled_title), ensure_ascii=False, sort_keys=True)}
+                    if settled_texts(settled_title)
+                    else {}
+                ),
+                **(
+                    {"notes": json.dumps(settled_title["notes"], ensure_ascii=False, sort_keys=True)}
+                    if settled_title["notes"]
                     else {}
                 ),
                 "stage_version": COMPILE_STAGE_VERSION,
@@ -193,7 +203,8 @@ def run_epub_compile_stage(
                 source_language=profile(config.translation.direction.source_language).code,
                 target_language=profile(config.translation.direction.target_language).code,
                 title=(settled_title["source"], settled_title["translated"]),
-                labels=settled_title["labels"],
+                labels=settled_texts(settled_title),
+                notes=settled_title["notes"],
             )
         )
         report_path = workspace.directory("reports") / f"compile-{input_hash[:16]}.json"
@@ -232,6 +243,9 @@ def run_epub_compile_stage(
             "\n".join(validation_report.review_segment_ids),
         )
         set_job_metadata(connection, "compiled_active_edit_hash", edit_hash)
+        # What the book says of itself as compiled, edits in, for the validate stage to check against.
+        set_job_metadata(connection, "compiled_book_edits", json.dumps(book_edits, ensure_ascii=False, sort_keys=True))
+        set_job_metadata(connection, "compiled_settled_title", json.dumps(settled_title, ensure_ascii=False, sort_keys=True))
         set_job_metadata(
             connection,
             "compiled_active_edits",

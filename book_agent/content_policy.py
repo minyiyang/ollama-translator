@@ -913,8 +913,17 @@ def repair_preserves_numbers(
     accepted_text: str,
     candidate_text: str,
     direction: TranslationDirection | None = None,
+    glossary_terms: Iterable[str] = (),
 ) -> bool:
-    """Prevent a repair from changing number facts already aligned with the source."""
+    """Prevent a repair from changing number facts already aligned with the source.
+
+    `glossary_terms` are the approved target renderings that apply to the
+    passage: a digit in one ("3월의 토끼", the March Hare in Korean) is the
+    glossary's, not a number fact of the passage, and a repair that writes
+    the approved name does not change a number."""
+    for term in sorted({term for term in glossary_terms if term and re.search(r"\d", term)}, key=len, reverse=True):
+        accepted_text = accepted_text.replace(term, " ")
+        candidate_text = candidate_text.replace(term, " ")
     target_language = direction.target_language if direction else None
     source = _credible_number_facts(source_text, direction.source_language if direction else None)
     accepted_objective = number_tokens(accepted_text, target_language)

@@ -1,4 +1,4 @@
-export type TextView = "all" | "flagged" | "queue" | "edited" | "conflict" | "consistency";
+export type TextView = "all" | "flagged" | "queue" | "edited" | "conflict" | "consistency" | "untranslated";
 
 export type TextFilterSegment = {
   source: string;
@@ -7,6 +7,8 @@ export type TextFilterSegment = {
   in_review_queue: boolean;
   flagged: boolean;
   findings?: ReadonlyArray<{ category: string }>;
+  /** A note, a picture's description, the title, or a contents entry the title stage left in the source language. */
+  untranslated?: boolean;
 };
 
 export function retainTextDocumentId(
@@ -14,7 +16,8 @@ export function retainTextDocumentId(
   chapters: ReadonlyArray<{ document_id: string }>,
 ): string {
   if (current && chapters.some((chapter) => chapter.document_id === current)) return current;
-  return chapters[0]?.document_id ?? "";
+  // The book opens at its first chapter; its title and contents ("BOOK") are a click away.
+  return (chapters.find((chapter) => chapter.document_id !== "BOOK") ?? chapters[0])?.document_id ?? "";
 }
 
 export function matchesTextView(segment: TextFilterSegment, view: TextView): boolean {
@@ -24,6 +27,7 @@ export function matchesTextView(segment: TextFilterSegment, view: TextView): boo
   if (view === "conflict") return segment.state === "conflict";
   // Book-level drift (docs/BOOK_CONSISTENCY.md): a repeated line rendered differently elsewhere.
   if (view === "consistency") return (segment.findings ?? []).some((finding) => finding.category === "consistency");
+  if (view === "untranslated") return !!segment.untranslated;
   return true;
 }
 
