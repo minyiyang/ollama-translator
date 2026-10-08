@@ -12,6 +12,8 @@ import tempfile
 import zipfile
 from pathlib import Path
 
+import pytest
+
 from book_agent.config import AppConfig
 from book_agent.ollama_client import GenerationMetrics, GenerationResult
 from book_agent.stages.compile import load_compiled_epub_path, run_epub_compile_stage
@@ -254,6 +256,71 @@ def test_a_corrected_note_is_in_the_compiled_book_and_a_correction_that_loses_it
             chapter = archive.read("OEBPS/chapter.xhtml").decode("utf-8")
         assert '<p><a href="#ref-2">2</a> 哈德森太太是<i>贝克街</i>那所房子的房东。</p>' in chapter
         assert text_outline(workspace)["uncompiled_edit_count"] == 0
+
+
+def test_a_draft_whose_title_changed_after_it_was_approved_is_approved_again_before_it_is_compiled():
+    from book_agent.book_edits import TITLE_ID, apply_book_edit
+    from book_agent.hashing import sha256_text
+    from book_agent.stages.compile import FinalDraftApprovalRequired
+    from book_agent.workflow import _final_review_is_required, approve_final_draft
+
+    reviewed = {**CONFIG, "workflow": {"require_final_review": True}}
+    config = AppConfig.model_validate(reviewed)
+    with tempfile.TemporaryDirectory() as directory:
+        workspace = _translated_job(Path(directory), config)
+        with pytest.raises(FinalDraftApprovalRequired):
+            run_epub_compile_stage(workspace, config)
+        approve_final_draft(workspace)
+        run_epub_compile_stage(workspace, config)
+        # What was approved carried the title the title stage gave it: settled anew, it is another draft.
+        renamed = AppConfig.model_validate({**reviewed, "translation": {"translated_title": "四个签名"}})
+        run_title_stage(workspace, renamed, Annotator())
+        assert _final_review_is_required(workspace, renamed)
+        approve_final_draft(workspace)
+        assert not _final_review_is_required(workspace, renamed)
+        # And so it is when a person corrects the title on the Text tab.
+        apply_book_edit(
+            workspace, item_id=TITLE_ID, text="四签名之谜", reason="as the series names it", base_target_sha256=sha256_text("四个签名"),
+        )
+        assert _final_review_is_required(workspace, renamed)
+        with pytest.raises(FinalDraftApprovalRequired):
+            run_epub_compile_stage(workspace, renamed)
+        approve_final_draft(workspace)
+        run_epub_compile_stage(workspace, renamed)
+        assert run_epub_validation_stage(workspace).passed
+        with zipfile.ZipFile(load_compiled_epub_path(workspace)) as archive:
+            assert "<dc:title>四签名之谜</dc:title>" in archive.read("OEBPS/content.opf").decode("utf-8")
+
+
+def test_an_approval_given_before_the_books_own_items_were_kept_with_it_stands_until_one_of_them_changes():
+    from book_agent.book_edits import TITLE_ID, apply_book_edit
+    from book_agent.hashing import sha256_text
+    from book_agent.stages.compile import FinalDraftApprovalRequired
+    from book_agent.state import connect_state
+    from book_agent.workflow import _final_review_is_required, approve_final_draft
+
+    config = AppConfig.model_validate({**CONFIG, "workflow": {"require_final_review": True}})
+    with tempfile.TemporaryDirectory() as directory:
+        workspace = _translated_job(Path(directory), config)
+        approve_final_draft(workspace)
+        # As a job approved before this was recorded has it: the approval of its passages alone.
+        connection = connect_state(workspace.state_file)
+        try:
+            connection.execute("DELETE FROM job_metadata WHERE key = 'final_review_approved_book'")
+            connection.commit()
+        finally:
+            connection.close()
+        # It is not asked for again because the job was upgraded, before the compile or after it.
+        assert not _final_review_is_required(workspace, config)
+        run_epub_compile_stage(workspace, config)
+        assert not _final_review_is_required(workspace, config)
+        # It stands for the book as compiled: a title corrected since is approved first.
+        apply_book_edit(
+            workspace, item_id=TITLE_ID, text="四签名之谜", reason="as the series names it", base_target_sha256=sha256_text("四签名"),
+        )
+        assert _final_review_is_required(workspace, config)
+        with pytest.raises(FinalDraftApprovalRequired):
+            run_epub_compile_stage(workspace, config)
 
 
 def test_what_the_title_stage_left_in_the_source_language_is_listed_until_someone_translates_it():

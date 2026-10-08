@@ -952,7 +952,9 @@ Left to the models, and so only as good as they are:
   title page's heading, a chapter's heading) takes that passage's
   translation. The rest are settled by a stage before the compile,
   `translate_title`. The title: the config's `translation.translated_title`
-  when set, else one short model call with the glossary. The contents
+  when set, else one short model call with the glossary. A title settled so
+  (or corrected on the Text tab) is the title wherever the package has it,
+  whatever a passage that reads the same was translated as. The contents
   entries and document titles that are no passage ("Chapter 7" for a heading
   "CHAPTER VII. A Mad Tea-Party"): batches of 40 to a call, each with the
   glossary and the book's headings as the book translated them, answered as

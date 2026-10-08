@@ -79,7 +79,7 @@ book as it treats any EPUB.
      author come from the document properties. A picture (a drawing's, or
      an older document's VML picture) is read from the document's media by
      its relationship, with its description; footnotes and endnotes from
-     their parts, each placed after the paragraph that refers to it.
+     their parts, each placed after the paragraph that first refers to it.
 3. **Chapters.** A new chapter starts at each heading of the level the book
    is divided by: the highest level used more than once, or else the highest
    present. No headings, one chapter.
@@ -90,7 +90,11 @@ book as it treats any EPUB.
    `<aside epub:type="footnote">` at its end, each paragraph marked
    `data-book-agent-note`, and a reference to one is
    `<a epub:type="noteref">`, so a reader can show the note beside the
-   text. The decompile stage's hash takes in the pictures and whether there
+   text. A note stands once, in the chapter that first refers to it; a later
+   chapter that refers to it again links into that chapter's file
+   (`chapter-0001.xhtml#note-1`), and an export, which reads the chapters
+   back as one book, has the one note with both references to it. The
+   decompile stage's hash takes in the pictures and whether there
    are notes only where there are, so a job without either is not made
    again for them.
 5. **Pictures and notes through the pipeline.** A Markdown or HTML file's
@@ -308,6 +312,19 @@ Text tab and its edits, XLIFF.
 Where a book has chapters, a subtitle file has parts: a new one after four
 seconds without a cue once a part has forty cues, and at a hundred and fifty
 at the latest. They are named by their times.
+
+**The limits and the stages.** The limits are settings of the audits
+(`audit_translation`, `review_repaired`, `validate_repaired`, and the two
+repair stages' own checks) and of the compile, which breaks the lines by
+them. Preprocessing writes the limits of its day into each document, but
+those stages, the edit check, and the dashboard go by the job's config as it
+is (`load_preprocessed_documents`). A job whose config gives other limits
+than it was preprocessed with says so in the input hashes of the three
+audit stages and the compile (`limit_fields`), so it is audited, repaired,
+and compiled again, as a book is when an audit setting changes. It is not
+preprocessed or translated again. A job that goes by the limits it was
+preprocessed with, its config's or its language's, has no such field, and
+its hashes are what they were before the limits were in them.
 
 **Limits.** Markup inside a cue (one word in italics, a karaoke timing) is
 dropped from a translated cue. Timing is never changed, so a translation

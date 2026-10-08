@@ -37,6 +37,7 @@ from .state import (
     set_job_metadata,
     set_stage_status,
 )
+from .book_edits import book_approved, record_book_approval, settled_book
 from .text_edits import current_draft_revision, unresolved_review_gate
 from .workspace import JobWorkspace
 from .stages.audit import run_translation_audit_stage
@@ -530,6 +531,8 @@ def approve_final_draft(workspace: JobWorkspace) -> str:
             raise ValueError("the repaired validation output hash is missing")
         revision = current_draft_revision(workspace, validated_output_hash)
         set_job_metadata(connection, "final_review_approved_for", revision)
+        # And, with the passages, the title, contents, notes, and descriptions as they stand.
+        record_book_approval(connection, workspace)
         compile_record = get_stage_status(connection, WorkflowStage.COMPILE.value)
         if compile_record and compile_record["status"] == StageStatus.PAUSED.value:
             set_stage_status(connection, WorkflowStage.COMPILE.value, StageStatus.PENDING)
@@ -765,7 +768,11 @@ def _final_review_is_required(workspace: JobWorkspace, config: AppConfig) -> boo
         if validated is None or validated["status"] != StageStatus.COMPLETED.value:
             return False
         revision = current_draft_revision(workspace, str(validated["output_hash"]))
-        return get_job_metadata(connection, "final_review_approved_for") != revision
+        if get_job_metadata(connection, "final_review_approved_for") != revision:
+            return True
+        # The passages are as approved: so must be what the book says of itself.
+        settled, _ = settled_book(workspace, connection=connection)
+        return not book_approved(connection, settled)
     finally:
         connection.close()
 

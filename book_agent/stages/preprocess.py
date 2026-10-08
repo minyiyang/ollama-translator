@@ -55,7 +55,7 @@ from ..story_context import story_context_by_document
 from ..style_sheet import select_relevant_style
 from ..workspace import JobWorkspace
 from ..schemas import GlossaryResult, normalize_term
-from ..subtitles import cue_of, read_subtitles, subtitle_limits
+from ..subtitles import cue_of, job_type, read_subtitles, subtitle_limits
 from .decompile import load_decompile_manifest
 from .glossary import load_approved_glossary, load_style_sheet
 from .story_context import load_story_summaries
@@ -356,8 +356,53 @@ def _load_effective_glossary(
     return GlossaryResult(pair=pair, entries=merge_prioritized_sources(sources)), hashes
 
 
-def load_preprocessed_documents(workspace: JobWorkspace) -> list[PreprocessedDocument]:
-    """Load all published preprocessed document manifests in spine order."""
+def _job_limits(config: AppConfig) -> tuple[int, int, float]:
+    limits = subtitle_limits(config)
+    return (limits.line_characters, limits.lines, limits.characters_per_second)
+
+
+def limit_fields(workspace: JobWorkspace, config: AppConfig) -> dict[str, str]:
+    """For the input hash of a stage that goes by the reading limits: the
+    audits and the compile.
+
+    The limits a subtitle job was preprocessed with are in its documents, and
+    so in every later hash already. A job whose config gives others since says
+    which, so that those stages run again, as they do for any setting they
+    use. Nothing for a book, nor for a job that goes by the limits it was
+    preprocessed with: their hashes are as they were before the limits were
+    in them."""
+    if job_type(workspace.source_file) != "subtitles":
+        return {}
+    current = _job_limits(config)
+    written = {document.reading_limits for document in _published_documents(workspace)}
+    return {} if written == {current} else {"reading_limits": ":".join(str(value) for value in current)}
+
+
+def load_preprocessed_documents(
+    workspace: JobWorkspace, config: AppConfig | None = None
+) -> list[PreprocessedDocument]:
+    """Load all published preprocessed document manifests in spine order.
+
+    A subtitle job's documents come with the reading limits its config gives
+    now (`config`, or the one captured in the workspace) in place of those
+    written into them when they were preprocessed. The audits and the
+    dashboard go by these, so other limits are no reason to preprocess, and
+    so translate, again: the stages that go by them say so in their hashes
+    (`limit_fields`)."""
+    documents = _published_documents(workspace)
+    if any(document.cues is not None for document in documents):
+        current = _job_limits(
+            config or AppConfig.model_validate_json(workspace.config_file.read_text(encoding="utf-8"))
+        )
+        documents = [
+            document.model_copy(update={"reading_limits": current}) if document.cues is not None else document
+            for document in documents
+        ]
+    return documents
+
+
+def _published_documents(workspace: JobWorkspace) -> list[PreprocessedDocument]:
+    """The published preprocessed documents as they were written, in spine order."""
     connection = connect_state(workspace.state_file)
     try:
         artifacts = list_active_stage_artifacts(

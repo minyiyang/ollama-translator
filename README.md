@@ -308,7 +308,8 @@ translated by the `translate_title` stage.
 
 Notes are a Word document's footnotes and endnotes and a Markdown file's
 `[^1]` notes, numbered through the book and kept at the end of the chapter
-that refers to them. They are not passages: like the table of contents, they
+that first refers to them (a later chapter that refers to one again links to
+it there). They are not passages: like the table of contents, they
 are translated by the `translate_title` stage, and a Word export makes them
 Word's own footnotes again. A note is kept as plain text. An EPUB's own
 footnotes and endnotes (`epub:type` footnote, endnote, rearnote, note, or
@@ -925,9 +926,11 @@ validation and before EPUB compilation:
 book-agent approve "D:\runs\my-job" --final --resume
 ```
 
-Final approval applies only to the current repaired-validation hash. If the
-translation or repair changes, approval is required again. Approval cannot
-override unresolved validation or human-review issues.
+Final approval applies only to the draft as it was approved: the current
+repaired-validation hash with its manual edits, and the book's title,
+contents, notes, and picture descriptions. If the translation or repair
+changes, or any of those is edited or translated anew, approval is required
+again. Approval cannot override unresolved validation or human-review issues.
 
 When unresolved cases block compilation, the workflow now writes a complete
 review package under `reports/`:
@@ -979,8 +982,9 @@ models for every rejected document:
 - `repair_review`: Qwen repairs the complete collected batch.
 - `translate_title`: settles the book's title in the target language for the
   compiled book. `translation.translated_title` in the config is used when
-  set; a title that is a passage of the book takes that passage's
-  translation; any other is translated by one short model call. The table of
+  set, whatever a passage that reads the same was translated as; otherwise a
+  title that is a passage of the book takes that passage's
+  translation, and any other is translated by one short model call. The table of
   contents is settled here too: an entry that reads the same as a passage (a
   chapter's heading) follows that passage, and the entries that are no
   passage of the book ("Chapter 7" for a heading "CHAPTER VII. A Mad

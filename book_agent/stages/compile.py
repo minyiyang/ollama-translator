@@ -23,8 +23,8 @@ from ..pipeline_state import (
 from ..book_formats import CONVERTED_SUFFIXES, EXPORT_FORMATS, export_book
 from ..languages import profile
 from ..rtf import compile_rtf_document
-from ..book_edits import book_edit_texts, book_items, settle_with_edits
-from .title import load_translated_title, settled_texts
+from ..book_edits import book_approved, settled_book
+from .title import settled_texts
 from ..subtitles import compile_subtitle_file, subtitle_limits
 from ..text_edits import (
     active_edit_texts,
@@ -47,7 +47,7 @@ from ..state import (
 )
 from ..workspace import JobWorkspace
 from .decompile import load_decompile_manifest
-from .preprocess import load_preprocessed_documents
+from .preprocess import limit_fields, load_preprocessed_documents
 from .audit import load_document_audits
 from .repair import load_repaired_documents
 from .reprose import load_reprosed_documents
@@ -80,9 +80,15 @@ def run_epub_compile_stage(
         validation_report = load_repaired_validation_report(workspace)
         active_edits = active_edit_texts(workspace)
         edit_hash = hash_active_edits(active_edits)
+        # What the title stage settled, with a person's corrections of the title,
+        # the contents, the notes, and the pictures' descriptions on top of it.
+        settled_title, book_edits = settled_book(workspace, connection=connection)
         if config.workflow.require_final_review:
             revision = draft_revision_hash(str(validated["output_hash"]), edit_hash)
-            if get_job_metadata(connection, "final_review_approved_for") != revision:
+            # What is approved is what is compiled: the passages, and what the book says of itself.
+            if get_job_metadata(connection, "final_review_approved_for") != revision or not book_approved(
+                connection, settled_title
+            ):
                 raise FinalDraftApprovalRequired("final draft approval required")
         gate = unresolved_review_gate(workspace, validation_report)
         unresolved_limit = config.workflow.compile_max_unresolved_review_segments
@@ -108,11 +114,6 @@ def run_epub_compile_stage(
                 f"Review report: {report_path or 'not recorded'}. "
                 f"Manual review details: {manual_review_path}"
             )
-        settled_title = load_translated_title(workspace, connection=connection)
-        # A person's corrections of the title, the contents, the notes, and the
-        # pictures' descriptions, on top of what the title stage settled.
-        book_edits = book_edit_texts(workspace)
-        settled_title = settle_with_edits(settled_title, book_items(workspace) if book_edits else [], book_edits)
         input_hash = build_stage_input_hash(
             {
                 "decompile": str(decompile["output_hash"]),
@@ -143,6 +144,8 @@ def run_epub_compile_stage(
                     if settled_title["notes"]
                     else {}
                 ),
+                # A subtitle file is written again when the limits its lines are broken by change.
+                **limit_fields(workspace, config),
                 "stage_version": COMPILE_STAGE_VERSION,
             }
         )

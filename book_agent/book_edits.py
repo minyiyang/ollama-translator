@@ -23,6 +23,7 @@ in the source language does not stop the compile: it is listed for review.
 
 from __future__ import annotations
 
+import json
 import re
 from dataclasses import dataclass, field
 from datetime import datetime
@@ -35,7 +36,7 @@ from .epub import is_note, local_name, parse_content_document
 from .epub_compile import find_element_by_stable_path
 from .hashing import sha256_text
 from .pipeline_state import WorkflowStage
-from .state import StageStatus, connect_state, get_stage_status
+from .state import StageStatus, connect_state, get_job_metadata, get_stage_status, set_job_metadata
 from .text_edits import (
     BOOK_DOCUMENT,
     BlockingCheckError,
@@ -58,6 +59,7 @@ from .stages.title import (
     description_entries,
     load_translated_title,
     note_paragraphs,
+    settled_texts,
 )
 
 TITLE_ID = "BOOK-T"
@@ -305,6 +307,46 @@ def settle_with_edits(settled: dict[str, Any], items: list[BookItem], edits: dic
         else:
             result["descriptions"][item.source] = text
     return result
+
+
+def settled_book(workspace: JobWorkspace, *, connection=None) -> tuple[dict[str, Any], dict[str, str]]:
+    """What the book says of itself as the compile gives it: the title
+    stage's record with a person's active edits in it; and those edits."""
+    edits = book_edit_texts(workspace)
+    settled = load_translated_title(workspace, connection=connection)
+    return settle_with_edits(settled, book_items(workspace) if edits else [], edits), edits
+
+
+def book_revision_hash(settled: dict[str, Any]) -> str:
+    """A stable hash of what the compile takes from `settled`: the title, the
+    contents entries and descriptions, the notes; "" for a book with none of
+    them. A person who approves the final draft approves these with its
+    passages (``text_edits.draft_revision_hash`` is the passages' revision)."""
+    said = {"title": settled["translated"], "texts": settled_texts(settled), "notes": settled["notes"]}
+    return sha256_text(json.dumps(said, ensure_ascii=False, sort_keys=True)) if any(said.values()) else ""
+
+
+_APPROVED_BOOK = "final_review_approved_book"
+
+
+def record_book_approval(connection, workspace: JobWorkspace) -> None:
+    """Keep, with the approval of the final draft, what the book said of itself when it was given."""
+    settled, _ = settled_book(workspace, connection=connection)
+    set_job_metadata(connection, _APPROVED_BOOK, book_revision_hash(settled))
+
+
+def book_approved(connection, settled: dict[str, Any]) -> bool:
+    """Whether `settled`, what the book says of itself now, is what the final
+    draft's approval was given for. An approval from before this was kept
+    with it does not lapse because the job was upgraded: it stands for the
+    book as it was last compiled, or, never compiled, as it is."""
+    approved = get_job_metadata(connection, _APPROVED_BOOK)
+    if approved is None:
+        compiled = get_job_metadata(connection, "compiled_settled_title")
+        if compiled is None:
+            return True
+        approved = book_revision_hash({**settled, **json.loads(compiled)})
+    return approved == book_revision_hash(settled)
 
 
 def check_book_text(item: BookItem, text: str) -> dict[str, list[dict[str, str]]]:

@@ -169,6 +169,40 @@ def test_markdown_pictures_beside_the_file_are_kept_with_the_job_after_the_folde
         assert '<p data-book-agent-note="1">It was named for the town in India.</p>' in chapter
 
 
+def test_a_note_two_chapters_refer_to_is_found_from_both():
+    from book_agent.book_edits import note_links
+
+    config = AppConfig.model_validate(CONFIG)
+    with tempfile.TemporaryDirectory() as directory:
+        base = Path(directory)
+        source = base / "pondicherry.md"
+        source.write_text(
+            "# Chapter V\n\n"
+            "It was nearly eleven o'clock when we reached Pondicherry Lodge.[^lodge]\n\n"
+            "# Chapter VI\n\n"
+            "The lodge stood dark against the sky.[^lodge]\n\n"
+            "[^lodge]: Pondicherry Lodge stood in Upper Norwood, south of London.\n",
+            encoding="utf-8",
+        )
+        workspace = prepare_workspace(base, config, source=source, translator=KeepsWhatInlineElementsHold())
+        run_title_stage(workspace, config, NoteTranslator())
+        # On the Text tab, the note names the passage of each chapter that refers to it.
+        assert note_links(workspace).referred == {"D0000-N000001": ["D0000-S000002", "D0001-S000002"]}
+        run_epub_compile_stage(workspace, config)
+        assert run_epub_validation_stage(workspace).passed
+
+        compiled = load_compiled_epub_path(workspace)
+        with zipfile.ZipFile(compiled) as archive:
+            first = archive.read("OEBPS/text/chapter-0001.xhtml").decode("utf-8")
+            second = archive.read("OEBPS/text/chapter-0002.xhtml").decode("utf-8")
+        # The note stands once, in the chapter that first refers to it; the second chapter's reference leads there.
+        assert '<a epub:type="noteref" href="#note-1">1</a>' in first and '<aside id="note-1"' in first
+        assert '<a epub:type="noteref" href="chapter-0001.xhtml#note-1">1</a>' in second and "<aside" not in second
+        # Written as Markdown again, it is one note that both chapters refer to.
+        markdown = Path(compiled).with_suffix(".md").read_text(encoding="utf-8")
+        assert markdown.count("[^1]") == 3 and markdown.count("[^1]: 樱沼别墅位于伦敦南部的上诺伍德。") == 1
+
+
 def test_a_picture_held_in_an_html_file_is_kept_and_its_caption_is_a_passage():
     encoded = base64.b64encode(_map()).decode("ascii")
     with tempfile.TemporaryDirectory() as directory:

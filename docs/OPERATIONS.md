@@ -144,7 +144,10 @@ written into the `validate_repaired` artifacts, and compile overlays them.
 They therefore survive `retry` of `validate_repaired` or an earlier stage; a
 decided segment whose pipeline translation changes becomes a conflict that
 blocks compile until it is settled on the dashboard's Text tab. The final
-approval itself is tied to the draft revision and must be given again.
+approval itself is tied to the draft revision and must be given again. It
+also covers the book's title, contents, notes, and picture descriptions as
+they stood: one of them edited, or settled anew by `translate_title`, after
+the approval asks for it again.
 `book-agent edits <job>` lists every event and conflict.
 
 ## Retrying a pipeline stage

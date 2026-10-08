@@ -224,6 +224,18 @@ def test_the_configs_title_is_used_as_it_is_and_no_model_is_asked():
         assert _stage_message(workspace).startswith("from the config: 雾都孤儿")
 
 
+def test_the_configs_title_is_the_title_of_a_book_named_as_one_of_its_passages_is():
+    config = AppConfig.model_validate({**CONFIG, "translation": {"translated_title": "第一章"}})
+    with tempfile.TemporaryDirectory() as directory:
+        workspace = _book(Path(directory), b"Chapter One", config)  # the fixture's heading
+        record = run_title_stage(workspace, config, Publisher())
+        assert (record["translated"], record["origin"]) == ("第一章", "config")
+        run_epub_compile_stage(workspace, config)
+        assert run_epub_validation_stage(workspace).passed
+        # The title the config names, not what the heading that reads the same was translated as ("译文。").
+        assert "<dc:title>第一章</dc:title>" in _package(workspace)
+
+
 def test_a_title_the_model_cannot_give_does_not_stop_the_book():
     config = AppConfig.model_validate(CONFIG)
 

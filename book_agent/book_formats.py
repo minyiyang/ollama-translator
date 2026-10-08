@@ -19,7 +19,7 @@ to an export.
 
 Notes: a Word document's footnotes and endnotes, and a Markdown file's
 `[^1]` notes, numbered through the book. Each is kept at the end of the
-chapter that refers to it, as plain text, and marked so that it is no passage
+chapter that first refers to it, as plain text, and marked so that it is no passage
 of the book: like the table of contents, a note is translated by the title
 stage and given in translation at the compile.
 """
@@ -1205,13 +1205,26 @@ def split_chapters(blocks: list[Block]) -> list[list[Block]]:
     return [chapter for chapter in chapters if chapter]
 
 
-def _chapter_body(blocks: list[Block], picture_src: Callable[[str], str], package: bool = False) -> str:
+_NOTE_REFERENCE = re.compile(r'<a href="#(note-[^"]*)">')
+
+
+def _chapter_body(
+    blocks: list[Block], picture_src: Callable[[str], str], package: bool = False, homes: dict[str, str] | None = None
+) -> str:
     """A chapter's blocks as XHTML, its notes at its end. `picture_src` is
     where a picture is found by its name. In a `package`, a note's paragraphs
     are marked as no passage of the book, and notes and references to them
-    say what they are, for a reader that shows a note beside the text."""
+    say what they are, for a reader that shows a note beside the text.
+    `homes` is the document each note of the book stands in, by the note's
+    id: a reference to a note another chapter holds links into that document."""
     lines: list[str] = []
     notes: dict[str, list[str]] = {}
+    own = {block.src for block in blocks if block.kind == "note"}
+
+    def referred(match: re.Match[str]) -> str:
+        document = "" if match[1] in own else (homes or {}).get(match[1], "")
+        return f'<a epub:type="noteref" href="{escape(document)}#{match[1]}">'
+
     open_list = ""
     for block in blocks:
         if block.kind == "note":
@@ -1224,7 +1237,7 @@ def _chapter_body(blocks: list[Block], picture_src: Callable[[str], str], packag
             if wanted:
                 lines.append(f"<{wanted}>")
             open_list = wanted
-        html = block.html.replace('<a href="#note-', '<a epub:type="noteref" href="#note-') if package else block.html
+        html = _NOTE_REFERENCE.sub(referred, block.html) if package else block.html
         if block.kind == "hr":
             lines.append("<hr/>")
         elif block.kind == "img":
@@ -1262,6 +1275,13 @@ def write_source_package(book: Book, root: str | Path, identifier: str) -> None:
     title = escape(book.title or "Untitled", quote=False)
     files: dict[str, str] = {"mimetype": "application/epub+zip", "META-INF/container.xml": _CONTAINER, "OEBPS/styles.css": _STYLES}
     items, spine, toc = [], [], []
+    # A note stands in the chapter that first refers to it: one that refers to it again finds it there.
+    homes = {
+        block.src: f"chapter-{number:04d}.xhtml"
+        for number, chapter in enumerate(chapters, start=1)
+        for block in chapter
+        if block.kind == "note"
+    }
     for number, chapter in enumerate(chapters, start=1):
         name = f"chapter-{number:04d}"
         heading = next((block for block in chapter if re.fullmatch(r"h[1-6]", block.kind)), None)
@@ -1271,7 +1291,7 @@ def write_source_package(book: Book, root: str | Path, identifier: str) -> None:
             '<html xmlns="http://www.w3.org/1999/xhtml" xmlns:epub="http://www.idpf.org/2007/ops" '
             f'xml:lang="{escape(language)}" lang="{escape(language)}">\n'
             f'<head><title>{label}</title><link rel="stylesheet" type="text/css" href="../styles.css"/></head>\n'
-            f"<body>\n{_chapter_body(chapter, lambda picture: f'../images/{picture}', package=True)}\n</body>\n</html>\n"
+            f"<body>\n{_chapter_body(chapter, lambda picture: f'../images/{picture}', package=True, homes=homes)}\n</body>\n</html>\n"
         )
         items.append(f'    <item id="{name}" href="text/{name}.xhtml" media-type="application/xhtml+xml"/>')
         spine.append(f'    <itemref idref="{name}"/>')
@@ -1318,6 +1338,8 @@ def write_source_package(book: Book, root: str | Path, identifier: str) -> None:
 
 _OPF = "{http://www.idpf.org/2007/opf}"
 _CONTAINER_NS = "{urn:oasis:names:tc:opendocument:xmlns:container}"
+# A link into another document of the book, at a note: not an address on the web.
+_NOTE_ELSEWHERE = re.compile(r"^[^#:]+#note-")
 
 
 def read_epub(path: str | Path) -> Book:
@@ -1343,6 +1365,7 @@ def read_epub(path: str | Path) -> Book:
             if "nav" not in (item.get("properties") or "").split()
         }
         names = set(archive.namelist())
+        notes: set[str] = set()
         for reference in package.iter(f"{_OPF}itemref"):
             href = hrefs.get(reference.get("idref"))
             if not href:
@@ -1357,6 +1380,13 @@ def read_epub(path: str | Path) -> Book:
             name = "/".join(parts)
             if name in names:
                 soup = BeautifulSoup(archive.read(name), "html.parser")
+                # A reference to a note an earlier chapter holds (`write_source_package`) is,
+                # in the book read as one text, a reference to the book's note again.
+                notes.update(f"note-{paragraph[NOTE_ATTRIBUTE]}" for paragraph in soup.find_all("p", attrs={NOTE_ATTRIBUTE: True}))
+                for link in soup.find_all("a", href=_NOTE_ELSEWHERE):
+                    fragment = str(link["href"]).split("#", 1)[1]
+                    if fragment in notes:
+                        link["href"] = f"#{fragment}"
                 _blocks_from_html(
                     soup.body or soup,
                     book.blocks,

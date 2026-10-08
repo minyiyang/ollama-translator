@@ -133,7 +133,7 @@ def run_translation_repair_stage(
             input_hash=input_hash,
         )
 
-        sources = {item.manifest_id: item for item in load_preprocessed_documents(workspace)}
+        sources = {item.manifest_id: item for item in load_preprocessed_documents(workspace, config)}
         translated = {item.manifest_id: item for item in load_translated_documents(workspace)}
         # The typography the book keeps, for each repair's answer to keep it too.
         followed = book_conventions(

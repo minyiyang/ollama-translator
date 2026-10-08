@@ -348,8 +348,9 @@ def localize_package(
             if source and translated:
                 renderings.setdefault(source, translated)
     if title and title[0] and title[1]:
-        # The book's title as the title stage settled it, for a title that is no passage.
-        renderings.setdefault(normalize_text(title[0]).casefold(), title[1])
+        # The book's title as the config, the title stage, or a person settled it: it is
+        # the title's, whatever a passage that reads the same was translated as.
+        renderings[normalize_text(title[0]).casefold()] = title[1]
     # Contents entries that are no passage either, as the title stage translated them.
     for entry, translated in (labels or {}).items():
         if entry and translated:

@@ -284,6 +284,46 @@ def test_a_subtitle_file_goes_through_the_pipeline_and_comes_back_a_subtitle_fil
         assert written.cues[7].lines == ["Mein Geist rebelliert."]
 
 
+def test_a_job_set_to_other_reading_limits_is_audited_and_written_again_but_not_translated_again():
+    from book_agent.stages.preprocess import limit_fields
+
+    config = AppConfig.model_validate(CONFIG)
+    narrow = AppConfig.model_validate({**CONFIG, "subtitles": {"line_characters": 12, "characters_per_second": 5}})
+    scene = [cue if number != 8 else (*cue[:3], ["Mein Geist rebelliert."]) for number, cue in enumerate(SCENE, start=1)]
+
+    def first_cue(workspace) -> list[str]:
+        return parse_subtitles(Path(load_compiled_epub_path(workspace)).read_text(encoding="utf-8"), "srt").cues[0].lines
+
+    with tempfile.TemporaryDirectory() as directory:
+        # A job that goes by the limits it was preprocessed with, whether its config set them or its
+        # language gave them, is hashed as it was before the limits were hashed: nothing is done again.
+        (Path(directory) / "narrow").mkdir()
+        set_from_the_start = _translated(Path(directory) / "narrow", scene, narrow)
+        assert limit_fields(set_from_the_start, narrow) == {}
+        workspace = _translated(Path(directory), scene, config)
+        assert limit_fields(workspace, config) == {} and limit_fields(workspace, narrow) == {"reading_limits": "12:2:5.0"}
+        assert [issue for audit in load_document_audits(workspace) for issue in audit.issues] == []
+        run_translation_repair_stage(workspace, config)
+        verifier = FakeVerificationClient()
+        run_repaired_review_stage(workspace, config, verifier)
+        run_review_repair_stage(workspace, config, verifier)
+        run_repaired_validation_stage(workspace, config, verifier)
+        run_epub_compile_stage(workspace, config)
+        assert first_cue(workspace) == ["Holmes nahm seine Flasche vom Kaminsims."]
+        # Compiled for a narrower screen, the same translation is written again in shorter lines.
+        run_epub_compile_stage(workspace, narrow)
+        assert len(first_cue(workspace)) > 1 and all(len(line) <= 12 for line in first_cue(workspace))
+        # The limits are the audit's and the compile's: nothing before them is done again.
+        run_preprocessing_stage(workspace, narrow)
+        translator = _Subtitler(scene)
+        run_translation_stage(workspace, narrow, translator)
+        assert translator.prompts == []
+        # The audit goes by the new limits: the first cue's 34 characters are too many for its two and a half seconds.
+        assert load_preprocessed_documents(workspace, narrow)[0].reading_limits == (12, 2, 5.0)
+        run_translation_audit_stage(workspace, narrow)
+        assert "D0000-S000001" in {issue.segment_id for audit in load_document_audits(workspace) for issue in audit.issues}
+
+
 def test_a_books_config_and_documents_are_stored_as_before_there_were_subtitle_jobs():
     assert "subtitles" not in AppConfig().model_dump()
     assert AppConfig.model_validate({"subtitles": {"line_characters": 37}}).model_dump()["subtitles"]["line_characters"] == 37
@@ -297,7 +337,8 @@ TEA_PARTY = Path(__file__).parent / "data" / "alice-mad-tea-party.srt"
 
 
 def test_a_scene_of_real_dialogue_is_read_and_written_back_unchanged():
-    text = TEA_PARTY.read_text(encoding="utf-8")
+    # As the file is on disk, line endings and all: a checkout on Windows gives it CRLF.
+    text = TEA_PARTY.read_bytes().decode("utf-8")
     parsed = read_subtitles(TEA_PARTY)
     cues = parsed.cues
     assert len(cues) == 60 and [cue.number for cue in cues] == list(range(1, 61))

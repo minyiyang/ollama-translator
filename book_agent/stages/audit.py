@@ -65,7 +65,7 @@ from ..quantities import (
     build_quantity_audit_prompt,
     validate_quantity_audit_scope,
 )
-from .preprocess import load_preprocessed_documents
+from .preprocess import limit_fields, load_preprocessed_documents
 from .rescue import load_rescue_report
 from .translate import load_translated_documents, load_translation_report
 
@@ -109,6 +109,8 @@ def run_translation_audit_stage(
             "preprocessing": str(preprocessing["output_hash"]),
             "translation": str(translation["output_hash"]),
             "audit": config.audit.checkpoint_json(),
+            # A subtitle job is audited again when the limits its cues are read by change.
+            **limit_fields(workspace, config),
             "model": config.audit.model if config.audit.semantic_enabled else "disabled",
             "stage_version": AUDIT_STAGE_VERSION,
         }
@@ -136,7 +138,7 @@ def run_translation_audit_stage(
             input_hash=input_hash,
         )
 
-        sources = load_preprocessed_documents(workspace)
+        sources = load_preprocessed_documents(workspace, config)
         translated = {item.manifest_id: item for item in load_translated_documents(workspace)}
         translation_report = load_translation_report(workspace, connection=connection)
         # Passages the rescue redrafted successfully are no longer deferred.
