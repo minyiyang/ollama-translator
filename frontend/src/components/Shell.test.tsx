@@ -1,9 +1,10 @@
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { mockApi } from "../test/mockApi";
 import { jobInfo, renderInJob, stage } from "../test/job";
+import { setLocale } from "../i18n";
 import { Shell } from "./Shell";
 
 const renderOutside = (ui: React.ReactNode, at = "/") => render(<MemoryRouter initialEntries={[at]}>{ui}</MemoryRouter>);
@@ -161,6 +162,14 @@ describe("The interface-language menu", () => {
     expect(menu()).toHaveValue("en");
     expect(within(menu()).getAllByRole("option").map((option) => option.textContent))
       .toEqual(["English", "简体中文", "日本語", "Français", "Español", "Deutsch", "한국어"]);
+  });
+
+  it("lists a layout-test language only while it is in use", async () => {
+    renderOutside(<Shell>page</Shell>);
+    await act(() => setLocale("ar-XB", false));
+    expect(screen.getByRole("combobox")).toHaveValue("ar-XB");
+    expect(within(screen.getByRole("combobox")).getAllByRole("option")).toHaveLength(9);
+    expect(document.documentElement.dir).toBe("rtl");
   });
 
   it("translates the header at once and remembers the choice", async () => {

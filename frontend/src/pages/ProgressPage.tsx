@@ -320,7 +320,7 @@ export function ProgressPage() {
             <section className="card summary">
               <div>
                 <Chip kind={status.overall}>{statusLabel(status.overall)}</Chip>
-                <span className="meta" style={{ marginLeft: 6 }}>{data.source}</span>
+                <span className="meta" style={{ marginInlineStart: 6 }}>{data.source}</span>
                 <div className="big">{current ? stageLabel(current.name) : t("progress.summary.allComplete")}</div>
                 {current?.message && <div className="meta">{stageMessage(current.message)}</div>}
                 <Bar percent={(100 * done) / stages.length} running={status.overall !== "complete"} />

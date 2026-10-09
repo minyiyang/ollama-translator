@@ -1,6 +1,6 @@
 # Dashboard localization
 
-Status: **phases 1 to 4 implemented; 5 deferred.**
+Status: **phases 1 to 5 implemented.**
 Last updated: 2026-10-08.
 
 How the browser dashboard (`book-agent ui`, source in `frontend/`) is
@@ -102,20 +102,41 @@ translates any pair (docs/GENERIC_LANGUAGES.md).
 
 ### 2.6 Layout for any language (phase 5)
 
-- Text can be 30–40% longer (German, Finnish): no fixed widths on labels, and
-  buttons and tabs wrap.
-- Right-to-left (Arabic, Hebrew):
-  - set `<html dir>`;
-  - convert CSS to direction-neutral properties (`margin-inline-start`,
-    `inset-inline-start`, `border-inline-end` for the sidebar);
-  - mirror directional glyphs (‹ ›, the sidebar collapse chevron).
+- Text can be 30–40% longer (German, Finnish): no fixed widths on labels,
+  buttons and tabs wrap, and a chip that cannot fit is cut with an ellipsis.
+- Right-to-left (Arabic, Persian, Hebrew, Urdu):
+  - `<html dir>` follows the interface language (`direction()` in
+    `i18n/index.ts`);
+  - the CSS uses direction-neutral properties (`margin-inline-start`,
+    `inset-inline-start`, `border-inline-end`, `text-align: start`), so the
+    header, sidebar, tables, and tooltips mirror without further rules. Write
+    new CSS the same way; physical `left`/`right` is kept only where the thing
+    is left to right in every language (the code editor);
+  - the few rules that logical properties cannot express (the switch knob,
+    the collapsed-group caret) are under `[dir="rtl"]` at the end of
+    `pages.css`;
+  - « ‹ › » mirror by themselves in right-to-left text. Arrows (→) do not: a
+    right-to-left catalog writes ←.
+- What does not follow the interface language:
+  - code, config keys, IDs, and logs (`.mono`, `code`, `pre`, `.log`) are
+    always left to right;
+  - book text is laid out in the direction of its own language. Give an
+    element that shows source or translated text its `lang`; the CSS does the
+    rest, so an Arabic translation reads right to left in an English
+    interface, and an English source left to right in an Arabic one.
+- **Layout-test languages** (`i18n/pseudo.ts`), generated from the English
+  messages, so they need no catalog:
+  - `en-XA` accents every letter and makes each message a third longer
+    (`šţàŕţ ţŕàñšļàţîöñ ~~~~~~`);
+  - `ar-XB` writes the messages in Arabic letters, so the page runs right to
+    left, and turns the arrows.
 
-  Today's CSS uses physical left/right in a few dozen places, mostly the
-  sidebar, tooltips, and dialogs. None of the seven shipped languages is
-  right-to-left.
-- **Pseudo-locale** for testing: a generated language that stretches and
-  accents every string (`[Śţàŕţ ţŕàñšļàţîöñ ~~~]`). Hard-coded strings stay
-  plain and overflows become visible, without anyone reading the language.
+  Text that stays plain was never in the catalog, and overflows show without
+  anyone reading the language. `npm run dev` lists both in the language menu.
+  In a built dashboard, run
+  `localStorage.setItem("ui-language", "ar-XB")` in the browser console and
+  reload; pick a language from the menu to leave. No right-to-left language is
+  shipped yet.
 
 ## 3. Quality checks
 
@@ -126,7 +147,7 @@ translates any pair (docs/GENERIC_LANGUAGES.md).
 | Broken translations | `i18n/catalog.test.ts`: every message parses, has no key English lacks, and uses the same values as the English message | done |
 | Missing translations | `npm run i18n -- status` reports per-language coverage | done |
 | Server codes | `tests/test_web_messages.py`: the English catalog has every code the server sends, with the server's text, and no other | done |
-| Layout | A browser pass in each language and the pseudo-locale over every page and state (draft, running, gates, errors) | phase 5 |
+| Layout | `e2e/layout.e2e.ts`: in both layout-test languages no page is wider than the window; right to left, the header, sidebar, and tables start from the right while identifiers and book text keep their own direction | done |
 
 ## 4. Translation workflow
 
@@ -156,13 +177,26 @@ translates any pair (docs/GENERIC_LANGUAGES.md).
 | 2 | Catalogs for the six other languages; locale-aware formatting | done |
 | 3 | Long help texts: stage descriptions (`lib/stageInfo.ts`), config labels and help (`lib/configCatalog.ts`) | done |
 | 4 | Server message codes; status and enum words | done |
-| 5 | Direction-neutral CSS, pseudo-locale, contributor docs | deferred until a right-to-left or eighth language is asked for |
+| 5 | Direction-neutral CSS, right-to-left layout, layout-test languages | done |
 | later | Each additional language: one JSON file plus native review | |
+
+### Adding a language
+
+1. Add it to `LOCALES` in `frontend/src/i18n/index.ts`, named in its own
+   language. A right-to-left language also goes in `RIGHT_TO_LEFT` there if
+   it is not already listed.
+2. Create `frontend/src/i18n/locales/<code>.json` as `{}` and fill it with
+   `npm run i18n -- md` and `merge-md` (section 4). Missing messages show in
+   English meanwhile.
+3. Run `npm test` and `npm run e2e`, then `npm run build`.
+4. Per decision 4, add `README.<code>.md` and take the interface vocabulary
+   from it.
 
 ## 6. Decisions (2026-10-08)
 
 1. Ship the seven languages the pipeline has profiles for, on the
    multi-language (ICU) design.
-2. Phase 5 is deferred.
+2. Phase 5 was deferred, then built the same day as layout only: no
+   right-to-left language is shipped, and Arabic is not in the menu.
 3. The default language is English, not the browser's.
 4. Each language's vocabulary follows that language's README.

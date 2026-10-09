@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+import tempfile
 from pathlib import Path
 
 import pytest
@@ -85,3 +86,83 @@ class StageMessageTests:
         literal = re.sub(r"^\{\w+\}", "", STAGE_MESSAGES[code])
         for source in sources:
             assert literal in (REPO / "book_agent" / source).read_text(encoding="utf-8"), source
+
+
+class RefusalTests:
+    """Refusals no other test reaches: each is raised with its code and reads as its English text."""
+
+    @pytest.fixture
+    def folder(self):
+        with tempfile.TemporaryDirectory() as directory:
+            yield Path(directory)
+
+    def app(self, directory):
+        from book_agent.web.server import UiApp
+
+        base = Path(directory)
+        (base / "configs").mkdir()
+        return UiApp(base / "runs", base / "configs", [])
+
+    def refused(self, code, call, **params):
+        with pytest.raises(UserError) as raised:
+            call()
+        assert (raised.value.code, raised.value.params) == (code, {name: str(value) for name, value in params.items()})
+        assert str(raised.value) == MESSAGES[code].format(**params)
+
+    def test_a_job_the_server_does_not_have(self, folder):
+        app = self.app(folder)
+        self.refused("job_unknown", lambda: app.job_info("nope"), job="nope")
+        self.refused("job_unknown", lambda: app.job_config("nope"), job="nope")
+
+    def test_what_only_an_unstarted_job_allows(self, folder):
+        app = self.app(folder)
+        self.refused("job_already_started", lambda: app.start_job("nope"))
+        self.refused("validate_started_job", lambda: app.validate_job("nope", {"text": ""}))
+        self.refused("discard_started_job", lambda: app.discard_draft("nope"))
+
+    def test_a_source_file_that_is_not_there(self, folder):
+        app = self.app(folder)
+        missing = folder / "gone.epub"
+        self.refused("source_not_found", lambda: app.create_job({"source": str(missing), "config": "gone.yaml", "job_id": ""}), path=missing)
+
+    def test_a_second_command_while_one_runs(self, folder):
+        app = self.app(folder)
+
+        class Running:
+            def poll(self):
+                return None
+
+        app._processes["a1"] = {"process": Running(), "label": "resume"}
+        self.refused("already_running", lambda: app.launch("a1", ["resume"], "rerun"), label="resume")
+
+    def test_an_upload_that_stops_early(self, folder):
+        import io
+
+        from book_agent.web.drafts import store_upload
+
+        self.refused("upload_incomplete", lambda: store_upload(folder, "a.epub", io.BytesIO(b"abc"), 10))
+
+    def test_an_empty_upload_over_http(self, folder):
+        import threading
+        import urllib.error
+        import urllib.request
+        from http.server import ThreadingHTTPServer
+
+        from book_agent.web.server import make_handler
+
+        app = self.app(folder)
+        port = [0]
+        server = ThreadingHTTPServer(("127.0.0.1", 0), make_handler(app, port))
+        port[0] = server.server_address[1]
+        threading.Thread(target=server.serve_forever, daemon=True).start()
+        try:
+            request = urllib.request.Request(
+                f"http://127.0.0.1:{port[0]}/api/uploads?name=a.epub", data=b"", method="POST", headers={"X-UI-Token": app.token}
+            )
+            with pytest.raises(urllib.error.HTTPError) as raised:
+                urllib.request.urlopen(request, timeout=30)
+            assert raised.value.code == 413
+            assert json.loads(raised.value.read()) == {"error": MESSAGES["upload_size"], "code": "upload_size", "params": {}}
+        finally:
+            server.shutdown()
+            server.server_close()

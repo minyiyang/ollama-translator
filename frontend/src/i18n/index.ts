@@ -5,6 +5,7 @@
 import { IntlMessageFormat } from "intl-messageformat";
 import { Children, useSyncExternalStore, type ReactNode } from "react";
 import en from "./en.json";
+import { isPseudo, pseudoMessage, type PseudoLocale } from "./pseudo";
 
 export type MessageKey = keyof typeof en;
 type Catalog = Partial<Record<MessageKey, string>>;
@@ -23,7 +24,12 @@ export const LOCALES = [
   { code: "de", name: "Deutsch" },
   { code: "ko", name: "한국어" },
 ] as const;
-export type Locale = (typeof LOCALES)[number]["code"];
+export type Locale = (typeof LOCALES)[number]["code"] | PseudoLocale;
+
+// Languages written right to left, by the first part of their code.
+const RIGHT_TO_LEFT = new Set(["ar", "fa", "he", "ur"]);
+/** The direction a language is written in: the page is laid out in it. */
+export const direction = (locale: string): "ltr" | "rtl" => (RIGHT_TO_LEFT.has(locale.split("-")[0]) ? "rtl" : "ltr");
 
 const STORAGE_KEY = "ui-language";
 const loaders = import.meta.glob<{ default: Catalog }>("./locales/*.json");
@@ -31,15 +37,15 @@ const catalogs: Partial<Record<Locale, Catalog>> = { en };
 const formatters = new Map<string, IntlMessageFormat>();
 const listeners = new Set<() => void>();
 
-const isLocale = (code: string | null): code is Locale => LOCALES.some((locale) => locale.code === code);
+const isLocale = (code: string | null): code is Locale => LOCALES.some((locale) => locale.code === code) || isPseudo(code);
 
 function formatter(locale: Locale, key: MessageKey): IntlMessageFormat {
   const own = catalogs[locale]?.[key];
-  const from = own === undefined ? "en" : locale;
+  const from = isPseudo(locale) ? locale : own === undefined ? "en" : locale;
   let found = formatters.get(`${from}\n${key}`);
   if (!found) {
     // A key the catalog lacks (only possible past the type check) shows as itself.
-    found = new IntlMessageFormat(own ?? en[key] ?? key, from);
+    found = isPseudo(from) ? pseudoMessage(en[key] ?? key, from) : new IntlMessageFormat(own ?? en[key] ?? key, from);
     formatters.set(`${from}\n${key}`, found);
   }
   return found;
@@ -61,6 +67,7 @@ let current: { locale: Locale; t: Translate } = { locale: "en", t: translator("e
 function apply(locale: Locale) {
   current = { locale, t: translator(locale) };
   document.documentElement.lang = locale;
+  document.documentElement.dir = direction(locale);
   listeners.forEach((notify) => notify());
 }
 

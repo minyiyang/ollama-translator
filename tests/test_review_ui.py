@@ -1,10 +1,15 @@
+import json
 import tempfile
+import threading
+import time
 from pathlib import Path
+from types import SimpleNamespace
+from unittest.mock import patch
 
 import pytest
 
 from book_agent.config import AppConfig
-from book_agent.review_ui import ReviewSession
+from book_agent.review_ui import WORKSHEET_NAME, ReviewSession
 from book_agent.stages.compile import FinalDraftApprovalRequired, run_epub_compile_stage
 from book_agent.text_edits import apply_edit
 from book_agent.web.text_view import text_chapter, text_outline
@@ -200,3 +205,91 @@ class PartialApplyTests:
             session = ReviewSession(workspace)
             with pytest.raises(ValueError, match="pending"):
                 session.apply(session.payload()["worksheet"], approve_final=True)
+
+
+class SaveRefusalTests:
+    def test_a_job_without_a_worksheet_has_nothing_to_save(self):
+        with tempfile.TemporaryDirectory() as directory:
+            session = ReviewSession(paused_workspace(directory))
+            worksheet = session.payload()["worksheet"]
+            (session.reports / WORKSHEET_NAME).unlink()
+            with pytest.raises(ValueError, match="no final-review worksheet exists"):
+                session.save(worksheet)
+
+    def test_a_worksheet_for_another_draft_is_refused(self):
+        with tempfile.TemporaryDirectory() as directory:
+            session = ReviewSession(paused_workspace(directory))
+            worksheet = session.payload()["worksheet"]
+            with pytest.raises(ValueError, match="older draft; reload the page"):
+                session.save({**worksheet, "draft_output_hash": "0" * 64})
+            assert not session.draft_path.exists()
+
+    def test_saved_decisions_for_another_draft_are_not_shown(self):
+        with tempfile.TemporaryDirectory() as directory:
+            session = ReviewSession(paused_workspace(directory))
+            worksheet = session.payload()["worksheet"]
+            worksheet["resolutions"][0]["reason"] = "Left from an earlier draft."
+            session.draft_path.write_text(
+                json.dumps({**worksheet, "draft_output_hash": "0" * 64}), encoding="utf-8"
+            )
+            payload = session.payload()
+            assert payload["draft_saved"]
+            assert payload["worksheet"]["resolutions"][0]["reason"] != "Left from an earlier draft."
+
+
+class CompileFromTheReviewPageTests:
+    def result(self, **fields):
+        return SimpleNamespace(
+            **{"result": "complete", "exit_code": 0, "stage": "validate_epub", "message": "", **fields}
+        )
+
+    def wait(self, session, state):
+        for _ in range(200):
+            if session.compile_state()["state"] == state:
+                return session.compile_state()
+            time.sleep(0.02)
+        raise AssertionError(f"compile never became {state}: {session.compile_state()}")
+
+    def test_compile_runs_once_at_a_time_and_reports_its_progress(self):
+        with tempfile.TemporaryDirectory() as directory:
+            session = ReviewSession(paused_workspace(directory))
+            assert session.compile_state() == {"state": "idle", "events": [], "result": None}
+            release = threading.Event()
+
+            def workflow(workspace, progress):
+                progress(SimpleNamespace(stage="compile", status="running", message="writing the book"))
+                release.wait(10)
+                return self.result()
+
+            with patch("book_agent.review_ui.run_workflow", side_effect=workflow), \
+                 patch("book_agent.review_ui.load_compiled_epub_path", return_value="output/book.epub"):
+                assert session.start_compile()["state"] == "running"
+                with pytest.raises(ValueError, match="already running"):
+                    session.start_compile()
+                release.set()
+                state = self.wait(session, "done")
+            assert state["events"] == [{"stage": "compile", "status": "running", "message": "writing the book"}]
+            assert state["result"] == {
+                "result": "complete", "exit_code": 0, "stage": "validate_epub", "message": "",
+                "output": "output/book.epub",
+            }
+
+    def test_a_book_not_compiled_yet_has_no_output_to_name(self):
+        with tempfile.TemporaryDirectory() as directory:
+            session = ReviewSession(paused_workspace(directory))
+            paused = self.result(result="paused", exit_code=2, stage="compile", message="approval needed")
+            with patch("book_agent.review_ui.run_workflow", return_value=paused), \
+                 patch("book_agent.review_ui.load_compiled_epub_path", side_effect=FileNotFoundError("no book")):
+                session.start_compile()
+                state = self.wait(session, "done")
+            assert state["result"]["output"] == "" and state["result"]["message"] == "approval needed"
+
+    def test_a_crash_is_shown_to_the_reviewer_and_compile_can_be_tried_again(self):
+        with tempfile.TemporaryDirectory() as directory:
+            session = ReviewSession(paused_workspace(directory))
+            with patch("book_agent.review_ui.run_workflow", side_effect=RuntimeError("disk full")):
+                session.start_compile()
+                state = self.wait(session, "failed")
+                assert state["result"] == {"result": "failed", "message": "disk full"}
+                session.start_compile()
+                self.wait(session, "failed")

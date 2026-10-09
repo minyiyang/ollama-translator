@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { LOCALES, setLocale, useLocale, useT, type Locale, type MessageKey } from "../i18n";
+import { isPseudo, PSEUDO_LOCALES } from "../i18n/pseudo";
 import { tierLabel } from "../lib/enums";
 import { directionLabel } from "../lib/format";
 import { isGeneric } from "../lib/languages";
@@ -21,10 +22,12 @@ const TABS = [
 function LanguageMenu() {
   const t = useT();
   const locale = useLocale();
+  // The layout-test languages are offered while developing, or when one is in use.
+  const locales = import.meta.env.MODE === "development" || isPseudo(locale) ? [...LOCALES, ...PSEUDO_LOCALES] : LOCALES;
   return (
     <select className="language-menu" aria-label={t("shell.language")} title={t("shell.language")} value={locale}
       onChange={(event) => void setLocale(event.target.value as Locale).catch(() => undefined)}>
-      {LOCALES.map(({ code, name }) => <option key={code} value={code} lang={code}>{name}</option>)}
+      {locales.map(({ code, name }) => <option key={code} value={code} lang={code}>{name}</option>)}
     </select>
   );
 }

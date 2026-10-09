@@ -1,7 +1,7 @@
 import { act, render, screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
 import en from "./en.json";
-import { getLocale, initLocale, LOCALES, rich, setLocale, t, useT, type MessageKey } from "./index";
+import { direction, getLocale, initLocale, LOCALES, rich, setLocale, t, useT, type MessageKey } from "./index";
 
 describe("Messages", () => {
   it("fill in values and pick the plural form", () => {
@@ -17,6 +17,13 @@ describe("Messages", () => {
 
   it("show the key for a message the catalog lacks", () => {
     expect(t("no.such.message" as MessageKey)).toBe("no.such.message");
+  });
+
+  it("show the key for a message that cannot be filled in, in any language", async () => {
+    expect(t("server.error.job_exists")).toBe("server.error.job_exists");
+    await setLocale("de");
+    expect(t("server.error.job_exists")).toBe("server.error.job_exists");
+    await setLocale("en");
   });
 });
 
@@ -56,5 +63,32 @@ describe("The interface language", () => {
     window.localStorage.setItem("ui-language", "tlh");
     await initLocale();
     expect(getLocale()).toBe("en");
+  });
+});
+
+describe("A layout-test language", () => {
+  it("stretches and accents the text, keeping values and plural forms", async () => {
+    await setLocale("en-XA", false);
+    expect(t("shell.checksSkipped", { direction: "EN → JA", count: 1 })).toMatch(/^EN → JA · 1 çħḗçķ šķîƥƥḗḓ ~+$/);
+    expect(t("shell.checksSkipped", { direction: "EN → JA", count: 3 })).toMatch(/^EN → JA · 3 çħḗçķš šķîƥƥḗḓ ~+$/);
+    expect(document.documentElement.dir).toBe("ltr");
+  });
+
+  it("writes right to left in Arabic letters, and turns the arrows", async () => {
+    await setLocale("ar-XB", false);
+    expect(document.documentElement.dir).toBe("rtl");
+    expect(t("jobs.table.reviewGlossary")).toMatch(/^[^A-Za-z→]+ ← ~+$/);
+    render(<p>{rich("jobs.new.dropHint", { kinds: "EPUB", browse: (chunks) => <button>{chunks}</button> })}</p>);
+    expect(screen.getByRole("button")).not.toHaveTextContent(/[A-Za-z]/);
+
+    await setLocale("fr", false);
+    expect(document.documentElement.dir).toBe("ltr");
+  });
+
+  it("is not one of the languages on offer", () => {
+    expect(LOCALES.map(({ code }) => code)).not.toContain("ar-XB");
+    expect(direction("ar")).toBe("rtl");
+    expect(direction("he-IL")).toBe("rtl");
+    expect(direction("zh-CN")).toBe("ltr");
   });
 });

@@ -419,7 +419,7 @@ export function GlossaryPage() {
             <div className="row" style={{ margin: "0 0 12px", justifyContent: "space-between" }}>
               <div>
                 <Chip kind={data.approve_status}>{data.approve_status === "paused" ? t("glossary.status.waitingForReview") : statusLabel(data.approve_status)}</Chip>
-                {data.review_mode && <span className="meta" style={{ marginLeft: 6 }}>{t("glossary.reviewMode", { mode: reviewModeLabel(data.review_mode) })}</span>}
+                {data.review_mode && <span className="meta" style={{ marginInlineStart: 6 }}>{t("glossary.reviewMode", { mode: reviewModeLabel(data.review_mode) })}</span>}
               </div>
               {editable && (
                 <div className="row" style={{ margin: 0 }}>

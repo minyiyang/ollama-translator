@@ -481,9 +481,9 @@ export function ReviewPage() {
         <div className="cols">
           <section className="card">
             <h2>{t("review.source")}</h2>
-            {ctx.previous_source_context && <div className="ctx">{ctx.previous_source_context}</div>}
+            {ctx.previous_source_context && <div className="ctx" lang={sourceLang}>{ctx.previous_source_context}</div>}
             <div className="text" lang={sourceLang}><Highlight text={it.res.source_text} quote={focus?.source_quote} /></div>
-            {ctx.next_source_context && <div className="ctx">{ctx.next_source_context}</div>}
+            {ctx.next_source_context && <div className="ctx" lang={sourceLang}>{ctx.next_source_context}</div>}
           </section>
           <section className="card">
             <h2>{t("review.current")}</h2>
