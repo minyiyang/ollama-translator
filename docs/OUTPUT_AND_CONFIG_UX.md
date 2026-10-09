@@ -276,6 +276,15 @@ source's. Only a conversion goes through the new writer.
   was already dropped when the cue was translated. A position code SubRip
   borrowed from ASS (`{\an8}`) is kept going to ASS and dropped going to
   WebVTT.
+- **Text a format would read as markup.** SubRip and ASS cannot say that a
+  `<`, a `{`, or in ASS the backslash of `\N`, `\n`, `\h` is text
+  (`<door closes>` from a WebVTT `&lt;door closes&gt;`, a path such as
+  `C:\new\home`). The writer puts a word joiner (U+2060, which is not seen)
+  after such a character, so that neither a player nor this reader takes
+  what follows for a tag or a code, and the reader takes it out again
+  (`_literal`, `_GUARD`). WebVTT has entities and uses those. The same is
+  done when a translation is written into the file of the kind that came
+  in.
 - **What it says it lost** is a list of codes (`CONVERSION_NOTES`), found by
   looking at the file, not assumed from the pair of formats: a plain SRT
   written as WebVTT loses nothing and says nothing. The codes are

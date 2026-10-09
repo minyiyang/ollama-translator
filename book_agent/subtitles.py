@@ -121,7 +121,15 @@ class SubtitleFile:
 _DASH = re.compile(r"\s*([-\u2010-\u2015])\s*(?=\S)")
 _TIME = r"(?:(\d+):)?(\d{1,2}):(\d{2})[.,](\d{1,3})"
 _TIMING = re.compile(rf"^\s*{_TIME}\s*-->\s*{_TIME}")
-_TAG = r"<[^<>]*>|\{[^{}]*\}"
+# A word joiner, which is not seen, written after a character of a cue's text
+# that the format would read as markup: "<" and "{" in SubRip and ASS, and in
+# ASS the backslash of \N, \n, and \h. SubRip and ASS have no way to say such a
+# character is text; what follows it then no longer reads as a tag or a code,
+# here or in a player. Reading takes the joiner out again.
+_GUARD = "\u2060"
+_GUARDED = re.compile(rf"([<{{\\]){_GUARD}")
+_ASS_CODE = re.compile(r"\\(?=[Nnh])")
+_TAG = rf"<(?!{_GUARD})[^<>]*>|\{{(?!{_GUARD})[^{{}}]*\}}"
 _LEADING = re.compile(rf"^(?:\s*(?:{_TAG}))+")
 _TRAILING = re.compile(rf"(?:(?:{_TAG})\s*)+$")
 _ANY_TAG = re.compile(_TAG)
@@ -149,11 +157,19 @@ def _cue(number: int, start: int, end: int, raw: str, kind: str) -> Cue:
     trailing = _TRAILING.search(rest)
     suffix = trailing.group(0) if trailing else ""
     body = rest[: len(rest) - len(suffix)] if suffix else rest
-    body = _ANY_TAG.sub("", body)
+    body = _GUARDED.sub(r"\1", _ANY_TAG.sub("", body))
     if kind == "vtt":
         body = html.unescape(body)
     lines = [re.sub(r"\s+", " ", line).strip() for line in body.split("\n")]
     return Cue(number, start, end, [line for line in lines if line], prefix.strip(), suffix.strip(), written)
+
+
+def _literal(line: str, kind: str) -> str:
+    """A line of a cue's text written so that the format reads all of it as text."""
+    if kind == "vtt":
+        return html.escape(line, quote=False)
+    line = line.replace("<", "<" + _GUARD).replace("{", "{" + _GUARD)
+    return _ASS_CODE.sub(lambda match: "\\" + _GUARD, line) if kind == "ass" else line
 
 
 def parse_subtitles(text: str, kind: str) -> SubtitleFile:
@@ -443,8 +459,7 @@ def _render(cue: Cue, translations: list[str], kind: str, limits: ReadingLimits)
         lines = [dash + _DASH.sub("", text.strip(), count=1) for dash, text in zip(dashes, translations)]
     else:
         lines = wrap_cue(" ".join(translations), limits)
-    if kind == "vtt":
-        lines = [html.escape(line, quote=False) for line in lines]
+    lines = [_literal(line, kind) for line in lines]
     return cue.prefix + ("\\N" if kind == "ass" else "\n").join(lines) + cue.suffix
 
 
@@ -681,10 +696,10 @@ def convert_subtitles(parsed: SubtitleFile, kind: str) -> tuple[str, list[str]]:
                 note("times")
             opening = "".join(f"\\{letter}1" for letter in marks.emphasis) + marks.position
             closing = "".join(f"\\{letter}0" for letter in reversed(marks.emphasis))
-            text = (f"{{{opening}}}" if opening else "") + "\\N".join(cue.lines) + (f"{{{closing}}}" if closing else "")
+            text = (f"{{{opening}}}" if opening else "") + "\\N".join(_literal(line, kind) for line in cue.lines) + (f"{{{closing}}}" if closing else "")
             blocks.append(f"Dialogue: 0,{_ass_clock(cue.start)},{_ass_clock(cue.end)},Default,,0,0,0,,{text}")
             continue
-        lines = [html.escape(line, quote=False) for line in cue.lines] if kind == "vtt" else list(cue.lines)
+        lines = [_literal(line, kind) for line in cue.lines]
         text = (
             "".join(f"<{letter}>" for letter in marks.emphasis)
             + "\n".join(lines)

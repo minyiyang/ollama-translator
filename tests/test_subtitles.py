@@ -843,3 +843,59 @@ def test_a_subtitle_jobs_pages_leave_out_the_stage_that_only_a_book_has_work_for
         assert "translate_title" not in estimate(workspace, app.runs, config)["unknown_stages"]
         check = validate_setup("translation:\n  direction: en>de\n", Path(directory), Path(directory) / "elsewhere", str(workspace.source_file), "")
         assert "translate_title" not in check["stages"] and "compile" in check["stages"]
+
+
+# Text a format would read as markup: reviewed on PR #10.
+LITERAL_SRT = "1\n00:00:01,000 --> 00:00:02,000\n<i>Look in C:\\new\\home\\notes</i>\n"
+LITERAL_VTT = "WEBVTT\n\n00:00:01.000 --> 00:00:02.000\n<i>&lt;door closes&gt; R&amp;D</i>\n\n00:00:03.000 --> 00:00:04.000\nYes.\n"
+
+
+@pytest.mark.parametrize(
+    "text, kind, lines",
+    [
+        pytest.param(LITERAL_SRT, "srt", ["Look in C:\\new\\home\\notes"], id="backslashes"),
+        pytest.param(LITERAL_VTT, "vtt", ["<door closes> R&D"], id="angle-brackets"),
+    ],
+)
+def test_text_that_a_format_would_read_as_markup_stays_text_in_every_format(text, kind, lines):
+    parsed = parse_subtitles(text, kind)
+    assert parsed.cues[0].lines == lines
+    with tempfile.TemporaryDirectory() as directory:
+        compiled = Path(directory) / f"scene.{kind}"
+        compiled.write_text(text, encoding="utf-8")
+        for target in SUBTITLE_FORMATS:
+            written, _ = convert_subtitles(parsed, target)
+            back = parse_subtitles(written, target).cues[0]
+            # One line still, with every character of it, and the italics around it.
+            assert back.lines == lines, target
+            assert back.prefix in {"<i>", "{\\i1}"}
+            if target != kind:
+                converted = Path(directory) / f"converted.{target}"
+                convert_subtitle_file(compiled, converted, target)
+                assert validate_converted_subtitles(converted, compiled) == []
+
+
+def test_what_stands_between_a_marked_character_and_the_text_is_not_seen_and_is_taken_out_again():
+    ass = convert_subtitles(parse_subtitles(LITERAL_SRT, "srt"), "ass")[0]
+    # A word joiner after the backslash: a player shows \n and \h as they are written, not as a line break and a space.
+    assert "{\\i1}Look in C:\\\u2060new\\\u2060home\\\u2060notes{\\i0}" in ass
+    srt = convert_subtitles(parse_subtitles(LITERAL_VTT, "vtt"), "srt")[0]
+    assert "<i><\u2060door closes> R&D</i>" in srt
+    # WebVTT has its own way to say it, and uses that.
+    vtt = convert_subtitles(parse_subtitles(srt, "srt"), "vtt")[0]
+    assert "<i>&lt;door closes&gt; R&amp;D</i>" in vtt and "\u2060" not in vtt
+    # A backslash that begins no code needs nothing.
+    plain = parse_subtitles("1\n00:00:01,000 --> 00:00:02,000\nD:\\films\\sign\n", "srt")
+    assert "\u2060" not in convert_subtitles(plain, "ass")[0]
+
+
+def test_a_translation_with_such_text_is_written_into_the_file_of_the_kind_that_came_in_as_text():
+    limits = reading_limits("en")
+    for kind, source, text, written_as in (
+        ("srt", "1\n00:00:01,000 --> 00:00:02,000\n<i>Sieh nach</i>\n", "<door closes> {aside}", "<i><\u2060door closes> {\u2060aside}</i>"),
+        ("ass", ASS, "C:\\new", "C:\\\u2060new"),
+    ):
+        parsed = parse_subtitles(source, kind)
+        written = render_subtitles(parsed, {1: [text]}, limits)
+        assert written_as in written
+        assert parse_subtitles(written, kind).cues[0].lines == [text]
