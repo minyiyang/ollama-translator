@@ -7,6 +7,7 @@ from types import SimpleNamespace
 import pytest
 
 from book_agent.audit import (
+    _adjacent_duplication_count,
     AuditCategory,
     AuditIssue,
     AuditRiskTag,
@@ -408,6 +409,77 @@ class AuditCoreTests:
         )
         report = audit_translated_document(source, excessive, AuditConfig())
         assert AuditCategory.DUPLICATION in {item.category for item in report.issues}
+
+    def test_a_quotation_repeated_after_its_lead_in_is_source_grounded_obfuscated(self):
+        # The source keeps the lead-in in the quotation's sentence; the translation ends a sentence before it.
+        source = source_document(
+            ["Zorvak went on murmuring, “Vraxen qelmin rotates? Vraxen qelmin rotates?” and slept."]
+        )
+        faithful = translated_document(
+            ["壬癸喃喃自语。「甲乙丙丁戊己庚辛？甲乙丙丁戊己庚辛？」然后睡着了。"]
+        )
+        report = audit_translated_document(source, faithful, AuditConfig())
+        assert AuditCategory.DUPLICATION not in {item.category for item in report.issues}
+
+        # Said once more than the source says it, also behind a lead-in of its own.
+        excessive = translated_document(
+            ["可是，甲乙丙丁戊己庚辛？甲乙丙丁戊己庚辛？壬癸喃喃自语。「甲乙丙丁戊己庚辛？甲乙丙丁戊己庚辛？」然后睡着了。"]
+        )
+        report = audit_translated_document(source, excessive, AuditConfig())
+        assert AuditCategory.DUPLICATION in {item.category for item in report.issues}
+
+    def test_a_question_asked_twice_in_the_book_is_not_a_defect_in_japanese(self):
+        # Alice, chapter I, as a job translated it (bench-lang-en-ja, D0000-S000011): the English keeps
+        # "went on saying to herself" in the sentence of the first "Do cats eat bats?"; the Japanese
+        # ends that sentence before the quotation. The check refused every edit of the passage.
+        source = source_document([
+            "But do cats eat bats, I wonder?” And here Alice began to get rather sleepy, and went on saying "
+            "to herself, in a dreamy sort of way, “Do cats eat bats? Do cats eat bats?” and sometimes, "
+            "“Do bats eat cats?” for, you see, as she couldn’t answer either question, it didn’t much "
+            "matter which way she put it."
+        ])
+        rest = (
+            "」ここで、アリスは少し眠くなり、夢見心地に自分に語りかけた。「猫はコウモリを食べるの？"
+            "猫はコウモリを食べるの？」ときどき、「コウモリは猫を食べるの？」とも。なぜなら、どちらの質問にも"
+            "答えられなかったのだから、どちらに転んでもよかったのだ。"
+        )
+        duplicated = lambda report: AuditCategory.DUPLICATION in {item.category for item in report.issues}
+
+        faithful = translated_document(["でも、猫はコウモリを食べるの？" + rest])
+        assert not duplicated(audit_translated_document(source, faithful, AuditConfig()))
+
+        # What the model wrote: the question the book asks once, asked twice.
+        doubled = translated_document(["でも、猫はコウモリを食べるの？猫はコウモリを食べるの？" + rest])
+        assert duplicated(audit_translated_document(source, doubled, AuditConfig()))
+
+        # And the book's own repetition left out is not this defect.
+        once = translated_document(["でも、猫はコウモリを食べるの？" + rest.replace("猫はコウモリを食べるの？猫はコウモリを食べるの？", "猫はコウモリを食べるの？")])
+        assert not duplicated(audit_translated_document(source, once, AuditConfig()))
+
+    @pytest.mark.parametrize(
+        "text, repeated",
+        [
+            ("Do cats eat bats? Do cats eat bats?", 1),
+            # After a lead-in, in the same sentence as the first.
+            ("She went on saying, “Do cats eat bats? Do cats eat bats?” and slept.", 1),
+            ("語りかけた。「猫はコウモリを食べるの？猫はコウモリを食べるの？」", 1),
+            ("でも、猫はコウモリを食べるの？猫はコウモリを食べるの？", 1),
+            # Three times is repeated twice.
+            ("Do cats eat bats? Do cats eat bats? Do cats eat bats?", 2),
+            # Too short to be a sentence said again: an exclamation, a word.
+            ("when suddenly, thump! thump! down she came.", 0),
+            ("Down, down, down. Would the fall never come to an end?", 0),
+            ("He said no. No. Never.", 0),
+            # The same words inside a longer sentence, or in the other order, are not a repetition.
+            ("Do cats eat bats? Do cats eat bats at night?", 0),
+            ("Do cats eat bats? Do bats eat cats?", 0),
+            # Not next to each other.
+            ("Do cats eat bats? She wondered. Do cats eat bats?", 0),
+            ("", 0),
+        ],
+    )
+    def test_a_sentence_said_again_is_counted_with_or_without_a_lead_in(self, text, repeated):
+        assert _adjacent_duplication_count(text) == repeated
 
     def test_ai_style_is_low_severity_and_does_not_fail_alone(self):
         report = audit_translated_document(

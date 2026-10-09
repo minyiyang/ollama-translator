@@ -70,7 +70,7 @@ export function Shell({
             <NavLink to="/series" className={({ isActive }) => (isActive ? "on" : "")}>{t("shell.series")}</NavLink>
           </nav>
         )}
-        {(jobId || crumb) && <span className={jobId ? "crumb mono" : "crumb"}>{jobId ?? crumb}</span>}
+        {(jobId || crumb) && <span className={jobId ? "crumb mono" : "crumb"} title={jobId ?? undefined}>{jobId ?? crumb}</span>}
         {jobId && info?.languages && isGeneric(info.languages) && (
           <span className="chip warn" title={[
             t("shell.pairTiers", { source: info.languages.source.name, sourceTier: tierLabel(info.languages.source.tier), target: info.languages.target.name, targetTier: tierLabel(info.languages.target.tier) }),
