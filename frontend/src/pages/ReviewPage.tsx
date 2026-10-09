@@ -7,7 +7,7 @@ import { Shell } from "../components/Shell";
 import { SideLayout } from "../components/SideLayout";
 import { useToast } from "../components/Toast";
 import { Chip, Highlight } from "../components/ui";
-import { rich, useT, type MessageKey, type Translate } from "../i18n";
+import { rich, t as translate, useT, type MessageKey, type Translate } from "../i18n";
 import { diffChars } from "../lib/diff";
 import { findingCategoryLabel, findingOriginLabel, reviewKindLabel, severityLabel, statusLabel, versionLabel } from "../lib/enums";
 import { FALLBACK_PAIR, langAttr, leftoverSourceText, pairCodes } from "../lib/languages";
@@ -109,15 +109,16 @@ function CompileCard({ jobId, initial }: { jobId: string; initial?: CompileState
     } catch (e) {
       if (asked !== visit.current) return;
       // Keep following: one failed request does not mean the compile stopped.
-      toast("bad", t("review.compile.checkFailed", { error: (e as Error).message }), 0);
+      toast("bad", translate("review.compile.checkFailed", { error: (e as Error).message }), 0);
       timer.current = window.setTimeout(poll, 1500);
       return;
     }
     if (asked !== visit.current) return;
     setState(next);
     if (next.state === "running") timer.current = window.setTimeout(poll, 1500);
-    else if (next.result) toast(next.result.result === "complete" ? "ok" : "warn", t("review.compile.finished", { result: statusLabel(next.result.result) }), 0);
-  }, [jobId, toast, t]);
+    else if (next.result) toast(next.result.result === "complete" ? "ok" : "warn", translate("review.compile.finished", { result: statusLabel(next.result.result) }), 0);
+    // `translate` is the language of the moment: depending on `t` would stop the polling when the language changes.
+  }, [jobId, toast]);
   useEffect(() => {
     if (initial?.state === "running") poll();
     return () => { visit.current += 1; window.clearTimeout(timer.current); };

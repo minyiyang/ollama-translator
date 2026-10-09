@@ -2,6 +2,8 @@ import { act, cleanup, render, screen, waitFor, within } from "@testing-library/
 import userEvent from "@testing-library/user-event";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { App } from "../App";
+import { setLocale } from "../i18n";
+import de from "../i18n/locales/de.json";
 import { apiError, deferred, mockApi } from "../test/mockApi";
 import { jobInfo, stage } from "../test/job";
 
@@ -777,6 +779,29 @@ describe("Final review tab", () => {
       expect(await screen.findByRole("status", {}, { timeout: 4000 })).toHaveTextContent("Compile finished: paused");
       expect(document.querySelector(".compile-log")).toHaveTextContent("→ paused: 3 segments require review");
       expect(button).toBeEnabled();
+    });
+
+    it("keeps following the compile when the interface language changes", async () => {
+      let polls = 0;
+      reviewApi({
+        [`GET ${BASE}`]: emptyQueue(),
+        [`GET ${BASE}/compile`]: () => {
+          polls += 1;
+          return polls < 2
+            ? { state: "running", events: [{ stage: "compile", status: "running", message: "" }], result: null }
+            : { state: "done", events: [], result: { result: "complete", message: "all checks passed" } };
+        },
+      });
+      const user = await renderReviewTab();
+      const button = await screen.findByRole("button", { name: "Compile now" });
+      await user.click(button);
+      await waitFor(() => expect(button).toBeDisabled());
+
+      await act(() => setLocale("de"));
+      await waitFor(() => expect(button).toBeEnabled(), { timeout: 4000 });
+      expect(document.querySelector(".compile-log")).toHaveTextContent("→ complete: all checks passed");
+      // The result is announced in the language chosen meanwhile.
+      expect(screen.getByRole("status")).toHaveTextContent(de["review.compile.finished"].split("{")[0].trim());
     });
 
     it("shows why the compile could not start", async () => {

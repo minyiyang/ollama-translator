@@ -36,6 +36,8 @@ const loaders = import.meta.glob<{ default: Catalog }>("./locales/*.json");
 const catalogs: Partial<Record<Locale, Catalog>> = { en };
 const formatters = new Map<string, IntlMessageFormat>();
 const listeners = new Set<() => void>();
+// Counts the language choices, so one whose catalog arrives late can tell it was overtaken.
+let requests = 0;
 
 const isLocale = (code: string | null): code is Locale => LOCALES.some((locale) => locale.code === code) || isPseudo(code);
 
@@ -102,10 +104,8 @@ export function useLocale(): Locale {
 
 /** Switch the interface language, loading its catalog first, and remember the choice. */
 export async function setLocale(locale: Locale, remember = true): Promise<void> {
-  if (!catalogs[locale]) {
-    const load = loaders[`./locales/${locale}.json`];
-    catalogs[locale] = load ? (await load()).default : {};
-  }
+  const request = ++requests;
+  // Remembered at once: leaving the page while the catalog loads does not lose the choice.
   if (remember) {
     try {
       window.localStorage.setItem(STORAGE_KEY, locale);
@@ -113,7 +113,12 @@ export async function setLocale(locale: Locale, remember = true): Promise<void> 
       // Storage is blocked: the choice lasts for this page only.
     }
   }
-  apply(locale);
+  if (!catalogs[locale]) {
+    const load = loaders[`./locales/${locale}.json`];
+    catalogs[locale] = load ? (await load()).default : {};
+  }
+  // Another language was chosen while this one loaded: that choice stands.
+  if (request === requests) apply(locale);
 }
 
 /** Start in the saved language, or English. Never rejects: a catalog that fails to load leaves English. */
@@ -128,4 +133,7 @@ export async function initLocale(): Promise<void> {
 }
 
 /** Back to English, for tests. */
-export const resetLocale = () => apply("en");
+export const resetLocale = () => {
+  requests += 1;
+  apply("en");
+};

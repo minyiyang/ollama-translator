@@ -1,5 +1,5 @@
 import { act, render, screen } from "@testing-library/react";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import en from "./en.json";
 import { direction, getLocale, initLocale, LOCALES, rich, setLocale, t, useT, type MessageKey } from "./index";
 
@@ -41,6 +41,35 @@ describe("The interface language", () => {
     expect(t("shell.tab.glossary")).not.toBe(en["shell.tab.glossary"]);
     // Values still land in the translated sentence.
     expect(t("shell.seriesChip", { name: "Qel", version: "v2" })).toMatch(/Qel.*v2/);
+  });
+
+  it("keeps the latest choice when an earlier one finishes loading afterwards", async () => {
+    vi.resetModules();
+    let arrive!: () => void;
+    const held = new Promise<void>((resolve) => { arrive = resolve; });
+    vi.doMock("./locales/fr.json", async () => {
+      await held;
+      return { default: { "shell.tab.glossary": "Glossaire" } };
+    });
+    try {
+      const fresh = await import("./index");
+      const slow = fresh.setLocale("fr");
+      // Remembered before the catalog arrives: a reload now would start in French.
+      expect(window.localStorage.getItem("ui-language")).toBe("fr");
+      expect(fresh.getLocale()).toBe("en");
+      await fresh.setLocale("en");
+      arrive();
+      await slow;
+      expect(fresh.getLocale()).toBe("en");
+      expect(document.documentElement.lang).toBe("en");
+      expect(window.localStorage.getItem("ui-language")).toBe("en");
+      // The catalog that arrived late is kept for the next time it is chosen.
+      await fresh.setLocale("fr");
+      expect(fresh.t("shell.tab.glossary")).toBe("Glossaire");
+    } finally {
+      vi.doUnmock("./locales/fr.json");
+      vi.resetModules();
+    }
   });
 
   it("re-renders a component that translates", async () => {

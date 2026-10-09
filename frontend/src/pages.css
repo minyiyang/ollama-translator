@@ -58,6 +58,8 @@
 .stages .work { min-width: 170px; }
 .stages .last-change { white-space: nowrap; }
 .stages .work .bar { margin-top: 4px; }
+/* Ten columns: the headings and the buttons wrap before the table outgrows the window. */
+.stages th.num, .stages td:last-child { white-space: normal; }
 .icon.completed { color: var(--ok); }
 .icon.running { color: var(--accent); }
 .icon.failed { color: var(--bad); }
@@ -329,7 +331,7 @@ header.shell nav.tabs a .pip.running { animation: pip-pulse 1.4s ease-in-out inf
 button.danger { background: var(--bad); color: var(--panel); border-color: var(--bad); font-weight: 600; }
 .rerun-stages { margin: 0 0 10px; padding-inline-start: 22px; }
 .dialog-body .banner { margin: 8px 0 0; }
-.stage-actions { display: inline-flex; gap: 6px; white-space: nowrap; }
+.stage-actions { display: inline-flex; flex-wrap: wrap; justify-content: flex-end; gap: 6px; }
 .nowrap { white-space: nowrap; }
 .series-chip { text-decoration: none; }
 .pick-list { display: grid; gap: 4px; margin: 6px 0; max-height: 260px; overflow: auto; }

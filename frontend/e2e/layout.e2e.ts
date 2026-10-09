@@ -13,12 +13,19 @@ async function open(page: Page, language: string, path: string) {
 /** How far the page is wider than the window: text or a panel sticking out. */
 const overflow = (page: Page) => page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
 
+/** The same with wider letters: fonts differ from one system to the next, and the page must fit with any of them. */
+async function overflowInAWiderFont(page: Page) {
+  await page.addStyleTag({ content: "* { letter-spacing: 0.08em !important; }" });
+  return overflow(page);
+}
+
 test.describe("The dashboard in a language written right to left", () => {
   for (const path of PAGES) {
     test(`fits the window on ${path}`, async ({ page }) => {
       await open(page, "ar-XB", path);
       await expect(page.locator("html")).toHaveAttribute("dir", "rtl");
       expect(await overflow(page)).toBeLessThanOrEqual(0);
+      expect(await overflowInAWiderFont(page)).toBeLessThanOrEqual(0);
     });
   }
 
@@ -47,6 +54,7 @@ test.describe("The dashboard in a language with longer words", () => {
     test(`fits the window on ${path}`, async ({ page }) => {
       await open(page, "en-XA", path);
       expect(await overflow(page)).toBeLessThanOrEqual(0);
+      expect(await overflowInAWiderFont(page)).toBeLessThanOrEqual(0);
     });
   }
 });

@@ -23,6 +23,7 @@ test.describe("A translator changes the interface language", () => {
   test("keeps the language from one page of a job to the next", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("combobox", { name: "Interface language" }).selectOption({ label: "Français" });
+    await expect(page.locator("html")).toHaveAttribute("lang", "fr");
     await page.goto("/jobs/alice-german/progress");
     await expect(page.getByRole("link", { name: "Progression", exact: true })).toBeVisible();
     await page.getByRole("combobox", { name: "Langue de l’interface" }).selectOption({ label: "English" });
@@ -34,6 +35,7 @@ test.describe("A translator reads what the pipeline says in their language", () 
   test("sees a stage's description and its status message translated", async ({ page }) => {
     await page.goto("/");
     await page.getByRole("combobox", { name: "Interface language" }).selectOption({ label: "简体中文" });
+    await expect(page.locator("html")).toHaveAttribute("lang", "zh-CN");
     await page.goto("/jobs/alice-german/progress");
 
     // The stage wrote "1 segment(s) require human review"; the dashboard says it in Chinese.
