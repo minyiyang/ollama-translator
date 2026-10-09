@@ -3,9 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { jobApi } from "../api";
 import { useT, type MessageKey } from "../i18n";
 import { statusLabel } from "../lib/enums";
-import { outputFormats, outputUrl } from "../lib/format";
 import { attentionFrom } from "../lib/stages";
 import { useConfirm } from "./Dialog";
+import { DownloadControl } from "./DownloadControl";
 import { useJob } from "./JobContext";
 import { useToast } from "./Toast";
 import { Chip } from "./ui";
@@ -28,11 +28,7 @@ export function JobControls() {
   const confirm = useConfirm();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
-  // The format picked here; until one is, the one the job gives back.
-  const [picked, setPicked] = useState<string | null>(null);
   if (!info) return null;
-  const given = info.output_format ?? "epub";
-  const format = picked ?? given;
 
   type Ask = { title: string; body: string; label: string };
   const act = async (path: string, done: string, ask?: Ask) => {
@@ -83,18 +79,7 @@ export function JobControls() {
           </button>
         </span>
       )}
-      {info.downloadable && info.job_type === "subtitles" && (
-        <a className="button primary" href={outputUrl(jobId)} download title={t("jobs.downloadSubtitles")}>{t("jobs.download")}</a>
-      )}
-      {info.downloadable && info.job_type !== "subtitles" && (
-        <>
-          <select className="small" aria-label={t("jobs.controls.downloadFormat")} value={format} onChange={(e) => setPicked(e.target.value)}
-            title={t("jobs.controls.downloadFormatTip")}>
-            {outputFormats(info.output_formats).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
-          </select>
-          <a className="button primary" href={outputUrl(jobId, format === given ? "" : format)} download title={t("jobs.downloadBook")}>{t("jobs.download")}</a>
-        </>
-      )}
+      {info.downloadable && <DownloadControl jobId={jobId} output={info} />}
       {info.kind === "job" && !info.running && !waiting && info.overall !== "complete" && (
         <span title={t(TIPS.resume)}>
           <button className="primary" disabled={busy} onClick={() => act("resume", t("jobs.controls.resumed"))}>{t("jobs.controls.resume")}</button>

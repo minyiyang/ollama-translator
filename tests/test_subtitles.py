@@ -23,13 +23,20 @@ from book_agent.stages.translate import run_translation_stage
 from book_agent.stages.validate_epub import run_epub_validation_stage
 from book_agent.stages.validate_repaired import run_repaired_validation_stage
 from book_agent.subtitles import (
+    CONVERSION_NOTES,
+    SUBTITLE_FORMATS,
     SubtitleError,
+    conversion_notes,
+    convert_subtitle_file,
+    convert_subtitles,
     cue_passages,
     job_type,
     parse_subtitles,
     read_subtitles,
     reading_limits,
     render_subtitles,
+    subtitle_kind,
+    validate_converted_subtitles,
     wrap_cue,
 )
 from book_agent.workspace import create_job_workspace
@@ -567,3 +574,272 @@ def test_a_subtitle_job_runs_with_a_books_config_the_prose_rewrite_switched_off(
         source.write_text(SRT, encoding="utf-8")
         summary = build_dry_run_summary(source, book_config, Path(directory) / "runs")
         assert summary["job_type"] == "subtitles" and summary["reprose_enabled"] is False and "switched off" in summary["note"]
+
+
+# -- from one subtitle format to another (docs/OUTPUT_AND_CONFIG_UX.md, 3) --------------------------
+
+# A scene with what each format says in its own way: italics, two speakers, and a cue placed on the screen.
+PLACED_SRT = (
+    "1\n00:00:01,000 --> 00:00:03,500\n<i>Which is it today,\nmorphine & cocaine?</i>\n\n"
+    "2\n00:00:04,000 --> 00:00:06,000\n- Which is it?\n- Cocaine.\n\n"
+    "3\n00:00:07,005 --> 00:00:08,000\n{\\an8}<b>BAKER STREET</b>\n\n"
+    "4\n00:00:09,000 --> 00:00:10,000\n<font color=\"#ffff00\">Watson!</font>\n"
+)
+PLACED_VTT = (
+    "WEBVTT - The Sign of the Four\n\nNOTE Translated from the English.\n\nSTYLE\n::cue { color: yellow }\n\n"
+    "intro\n00:01.000 --> 00:03.500 line:90% align:center\n<i>Which is it today,\nmorphine &amp; cocaine?</i>\n\n"
+    "00:00:04.000 --> 00:00:06.000\n- Which is it?\n- Cocaine.\n\n"
+    "00:00:07.005 --> 00:00:08.000 position:10%\n<b>BAKER STREET</b>\n\n"
+    "00:00:09.000 --> 00:00:10.000\n<v Holmes>Watson!\n"
+)
+PLACED_ASS = (
+    "[Script Info]\nTitle: The Sign of the Four\n\n[V4+ Styles]\nFormat: Name, Fontname\nStyle: Sign,Georgia\n\n[Events]\n"
+    "Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n"
+    "Comment: 0,0:00:00.00,0:00:01.00,Default,,0,0,0,,not shown\n"
+    "Dialogue: 0,0:00:01.00,0:00:03.50,Default,,0,0,0,,{\\i1}Which is it today,\\Nmorphine & cocaine?{\\i0}\n"
+    "Dialogue: 0,0:00:04.00,0:00:06.00,Default,,0,0,0,,- Which is it?\\N- Cocaine.\n"
+    "Dialogue: 1,0:00:04.00,0:00:08.00,Sign,,0,0,0,,{\\p1}m 0 0 l 100 0 100 40 0 40{\\p0}\n"
+    "Dialogue: 1,0:00:07.00,0:00:08.00,Sign,,0,0,0,,{\\an8\\b1\\pos(192,30)\\c&H00FFFF&}BAKER STREET\n"
+    "Dialogue: 0,0:00:09.00,0:00:10.00,Default,Holmes,0,0,0,,{\\k20}Wat{\\k30}son!\n"
+)
+PLACED = {"srt": PLACED_SRT, "vtt": PLACED_VTT, "ass": PLACED_ASS}
+PLACED_LINES = [["Which is it today,", "morphine & cocaine?"], ["- Which is it?", "- Cocaine."], ["BAKER STREET"], ["Watson!"]]
+# What each conversion says it did not carry over, or added: the table of the design.
+NOTED = {
+    ("srt", "vtt"): ["position", "markup"],
+    ("srt", "ass"): ["times", "markup", "default_style"],
+    ("vtt", "srt"): ["cue_settings", "blocks", "markup"],
+    ("vtt", "ass"): ["cue_settings", "blocks", "times", "markup", "default_style"],
+    ("ass", "srt"): ["styles", "drawings"],
+    ("ass", "vtt"): ["styles", "drawings"],
+}
+
+
+@pytest.mark.parametrize("source, target", sorted(NOTED))
+def test_a_subtitle_file_is_written_in_another_format_with_its_cues_times_and_lines(source, target):
+    parsed = parse_subtitles(PLACED[source], source)
+    text, notes = convert_subtitles(parsed, target)
+    assert notes == NOTED[(source, target)] and set(notes) <= set(CONVERSION_NOTES)
+    written = parse_subtitles(text, target)
+    kept = [cue for cue in parsed.cues if "\\p1" not in cue.prefix]  # a drawing is not a line anyone says
+    assert [cue.lines for cue in written.cues] == PLACED_LINES == [cue.lines for cue in kept]
+    # ASS holds hundredths of a second: 7.005 is written as 7.01.
+    slack = 5 if target == "ass" else 0
+    for before, after in zip(kept, written.cues, strict=True):
+        assert abs(before.start - after.start) <= slack and abs(before.end - after.end) <= slack
+    # Italics and bold are said in the format's own way, around the whole cue.
+    italic, bold = {"srt": ("<i>", "<b>"), "vtt": ("<i>", "<b>"), "ass": ("{\\i1}", "\\b1")}[target]
+    assert written.cues[0].prefix == italic and bold in written.cues[2].prefix
+    assert written.cues[1].speakers and (written.cues[1].prefix, written.cues[1].suffix) == ("", "")
+    # Nothing of the other format's markup is left in the text.
+    assert "font" not in text and "<v " not in text and "\\k" not in text and "\\pos" not in text
+
+
+def test_each_format_is_written_as_players_read_it():
+    parsed = parse_subtitles(PLACED_SRT, "srt")
+    srt = convert_subtitles(parse_subtitles(PLACED_VTT, "vtt"), "srt")[0]
+    assert srt.startswith("1\n00:00:01,000 --> 00:00:03,500\n<i>Which is it today,\nmorphine & cocaine?</i>\n\n2\n")
+    assert "WEBVTT" not in srt and "NOTE" not in srt and "line:90%" not in srt
+    vtt = convert_subtitles(parsed, "vtt")[0]
+    assert vtt.startswith("WEBVTT\n\n00:00:01.000 --> 00:00:03.500\n<i>Which is it today,\nmorphine &amp; cocaine?</i>\n\n")
+    ass = convert_subtitles(parsed, "ass")[0]
+    assert "[Script Info]" in ass and "Style: Default," in ass and "\n[Events]\nFormat: Layer, Start, End, Style" in ass
+    assert "Dialogue: 0,0:00:01.00,0:00:03.50,Default,,0,0,0,,{\\i1}Which is it today,\\Nmorphine & cocaine?{\\i0}\n" in ass
+    # A position code SubRip borrowed from ASS is ASS's own again.
+    assert "Dialogue: 0,0:00:07.01,0:00:08.00,Default,,0,0,0,,{\\b1\\an8}BAKER STREET{\\b0}\n" in ass
+    with pytest.raises(SubtitleError, match="mobi is not a subtitle format"):
+        convert_subtitles(parsed, "mobi")
+
+
+def test_a_file_taken_to_another_format_and_back_has_its_cues_and_text():
+    first = parse_subtitles(PLACED_SRT, "srt")
+    for other in ("vtt", "ass"):
+        there = convert_subtitles(first, other)[0]
+        back = parse_subtitles(convert_subtitles(parse_subtitles(there, other), "srt")[0], "srt")
+        assert [cue.lines for cue in back.cues] == [cue.lines for cue in first.cues]
+        assert [cue.number for cue in back.cues] == [1, 2, 3, 4]
+        if other == "vtt":
+            assert [(cue.start, cue.end) for cue in back.cues] == [(cue.start, cue.end) for cue in first.cues]
+    # A plain file loses nothing and says so.
+    plain = parse_subtitles("1\n00:00:01,000 --> 00:00:02,000\nYes.\n", "srt")
+    assert convert_subtitles(plain, "vtt")[1] == [] and convert_subtitles(plain, "ass")[1] == ["default_style"]
+
+
+def test_a_converted_file_is_read_back_against_the_file_it_was_made_from():
+    with tempfile.TemporaryDirectory() as directory:
+        folder = Path(directory)
+        for source in SUBTITLE_FORMATS:
+            compiled = folder / f"scene.{source}"
+            compiled.write_text(PLACED[source], encoding="utf-8")
+            assert conversion_notes(compiled, source) == []  # its own format: nothing to say
+            for target in SUBTITLE_FORMATS:
+                if target == source:
+                    continue
+                converted = folder / f"from-{source}.{target}"
+                assert convert_subtitle_file(compiled, converted, target) == NOTED[(source, target)] == conversion_notes(compiled, target)
+                assert subtitle_kind(converted) == target and validate_converted_subtitles(converted, compiled) == []
+        compiled, converted = folder / "scene.srt", folder / "from-srt.vtt"
+        text = converted.read_text(encoding="utf-8")
+        converted.write_text(text.replace("BAKER STREET", "BAKER ROAD").replace("00:00:04.000", "00:00:04.200"), encoding="utf-8")
+        assert validate_converted_subtitles(converted, compiled) == [
+            "cue 2: its time changed in the vtt file", "cue 3: its text changed in the vtt file",
+        ]
+        converted.write_text(text.split("\n\n00:00:09")[0] + "\n", encoding="utf-8")
+        assert validate_converted_subtitles(converted, compiled) == ["the vtt file has 3 cues; the file it was made from has 4"]
+        converted.write_text("WEBVTT\n", encoding="utf-8")
+        assert "could not be read back" in validate_converted_subtitles(converted, compiled)[0]
+    assert subtitle_kind("film.SSA") == "ass" and subtitle_kind("book.epub") == ""
+
+
+def _compiled(base: Path, config: AppConfig):
+    """The scene's job taken to the end of the pipeline."""
+    scene = [cue if number != 8 else (*cue[:3], ["Mein Geist rebelliert."]) for number, cue in enumerate(SCENE, start=1)]
+    workspace = _translated(base, scene, config)
+    run_translation_repair_stage(workspace, config)
+    verifier = FakeVerificationClient()
+    run_repaired_review_stage(workspace, config, verifier)
+    run_review_repair_stage(workspace, config, verifier)
+    run_repaired_validation_stage(workspace, config, verifier)
+    run_epub_compile_stage(workspace, config)
+    return workspace
+
+
+def test_a_subtitle_job_gives_back_the_format_its_config_names_checked_like_the_other():
+    from book_agent.stages.compile import load_output_path
+    from book_agent.state import connect_state, get_stage_status
+
+    def hash_of(workspace, stage):
+        connection = connect_state(workspace.state_file)
+        try:
+            return get_stage_status(connection, stage)["input_hash"]
+        finally:
+            connection.close()
+
+    plain = AppConfig.model_validate(CONFIG)
+    as_vtt = AppConfig.model_validate({**CONFIG, "output": {"format": "vtt"}})
+    with tempfile.TemporaryDirectory() as directory:
+        workspace = _compiled(Path(directory), as_vtt)
+        compiled, given = Path(load_compiled_epub_path(workspace)), Path(load_output_path(workspace))
+        # The file of the kind that came in is still written, and is what the other is made from.
+        assert (compiled.suffix, given.suffix) == (".srt", ".vtt") and given.stem == compiled.stem
+        assert sorted(path.suffix for path in given.parent.iterdir()) == [".srt", ".vtt"]
+        assert run_epub_validation_stage(workspace).passed
+        written = parse_subtitles(given.read_text(encoding="utf-8"), "vtt")
+        assert written.cues[0].lines == ["Holmes nahm seine Flasche vom Kaminsims."] and written.cues[0].prefix == "<i>"
+        assert [(cue.start, cue.end) for cue in written.cues] == [(cue.start, cue.end) for cue in parse_subtitles(SRT, "srt").cues]
+
+        # A converted file that lost a cue fails the check, not only the file it was made from.
+        vtt_hash, translated = hash_of(workspace, "compile"), hash_of(workspace, "translate")
+        given.write_text(given.read_text(encoding="utf-8").split("\n\n00:00:38")[0] + "\n", encoding="utf-8")
+        from book_agent.pipeline_state import invalidate_stage_and_dependents
+        from book_agent.workflow import WorkflowStage
+
+        connection = connect_state(workspace.state_file)
+        try:
+            invalidate_stage_and_dependents(connection, WorkflowStage.VALIDATE_EPUB)
+        finally:
+            connection.close()
+        with pytest.raises(Exception, match="the vtt file has 9 cues; the file it was made from has 10"):
+            run_epub_validation_stage(workspace)
+
+        # Naming the format it came in, or none, is the job it always was: compiled again, not translated again.
+        run_epub_compile_stage(workspace, plain)
+        assert Path(load_output_path(workspace)).suffix == ".srt" and run_epub_validation_stage(workspace).passed
+        assert hash_of(workspace, "compile") != vtt_hash and hash_of(workspace, "translate") == translated
+        srt_hash = hash_of(workspace, "compile")
+        run_epub_compile_stage(workspace, AppConfig.model_validate({**CONFIG, "output": {"format": "srt"}}))
+        assert hash_of(workspace, "compile") == srt_hash
+
+
+def test_the_dashboard_offers_a_subtitle_job_the_subtitle_formats_and_says_what_each_loses():
+    from book_agent.state import StageStatus, connect_state, set_stage_status
+    from book_agent.web.messages import UserError
+    from book_agent.web.server import UiApp
+    from book_agent.workflow import workflow_status
+
+    config = AppConfig.model_validate(CONFIG)
+    with tempfile.TemporaryDirectory() as directory:
+        workspace = _compiled(Path(directory), config)
+        app = UiApp(workspace.root.parent, Path(directory), [])
+        info = app.job_info("sign")
+        assert (info["job_type"], info["output_format"], info["output_formats"]) == ("subtitles", "srt", ["srt", "vtt", "ass"])
+        # Not finished: the Jobs list has no formats to offer yet.
+        assert "output_formats" not in app.setup()["jobs"][0]
+        assert info["output_notes"] == {"vtt": ["position"], "ass": ["default_style"]}
+        with pytest.raises(UserError, match="has not completed"):
+            app.job_output("sign", "vtt")
+        run_epub_validation_stage(workspace)
+        connection = connect_state(workspace.state_file)
+        try:
+            for stage in workflow_status(workspace)["stages"]:
+                if stage["status"] != StageStatus.COMPLETED.value:
+                    set_stage_status(connection, stage["name"], StageStatus.COMPLETED)
+        finally:
+            connection.close()
+
+        # The Jobs list offers a finished job what its own page does.
+        [row] = app.setup()["jobs"]
+        assert row["downloadable"] and (row["output_format"], row["output_formats"]) == ("srt", ["srt", "vtt", "ass"])
+        assert row["output_notes"] == {"vtt": ["position"], "ass": ["default_style"]}
+
+        own, name = app.job_output("sign")
+        assert name.endswith(".srt") and app.job_output("sign", "srt") == (own, name)
+        data, converted = app.job_output("sign", "vtt")
+        assert converted == name.removesuffix(".srt") + ".vtt" and data.decode("utf-8").startswith("WEBVTT\n\n00:00:01.000 --> ")
+        assert "Holmes nahm seine Flasche vom Kaminsims." in data.decode("utf-8")
+        data, converted = app.job_output("sign", "ass")
+        assert converted.endswith(".ass") and b"Dialogue: 0,0:00:01.00,0:00:03.50,Default" in data
+        # No book format, the EPUB among them.
+        for kind in ("epub", "pdf", "docx", "txt", "mobi"):
+            with pytest.raises(UserError, match=f"a subtitle job is written as SRT, WebVTT, or ASS, not as {kind}"):
+                app.job_output("sign", kind)
+
+
+def test_a_subtitle_file_in_the_older_ssa_form_keeps_its_name_and_is_offered_the_other_two():
+    from book_agent.output import hashed_output_fields, output_format
+    from book_agent.web.server import UiApp
+
+    config = AppConfig.model_validate(CONFIG)
+    assert output_format("film.ssa", config) == ("ssa", "")
+    assert output_format("film.ssa", AppConfig.model_validate({**CONFIG, "output": {"format": "ass"}})) == ("ssa", "")
+    assert output_format("film.ssa", AppConfig.model_validate({**CONFIG, "output": {"format": "srt"}})) == ("srt", "")
+    assert hashed_output_fields("film.ssa", AppConfig.model_validate({**CONFIG, "output": {"format": "ass"}})) == {}
+    with tempfile.TemporaryDirectory() as directory:
+        source = Path(directory) / "sign.ssa"
+        source.write_text(ASS, encoding="utf-8")
+        workspace = create_job_workspace(source, Path(directory) / "runs", config, job_id="sign")
+        info = UiApp(workspace.root.parent, Path(directory), [])._output_formats(workspace)
+        assert info == {"output_format": "ssa", "output_formats": ["ssa", "srt", "vtt"], "output_notes": {"srt": ["styles"], "vtt": ["styles"]}}
+
+
+def test_a_subtitle_jobs_pages_leave_out_the_stage_that_only_a_book_has_work_for():
+    from book_agent.pipeline_state import WorkflowStage
+    from book_agent.web.estimate import estimate
+    from book_agent.web.jobs import list_jobs, shown_stages
+    from book_agent.web.rerun import rerun_preview
+    from book_agent.web.server import UiApp
+    from book_agent.web.setup import validate_setup
+    from book_agent.workflow import workflow_status
+
+    names = [stage.value for stage in WorkflowStage]
+    assert shown_stages("book.epub", names) == names
+    assert shown_stages("film.srt", names) == [name for name in names if name != "translate_title"]
+    assert shown_stages("film.vtt", [{"name": "translate_title"}, {"name": "compile"}]) == [{"name": "compile"}]
+
+    config = AppConfig.model_validate(CONFIG)
+    with tempfile.TemporaryDirectory() as directory:
+        workspace = _compiled(Path(directory), config)
+        # The stage is still one of the job's own: it runs, and passes at once.
+        assert "translate_title" in [stage["name"] for stage in workflow_status(workspace)["stages"]]
+        app = UiApp(workspace.root.parent, Path(directory), [])
+        shown = [stage["name"] for stage in app.job_info("sign")["stages"]]
+        assert "translate_title" not in shown and shown[-2:] == ["compile", "validate_epub"]
+        [row] = list_jobs(app.runs)
+        assert row["total"] == len(names) - 1 == len(shown)
+        from book_agent.web.jobs import ProgressReader
+
+        assert [stage["name"] for stage in ProgressReader().snapshot(workspace)["status"]["stages"]] == shown
+        assert "translate_title" not in [stage["name"] for stage in rerun_preview(workspace, "repair_translation")["stages"]]
+        assert "translate_title" not in estimate(workspace, app.runs, config)["unknown_stages"]
+        check = validate_setup("translation:\n  direction: en>de\n", Path(directory), Path(directory) / "elsewhere", str(workspace.source_file), "")
+        assert "translate_title" not in check["stages"] and "compile" in check["stages"]

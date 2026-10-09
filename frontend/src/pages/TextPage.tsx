@@ -8,7 +8,7 @@ import { SideItem, SideLayout } from "../components/SideLayout";
 import { useToast } from "../components/Toast";
 import { Chip } from "../components/ui";
 import { ImportPreviewCard, LastImportCard } from "../components/XliffImport";
-import { rich, useT, type MessageKey } from "../i18n";
+import { jobKey, rich, useT, type MessageKey } from "../i18n";
 import { KIND_LABELS, chapterOf, noteNumber, pictureUrl, type BookItemKind } from "../lib/bookItems";
 import { diffChars } from "../lib/diff";
 import { editActionLabel, findingCategoryLabel, severityLabel } from "../lib/enums";
@@ -278,8 +278,8 @@ export function TextPage() {
 
   const recompile = async () => {
     if (!(await confirm(
-      t("text.recompile.title"),
-      <p>{t("text.recompile.body")}</p>,
+      t(jobKey("text.recompile.title", info?.job_type)),
+      <p>{t(jobKey("text.recompile.body", info?.job_type))}</p>,
       t("text.recompile.action"),
     ))) return;
     setRecompiling(true);

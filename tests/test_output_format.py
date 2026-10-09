@@ -61,10 +61,23 @@ class ResolutionTests:
 
 
 class CheckTests:
-    def test_a_subtitle_job_takes_no_book_format(self):
+    def test_a_subtitle_job_takes_a_subtitle_format_and_no_book_format(self):
         assert check_output("film.srt", config()) == ""
-        with pytest.raises(ValueError, match="this is a subtitle job.*set output.format to source"):
-            check_output("film.srt", config(format="docx"))
+        assert check_output("film.srt", config(format="vtt")) == "" and check_output("film.ass", config(format="srt")) == ""
+        for kind in ("docx", "epub", "pdf"):
+            with pytest.raises(ValueError, match="this is a subtitle job.*set output.format to source, srt, vtt, or ass"):
+                check_output("film.srt", config(format=kind))
+
+    def test_a_book_takes_no_subtitle_format(self):
+        for kind in ("srt", "vtt", "ass"):
+            with pytest.raises(ValueError, match=f"output.format is {kind}, a subtitle format, and this is a book"):
+                check_output("book.epub", config(format=kind))
+
+    def test_a_subtitle_job_gives_back_its_own_format_or_the_one_named(self):
+        assert output_format("film.srt", config()) == ("srt", "")
+        assert output_format("film.srt", config(format="srt")) == ("srt", "")
+        assert output_format("film.srt", config(format="ass")) == ("ass", "")
+        assert output_format("film.VTT", config(format="srt")) == ("srt", "")
 
     def test_a_pdf_named_but_not_writable_is_refused_before_any_work(self):
         with patch("book_agent.pdf_export.check_pdf_output", side_effect=BookFormatError("no font")) as check, \
@@ -85,6 +98,8 @@ class HashTests:
         assert hashed_output_fields("book.docx", config()) == {}
         assert hashed_output_fields("book.docx", config(format="docx")) == {}
         assert hashed_output_fields("film.srt", config()) == {}
+        assert hashed_output_fields("film.srt", config(format="srt")) == {}
+        assert hashed_output_fields("film.srt", config(format="vtt")) == {"output_format": "vtt"}
         with patch("book_agent.pdf_export.pdf_output_problem", return_value="no font"):
             assert hashed_output_fields("book.pdf", config()) == {}
 

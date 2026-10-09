@@ -243,6 +243,41 @@ describe("stageLabel", () => {
     expect(stageLabel("compile")).toBe("Build the book");
     expect(stageLabel("future_stage")).toBe("future_stage");
   });
+
+  it("names the stages that write and check the result for a subtitle file on a subtitle job", async () => {
+    const { stageLabel } = await import("./stages");
+    expect(stageLabel("compile", "subtitles")).toBe("Write the subtitle file");
+    expect(stageLabel("validate_epub", "subtitles")).toBe("Check the subtitle file");
+    expect(stageLabel("compile", "book")).toBe("Build the book");
+    expect(stageLabel("validate_epub", "book")).toBe("Check the book");
+    // A stage that is the same for both keeps its one name.
+    expect(stageLabel("translate", "subtitles")).toBe("Translate");
+  });
+
+  it("describes a subtitle job's stages without a book or an EPUB in them", async () => {
+    const { stageInfo } = await import("./stageInfo");
+    const { STAGE_LABELS } = await import("./stages");
+    // The title stage is not listed for a subtitle job: a subtitle file has no title to translate.
+    for (const stage of Object.keys(STAGE_LABELS).filter((name) => name !== "translate_title")) {
+      const info = stageInfo(stage, "subtitles")!;
+      // "book glossaries" is a setting's name (glossary.book_glossaries), the same for both kinds of job.
+      const said = Object.values(info).join(" ").replace("book glossaries", "");
+      expect(said, stage).not.toMatch(/EPUB|\bbooks?\b|chapter/i);
+    }
+    expect(stageInfo("compile", "subtitles")!.does).toMatch(/^Writes the subtitle file: the source's cues and times/);
+    expect(stageInfo("validate_epub", "subtitles")!.input).toBe("The written subtitle file and the validated documents.");
+    // What is the same for both is said once: the part without a wording of its own is the book's.
+    expect(stageInfo("validate_epub", "subtitles")!.output).toBe(stageInfo("validate_epub")!.output);
+    expect(stageInfo("compile", "book")!.does).toMatch(/^Builds the book as an EPUB/);
+  });
+
+  it("offers a subtitle job its formats in the order the server gives them, the file's own first", async () => {
+    const { outputFormats, outputFormatLabel } = await import("./format");
+    expect(outputFormats(["vtt", "srt", "ass"])).toEqual([["vtt", "WebVTT"], ["srt", "SRT"], ["ass", "ASS"]]);
+    expect(outputFormats(["ssa", "srt", "vtt"]).map(([, label]) => label)).toEqual(["SSA", "SRT", "WebVTT"]);
+    expect(outputFormats([])).toEqual([]);
+    expect(outputFormatLabel("vtt")).toBe("WebVTT");
+  });
 });
 
 describe("attentionFrom", () => {

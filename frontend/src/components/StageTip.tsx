@@ -7,9 +7,9 @@ import { stageInfo } from "../lib/stageInfo";
  * the model it uses, and the live result. Opens on hover or keyboard focus;
  * clicking pins it open until the next click.
  */
-export function StageTip({ stage, result }: { stage: string; result: ReactNode }) {
+export function StageTip({ stage, result, jobType }: { stage: string; result: ReactNode; jobType?: string }) {
   const t = useT();
-  const info = stageInfo(stage);
+  const info = stageInfo(stage, jobType);
   const id = useId();
   const [hover, setHover] = useState(false);
   const [pinned, setPinned] = useState(false);

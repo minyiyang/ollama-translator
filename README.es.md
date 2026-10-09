@@ -288,9 +288,13 @@ es independiente de la dirección de traducción del trabajo (véase
 
 - **Trabajos**: lista los trabajos con su dirección de traducción (por
   ejemplo, `EN → ZH`) y crea otros nuevos. Un trabajo terminado tiene un
-  botón *Descargar* para el libro traducido, también en la cabecera del
-  trabajo, donde se puede elegir el formato (EPUB, Word, HTML, Markdown o
-  texto). La pestaña **Configuración** de cada trabajo lo edita, lo valida y
+  botón *Descargar*, en la lista y en la cabecera del trabajo, con un menú de
+  formatos al lado. El menú empieza en el formato que devuelve el trabajo
+  (`output.format` en su configuración; por defecto, el formato del archivo
+  de origen). Un libro se puede descargar como EPUB, PDF, Word, HTML,
+  Markdown o texto; un trabajo de subtítulos, como SRT, WebVTT o ASS, y el
+  panel indica qué no se conserva en un formato de subtítulos distinto del
+  propio del archivo. La pestaña **Configuración** de cada trabajo lo edita, lo valida y
   lo inicia. **Series** agrupa los trabajos que comparten un glosario de
   serie versionado. Desde la cabecera se pausa (tras la llamada al modelo en
   curso), se detiene o se reanuda la ejecución; `book-agent pause

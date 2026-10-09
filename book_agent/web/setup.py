@@ -18,6 +18,7 @@ from ..config import AppConfig
 from ..languages import LanguagePair, language_catalog, language_support
 from ..pipeline_state import WorkflowStage
 from ..workspace import build_job_id, slugify_job_name, validate_job_id
+from .jobs import shown_stages
 from .messages import UserError
 
 _CONFIG_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*\.ya?ml$")
@@ -167,7 +168,7 @@ def validate_setup(
             "final_review_required": config.workflow.require_final_review,
             "runs": str(runs),
         },
-        "stages": [stage.value for stage in WorkflowStage],
+        "stages": shown_stages(source_path, [stage.value for stage in WorkflowStage]),
     }
 
 
@@ -191,7 +192,7 @@ _SECTION_TITLES = {
     "epub": "EPUB output",
     "audit": "Audit and repair",
     "reprose": "Prose rewrite",
-    "consistency": "Book consistency",
+    "consistency": "Content consistency",
     "workflow": "Workflow gates",
     "paths": "Paths",
     "subtitles": "Subtitles",

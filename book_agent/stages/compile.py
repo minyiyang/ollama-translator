@@ -26,7 +26,7 @@ from ..languages import profile
 from ..rtf import compile_rtf_document
 from ..book_edits import book_approved, settled_book
 from .title import _passage_translation, settled_texts
-from ..subtitles import compile_subtitle_file, subtitle_limits
+from ..subtitles import compile_subtitle_file, convert_subtitle_file, subtitle_limits
 from ..text_edits import (
     active_edit_texts,
     compiled_consistency_issues,
@@ -154,7 +154,7 @@ def run_epub_compile_stage(
                 ),
                 # A subtitle file is written again when the limits its lines are broken by change.
                 **limit_fields(workspace, config),
-                # A book is written again when the format it is given back in changes.
+                # A book or a subtitle file is written again when the format it is given back in changes.
                 **hashed_output_fields(workspace.source_file, config),
                 "stage_version": COMPILE_STAGE_VERSION,
             }
@@ -226,8 +226,14 @@ def run_epub_compile_stage(
         # The job's output: the EPUB, or the same book written from it in the
         # format the job gives back (docs/OUTPUT_AND_CONFIG_UX.md).
         given = output_path
-        if manifest.source_format != "subtitle":
-            export_format, _ = output_format(workspace.source_file, config)
+        export_format, _ = output_format(workspace.source_file, config)
+        if manifest.source_format == "subtitle":
+            # The subtitle file in another subtitle format, made from the one just written.
+            if f".{export_format}" != output_path.suffix:
+                given = output_path.with_suffix(f".{export_format}")
+                convert_subtitle_file(output_path, given, export_format)
+                _record_file(connection, workspace, given, "compiled_export")
+        else:
             if export_format != "epub":
                 given = export_book(
                     output_path, output_path.with_suffix(f".{export_format}"), export_format, pdf_font=config.output.pdf_font

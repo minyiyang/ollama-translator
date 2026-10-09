@@ -86,7 +86,7 @@ export function ConfigPage() {
               {!editable && (
                 <p className="meta">{t("config.page.readOnly")}</p>
               )}
-              <ConfigEditor text={text} onTextChange={setText} hasComments={/(^|\n)\s*#/.test(saved)} readOnly={!editable} />
+              <ConfigEditor text={text} onTextChange={setText} hasComments={/(^|\n)\s*#/.test(saved)} readOnly={!editable} jobType={info.job_type} />
             </Card>
             {editable && (
               <div className="sticky-side">
@@ -98,7 +98,7 @@ export function ConfigPage() {
                   <p className="meta">
                     {rich("config.page.validateHelp", { name: <span className="mono">{config.name}</span> })}
                   </p>
-                  {check && <CheckResult check={check} />}
+                  {check && <CheckResult check={check} jobType={info.job_type} />}
                 </Card>
               </div>
             )}

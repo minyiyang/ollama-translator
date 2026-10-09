@@ -298,9 +298,13 @@ traduction d'une tâche (voir
 
 - **Tâches** liste les tâches avec leur sens de traduction (par exemple
   `EN → ZH`) et permet d'en créer ; une tâche terminée dispose d'un bouton
-  *Télécharger* pour récupérer le livre traduit, présent aussi dans l'en-tête
-  de la tâche, où l'on peut choisir le format (EPUB, Word, HTML, Markdown ou
-  texte). L'onglet **Configuration** de chaque tâche sert à la modifier, à la
+  *Télécharger*, dans la liste et dans l'en-tête de la tâche, accompagné d'un
+  menu de formats. Le menu commence par le format que la tâche restitue
+  (`output.format` dans sa configuration ; par défaut, le format du fichier
+  source). Un livre se télécharge en EPUB, PDF, Word, HTML, Markdown ou
+  texte ; une tâche de sous-titres en SRT, WebVTT ou ASS, et le tableau de
+  bord indique ce qu'un format de sous-titres autre que celui du fichier ne
+  reprend pas. L'onglet **Configuration** de chaque tâche sert à la modifier, à la
   valider et à la lancer ; son réglage *Langues* accepte deux codes de langue
   quelconques. **Séries** regroupe les tâches qui partagent un glossaire de
   série versionné. L'en-tête de la tâche permet de mettre en pause (après

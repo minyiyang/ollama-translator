@@ -164,10 +164,31 @@ class ExportTests:
             run(["export", str(job.root), "--format", "pdf", "--pdf-font", "serif.ttf"])
             assert export.call_args.args[2] == "pdf" and export.call_args.kwargs == {"pdf_font": "serif.ttf"}
 
-    def test_a_subtitle_job_has_no_book_to_export(self, job):
-        with patch.object(cli, "load_compiled_epub_path", return_value=str(job.root / "output" / "film.srt")):
+    def test_a_subtitle_job_is_exported_as_another_subtitle_format_and_as_no_book(self, job):
+        compiled = job.root / "output" / "film.srt"
+        compiled.parent.mkdir(parents=True, exist_ok=True)
+        compiled.write_text(
+            "1\n00:00:01,005 --> 00:00:02,000\n{\\an8}<i>Watson!</i>\n", encoding="utf-8"
+        )
+        with patch.object(cli, "load_compiled_epub_path", return_value=str(compiled)), \
+             patch.object(cli, "job_type", return_value="subtitles"):
+            code, output, error = run(["export", str(job.root), "--format", "vtt"])
+            assert code == ExitCode.COMPLETE and output.strip() == str(compiled.with_suffix(".vtt"))
+            assert compiled.with_suffix(".vtt").read_text(encoding="utf-8") == "WEBVTT\n\n00:00:01.005 --> 00:00:02.000\n<i>Watson!</i>\n"
+            # What the other format does not hold is said, not hidden.
+            assert "note: the position codes of cues are not carried over" in error
+            code, output, error = run(["export", str(job.root), "--format", "ass", "--out", str(job.root / "film.ass")])
+            assert code == ExitCode.COMPLETE and "note: times are rounded to hundredths of a second" in error
+            assert "{\\i1\\an8}Watson!{\\i0}" in (job.root / "film.ass").read_text(encoding="utf-8")
             code, _, error = run(["export", str(job.root), "--format", "txt"])
-        assert code == ExitCode.FAILED and "there is no book to export" in error
+            assert code == ExitCode.FAILED and "this is a subtitle job: it is written as srt, vtt, or ass, not as txt" in error
+            code, _, error = run(["export", str(job.root), "--format", "srt"])
+            assert code == ExitCode.FAILED and "already srt" in error
+
+    def test_a_book_is_exported_as_no_subtitle_format(self, job):
+        with patch.object(cli, "load_compiled_epub_path", return_value=str(job.root / "output" / "book.epub")):
+            code, _, error = run(["export", str(job.root), "--format", "srt"])
+        assert code == ExitCode.FAILED and "this is a book" in error
 
 
 class ApproveTests:

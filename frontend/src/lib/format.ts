@@ -46,7 +46,7 @@ export const sourceKinds = () => t("format.sourceKinds");
 export type JobType = "book" | "subtitles";
 export const jobTypeLabel = (type: JobType) => t(type === "subtitles" ? "format.jobType.subtitles" : "format.jobType.book");
 
-const OUTPUT_FORMATS = ["epub", "pdf", "docx", "html", "md", "txt"];
+const OUTPUT_FORMATS = ["epub", "pdf", "docx", "html", "md", "txt", "srt", "ssa", "vtt", "ass"];
 // A server from before a job had an output format does not say which it can write.
 const FORMATS_BEFORE = ["epub", "docx", "html", "md", "txt"];
 
@@ -55,11 +55,17 @@ export const outputFormatLabel = (kind: string): string =>
   kind === "docx" ? t("format.output.docx")
     : kind === "txt" ? t("format.output.txt")
     : kind === "md" ? "Markdown"
+    : kind === "vtt" ? "WebVTT"
     : kind.toUpperCase();
 
-/** What a translated book can be downloaded as: `kinds` are the formats the server can write it in. */
+/**
+ * What a job's result can be downloaded as: `kinds` are the formats the server
+ * can write it in. A book's are listed in a fixed order; a subtitle job's as the
+ * server gives them, the file's own format first.
+ */
 export const outputFormats = (kinds: string[] = FORMATS_BEFORE): [string, string][] =>
-  OUTPUT_FORMATS.filter((kind) => kinds.includes(kind)).map((kind) => [kind, outputFormatLabel(kind)]);
+  (kinds.includes("epub") ? OUTPUT_FORMATS.filter((kind) => kinds.includes(kind)) : kinds.filter((kind) => OUTPUT_FORMATS.includes(kind)))
+    .map((kind) => [kind, outputFormatLabel(kind)]);
 
 /** Download URL of a completed job's result: in the format the job gives back, or in `format`. */
 export const outputUrl = (jobId: string, format = "") =>

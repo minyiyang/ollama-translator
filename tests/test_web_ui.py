@@ -24,6 +24,7 @@ from book_agent.web import drafts
 from book_agent.web import setup as setup_api
 from book_agent.web.glossary_view import glossary_payload, write_reviewed_glossary
 from book_agent.web.jobs import LogTracker, ProgressReader, job_path, list_jobs
+from book_agent.web.messages import UserError
 from book_agent.web.server import UiApp, make_handler
 from tests.test_glossary_stages import (
     FakeGlossaryClient,
@@ -1182,14 +1183,13 @@ class DownloadAndDirectionTests(ServerTests):
             app = UiApp(workspace.root.parent, Path(directory), [])
             assert app.job_info(workspace.root.name)["output_format"] == "html"
 
-    def test_a_subtitle_job_offers_no_book_format(self):
+    def test_a_book_is_downloaded_in_no_subtitle_format(self):
         with tempfile.TemporaryDirectory() as directory:
-            workspace, _ = paused_glossary_workspace(Path(directory))
+            workspace = self.completed_workspace(directory)
             app = UiApp(workspace.root.parent, Path(directory), [])
-            assert app.job_info("fixture")["output_format"] == "epub"
-            with patch("book_agent.web.server.job_type", return_value="subtitles"):
-                info = app.job_info("fixture")
-            assert info["output_formats"] == [] and info["output_format"] == "epub"
+            assert "output_notes" not in app.job_info(workspace.root.name)
+            with pytest.raises(UserError, match="a book is not written as srt, a subtitle format"):
+                app.job_output(workspace.root.name, "srt")
 
     def test_unfinished_job_has_nothing_to_download(self):
         with tempfile.TemporaryDirectory() as directory:

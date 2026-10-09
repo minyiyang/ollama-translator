@@ -1,6 +1,6 @@
 # Output formats and config changes in the dashboard
 
-Status: **PR 1 (book output, PDF included) implemented; PR 2 and PR 3 planned.**
+Status: **PR 1 (book output, PDF included) and PR 2 (subtitle output) implemented; PR 3 planned.**
 Last updated: 2026-10-09.
 
 Three gaps found while testing the dashboard, each planned as its own pull
@@ -9,7 +9,7 @@ request:
 | PR | What | Section |
 |---|---|---|
 | 1 | A book job's output is the format the user wants, PDF included; the EPUB stops being presented as the result. **Implemented** | 2 |
-| 2 | A subtitle job's output is a subtitle file in the format the user wants; nothing about it says EPUB | 3 |
+| 2 | A subtitle job's output is a subtitle file in the format the user wants; nothing about it says EPUB. **Implemented** | 3 |
 | 3 | A started job's config can be unlocked and changed in the dashboard, with the effect on the pipeline shown and a rerun offered | 4 |
 
 Related documents: docs/FORMAT_SUPPORT.md (sources and exports as built),
@@ -262,6 +262,66 @@ source's. Only a conversion goes through the new writer.
 - Stage: `validate_compiled_subtitles` passes on every converted output.
 - Browser: a subtitle job offers the three formats and no book format; the
   page has no "EPUB" on it (extend `frontend/e2e/subtitles.e2e.ts`).
+
+### 3.5 As built
+
+- **The file of the kind that came in is always written**, as before, and is
+  what the stage checks first. Another format is made from that file, not
+  from the pipeline's documents: `convert_subtitles(parsed, kind)` in
+  `book_agent/subtitles.py` reads the compiled file and writes it again.
+  This is the same shape as a book's EPUB and its other formats, and it means
+  a download in another format needs nothing but the compiled file.
+- **What a conversion keeps.** A cue's lines, its times, and the italics,
+  bold, and underline that stood around the whole cue. Markup inside a cue
+  was already dropped when the cue was translated. A position code SubRip
+  borrowed from ASS (`{\an8}`) is kept going to ASS and dropped going to
+  WebVTT.
+- **What it says it lost** is a list of codes (`CONVERSION_NOTES`), found by
+  looking at the file, not assumed from the pair of formats: a plain SRT
+  written as WebVTT loses nothing and says nothing. The codes are
+  `cue_settings`, `blocks`, `markup`, `position`, `styles`, `drawings`,
+  `times`, `default_style`. The CLI prints them on stderr; the job's info
+  carries them as `output_notes`, and the dashboard shows them as the file is
+  downloaded.
+- **Times in ASS** are hundredths of a second, so a time is rounded by at
+  most 5 ms. That is the one case where a time is not the source's, and it is
+  the `times` note. The check allows exactly that much.
+- **Drawing events** of an ASS file (`\p1`) are not lines anyone reads and
+  are left out of SRT and WebVTT; the check expects them gone.
+- **An `.ssa` file** stays `.ssa` under `source`, and under `ass`, which is
+  its kind already. It is offered as SSA, SRT, and WebVTT.
+- **The check.** `validate_converted_subtitles` reads the converted file back
+  against the compiled one: the same number of cues, in order, at the same
+  times, each with the same text. The validate stage runs it whenever the
+  job's output is not the compiled file itself.
+- **Refusals.** `output.format` is one setting for both kinds of job. A
+  subtitle job with a book's format, or a book with a subtitle format, is
+  refused before any model call (`check_output`), by `export`, and by
+  `GET /api/jobs/<id>/output?format=`.
+- **Existing jobs.** A subtitle job that names no format, or its own, hashes
+  as it did and is not compiled again.
+- **Wording.** A message with a wording of its own for a subtitle job has the
+  same key ending in `.subtitles`; `jobKey(key, jobType)` picks it
+  (`frontend/src/i18n/index.ts`). The stage names and descriptions, the
+  compile card, the recompile dialog, and the format menu's help have one.
+  Two server messages that named a book were reworded for both kinds.
+- **Settings by kind of job.** The Config tab's form leaves out what the
+  other kind alone reads (`ONLY_FOR` in `frontend/src/lib/configCatalog.ts`):
+  for a subtitle job `epub.*`, `reprose.*`, `output.pdf_font`, and
+  `translation.translated_title`; for a book `subtitles.*`. `output.format`
+  offers the formats of the job's kind. The YAML tab shows the whole file,
+  and a line above the form says what is left out.
+- **The Jobs list has the menu too**, for books and subtitle jobs alike: one
+  component (`frontend/src/components/DownloadControl.tsx`) is the job
+  header's and the list's. The list's rows carry `output_format`,
+  `output_formats`, and `output_notes` for finished jobs.
+- **The title stage is not listed for a subtitle job.** A subtitle file has
+  no title, contents, notes, or pictures, so `translate_title` has nothing to
+  do. It still runs and passes at once (the pipeline is one for both kinds);
+  the server leaves it out of what the pages list and count
+  (`shown_stages` in `book_agent/web/jobs.py`): the Progress table, the
+  stage counts, the rerun preview, the estimate, and the pipeline shown when
+  a config is validated. `book-agent status` still lists it.
 
 ## 4. PR 3: changing a started job's config
 

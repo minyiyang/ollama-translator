@@ -23,10 +23,12 @@ MESSAGES: dict[str, str] = {
     "import_while_running": "the job is running; wait for it to finish or pause it before importing",
     "job_already_started": "this job has already started; use Resume",
     "job_exists": "a job named {job} already exists",
-    "job_not_complete": "the job has not completed; there is no translated book yet",
+    "job_not_complete": "the job has not completed; there is nothing translated to download yet",
     "job_unknown": "no job or draft named {job}",
     "jobs_none_chosen": "choose at least one job",
     "no_candidate": "no candidate yet; build it on the Books tab",
+    "output_format_book": "a book is not written as {format}, a subtitle format",
+    "output_format_subtitles": "a subtitle job is written as SRT, WebVTT, or ASS, not as {format}",
     "no_dashboard_run": "no run started from this dashboard is active; use Pause instead",
     "rerun_while_running": "the job is running; pause or stop it before rerunning a stage",
     "series_no_version": "series {series} has no version {version}",
@@ -56,13 +58,13 @@ STAGE_MESSAGES: dict[str, str] = {
 # What a rerun costs, by the code the rerun preview lists it under (``server.rerun.<code>``).
 RERUN_WARNINGS: dict[str, str] = {
     "glossary_approval": "The glossary must be reviewed and approved again; the run pauses at that gate.",
-    "full_translation": "The whole book is translated again. This is the most expensive rerun.",
+    "full_translation": "The whole text is translated again. This is the most expensive rerun.",
     "manual_review": (
         "The final-draft approval and any unapplied Final review decisions are "
         "discarded, and the review queue is rebuilt from the new draft. Applied "
         "decisions are kept as Text tab edits."
     ),
-    "compiled_epub": "The compiled book is replaced by the new output.",
+    "compiled_epub": "The compiled output is replaced by the new one.",
     "text_edits": "Manual text edits are kept; segments whose translation changes become conflicts.",
 }
 

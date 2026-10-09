@@ -2,7 +2,7 @@
 // Titles, labels, and help are message keys; the text is in the catalog (src/i18n).
 // Every other field is still editable under "All settings" (schema-driven).
 
-import { t, type MessageKey } from "../i18n";
+import { jobKey, t, type MessageKey } from "../i18n";
 
 export type SchemaField = {
   path: string;
@@ -165,6 +165,25 @@ export const COMMON_GROUPS: CommonGroup[] = [
   },
 ];
 
+export type JobKind = "book" | "subtitles";
+
+// Settings only one kind of job reads, by path or by section ("epub."). The
+// other kind's form leaves them out; the YAML tab shows every setting.
+const ONLY_FOR: Record<JobKind, string[]> = {
+  book: ["epub.", "reprose.", "output.pdf_font", "translation.translated_title"],
+  subtitles: ["subtitles."],
+};
+
+/** Whether a job of this kind reads the setting; every setting when the kind is not known. */
+export const usedByJob = (path: string, jobType?: JobKind): boolean =>
+  !jobType || !ONLY_FOR[jobType === "book" ? "subtitles" : "book"].some((only) => (only.endsWith(".") ? path.startsWith(only) : path === only));
+
+const SUBTITLE_OUTPUTS = ["srt", "vtt", "ass"];
+
+/** The values of output.format a job of this kind can take: a book's formats or a subtitle file's. */
+export const outputFormatChoices = (all: string[], jobType?: JobKind): string[] =>
+  jobType ? all.filter((value) => value === "source" || SUBTITLE_OUTPUTS.includes(value) === (jobType === "subtitles")) : all;
+
 const OPTIONS = new Map(COMMON_GROUPS.flatMap((g) => g.options).flatMap((o) => ("path" in o ? [[o.path, o] as const] : [])));
 
 /** The paths the curated view names. */
@@ -176,10 +195,10 @@ export const optionLabel = (path: string): string | undefined => {
   return option && t(option.label);
 };
 
-/** An option's help in the interface language; undefined when it has none. */
-export const optionHelp = (path: string): string | undefined => {
+/** An option's help in the interface language, worded for the kind of job; undefined when it has none. */
+export const optionHelp = (path: string, jobType?: JobKind): string | undefined => {
   const help = OPTIONS.get(path)?.help;
-  return help && t(help);
+  return help && t(jobKey(help, jobType));
 };
 
 export const MODEL_PATHS = new Set(

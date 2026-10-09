@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 from ..atomic_io import atomic_write_text
 from ..config import AppConfig
@@ -21,7 +22,7 @@ from ..pipeline_state import (
 )
 from ..languages import profile
 from ..rtf import validate_compiled_rtf
-from ..subtitles import validate_compiled_subtitles
+from ..subtitles import validate_compiled_subtitles, validate_converted_subtitles
 from ..state import (
     StageStatus,
     connect_state,
@@ -124,6 +125,13 @@ def run_epub_validation_stage(
                 notes=settled_title["notes"],
             )
         )
+        if manifest.source_format == "subtitle" and report.passed:
+            # The file the job gives back, when that is the subtitle file in another format.
+            given = get_job_metadata(connection, "compiled_output")
+            if given and workspace.directory(given) != Path(output_path):
+                errors = validate_converted_subtitles(workspace.directory(given), output_path)
+                if errors:
+                    report = report.model_copy(update={"passed": False, "errors": errors})
         report_path = workspace.directory("reports") / f"validate-document-{input_hash[:16]}.json"
         atomic_write_text(report_path, report.model_dump_json(indent=2))
         _record_file(connection, workspace, report_path, "epub_validation_report")

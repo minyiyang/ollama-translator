@@ -18,6 +18,7 @@ import threading
 import webbrowser
 from collections.abc import Callable
 from datetime import datetime
+from functools import lru_cache
 from http import HTTPStatus
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from importlib.resources import files
@@ -51,8 +52,16 @@ from ..book_formats import EXPORT_FORMATS, EXPORT_MEDIA_TYPES, export_book
 from ..output import output_format
 from ..pdf_export import pdf_output_problem
 from ..stages.compile import load_compiled_epub_path, load_output_path
-from ..subtitles import SUBTITLE_MEDIA_TYPES, job_type
-from .jobs import ProgressReader, draft_direction, job_direction, job_path, list_jobs, open_job
+from ..subtitles import (
+    SUBTITLE_FORMATS,
+    SUBTITLE_MEDIA_TYPES,
+    conversion_notes,
+    convert_subtitles,
+    job_type,
+    read_subtitles,
+    subtitle_kind,
+)
+from .jobs import ProgressReader, draft_direction, job_direction, job_path, list_jobs, open_job, shown_stages
 from .messages import UserError, error_payload
 from .text_view import text_chapter, text_outline, text_picture
 from ..xliff_export import export_xliff
@@ -100,6 +109,19 @@ _EXIT_OUTCOMES = {
     int(ExitCode.PAUSED): "paused",
     int(ExitCode.CANCELLED): "cancelled",
 }
+
+
+@lru_cache(maxsize=256)
+def _notes_of(path: str, modified: int, kind: str) -> tuple[str, ...]:
+    return tuple(conversion_notes(path, kind))
+
+
+def _conversion_notes(source: Path, kind: str) -> list[str]:
+    """What giving the subtitle file `source` in the format `kind` does not carry over; read once a file."""
+    try:
+        return list(_notes_of(str(source), source.stat().st_mtime_ns, kind))
+    except (OSError, ValueError):
+        return []
 
 
 def _series_process(series_id: str) -> str:
@@ -204,7 +226,7 @@ class UiApp:
             "config_dir": str(self.config_dir),
             "runs": str(self.runs),
             "template": str(self.template) if self.template and self.template.is_file() else "",
-            "jobs": list_jobs(self.runs, self.config_dir),
+            "jobs": [self._with_formats(job) for job in list_jobs(self.runs, self.config_dir)],
         }
 
     def book_roots(self) -> list[Path]:
@@ -249,7 +271,7 @@ class UiApp:
                 "downloadable": overall == "complete",
                 **self._output_formats(workspace),
                 "series": series_api.series_of_job(self.runs, job_id),
-                "stages": status["stages"],
+                "stages": shown_stages(workspace.source_file, status["stages"]),
                 "running": overall == "running" or process_running,
                 "pause_requested": pause_requested(workspace),
                 "can_stop": process_running,
@@ -524,14 +546,37 @@ class UiApp:
             "report": json.loads(report.read_text(encoding="utf-8")) if report.is_file() else None,
         }
 
+    def _with_formats(self, job: dict[str, Any]) -> dict[str, Any]:
+        """A row of the Jobs list, with the formats a finished job can be downloaded in."""
+        if not job["downloadable"]:
+            return job
+        try:
+            return {**job, **self._output_formats(open_job(self.runs, job["job_id"]))}
+        except (OSError, ValueError):
+            return job
+
     def _output_formats(self, workspace: JobWorkspace) -> dict[str, Any]:
-        """The format the job gives back, and the formats its book can be had in (none for subtitles)."""
-        if job_type(workspace.source_file) == "subtitles":
-            return {"output_format": workspace.source_file.suffix.lower().lstrip("."), "output_formats": []}
+        """The format the job gives back and the formats its result can be had
+        in; for a subtitle job also what each other format does not carry over."""
+        subtitles = job_type(workspace.source_file) == "subtitles"
+        own = workspace.source_file.suffix.lower().lstrip(".")
         try:
             config = load_workspace_config(workspace)
         except (OSError, ValueError):
-            return {"output_format": "epub", "output_formats": ["epub"]}
+            return {"output_format": own, "output_formats": [own]} if subtitles else {"output_format": "epub", "output_formats": ["epub"]}
+        if subtitles:
+            try:
+                given = Path(load_output_path(workspace)).suffix.lower().lstrip(".")
+            except (OSError, ValueError):
+                given = output_format(workspace.source_file, config)[0]  # not compiled yet
+            kind = subtitle_kind(workspace.source_file)
+            # The source's own format under its own name (.ssa), then the others.
+            formats = [own, *(item for item in SUBTITLE_FORMATS if item != kind)]
+            return {
+                "output_format": given,
+                "output_formats": formats,
+                "output_notes": {item: _conversion_notes(workspace.source_file, item) for item in formats if item != own},
+            }
         try:
             given = Path(load_output_path(workspace)).suffix.lower().lstrip(".")
         except (OSError, ValueError):
@@ -550,9 +595,19 @@ class UiApp:
         if workflow_status(workspace)["overall"] != "complete":
             raise UserError("job_not_complete")
         given = Path(load_output_path(workspace))
-        if not wanted or given.suffix.lower() == f".{wanted}" or job_type(workspace.source_file) == "subtitles":
+        if not wanted or given.suffix.lower() == f".{wanted}":
             return given.read_bytes(), given.name
         compiled = Path(load_compiled_epub_path(workspace))
+        if job_type(workspace.source_file) == "subtitles":
+            # A subtitle job has subtitle formats only: its own file, or that file converted.
+            if wanted == compiled.suffix.lower().lstrip("."):
+                return compiled.read_bytes(), compiled.name
+            if wanted not in SUBTITLE_FORMATS or wanted == subtitle_kind(compiled):
+                raise UserError("output_format_subtitles", format=wanted)
+            text, _ = convert_subtitles(read_subtitles(compiled), wanted)
+            return text.encode("utf-8"), f"{compiled.stem}.{wanted}"
+        if wanted in SUBTITLE_FORMATS:
+            raise UserError("output_format_book", format=wanted)
         if wanted == "epub":
             return compiled.read_bytes(), compiled.name
         font = load_workspace_config(workspace).output.pdf_font

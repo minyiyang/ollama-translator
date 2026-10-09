@@ -150,6 +150,36 @@ describe("Jobs page", () => {
       expect(within(rowOf("other")).queryByRole("link", { name: "⤓ Download" })).not.toBeInTheDocument();
     });
 
+    it("offers a finished job in the formats it can be had in, each row with its own menu", async () => {
+      jobsApi([
+        job({ job_id: "film", overall: "complete", downloadable: true, job_type: "subtitles", output_format: "srt",
+          output_formats: ["srt", "vtt", "ass"], output_notes: { vtt: [], ass: ["default_style"] } }),
+        job({ job_id: "novel", overall: "complete", downloadable: true, output_format: "docx", output_formats: ["epub", "txt", "md", "html", "docx", "pdf"] }),
+        job({ job_id: "running" }),
+      ]);
+      renderJobs();
+      await screen.findByRole("link", { name: "film" });
+      const menu = (row: string) => within(rowOf(row)).getByRole("combobox", { name: "Download format" });
+      const link = (row: string) => within(rowOf(row)).getByRole("link", { name: "⤓ Download" });
+      // A subtitle job: subtitle formats, its own first; a book: the book formats, starting on the one it gives back.
+      expect(within(menu("film")).getAllByRole("option").map((option) => option.textContent)).toEqual(["SRT", "WebVTT", "ASS"]);
+      expect(menu("film")).toHaveValue("srt");
+      expect(within(menu("novel")).getAllByRole("option").map((option) => option.textContent)).toEqual([
+        "EPUB", "PDF", "Word (.docx)", "HTML", "Markdown", "Plain text",
+      ]);
+      expect(menu("novel")).toHaveValue("docx");
+      expect(within(rowOf("running")).queryByRole("combobox")).not.toBeInTheDocument();
+
+      await userEvent.selectOptions(menu("film"), "WebVTT");
+      expect(link("film")).toHaveAttribute("href", "/api/jobs/film/output?format=vtt");
+      expect(link("film")).toHaveAttribute("title", "Download the translated subtitles");
+      // The other row is not moved by it.
+      expect(link("novel")).toHaveAttribute("href", "/api/jobs/novel/output");
+      await userEvent.selectOptions(menu("novel"), "PDF");
+      expect(link("novel")).toHaveAttribute("href", "/api/jobs/novel/output?format=pdf");
+      expect(link("film")).toHaveAttribute("href", "/api/jobs/film/output?format=vtt");
+    });
+
     it("says why the list could not be loaded, and shows it once the server answers", async () => {
       vi.useFakeTimers({ shouldAdvanceTime: true });
       let down = true;

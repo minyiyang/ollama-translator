@@ -6,11 +6,14 @@ import {
   GLOSSARY_REVIEW_FLAGS,
   optionHelp,
   optionLabel,
+  outputFormatChoices,
   MODEL_PATHS,
   SPECIAL_PATHS,
   glossaryReviewMode,
   humanize,
+  usedByJob,
   type GlossaryReviewMode,
+  type JobKind,
   type SchemaField,
   type SchemaSection,
 } from "../lib/configCatalog";
@@ -50,11 +53,14 @@ export function ConfigEditor({
   onTextChange,
   hasComments,
   readOnly = false,
+  jobType,
 }: {
   text: string;
   onTextChange: (text: string) => void;
   hasComments: boolean;
   readOnly?: boolean;
+  /** The kind of job the config is for: settings the other kind alone reads are left out of the form. */
+  jobType?: JobKind;
 }) {
   const t = useT();
   const [sections, setSections] = useState<SchemaSection[]>([]);
@@ -162,6 +168,11 @@ export function ConfigEditor({
   // Plain render functions (not nested components) so inputs keep focus across renders.
   const renderRow = (field: SchemaField) => {
     const value = effective(field.path);
+    if (field.path === "output.format" && field.enum) {
+      // A book's formats or a subtitle file's; a value the file already has stays choosable, to be seen and changed.
+      const choices = outputFormatChoices(field.enum, jobType);
+      field = { ...field, enum: !field.enum.includes(String(value)) || choices.includes(String(value)) ? choices : [...choices, String(value)] };
+    }
     const modified = hasPath(values, field.path) && !sameValue(getPath(values, field.path), field.default);
     const error = errorFor(field.path);
     return (
@@ -169,7 +180,7 @@ export function ConfigEditor({
         <div>
           <div className="name">{optionLabel(field.path) ?? humanize(field.key)}</div>
           <div className="path">{field.path}</div>
-          {optionHelp(field.path) && <div className="help">{optionHelp(field.path)}</div>}
+          {optionHelp(field.path, jobType) && <div className="help">{optionHelp(field.path, jobType)}</div>}
         </div>
         <div className="control">
           <FieldControl field={field} value={value} onChange={(v) => change(field.path, v)} installed={installed} isModel={MODEL_PATHS.has(field.path)} />
@@ -264,10 +275,13 @@ export function ConfigEditor({
     );
   };
   const optionPaths = (group: (typeof COMMON_GROUPS)[number]) =>
-    group.options.flatMap((o) => ("special" in o ? SPECIAL_PATHS[o.special] : hidden.has(o.path) ? [] : [o.path]));
+    group.options.flatMap((o) => ("special" in o ? SPECIAL_PATHS[o.special] : hidden.has(o.path) || !usedByJob(o.path, jobType) ? [] : [o.path]));
+  // A group whose settings all belong to the other kind of job is not shown at all.
+  const groups = COMMON_GROUPS.filter((group) => group.options.some((o) => "special" in o || usedByJob(o.path, jobType)));
 
   const q = query.trim().toLowerCase();
   const matches = (f: SchemaField) =>
+    usedByJob(f.path, jobType) &&
     (!q || f.path.toLowerCase().includes(q) || (optionLabel(f.path) ?? "").toLowerCase().includes(q)) &&
     (!changedOnly || (hasPath(values, f.path) && !sameValue(getPath(values, f.path), f.default)));
 
@@ -304,15 +318,18 @@ export function ConfigEditor({
       {hasComments && !readOnly && tab !== "yaml" && (
         <p className="meta">{t("config.editor.commentsNotKept")}</p>
       )}
+      {jobType && tab !== "yaml" && (
+        <p className="meta">{t(jobType === "subtitles" ? "config.editor.onlyForSubtitles" : "config.editor.onlyForBooks")}</p>
+      )}
 
       {tab === "options" && sections.length > 0 && (
         <>
           <div className="row group-actions">
-            <button type="button" className="small" onClick={() => setAll(COMMON_GROUPS.map((g) => `opt:${g.title}`), false)}>{t("config.editor.expandAll")}</button>
-            <button type="button" className="small" onClick={() => setAll(COMMON_GROUPS.map((g) => `opt:${g.title}`), true)}>{t("config.editor.collapseAll")}</button>
+            <button type="button" className="small" onClick={() => setAll(groups.map((g) => `opt:${g.title}`), false)}>{t("config.editor.expandAll")}</button>
+            <button type="button" className="small" onClick={() => setAll(groups.map((g) => `opt:${g.title}`), true)}>{t("config.editor.collapseAll")}</button>
           </div>
           <>
-            {COMMON_GROUPS.map((group) =>
+            {groups.map((group) =>
               renderGroup(
                 `opt:${group.title}`,
                 t(group.title),
@@ -321,7 +338,7 @@ export function ConfigEditor({
                   ...group.options.map((option) =>
                     "special" in option
                       ? option.special === "language-pair" ? renderLanguagePair() : renderGlossaryReview()
-                      : fields.has(option.path) && !hidden.has(option.path) ? renderRow(fields.get(option.path)!) : null,
+                      : fields.has(option.path) && !hidden.has(option.path) && usedByJob(option.path, jobType) ? renderRow(fields.get(option.path)!) : null,
                   ),
                   renderHidden(group),
                 ],
@@ -346,7 +363,7 @@ export function ConfigEditor({
               <button type="button" className="small" onClick={() => setAll(sections.map((s) => `all:${s.key}`), true)}>{t("config.editor.collapseAll")}</button>
             </div>
             <div className="section-nav">
-              {sections.map((s) => (
+              {sections.filter((s) => s.fields.some((f) => usedByJob(f.path, jobType))).map((s) => (
                 <button key={s.key} type="button" className="small" onClick={() => {
                   setAll([`all:${s.key}`], false);
                   window.setTimeout(() => document.getElementById(`sec-${s.key}`)?.scrollIntoView({ behavior: "smooth" }), 0);

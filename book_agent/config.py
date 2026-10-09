@@ -424,7 +424,8 @@ class OutputConfig(StrictModel):
     """The format a job's result is written in (docs/OUTPUT_AND_CONFIG_UX.md)."""
 
     # "source": the format the book came in, where that can be written; an EPUB otherwise.
-    format: Literal["source", "epub", "txt", "md", "html", "docx", "pdf"] = "source"
+    # A subtitle job takes "source" or a subtitle format (srt, vtt, ass); a book the others.
+    format: Literal["source", "epub", "txt", "md", "html", "docx", "pdf", "srt", "vtt", "ass"] = "source"
     # A font file for a PDF, embedded in it. Unset: a font of this system that has the language's letters.
     pdf_font: Path | None = None
 

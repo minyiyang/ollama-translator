@@ -15,7 +15,7 @@ export type Check = {
   stages: string[];
 };
 
-export function CheckResult({ check }: { check: Check }) {
+export function CheckResult({ check, jobType }: { check: Check; jobType?: string }) {
   const t = useT();
   const s = check.summary;
   return (
@@ -51,7 +51,7 @@ export function CheckResult({ check }: { check: Check }) {
         </tbody>
       </table>
       <h2 className="label">{t("glossary.check.pipeline")}</h2>
-      <div className="pipeline">{check.stages.map((st) => <Chip key={st}>{stageLabel(st)}</Chip>)}</div>
+      <div className="pipeline">{check.stages.map((st) => <Chip key={st}>{stageLabel(st, jobType)}</Chip>)}</div>
     </>
   );
 }

@@ -34,6 +34,8 @@ SUBTITLE_MEDIA_TYPES = {
     ".ssa": "text/x-ssa; charset=utf-8",
 }
 _MAX_SUBTITLE_BYTES = 32 * 1024 * 1024
+# The formats a subtitle job can be given back in (docs/OUTPUT_AND_CONFIG_UX.md, 3).
+SUBTITLE_FORMATS = ("srt", "vtt", "ass")
 
 # A new part of the film begins after this long without a cue, once the part
 # has this many cues; no part is longer than the last number. Parts are what
@@ -554,6 +556,186 @@ def validate_compiled_subtitles(
         segment_count=sum(1 for cue in cues if cue.translatable),
         resource_count=0,
     )
+
+
+# -- from one format to another ------------------------------------------------------------------
+
+# What a conversion does not carry over, or adds, said to the person who asked for it.
+CONVERSION_NOTES = {
+    "cue_settings": "the position and alignment of WebVTT cues are not carried over",
+    "blocks": "WebVTT NOTE, STYLE, and REGION blocks are not carried over",
+    "markup": "markup other than italics, bold, and underline (fonts, colours, voices) is not carried over",
+    "position": "the position codes of cues are not carried over",
+    "styles": "ASS styles, positions, colours, and karaoke timing are not carried over",
+    "drawings": "drawing events are left out",
+    "times": "times are rounded to hundredths of a second, which is what ASS holds",
+    "default_style": "one default style is added: every cue at the bottom centre",
+}
+
+_HTML_TAG = re.compile(r"<\s*(/?)\s*([A-Za-z][\w.]*)[^<>]*>")
+_OVERRIDE = re.compile(r"\\([A-Za-z]+)([^\\{}]*)")
+_POSITION = re.compile(r"\\an?\d+")
+_VTT_SETTINGS = re.compile(rf"-->\s*{_TIME}[ \t]+\S")
+_VTT_BLOCK = re.compile(r"^(?:NOTE|STYLE|REGION)\b", re.MULTILINE)
+_ASS_HEADER = """[Script Info]
+ScriptType: v4.00+
+WrapStyle: 0
+ScaledBorderAndShadow: yes
+PlayResX: 384
+PlayResY: 288
+
+[V4+ Styles]
+Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
+Style: Default,Arial,16,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,1,0,2,10,10,10,1
+
+[Events]
+Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
+"""
+
+
+def subtitle_kind(path: str | Path) -> str:
+    """The format of a subtitle file by its name: srt, vtt, or ass ("" for any other file)."""
+    return SUBTITLE_SUFFIXES.get(Path(path).suffix.casefold(), "")
+
+
+def _clock(milliseconds: int, separator: str) -> str:
+    seconds, fraction = divmod(max(0, milliseconds), 1000)
+    return f"{seconds // 3600:02d}:{seconds % 3600 // 60:02d}:{seconds % 60:02d}{separator}{fraction:03d}"
+
+
+def _ass_clock(milliseconds: int) -> str:
+    hundredths = (max(0, milliseconds) + 5) // 10
+    seconds, fraction = divmod(hundredths, 100)
+    return f"{seconds // 3600}:{seconds % 3600 // 60:02d}:{seconds % 60:02d}.{fraction:02d}"
+
+
+@dataclass
+class _Marks:
+    """What stood around a cue's text: the emphasis every format has, a
+    position code, and whether there was more than those."""
+
+    emphasis: list[str] = field(default_factory=list)  # of i, b, u, in the order they opened
+    position: str = ""  # \an8 and the like
+    drawing: bool = False
+    other: bool = False
+
+
+def _marks(cue: Cue) -> _Marks:
+    marks = _Marks()
+    for closing, name in _HTML_TAG.findall(cue.prefix + cue.suffix):
+        letter = name.casefold()
+        if letter in {"i", "b", "u"}:
+            if not closing and letter not in marks.emphasis:
+                marks.emphasis.append(letter)
+        else:
+            marks.other = True
+    for block in re.findall(r"\{([^{}]*)\}", cue.prefix):
+        for name, value in _OVERRIDE.findall(block):
+            value = value.strip()
+            if name in {"i", "b", "u"} and value.isdigit():
+                if int(value) and name not in marks.emphasis:
+                    marks.emphasis.append(name)
+            elif name == "p" and value.isdigit():
+                marks.drawing = marks.drawing or int(value) > 0
+            elif _POSITION.fullmatch(f"\\{name}{value}"):
+                marks.position = f"\\{name}{value}"
+            else:
+                marks.other = True
+    return marks
+
+
+def convert_subtitles(parsed: SubtitleFile, kind: str) -> tuple[str, list[str]]:
+    """`parsed` written as another subtitle format, and what the conversion
+    did not carry over or added: keys of CONVERSION_NOTES.
+
+    Every cue keeps its place, its times, its lines, and its italics, bold,
+    and underline. What only one format can say is left behind and named."""
+    if kind not in SUBTITLE_FORMATS:
+        raise SubtitleError(f"{kind} is not a subtitle format (srt, vtt, ass)")
+    notes: list[str] = []
+
+    def note(key: str) -> None:
+        if key not in notes:
+            notes.append(key)
+
+    if parsed.kind == "vtt":
+        literal = "".join(part for part in parsed.parts if isinstance(part, str))
+        if _VTT_SETTINGS.search(literal):
+            note("cue_settings")
+        if _VTT_BLOCK.search(literal):
+            note("blocks")
+    if parsed.kind == "ass":
+        note("styles")
+    blocks: list[str] = []
+    for cue in parsed.cues:
+        marks = _marks(cue)
+        if marks.drawing:
+            note("drawings")
+            continue
+        if marks.other and parsed.kind != "ass":
+            note("markup")
+        if marks.position and kind != "ass" and parsed.kind != "ass":
+            note("position")
+        if kind == "ass":
+            if cue.start % 10 or cue.end % 10:
+                note("times")
+            opening = "".join(f"\\{letter}1" for letter in marks.emphasis) + marks.position
+            closing = "".join(f"\\{letter}0" for letter in reversed(marks.emphasis))
+            text = (f"{{{opening}}}" if opening else "") + "\\N".join(cue.lines) + (f"{{{closing}}}" if closing else "")
+            blocks.append(f"Dialogue: 0,{_ass_clock(cue.start)},{_ass_clock(cue.end)},Default,,0,0,0,,{text}")
+            continue
+        lines = [html.escape(line, quote=False) for line in cue.lines] if kind == "vtt" else list(cue.lines)
+        text = (
+            "".join(f"<{letter}>" for letter in marks.emphasis)
+            + "\n".join(lines)
+            + "".join(f"</{letter}>" for letter in reversed(marks.emphasis))
+        )
+        separator = "." if kind == "vtt" else ","
+        timing = f"{_clock(cue.start, separator)} --> {_clock(cue.end, separator)}"
+        blocks.append((f"{len(blocks) + 1}\n" if kind == "srt" else "") + f"{timing}\n{text}\n")
+    if kind == "ass":
+        note("default_style")
+        return _ASS_HEADER + "\n".join(blocks) + "\n", notes
+    return ("WEBVTT\n\n" if kind == "vtt" else "") + "\n".join(blocks), notes
+
+
+def convert_subtitle_file(source: str | Path, output: str | Path, kind: str) -> list[str]:
+    """Write the subtitle file `source` as `output` in the format `kind`; what was not carried over."""
+    text, notes = convert_subtitles(read_subtitles(source), kind)
+    target = Path(output)
+    target.parent.mkdir(parents=True, exist_ok=True)
+    temporary = target.with_name(target.name + ".tmp")
+    temporary.write_bytes(text.encode("utf-8"))
+    temporary.replace(target)
+    return notes
+
+
+def conversion_notes(source: str | Path, kind: str) -> list[str]:
+    """What writing `source` in the format `kind` would not carry over; nothing for its own format."""
+    parsed = read_subtitles(source)
+    return [] if parsed.kind == kind else convert_subtitles(parsed, kind)[1]
+
+
+def validate_converted_subtitles(converted_path: str | Path, compiled_path: str | Path) -> list[str]:
+    """Read a converted file back against the file it was made from: the same
+    cues in the same order at the same times, each with the same text."""
+    errors: list[str] = []
+    try:
+        compiled = read_subtitles(compiled_path)
+        kind = subtitle_kind(converted_path)
+        written = parse_subtitles(decode_text(Path(converted_path).read_bytes()), kind).cues
+        expected = [cue for cue in compiled.cues if not _marks(cue).drawing]
+        slack = 5 if kind == "ass" else 0  # ASS holds hundredths of a second
+        if len(written) != len(expected):
+            return [f"the {kind} file has {len(written)} cues; the file it was made from has {len(expected)}"]
+        for before, after in zip(expected, written, strict=True):
+            if abs(before.start - after.start) > slack or abs(before.end - after.end) > slack:
+                errors.append(f"cue {before.number}: its time changed in the {kind} file")
+            if _squeezed("".join(before.lines)) != _squeezed("".join(after.lines)):
+                errors.append(f"cue {before.number}: its text changed in the {kind} file")
+    except (OSError, ValueError) as error:
+        errors.append(f"the converted subtitle file could not be read back: {error}")
+    return errors[:50]
 
 
 def reading_problems(cue: Cue, translations: list[str], limits: ReadingLimits) -> list[str]:
