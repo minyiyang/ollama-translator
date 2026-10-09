@@ -100,6 +100,15 @@ epub:
   insert_missing_chapter_headings: false
   chapter_heading_labels: []
 
+# output:
+#   # The format the finished book is given back in: source (the format it came
+#   # in; an EPUB where that cannot be written), epub, pdf, docx, html, md, or txt.
+#   # Any other format can still be had from the finished job.
+#   format: source
+#   # A .ttf or .ttc font for a PDF, with the letters of the language translated
+#   # into. Unset: a font of this system. A PDF needs `pip install reportlab`.
+#   pdf_font: fonts/NotoSerifSC-Regular.ttf
+
 audit:
   model: gemma4:31b
   verifier_model: gemma4:26b

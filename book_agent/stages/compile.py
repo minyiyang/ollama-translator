@@ -20,7 +20,8 @@ from ..pipeline_state import (
     invalidate_stage_and_dependents,
     stage_is_current,
 )
-from ..book_formats import CONVERTED_SUFFIXES, EXPORT_FORMATS, export_book
+from ..book_formats import export_book
+from ..output import hashed_output_fields, output_format
 from ..languages import profile
 from ..rtf import compile_rtf_document
 from ..book_edits import book_approved, settled_book
@@ -153,6 +154,8 @@ def run_epub_compile_stage(
                 ),
                 # A subtitle file is written again when the limits its lines are broken by change.
                 **limit_fields(workspace, config),
+                # A book is written again when the format it is given back in changes.
+                **hashed_output_fields(workspace.source_file, config),
                 "stage_version": COMPILE_STAGE_VERSION,
             }
         )
@@ -220,12 +223,17 @@ def run_epub_compile_stage(
         report_path = workspace.directory("reports") / f"compile-{input_hash[:16]}.json"
         atomic_write_text(report_path, report.model_dump_json(indent=2))
         _record_file(connection, workspace, output_path, "compiled_epub")
-        # A book that came as text, Markdown, HTML, or a Word document is also
-        # written in the format it came in, next to the EPUB.
-        export_format = CONVERTED_SUFFIXES.get(workspace.source_file.suffix.casefold())
-        if export_format in EXPORT_FORMATS:  # a PDF is read, never written
-            exported = export_book(output_path, output_path.with_suffix(f".{export_format}"), export_format)
-            _record_file(connection, workspace, exported, "compiled_export")
+        # The job's output: the EPUB, or the same book written from it in the
+        # format the job gives back (docs/OUTPUT_AND_CONFIG_UX.md).
+        given = output_path
+        if manifest.source_format != "subtitle":
+            export_format, _ = output_format(workspace.source_file, config)
+            if export_format != "epub":
+                given = export_book(
+                    output_path, output_path.with_suffix(f".{export_format}"), export_format, pdf_font=config.output.pdf_font
+                )
+                _record_file(connection, workspace, given, "compiled_export")
+        set_job_metadata(connection, "compiled_output", given.relative_to(workspace.root).as_posix())
         _record_file(connection, workspace, report_path, "epub_compilation_report")
         set_job_metadata(
             connection,
@@ -314,6 +322,20 @@ def load_compiled_epub_path(workspace: JobWorkspace) -> str:
         return str(path)
     finally:
         connection.close()
+
+
+def load_output_path(workspace: JobWorkspace) -> str:
+    """The file the job gives back: the book in its output format, or the
+    subtitle file. For a job compiled before it had an output format, the
+    compiled document."""
+    connection = connect_state(workspace.state_file)
+    try:
+        relative = get_job_metadata(connection, "compiled_output")
+    finally:
+        connection.close()
+    if relative and workspace.directory(relative).is_file():
+        return str(workspace.directory(relative))
+    return load_compiled_epub_path(workspace)
 
 
 def run_document_compile_stage(

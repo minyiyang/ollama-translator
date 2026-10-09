@@ -199,6 +199,32 @@ describe("The job's buttons in the header", () => {
       expect(screen.getByRole("link", { name: "⤓ Download" })).toHaveAttribute("href", "/api/jobs/demo/output?format=docx");
     });
 
+    it("starts on the format the job gives back, and offers the formats the server can write", async () => {
+      controlsApi(jobInfo({ downloadable: true, output_format: "docx", output_formats: ["epub", "txt", "md", "html", "docx", "pdf"] }));
+      await renderControls("complete");
+      const format = screen.getByRole("combobox", { name: "Download format" });
+      expect(format).toHaveValue("docx");
+      expect(within(format).getAllByRole("option").map((option) => option.textContent)).toEqual([
+        "EPUB", "PDF", "Word (.docx)", "HTML", "Markdown", "Plain text",
+      ]);
+      // The job's own format needs no asking; another one, the EPUB among them, is asked for by name.
+      const download = () => screen.getByRole("link", { name: "⤓ Download" });
+      expect(download()).toHaveAttribute("href", "/api/jobs/demo/output");
+      await userEvent.selectOptions(format, "PDF");
+      expect(download()).toHaveAttribute("href", "/api/jobs/demo/output?format=pdf");
+      await userEvent.selectOptions(format, "EPUB");
+      expect(download()).toHaveAttribute("href", "/api/jobs/demo/output?format=epub");
+      await userEvent.selectOptions(format, "Word (.docx)");
+      expect(download()).toHaveAttribute("href", "/api/jobs/demo/output");
+    });
+
+    it("leaves out a PDF where the server cannot write one", async () => {
+      controlsApi(jobInfo({ downloadable: true, output_format: "epub", output_formats: ["epub", "txt", "md", "html", "docx"] }));
+      await renderControls("complete");
+      const format = screen.getByRole("combobox", { name: "Download format" });
+      expect(within(format).queryByRole("option", { name: "PDF" })).not.toBeInTheDocument();
+    });
+
     it("has no download link before there is a book", async () => {
       controlsApi(stopped());
       await renderControls("paused");

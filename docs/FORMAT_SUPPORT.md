@@ -37,7 +37,7 @@ reflows the text, drops the page layout, and has no OCR.
 | The translated book as TXT, Markdown, HTML, DOCX | **Add**, beside the EPUB |
 | FB2, MOBI, AZW3 | Skip |
 | Scanned PDF | Skip: OCR is a different problem. Refused with that reason, also when a text layer lies under the scans |
-| PDF that holds text | **Added** as a source (section 6.1). Never written |
+| PDF that holds text | **Added** as a source (section 6.1), and as an output (docs/OUTPUT_AND_CONFIG_UX.md, 2.3) |
 | Subtitles | **Added** as a job of their own kind (section 7.1) |
 | Game text | Not a book; section 7.2 lists what it would need |
 
@@ -122,10 +122,14 @@ README says so.
 The compiled EPUB stays the one thing the pipeline builds and validates. The
 other formats are made from it:
 
-- **On request.** `book-agent export <workspace> --format docx|html|md|txt`,
+- **On request.** `book-agent export <workspace> --format docx|html|md|txt|pdf`,
   and `GET /api/jobs/<id>/output?format=...` behind a format choice beside
-  the dashboard's Download button. Nothing in the config, so no stage hash
-  changes and an EPUB job behaves as it does today.
+  the dashboard's Download button.
+- **As the job's output.** `output.format` in the config names the format the
+  job gives back (default `source`, the format the book came in); the compile
+  stage writes it next to the EPUB and Download gives it. A job that names
+  none hashes as it did, so an EPUB job behaves as before
+  (docs/OUTPUT_AND_CONFIG_UX.md, section 2).
 - **For a converted source, also at compile.** A book that came as a Word
   document is written as one next to the EPUB, and recorded as an artifact.
 - **Pictures and notes.** Word: pictures as inline drawings, sized from the
@@ -269,8 +273,8 @@ them together again from how books are set:
 read as paragraphs wherever the page puts them. Pictures are not carried
 over. A scan with a text layer is refused when most pages are one large
 picture; a scan made some other way would give that layer's misreadings.
-Nothing is written as PDF: the translation is an EPUB, which
-`book-agent export` writes in the other formats.
+A PDF is written as well, since docs/OUTPUT_AND_CONFIG_UX.md: the book's
+text set onto pages again, not the source's layout.
 
 **Tried on:** two PDFs of the kind an ebook program makes, a novel of 60
 pages and one of 62, each read in about five seconds: of the 854 paragraphs

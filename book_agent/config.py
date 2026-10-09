@@ -420,6 +420,15 @@ class SubtitleConfig(StrictModel):
     characters_per_second: float | None = Field(default=None, gt=0, le=60)
 
 
+class OutputConfig(StrictModel):
+    """The format a job's result is written in (docs/OUTPUT_AND_CONFIG_UX.md)."""
+
+    # "source": the format the book came in, where that can be written; an EPUB otherwise.
+    format: Literal["source", "epub", "txt", "md", "html", "docx", "pdf"] = "source"
+    # A font file for a PDF, embedded in it. Unset: a font of this system that has the language's letters.
+    pdf_font: Path | None = None
+
+
 class AppConfig(StrictModel):
     ollama: OllamaConfig = OllamaConfig()
     budget: BudgetConfig = BudgetConfig()
@@ -433,6 +442,7 @@ class AppConfig(StrictModel):
     workflow: WorkflowConfig = WorkflowConfig()
     paths: PathsConfig = PathsConfig()
     subtitles: SubtitleConfig = SubtitleConfig()
+    output: OutputConfig = OutputConfig()
 
     @model_serializer(mode="wrap")
     def _omit_unset_subtitles(self, handler):
@@ -440,6 +450,9 @@ class AppConfig(StrictModel):
         data = handler(self)
         if isinstance(data, dict) and not any(value is not None for value in (data.get("subtitles") or {}).values()):
             data.pop("subtitles", None)
+        # And as they did before a job had an output format.
+        if isinstance(data, dict) and self.output == OutputConfig():
+            data.pop("output", None)
         return data
 
     @model_validator(mode="after")

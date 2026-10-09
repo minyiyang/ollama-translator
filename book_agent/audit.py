@@ -1669,8 +1669,12 @@ def _adjacent_duplication_count(text: str) -> int:
     """Count repeated adjacent sentences without treating source repetition as a defect."""
     sentences = [item.strip() for item in _SENTENCE_SPLIT.split(text) if item.strip()]
     normalized = [_normalize_prose(item) for item in sentences]
+    # A sentence said again after one that ends with it counts too: a quotation
+    # repeated after its lead-in ("she went on saying, 'Do cats eat bats? Do
+    # cats eat bats?'") is one sentence longer in a language that keeps the
+    # lead-in with the quotation than in one that ends the sentence before it.
     return sum(
-        len(first) >= 6 and first == second
+        len(second) >= 6 and first.endswith(second)
         for first, second in zip(normalized, normalized[1:])
     )
 

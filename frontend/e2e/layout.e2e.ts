@@ -58,3 +58,19 @@ test.describe("The dashboard in a language with longer words", () => {
     });
   }
 });
+
+test.describe("The header of a finished book", () => {
+  for (const width of [1280, 900]) {
+    test(`keeps the format menu beside the Download button in a window ${width} wide`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 700 });
+      await page.goto("/jobs/alice-manuscript-finished/progress");
+      const banner = page.getByRole("banner");
+      const menu = (await banner.getByRole("combobox", { name: "Download format" }).boundingBox())!;
+      const button = (await banner.getByRole("link", { name: "Download" }).boundingBox())!;
+      // Side by side, the menu first; the tabs give way before these do.
+      expect(menu.x + menu.width).toBeLessThanOrEqual(button.x);
+      expect(Math.abs(menu.y + menu.height / 2 - (button.y + button.height / 2))).toBeLessThan(4);
+      expect(await overflow(page)).toBeLessThanOrEqual(0);
+    });
+  }
+});

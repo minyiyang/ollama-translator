@@ -234,7 +234,7 @@ describe("Progress tab", () => {
       renderProgressTab();
       const table = within(await pipeline());
       expect(table.getAllByRole("row").slice(1).map((row) => within(row).getAllByRole("cell")[1].querySelector("b")?.textContent)).toEqual([
-        "Decompile source", "Translate", "Audit translation", "Compile EPUB", "Validate EPUB",
+        "Decompile source", "Translate", "Audit translation", "Build the book", "Check the book",
       ]);
       expect(within(rowOf("audit_translation")).getByText("Ollama timed out")).toBeInTheDocument();
       expect(cells("decompile")[0]).toHaveTextContent("✓");
@@ -332,7 +332,7 @@ describe("Progress tab", () => {
       expect(within(panel).getAllByRole("listitem").map((li) => li.textContent)).toEqual([
         "Translate: ~10 min (4/10 units done; 95 s per unit so far)",
         `Later stages: ~5 min, from 3 previous jobs scaled to ${(4200).toLocaleString()} segments`,
-        "Not estimated (no history yet): Validate EPUB",
+        "Not estimated (no history yet): Check the book",
         "Excludes waiting for you: Approve glossary; final review of 12 segments",
       ]);
     });
@@ -458,7 +458,7 @@ describe("Progress tab", () => {
 
     it("says a warning the catalog knows in the interface language, and any other as the server wrote it", async () => {
       const warnings = [
-        { code: "compiled_epub", message: "The compiled EPUB is replaced by the new output." },
+        { code: "full_translation", message: "The whole book is translated again." },
         { code: "edits", message: "2 manual edits on the Text tab are kept and re-checked." },
       ];
       progressApi({ "GET /api/jobs/demo/rerun": preview({ warnings }) });
@@ -467,8 +467,8 @@ describe("Progress tab", () => {
       await act(() => setLocale("de", false));
       await user.click(within(rowOf("translate")).getByRole("button", { name: "Ab hier neu ausführen" }));
       const dialog = await screen.findByRole("alertdialog");
-      expect(dialog).toHaveTextContent(de["server.rerun.compiled_epub"]);
-      expect(dialog).not.toHaveTextContent("The compiled EPUB is replaced");
+      expect(dialog).toHaveTextContent(de["server.rerun.full_translation"]);
+      expect(dialog).not.toHaveTextContent("The whole book is translated again.");
       expect(dialog).toHaveTextContent("2 manual edits on the Text tab are kept and re-checked.");
     });
 
@@ -798,7 +798,7 @@ describe("Progress tab: following a book through the pipeline", () => {
     await user.click(within(rowOf("translate")).getByRole("button", { name: "Rerun from here" }));
     const dialog = await screen.findByRole("alertdialog");
     expect(within(dialog).getAllByRole("listitem").map((li) => li.textContent)).toEqual([
-      "Translate · took ~2 h", "Audit translation · took ~25 min", "Compile EPUB · took ~20 s",
+      "Translate · took ~2 h", "Audit translation · took ~25 min", "Build the book · took ~20 s",
     ]);
     expect(dialog).toHaveTextContent("These stages took about 2 h 30 min so far.");
     expect(dialog).toHaveTextContent("3 edits made on the Text tab are kept");

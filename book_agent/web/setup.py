@@ -195,6 +195,7 @@ _SECTION_TITLES = {
     "workflow": "Workflow gates",
     "paths": "Paths",
     "subtitles": "Subtitles",
+    "output": "Output format",
 }
 
 

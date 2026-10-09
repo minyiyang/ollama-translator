@@ -40,7 +40,7 @@ describe("stageMessage", () => {
 
 describe("rerunWarning", () => {
   it("uses the catalog for a known code and the server's text otherwise", () => {
-    expect(rerunWarning({ code: "compiled_epub", message: "ignored" })).toBe("The compiled EPUB is replaced by the new output.");
+    expect(rerunWarning({ code: "compiled_epub", message: "ignored" })).toBe("The compiled book is replaced by the new output.");
     expect(rerunWarning({ code: "new_code", message: "Something new." })).toBe("Something new.");
   });
 });

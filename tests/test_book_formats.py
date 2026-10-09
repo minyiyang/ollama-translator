@@ -383,9 +383,9 @@ def test_a_compiled_book_is_written_as_text_markdown_html_and_word():
         assert "<em>Flasche</em> vom <strong>Kaminsims</strong>.<br/>Zweite Zeile." in back.blocks[1].html
         assert word.read_bytes() == export_book(epub, base / "again.docx", "docx").read_bytes()  # the same file every time
 
-        assert set(EXPORT_FORMATS) == {"txt", "md", "html", "docx"}
-        with pytest.raises(BookFormatError, match="cannot write a book as pdf"):
-            export_book(epub, base / "zeichen.pdf", "pdf")
+        assert set(EXPORT_FORMATS) == {"txt", "md", "html", "docx", "pdf"}  # the PDF: tests/test_pdf_export.py
+        with pytest.raises(BookFormatError, match="cannot write a book as mobi"):
+            export_book(epub, base / "zeichen.mobi", "mobi")
 
 
 def test_a_document_written_in_word_itself_is_read_for_what_a_translator_needs():
@@ -468,8 +468,8 @@ def test_a_pdf_becomes_a_job_with_a_chapter_for_each_of_its_chapters():
         ]
         segments = [segment.text for document in manifest.documents for segment in document.segments]
         assert len(segments) == 8 and segments[-1] == "“State your case,” said he, in brisk, business tones."
-    # A PDF is read, never written: its translation is an EPUB, which `book-agent export` writes in other formats.
-    assert CONVERTED_SUFFIXES[".pdf"] not in EXPORT_FORMATS
+    # A PDF is written too, where reportlab and a font are there (tests/test_pdf_export.py).
+    assert CONVERTED_SUFFIXES[".pdf"] in EXPORT_FORMATS
 
 
 def test_what_is_not_a_readable_pdf_is_refused_with_the_reason():

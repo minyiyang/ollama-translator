@@ -29,17 +29,35 @@ test.describe("A translator works with files that are not EPUBs", () => {
     await expect(page).toHaveURL(/\/jobs\/sign-of-the-four[^/]*\/config$/);
   });
 
-  test("takes a finished book as a Word document, a web page, Markdown, or plain text", async ({ page }) => {
+  test("gets a Markdown manuscript back as Markdown, from the job and from the list of jobs", async ({ page }) => {
+    await page.goto("/jobs/alice-manuscript-finished/progress");
+    const banner = page.getByRole("banner");
+    // The job gives back the format the book came in; the menu starts there.
+    await expect(banner.getByRole("combobox", { name: "Download format" })).toHaveValue("md");
+    let download = page.waitForEvent("download");
+    await banner.getByRole("link", { name: /Download/ }).click();
+    expect((await download).suggestedFilename()).toMatch(/^alice-manuscript\.translated-.*\.md$/);
+
+    await page.goto("/");
+    download = page.waitForEvent("download");
+    await page.getByRole("row", { name: /^alice-manuscript-finished / }).getByRole("link", { name: /Download/ }).click();
+    expect((await download).suggestedFilename()).toMatch(/^alice-manuscript\.translated-.*\.md$/);
+  });
+
+  test("takes a finished book as an EPUB, a PDF, a Word document, a web page, Markdown, or plain text", async ({ page }) => {
     await page.goto("/jobs/alice-manuscript-finished/progress");
     const banner = page.getByRole("banner");
     await expect(banner).toContainText("complete");
     const format = banner.getByRole("combobox", { name: "Download format" });
-    for (const [label, suffix] of [["EPUB", ".epub"], ["Word (.docx)", ".docx"], ["HTML", ".html"], ["Markdown", ".md"], ["Plain text", ".txt"]]) {
+    for (const [label, suffix] of [["EPUB", ".epub"], ["PDF", ".pdf"], ["Word (.docx)", ".docx"], ["HTML", ".html"], ["Markdown", ".md"], ["Plain text", ".txt"]]) {
       await format.selectOption({ label });
       const download = page.waitForEvent("download");
       await banner.getByRole("link", { name: /Download/ }).click();
       const file = await download;
       expect(file.suggestedFilename()).toMatch(new RegExp(`^alice-manuscript\\.translated-.*\\${suffix}$`));
+      if (suffix === ".pdf") {
+        expect((await readFile(await file.path())).subarray(0, 5).toString("latin1")).toBe("%PDF-");
+      }
       if (suffix === ".md") {
         // The manuscript came as Markdown and comes back as Markdown, in German.
         const text = await readFile(await file.path(), "utf-8");

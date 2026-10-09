@@ -8,9 +8,9 @@
 
 Un pipeline local y reanudable para traducir libros enteros, pensado para
 prosa literaria del inglés al chino y del chino al inglés. Recibe un archivo
-EPUB, RTF, de texto, Markdown, HTML, Word (.docx) o un PDF con texto y genera
-un EPUB traducido, que también puede escribirse como Word, HTML, Markdown o
-texto. Traduce además archivos de subtítulos (.srt, .vtt, .ass), subtítulo
+EPUB, RTF, de texto, Markdown, HTML, Word (.docx) o un PDF con texto y devuelve
+la traducción en el formato en que llegó, o como EPUB, PDF, Word, HTML,
+Markdown o texto. Traduce además archivos de subtítulos (.srt, .vtt, .ass), subtítulo
 por subtítulo y sin tocar los tiempos. Todo se ejecuta con modelos locales
 de Ollama: sin API en la nube, sin servidor MCP y sin frameworks de agentes
 como LangGraph o AutoGen.

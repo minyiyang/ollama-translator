@@ -6,8 +6,9 @@
 
 [English](README.md) | **简体中文** | [日本語](README.ja.md) | [Français](README.fr.md) | [Español](README.es.md) | [Deutsch](README.de.md) | [한국어](README.ko.md)
 
-一个完全本地运行的整本书翻译流水线，支持英译中与中译英。输入 EPUB 或 RTF，输出
-排版完整的 EPUB。全程只调用本地 Ollama 模型：不依赖云端 API，不需要 MCP 服务，
+一个完全本地运行的整本书翻译流水线，支持英译中与中译英。输入 EPUB、RTF、纯文本、
+Markdown、HTML、Word（.docx）或带文字层的 PDF，译文按原格式输出，也可输出为 EPUB、PDF、
+Word、HTML、Markdown 或纯文本；字幕文件（.srt、.vtt、.ass）逐条翻译，时间轴保持不变。全程只调用本地 Ollama 模型：不依赖云端 API，不需要 MCP 服务，
 也不引入 LangGraph、AutoGen 之类的 Agent 框架。
 
 ## 它解决什么问题

@@ -1092,12 +1092,12 @@ class EndpointCoverageTests(ServerTests):
 
 
 class DownloadAndDirectionTests(ServerTests):
-    def completed_workspace(self, directory):
+    def completed_workspace(self, directory, output=None):
         from book_agent.stages.compile import run_epub_compile_stage
         from book_agent.stages.validate_epub import run_epub_validation_stage
         from tests.test_compile_stages import CompileStageTests
 
-        config = AppConfig.model_validate({"audit": {"semantic_enabled": False}})
+        config = AppConfig.model_validate({"audit": {"semantic_enabled": False}, **({"output": output} if output else {})})
         workspace = CompileStageTests().prepare_workspace(Path(directory), config)
         run_epub_compile_stage(workspace, config)
         run_epub_validation_stage(workspace)
@@ -1139,6 +1139,57 @@ class DownloadAndDirectionTests(ServerTests):
             finally:
                 server.shutdown()
                 server.server_close()
+
+    def test_a_job_gives_back_its_output_format_and_any_other_on_request(self):
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = self.completed_workspace(directory, output={"format": "docx"})
+            job = workspace.root.name
+            app = UiApp(workspace.root.parent, Path(directory), [])
+            with patch("book_agent.web.server.pdf_output_problem", return_value="no font"):
+                info = app.job_info(job)
+            assert info["output_format"] == "docx"
+            # A PDF is not offered where one cannot be written.
+            assert info["output_formats"] == ["epub", "txt", "md", "html", "docx"]
+            with patch("book_agent.web.server.pdf_output_problem", return_value=""):
+                assert app.job_info(job)["output_formats"][-1] == "pdf"
+
+            server, call = self.serve(app)
+            try:
+                def download(query=""):
+                    with urllib.request.urlopen(f"{call.base}/api/jobs/{job}/output{query}") as response:
+                        return response.read(), response.headers["Content-Type"], response.headers["Content-Disposition"]
+
+                body, media_type, disposition = download()
+                assert media_type.startswith("application/vnd.openxmlformats-officedocument.wordprocessingml")
+                assert body[:2] == b"PK" and re.search(r"\.translated-[0-9a-f]{6}\.docx", disposition)
+                assert download("?format=docx")[0] == body
+                body, media_type, disposition = download("?format=epub")
+                assert media_type == "application/epub+zip" and re.search(r"\.translated-[0-9a-f]{6}\.epub", disposition)
+                body, media_type, disposition = download("?format=md")
+                assert media_type == "text/markdown; charset=utf-8" and ".md" in disposition and body.strip()
+                status, body = call(f"/api/jobs/{job}/output?format=mobi")
+                assert status == 404 and "cannot write a book as mobi" in json.loads(body)["error"]
+            finally:
+                server.shutdown()
+                server.server_close()
+
+    def test_a_job_not_yet_compiled_says_the_format_it_will_give_back(self):
+        from tests.test_compile_stages import CompileStageTests
+
+        with tempfile.TemporaryDirectory() as directory:
+            config = AppConfig.model_validate({"audit": {"semantic_enabled": False}, "output": {"format": "html"}})
+            workspace = CompileStageTests().prepare_workspace(Path(directory), config)
+            app = UiApp(workspace.root.parent, Path(directory), [])
+            assert app.job_info(workspace.root.name)["output_format"] == "html"
+
+    def test_a_subtitle_job_offers_no_book_format(self):
+        with tempfile.TemporaryDirectory() as directory:
+            workspace, _ = paused_glossary_workspace(Path(directory))
+            app = UiApp(workspace.root.parent, Path(directory), [])
+            assert app.job_info("fixture")["output_format"] == "epub"
+            with patch("book_agent.web.server.job_type", return_value="subtitles"):
+                info = app.job_info("fixture")
+            assert info["output_formats"] == [] and info["output_format"] == "epub"
 
     def test_unfinished_job_has_nothing_to_download(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -1216,7 +1267,7 @@ class DownloadAndDirectionTests(ServerTests):
             app = UiApp(workspace.root.parent, Path(directory), [])
             server, call = self.serve(app)
             try:
-                with patch.object(UiApp, "job_output", return_value=book):
+                with patch.object(UiApp, "job_output", return_value=(book.read_bytes(), book.name)):
                     with urllib.request.urlopen(f"{call.base}/api/jobs/fixture/output") as response:
                         disposition = response.headers["Content-Disposition"]
                 assert 'filename="______.translated-a1b2c3.epub"' in disposition

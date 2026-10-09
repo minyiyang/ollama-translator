@@ -133,6 +133,8 @@ export const COMMON_GROUPS: CommonGroup[] = [
       { path: "workflow.defer_failed_translation_segments", label: "option.workflow.defer_failed_translation_segments.label", help: "option.workflow.defer_failed_translation_segments.help" },
       { path: "epub.strip_print_page_markers", label: "option.epub.strip_print_page_markers.label" },
       { path: "epub.insert_missing_chapter_headings", label: "option.epub.insert_missing_chapter_headings.label", help: "option.epub.insert_missing_chapter_headings.help" },
+      { path: "output.format", label: "option.output.format.label", help: "option.output.format.help" },
+      { path: "output.pdf_font", label: "option.output.pdf_font.label", help: "option.output.pdf_font.help" },
     ],
   },
   {

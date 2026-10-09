@@ -9,8 +9,9 @@
 Eine lokale, fortsetzbare Pipeline für die Übersetzung ganzer Bücher,
 ausgelegt auf literarische Prosa vom Englischen ins Chinesische und umgekehrt.
 Als Eingabe dient eine EPUB-, RTF-, Text-, Markdown-, HTML-, Word- (.docx) oder
-Text-PDF-Datei; das Ergebnis ist ein übersetztes EPUB, das sich zusätzlich als
-Word, HTML, Markdown oder Text ausgeben lässt. Untertiteldateien (.srt, .vtt,
+Text-PDF-Datei; die Übersetzung kommt in dem Format zurück, in dem das Buch
+geliefert wurde, oder als EPUB, PDF, Word, HTML, Markdown oder Text.
+Untertiteldateien (.srt, .vtt,
 .ass) werden ebenfalls übersetzt, Untertitel für Untertitel und mit
 unverändertem Timing. Alles läuft ausschließlich gegen lokale Ollama-Modelle:
 keine Cloud-API, kein MCP-Server und kein Agenten-Framework wie LangGraph oder
