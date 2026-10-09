@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { apiError, mockApi } from "../test/mockApi";
 import {
-  FALLBACK_PAIR, SKIP_HIDES, TIER_HELP, hiddenOptions, isGeneric, langAttr, leftoverSourceText, loadLanguages, pairCodes, pairOf, scriptsOf,
+  FALLBACK_PAIR, SKIP_HIDES, hiddenOptions, isGeneric, langAttr, leftoverSourceText, loadLanguages, pairCodes, pairOf, scriptsOf, tierHelp,
   type Language, type LanguageSupport,
 } from "./languages";
 
@@ -56,7 +56,7 @@ describe("isGeneric", () => {
   });
 
   it("has help text for every tier", () => {
-    for (const tier of ["tuned", "profiled", "generic"] as const) expect(TIER_HELP[tier].length).toBeGreaterThan(10);
+    for (const tier of ["tuned", "profiled", "generic"] as const) expect(tierHelp(tier).length).toBeGreaterThan(10);
   });
 });
 

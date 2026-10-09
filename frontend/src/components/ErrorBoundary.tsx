@@ -1,4 +1,5 @@
 import { Component, type ReactNode } from "react";
+import { t } from "../i18n";
 import { describeError, type ErrorDescription } from "../lib/errors";
 
 type Props = { children: ReactNode; onReload?: () => void };
@@ -23,20 +24,17 @@ export class ErrorBoundary extends Component<Props, State> {
     return (
       <main className="page">
         <div className="banner bad" role="alert">
-          <b>Something went wrong while showing this page.</b>
+          <b>{t("ui.error.title")}</b>
           <div>{failure.message}</div>
-          <p>
-            Work already saved is on the server and is not affected. Reloading may discard unsaved
-            input on this page.
-          </p>
+          <p>{t("ui.error.help")}</p>
           <div className="row">
             <button type="button" className="primary" onClick={this.props.onReload ?? (() => window.location.reload())}>
-              Reload
+              {t("ui.error.reload")}
             </button>
           </div>
           {failure.details && (
             <details>
-              <summary>Technical details</summary>
+              <summary>{t("ui.error.details")}</summary>
               <pre>{failure.details}</pre>
             </details>
           )}

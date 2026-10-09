@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useT } from "../i18n";
 import type { SchemaField } from "../lib/configCatalog";
 import { Switch } from "./ui";
 
@@ -20,12 +21,14 @@ function bounds(field: SchemaField) {
 }
 
 function ModelStatus({ model, installed }: { model: string; installed?: string[] | null }) {
+  const t = useT();
   if (!model || !installed) return null;
   const ok = installed.includes(model) || (!model.includes(":") && installed.includes(`${model}:latest`));
-  return ok ? <span className="ok-mark" title="Installed">✓</span> : <span className="bad-mark" title="Not installed in Ollama">✗ not installed</span>;
+  return ok ? <span className="ok-mark" title={t("config.field.installed")}>✓</span> : <span className="bad-mark" title={t("config.field.notInstalledInOllama")}>✗ {t("config.field.notInstalled")}</span>;
 }
 
 function TagList({ items, onChange, isModel, installed }: { items: string[]; onChange: (items: string[]) => void; isModel?: boolean; installed?: string[] | null }) {
+  const t = useT();
   const [draft, setDraft] = useState("");
   const add = () => {
     const value = draft.trim();
@@ -38,14 +41,14 @@ function TagList({ items, onChange, isModel, installed }: { items: string[]; onC
         <span className="tag" key={item}>
           {item}
           {isModel && <ModelStatus model={item} installed={installed} />}
-          <button type="button" aria-label={`Remove ${item}`} onClick={() => onChange(items.filter((x) => x !== item))}>×</button>
+          <button type="button" aria-label={t("config.field.removeItem", { item })} onClick={() => onChange(items.filter((x) => x !== item))}>×</button>
         </span>
       ))}
       <input
         type="text"
         value={draft}
         list={isModel ? "installed-models" : undefined}
-        placeholder={isModel ? "add model, Enter" : "add item, Enter"}
+        placeholder={isModel ? t("config.field.addModel") : t("config.field.addItem")}
         onChange={(e) => setDraft(e.target.value)}
         onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); add(); } }}
         onBlur={add}
@@ -56,6 +59,7 @@ function TagList({ items, onChange, isModel, installed }: { items: string[]; onC
 
 /** Key/value rows for mapping fields such as per-model context caps. */
 function MapEditor({ field, value, onChange, isModelKey }: { field: SchemaField; value: any; onChange: (value: any) => void; isModelKey: boolean }) {
+  const t = useT();
   const entries = Object.entries(value && typeof value === "object" ? value : {});
   const numeric = field.value_type === "integer" || field.value_type === "number";
   const [key, setKey] = useState("");
@@ -68,13 +72,13 @@ function MapEditor({ field, value, onChange, isModelKey }: { field: SchemaField;
           <span className="mono" style={{ minWidth: 160 }}>{k}</span>
           <input type={numeric ? "number" : "text"} value={String(v ?? "")} style={{ width: 140 }}
             onChange={(e) => write(entries.map(([ek, ev]) => [ek, ek === k ? coerce(e.target.value) : ev]))} />
-          <button type="button" className="small" onClick={() => write(entries.filter(([ek]) => ek !== k))}>Remove</button>
+          <button type="button" className="small" onClick={() => write(entries.filter(([ek]) => ek !== k))}>{t("common.remove")}</button>
         </div>
       ))}
       <div className="row" style={{ margin: 0 }}>
-        <input type="text" value={key} placeholder={isModelKey ? "model name" : "key"} list={isModelKey ? "installed-models" : undefined} style={{ width: 200 }} onChange={(e) => setKey(e.target.value)} />
+        <input type="text" value={key} placeholder={isModelKey ? t("config.field.modelName") : t("config.field.key")} list={isModelKey ? "installed-models" : undefined} style={{ width: 200 }} onChange={(e) => setKey(e.target.value)} />
         <button type="button" className="small" disabled={!key.trim() || entries.some(([k]) => k === key.trim())}
-          onClick={() => { write([...entries, [key.trim(), numeric ? 0 : ""]]); setKey(""); }}>Add</button>
+          onClick={() => { write([...entries, [key.trim(), numeric ? 0 : ""]]); setKey(""); }}>{t("common.add")}</button>
       </div>
     </div>
   );
@@ -105,13 +109,14 @@ function NumberInput({ field, value, onChange }: { field: SchemaField; value: an
 
 /** One schema-typed input. Values that fail to parse are passed through so validation can report them. */
 export function FieldControl({ field, value, onChange, installed, isModel }: Props) {
+  const t = useT();
   switch (field.type) {
     case "boolean":
       return <Switch checked={!!value} onChange={onChange} label={field.path} />;
     case "enum":
       return (
         <select value={value ?? ""} onChange={(e) => onChange(e.target.value === "" && field.nullable ? null : e.target.value)}>
-          {field.nullable && <option value="">(none)</option>}
+          {field.nullable && <option value="">{t("config.field.none")}</option>}
           {field.enum!.map((option) => <option key={option} value={option}>{option}</option>)}
         </select>
       );
@@ -134,7 +139,7 @@ export function FieldControl({ field, value, onChange, installed, isModel }: Pro
             type="text"
             value={value ?? ""}
             list={isModel ? "installed-models" : undefined}
-            placeholder={field.nullable ? "(not set)" : undefined}
+            placeholder={field.nullable ? t("config.field.notSet") : undefined}
             spellCheck={false}
             onChange={(e) => onChange(e.target.value === "" && field.nullable ? null : e.target.value)}
           />

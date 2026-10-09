@@ -4,3 +4,5 @@ node_modules/
 test-results/
 playwright-report/
 e2e/.books/
+# Translation hand-off files (npm run i18n)
+i18n-work/

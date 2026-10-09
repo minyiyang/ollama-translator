@@ -8,14 +8,16 @@ import { SideItem, SideLayout } from "../components/SideLayout";
 import { useToast } from "../components/Toast";
 import { Chip } from "../components/ui";
 import { ImportPreviewCard, LastImportCard } from "../components/XliffImport";
+import { rich, useT, type MessageKey } from "../i18n";
 import { KIND_LABELS, chapterOf, noteNumber, pictureUrl, type BookItemKind } from "../lib/bookItems";
 import { diffChars } from "../lib/diff";
+import { editActionLabel, findingCategoryLabel, severityLabel } from "../lib/enums";
 import { xliffExportUrl } from "../lib/format";
 import { cueLabel, readingProblems, type Cue, type ReadingLimits } from "../lib/subtitles";
 import { FALLBACK_PAIR, langAttr, pairCodes } from "../lib/languages";
 import { matchesTextQuery, matchesTextView, retainTextDocumentId, textRowClass, type TextView } from "../lib/text";
 import {
-  CATEGORY_LABELS,
+  categoryLabel,
   NO_OPT_INS,
   canPrefill,
   importsByChapter,
@@ -100,12 +102,21 @@ type EditEvent = {
   overrides: string[];
 };
 
-const STATE_CHIP: Record<Segment["state"], { kind: string; label: string } | null> = {
+const STATE_CHIP: Record<Segment["state"], { kind: string; label: MessageKey } | null> = {
   pipeline: null,
-  edited: { kind: "ok", label: "edited" },
-  conflict: { kind: "bad", label: "conflict" },
-  orphaned: { kind: "warn", label: "orphaned" },
+  edited: { kind: "ok", label: "text.state.edited" },
+  conflict: { kind: "bad", label: "text.state.conflict" },
+  orphaned: { kind: "warn", label: "text.state.orphaned" },
 };
+
+const VIEWS: [TextView, MessageKey][] = [
+  ["all", "text.filter.all"],
+  ["flagged", "text.filter.flagged"],
+  ["queue", "text.filter.queue"],
+  ["edited", "text.filter.edited"],
+  ["conflict", "text.filter.conflict"],
+  ["consistency", "text.filter.consistency"],
+];
 
 /** The server takes request bodies up to 8 MiB; leave room for JSON escaping. */
 const MAX_IMPORT_BYTES = 7.5 * 1024 * 1024;
@@ -126,6 +137,7 @@ function Diff({ before, after, lang }: { before: string; after: string; lang: st
  * (docs/XLIFF_IMPORT.md): the preview card replaces the stats, and rows show the file's changes.
  */
 export function TextPage() {
+  const t = useT();
   const { jobId, info } = useJob();
   // The job's own languages; an older server names only the direction, or nothing.
   const [sourceLang, targetLang] = (
@@ -266,14 +278,14 @@ export function TextPage() {
 
   const recompile = async () => {
     if (!(await confirm(
-      "Recompile the book?",
-      <p>Rebuilds the EPUB (or RTF) with your current edits and re-validates it. This only reruns compile and validation — no LLM calls, and takes seconds.</p>,
-      "Recompile",
+      t("text.recompile.title"),
+      <p>{t("text.recompile.body")}</p>,
+      t("text.recompile.action"),
     ))) return;
     setRecompiling(true);
     try {
       await jobApi(jobId, "rerun", { stage: "compile" });
-      toast("ok", <>Recompiling now. <Link to={`/jobs/${encodeURIComponent(jobId)}/progress`}>Follow it on the Progress tab →</Link></>);
+      toast("ok", rich("text.recompile.started", { link: (chunks) => <Link to={`/jobs/${encodeURIComponent(jobId)}/progress`}>{chunks}</Link> }));
     } catch (e) {
       toast("bad", (e as Error).message, 0);
     } finally {
@@ -379,9 +391,9 @@ export function TextPage() {
       setEditingId(null);
       await loadChapter(documentId);
       await refreshOutline();
-      toast("ok", "Edit saved.");
+      toast("ok", t("text.edit.saved"));
     } catch (e) {
-      toast("bad", <>Not saved:<pre>{(e as ApiError).message}</pre></>, 0);
+      toast("bad", rich("text.edit.notSaved", { detail: <pre>{(e as ApiError).message}</pre> }), 0);
     } finally {
       setSaving(false);
     }
@@ -412,9 +424,9 @@ export function TextPage() {
       setHistoryId(null);
       await loadChapter(documentId);
       await refreshOutline();
-      toast("ok", "Reverted to the pipeline translation.");
+      toast("ok", t("text.revert.done"));
     } catch (e) {
-      toast("bad", <>Not reverted:<pre>{(e as Error).message}</pre></>, 0);
+      toast("bad", rich("text.revert.failed", { detail: <pre>{(e as Error).message}</pre> }), 0);
     } finally {
       setReverting(false);
     }
@@ -444,9 +456,9 @@ export function TextPage() {
       setConflictId(null);
       await loadChapter(documentId);
       await refreshOutline();
-      toast("ok", conflictChoice === "keep" ? "Kept your edit." : "Took the new pipeline text.");
+      toast("ok", t(conflictChoice === "keep" ? "text.conflict.kept" : "text.conflict.took"));
     } catch (e) {
-      toast("bad", <>Not resolved:<pre>{(e as Error).message}</pre></>, 0);
+      toast("bad", rich("text.conflict.failed", { detail: <pre>{(e as Error).message}</pre> }), 0);
     } finally {
       setResolvingConflict(false);
     }
@@ -458,7 +470,7 @@ export function TextPage() {
     if (fileInput.current) fileInput.current.value = "";
     if (!file) return;
     if (file.size > MAX_IMPORT_BYTES) {
-      toast("bad", `${file.name} is too large to import (${(file.size / 1024 / 1024).toFixed(1)} MB; the limit is 7.5 MB).`, 0);
+      toast("bad", t("text.import.tooLarge", { name: file.name, size: (file.size / 1024 / 1024).toFixed(1) }), 0);
       return;
     }
     // A sticky error from an earlier file would otherwise read as this file's result.
@@ -473,9 +485,9 @@ export function TextPage() {
       setImportFilter("will_import");
       setImportReason("");
       setImportState((current) => ({ pending: preview, last: current?.last ?? null }));
-      toast("ok", `Checked ${file.name}. Review the changes below, then import.`);
+      toast("ok", t("text.import.checked", { name: file.name }));
     } catch (e) {
-      toast("bad", <>Can't import {file.name}:<pre>{(e as Error).message}</pre></>, 0);
+      toast("bad", rich("text.import.cannot", { name: file.name, detail: <pre>{(e as Error).message}</pre> }), 0);
     } finally {
       setImportChecking("");
     }
@@ -491,13 +503,11 @@ export function TextPage() {
         ...importOptions,
       });
       setImportState({ pending: null, last: result });
-      const n = result.applied.length;
-      const dropped = result.dropped_at_apply;
-      toast("ok", `Imported ${n} segment${n === 1 ? "" : "s"}.${dropped > 0 ? ` ${dropped} failed the checks when applied and ${dropped === 1 ? "was" : "were"} skipped.` : ""}`);
+      toast("ok", t("text.import.done", { count: result.applied.length, dropped: result.dropped_at_apply }));
       if (documentId) await loadChapter(documentId);
       await refreshOutline();
     } catch (e) {
-      toast("bad", <>Not imported:<pre>{(e as Error).message}</pre></>, 0);
+      toast("bad", rich("text.import.failed", { detail: <pre>{(e as Error).message}</pre> }), 0);
       await loadImportState();
     } finally {
       setImportApplying(false);
@@ -545,21 +555,21 @@ export function TextPage() {
   );
 
   /** What a chapter's entry says beside its name: what waits for someone, what was done, what it holds. */
-  const chapterNotes = (chapter: Chapter): string[] => {
-    const plural = (count: number, one: string, many: string) => `${count} ${count === 1 ? one : many}`;
-    return [
-      chapter.conflict_count > 0 ? plural(chapter.conflict_count, "conflict", "conflicts") : "",
-      chapter.in_review_queue_count > 0 ? `${chapter.in_review_queue_count} in review` : "",
-      chapter.flagged_count > 0 ? `${chapter.flagged_count} flagged` : "",
-      (chapter.untranslated_count ?? 0) > 0 ? `${chapter.untranslated_count} untranslated` : "",
-      chapter.edited_count > 0 ? `${chapter.edited_count} edited` : "",
-      (chapter.note_count ?? 0) > 0 ? plural(chapter.note_count ?? 0, "note", "notes") : "",
-    ].filter(Boolean);
-  };
+  const chapterNotes = (chapter: Chapter): string[] =>
+    (
+      [
+        ["text.chapter.conflicts", chapter.conflict_count],
+        ["text.chapter.inReview", chapter.in_review_queue_count],
+        ["text.chapter.flagged", chapter.flagged_count],
+        ["text.chapter.untranslated", chapter.untranslated_count ?? 0],
+        ["text.chapter.edited", chapter.edited_count],
+        ["text.chapter.notes", chapter.note_count ?? 0],
+      ] as [MessageKey, number][]
+    ).filter(([, count]) => count > 0).map(([key, count]) => t(key, { count }));
 
   const sidebar = outline?.available ? (
     <>
-      <div className="navhead">Chapters</div>
+      <div className="navhead">{t("text.chapters")}</div>
       {outline.chapters.map((chapter) => (
         <SideItem
           key={chapter.document_id}
@@ -567,7 +577,7 @@ export function TextPage() {
           onClick={() => setDocumentId(chapter.document_id)}
           count={chapter.segment_count}
           sub={reviewing ? (
-            (importCounts.get(chapter.document_id) ?? 0) > 0 && <span>{importCounts.get(chapter.document_id)} to import</span>
+            (importCounts.get(chapter.document_id) ?? 0) > 0 && <span>{t("text.chapter.toImport", { count: importCounts.get(chapter.document_id) })}</span>
           ) : (
             chapterNotes(chapter).length > 0 && <span>{chapterNotes(chapter).join(" · ")}</span>
           )}
@@ -597,54 +607,54 @@ export function TextPage() {
             }}
           />
           {segment.kind === "note" && /<I\d{3}>/.test(segment.source) && (
-            <p className="meta">Keep the markers such as &lt;I000&gt;…&lt;/I000&gt;: they are the note's link back and its emphasis.</p>
+            <p className="meta">{t("text.editor.keepMarkers")}</p>
           )}
           <div className="row">
-            <button className="small" onClick={() => setEditText(segment.pipeline_text)}>Reset to pipeline text</button>
-            <span className="meta">{[...editText].length} chars</span>
+            <button className="small" onClick={() => setEditText(segment.pipeline_text)}>{t("text.editor.reset")}</button>
+            <span className="meta">{t("text.editor.chars", { count: [...editText].length })}</span>
             {readingProblems(editText, segment.cue, detail?.reading).map((problem) => (
               <span key={problem} className="lint">{problem}</span>
             ))}
-            <span className="meta"><kbd>Ctrl</kbd>+<kbd>Enter</kbd> save · <kbd>Esc</kbd> cancel · <kbd>Alt</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd> move</span>
+            <span className="meta">{rich("text.editor.shortcuts", { kbd: (chunks) => <kbd>{chunks}</kbd> })}</span>
           </div>
           {checkResult && (checkResult.hard.length > 0 || checkResult.overridable.length > 0) && (
             <div className="check bad">
               {checkResult.hard.length > 0 && (
                 <>
-                  Cannot be saved:
-                  <ul>{checkResult.hard.map((f, i) => <li key={i}><b>{f.category}</b> ({f.severity}): {f.message}</li>)}</ul>
+                  {t("text.editor.cannotSave")}
+                  <ul>{checkResult.hard.map((f, i) => <li key={i}><b>{findingCategoryLabel(f.category)}</b> ({severityLabel(f.severity)}): {f.message}</li>)}</ul>
                 </>
               )}
               {checkResult.overridable.length > 0 && (
                 <>
-                  Needs an override reason:
-                  <ul>{checkResult.overridable.map((f, i) => <li key={i}><b>{f.category}</b> ({f.severity}): {f.message}</li>)}</ul>
+                  {t("text.editor.needsOverride")}
+                  <ul>{checkResult.overridable.map((f, i) => <li key={i}><b>{findingCategoryLabel(f.category)}</b> ({severityLabel(f.severity)}): {f.message}</li>)}</ul>
                 </>
               )}
             </div>
           )}
           {checkResult && checkResult.hard.length === 0 && checkResult.overridable.length === 0 && (
-            <div className="check ok">Passes deterministic validation.</div>
+            <div className="check ok">{t("text.editor.passes")}</div>
           )}
           {editText !== segment.pipeline_text && (
             <>
-              <div className="navhead" style={{ marginTop: 10 }}>Changes vs pipeline text</div>
+              <div className="navhead" style={{ marginTop: 10 }}>{t("text.editor.changes")}</div>
               <Diff lang={targetLang} before={segment.pipeline_text} after={editText} />
             </>
           )}
           {needsOverride && (
             <div className="field" style={{ marginTop: 10 }}>
-              <label>Override reason (required to save past the findings above)</label>
-              <input type="text" value={overrideReason} onChange={(e) => setOverrideReason(e.target.value)} placeholder="Why this is fine despite the finding" />
+              <label>{t("text.editor.overrideLabel")}</label>
+              <input type="text" value={overrideReason} onChange={(e) => setOverrideReason(e.target.value)} placeholder={t("text.editor.overridePlaceholder")} />
             </div>
           )}
           <div className="field" style={{ marginTop: 10 }}>
-            <label>Reason (required)</label>
-            <input type="text" value={editReason} onChange={(e) => setEditReason(e.target.value)} placeholder="Why you are making this change" />
+            <label>{t("text.reasonRequired")}</label>
+            <input type="text" value={editReason} onChange={(e) => setEditReason(e.target.value)} placeholder={t("text.editor.reasonPlaceholder")} />
           </div>
           <div className="row" style={{ marginTop: 10 }}>
-            <button className="primary" disabled={!canSave || saving} onClick={saveEdit}>{saving ? "Saving…" : "Save"}</button>
-            <button className="small" onClick={cancelEdit}>Cancel</button>
+            <button className="primary" disabled={!canSave || saving} onClick={saveEdit}>{saving ? t("common.saving") : t("common.save")}</button>
+            <button className="small" onClick={cancelEdit}>{t("common.cancel")}</button>
           </div>
         </div>
       </td>
@@ -655,30 +665,30 @@ export function TextPage() {
     <tr className="editor-row">
       <td colSpan={4}>
         {historyEvents === null ? (
-          <p className="meta">Loading history…</p>
+          <p className="meta">{t("text.history.loading")}</p>
         ) : (
           <div className="text-history">
             {historyEvents.map((event) => (
               <div className="hist-event" key={event.event_id}>
                 <div className="row" style={{ margin: 0 }}>
-                  <Chip>{event.action}</Chip>
+                  <Chip>{editActionLabel(event.action)}</Chip>
                   <span className="meta">{event.author} · {event.at}</span>
                 </div>
                 {event.text && <div className="text zh" lang={targetLang}>{event.text}</div>}
                 <div className="meta">{event.reason}</div>
-                {event.overrides.length > 0 && <div className="meta">Overrode: {event.overrides.join("; ")}</div>}
+                {event.overrides.length > 0 && <div className="meta">{t("text.history.overrode", { list: event.overrides.join("; ") })}</div>}
               </div>
             ))}
             {(segment.state === "edited" || segment.state === "conflict") && (
               <div className="row" style={{ marginTop: 10 }}>
-                <input type="text" value={revertReason} onChange={(e) => setRevertReason(e.target.value)} placeholder="Reason for reverting (required)" />
+                <input type="text" value={revertReason} onChange={(e) => setRevertReason(e.target.value)} placeholder={t("text.history.revertPlaceholder")} />
                 <button className="small" disabled={revertReason.trim().length < 3 || reverting} onClick={() => submitRevert(segment.segment_id)}>
-                  {reverting ? "Reverting…" : "Revert to pipeline text"}
+                  {reverting ? t("text.history.reverting") : t("text.history.revert")}
                 </button>
               </div>
             )}
             <div className="row" style={{ marginTop: 10 }}>
-              <button className="small" onClick={() => setHistoryId(null)}>Close</button>
+              <button className="small" onClick={() => setHistoryId(null)}>{t("common.close")}</button>
             </div>
           </div>
         )}
@@ -692,29 +702,27 @@ export function TextPage() {
       <tr className="editor-row">
         <td colSpan={4}>
           <div className="text-editor">
-            <p className="meta">
-              A rerun changed this segment's translation after your edit. Choose which text to keep.
-            </p>
-            <div className="navhead">Your edit</div>
+            <p className="meta">{t("text.conflict.explain")}</p>
+            <div className="navhead">{t("text.conflict.yours")}</div>
             <div className="text zh" lang={targetLang}>{segment.text}</div>
-            <div className="navhead" style={{ marginTop: 10 }}>New pipeline text</div>
+            <div className="navhead" style={{ marginTop: 10 }}>{t("text.conflict.pipeline")}</div>
             <div className="text zh" lang={targetLang}>{segment.pipeline_text}</div>
             {basedOn && basedOn !== segment.pipeline_text && (
               <>
-                <div className="navhead" style={{ marginTop: 10 }}>What changed (based-on text → new pipeline text)</div>
+                <div className="navhead" style={{ marginTop: 10 }}>{t("text.conflict.changed")}</div>
                 <Diff lang={targetLang} before={basedOn} after={segment.pipeline_text} />
               </>
             )}
             <div className="row" style={{ marginTop: 12 }}>
-              <div className="segmented" role="radiogroup" aria-label="Conflict resolution">
-                <button type="button" role="radio" aria-checked={conflictChoice === "keep"} className={conflictChoice === "keep" ? "on" : ""} onClick={() => setConflictChoice("keep")}>Keep my edit</button>
-                <button type="button" role="radio" aria-checked={conflictChoice === "take_pipeline"} className={conflictChoice === "take_pipeline" ? "on" : ""} onClick={() => setConflictChoice("take_pipeline")}>Use the new pipeline text</button>
+              <div className="segmented" role="radiogroup" aria-label={t("text.conflict.resolution")}>
+                <button type="button" role="radio" aria-checked={conflictChoice === "keep"} className={conflictChoice === "keep" ? "on" : ""} onClick={() => setConflictChoice("keep")}>{t("text.conflict.keep")}</button>
+                <button type="button" role="radio" aria-checked={conflictChoice === "take_pipeline"} className={conflictChoice === "take_pipeline" ? "on" : ""} onClick={() => setConflictChoice("take_pipeline")}>{t("text.conflict.take")}</button>
               </div>
             </div>
             {conflictChoice && (
               <div className="field" style={{ marginTop: 10 }}>
-                <label>Reason (required)</label>
-                <input type="text" value={conflictReason} onChange={(e) => setConflictReason(e.target.value)} placeholder="Why you're resolving it this way" />
+                <label>{t("text.reasonRequired")}</label>
+                <input type="text" value={conflictReason} onChange={(e) => setConflictReason(e.target.value)} placeholder={t("text.conflict.reasonPlaceholder")} />
               </div>
             )}
             <div className="row" style={{ marginTop: 10 }}>
@@ -723,9 +731,9 @@ export function TextPage() {
                 disabled={!conflictChoice || conflictReason.trim().length < 3 || resolvingConflict}
                 onClick={submitConflict}
               >
-                {resolvingConflict ? "Resolving…" : "Resolve conflict"}
+                {resolvingConflict ? t("text.conflict.resolving") : t("text.conflict.resolve")}
               </button>
-              <button className="small" onClick={() => setConflictId(null)}>Cancel</button>
+              <button className="small" onClick={() => setConflictId(null)}>{t("common.cancel")}</button>
             </div>
           </div>
         </td>
@@ -743,7 +751,7 @@ export function TextPage() {
         <td lang={sourceLang}>
           {segment.source}
           {item?.category === "source_differs" && item.imported_source && (
-            <div className="meta">In the file: {item.imported_source}</div>
+            <div className="meta">{t("text.import.inFile", { source: item.imported_source })}</div>
           )}
         </td>
         <td lang={targetLang}>
@@ -751,13 +759,13 @@ export function TextPage() {
         </td>
         <td>
           {!item ? (
-            <span className="meta">not in file</span>
+            <span className="meta">{t("text.import.notInFile")}</span>
           ) : item.category === "unchanged" ? (
-            <span className="meta">unchanged</span>
+            <span className="meta">{t("text.import.unchanged")}</span>
           ) : (
             <>
-              <Chip kind={imports ? "ok" : "warn"}>{imports ? "will import" : CATEGORY_LABELS[item.category]}</Chip>
-              {imports && item.category !== "import" && <span className="meta"> ({CATEGORY_LABELS[item.category]})</span>}
+              <Chip kind={imports ? "ok" : "warn"}>{imports ? t("text.import.willImport") : categoryLabel(item.category)}</Chip>
+              {imports && item.category !== "import" && <span className="meta"> {t("text.import.inParens", { label: categoryLabel(item.category) })}</span>}
               {item.message && <div className="meta">{item.message}</div>}
               {findings.map((finding, i) => <div className="meta" key={i}>{finding.message}</div>)}
             </>
@@ -769,24 +777,20 @@ export function TextPage() {
 
   const body = (
     <>
-      {info?.kind === "draft" && <NotStarted what="book text" />}
+      {info?.kind === "draft" && <NotStarted what="text" />}
       {error && <div className="banner bad">{error}</div>}
-      {started && !outline && !error && <p className="meta">Loading…</p>}
+      {started && !outline && !error && <p className="meta">{t("common.loading")}</p>}
       {outline && !outline.available && (
-        <div className="banner info">
-          The Text tab fills in once a translation exists. <Link to="progress">Follow progress →</Link>
-        </div>
+        <div className="banner info">{rich("text.unavailable", { link: (chunks) => <Link to="progress">{chunks}</Link> })}</div>
       )}
       {outline?.available && !outline.editable && (
-        <div className="banner warn">
-          Read-only: showing the latest translation stage. Editing opens once <b>Validate draft</b> completes.
-        </div>
+        <div className="banner warn">{rich("text.readOnly", { b: (chunks) => <b>{chunks}</b> })}</div>
       )}
       {outline?.available && outline.uncompiled_edit_count > 0 && (
         <div className="banner warn">
-          {outline.uncompiled_edit_count} edit{outline.uncompiled_edit_count === 1 ? "" : "s"} not in the compiled book.{" "}
+          {t("text.uncompiled", { count: outline.uncompiled_edit_count })}{" "}
           <button className="small" disabled={recompiling || info?.running} onClick={recompile}>
-            {recompiling ? "Starting…" : "Recompile"}
+            {recompiling ? t("text.recompile.starting") : t("text.recompile.action")}
           </button>
         </div>
       )}
@@ -795,7 +799,7 @@ export function TextPage() {
           {!reviewing && importState?.last && (
             <LastImportCard jobId={jobId} result={importState.last} onOpen={openSkipped} onDismiss={dismissImport} />
           )}
-          {importChecking && <div className="banner info">Checking {importChecking}…</div>}
+          {importChecking && <div className="banner info">{t("text.import.checking", { name: importChecking })}</div>}
           {pending ? (
             <ImportPreviewCard
               jobId={jobId}
@@ -808,38 +812,38 @@ export function TextPage() {
               reason={importReason}
               onReason={setImportReason}
               applying={importApplying}
-              blocked={info?.running ? "The job is running; import once it finishes." : ""}
+              blocked={info?.running ? t("text.import.blockedRunning") : ""}
               onApply={applyImport}
               onCancel={cancelImport}
             />
           ) : (
           <section className="card">
             <div className="stats">
-              <div className="stat"><b>{outline.totals.documents}</b><span>chapters</span></div>
-              <div className="stat"><b>{outline.totals.segments}</b><span>segments</span></div>
-              <div className="stat"><b>{outline.totals.flagged}</b><span>flagged</span></div>
-              <div className="stat"><b>{outline.totals.in_review_queue}</b><span>in review queue</span></div>
-              <div className="stat"><b>{outline.totals.edited}</b><span>edited</span></div>
-              <div className="stat"><b>{outline.totals.conflicts}</b><span>conflicts</span></div>
-              {(outline.totals.notes ?? 0) > 0 && <div className="stat"><b>{outline.totals.notes}</b><span>notes</span></div>}
-              {(outline.totals.untranslated ?? 0) > 0 && <div className="stat"><b>{outline.totals.untranslated}</b><span>untranslated</span></div>}
+              <div className="stat"><b>{outline.totals.documents}</b><span>{t("text.stats.chapters")}</span></div>
+              <div className="stat"><b>{outline.totals.segments}</b><span>{t("text.stats.segments")}</span></div>
+              <div className="stat"><b>{outline.totals.flagged}</b><span>{t("text.stats.flagged")}</span></div>
+              <div className="stat"><b>{outline.totals.in_review_queue}</b><span>{t("text.stats.inReviewQueue")}</span></div>
+              <div className="stat"><b>{outline.totals.edited}</b><span>{t("text.stats.edited")}</span></div>
+              <div className="stat"><b>{outline.totals.conflicts}</b><span>{t("text.stats.conflicts")}</span></div>
+              {(outline.totals.notes ?? 0) > 0 && <div className="stat"><b>{outline.totals.notes}</b><span>{t("text.stats.notes")}</span></div>}
+              {(outline.totals.untranslated ?? 0) > 0 && <div className="stat"><b>{outline.totals.untranslated}</b><span>{t("text.stats.untranslated")}</span></div>}
               {outline.editable && (
                 <div className="stats-actions">
                   <a
                     className="button small"
                     href={xliffExportUrl(jobId)}
                     download
-                    title="Download the whole book as XLIFF 2.1 for a CAT tool. Includes edits not yet compiled; edited segments are marked reviewed."
+                    title={t("text.export.title")}
                   >
-                    ⤓ Export XLIFF
+                    {t("text.export.label")}
                   </a>
                   <button
                     className="small"
                     disabled={!!importChecking}
                     onClick={() => fileInput.current?.click()}
-                    title="Bring back a translated XLIFF file from a CAT tool. You review the changes before anything is written."
+                    title={t("text.import.title")}
                   >
-                    ⤒ Import XLIFF
+                    {t("text.import.label")}
                   </button>
                   <input
                     ref={fileInput}
@@ -858,23 +862,16 @@ export function TextPage() {
             <div className="filters">
               <input
                 type="text"
-                placeholder="Search source or translation"
+                placeholder={t("text.search.placeholder")}
                 value={query}
                 onChange={(e) => setQuery(e.target.value)}
               />
-              {!reviewing && <div className="segmented" role="radiogroup" aria-label="Filter segments">
-                {(
-                  [
-                    ["all", "All"],
-                    ["flagged", "Flagged"],
-                    ["queue", "In review queue"],
-                    ["edited", "Edited"],
-                    ["conflict", "Conflicts"],
-                    ["consistency", "Consistency"],
-                    // What the title stage left in the source language: shown while there is some.
-                    ...((outline.totals.untranslated ?? 0) > 0 || view === "untranslated" ? [["untranslated", "Untranslated"]] : []),
-                  ] as [TextView, string][]
-                ).map(([value, label]) => (
+              {!reviewing && <div className="segmented" role="radiogroup" aria-label={t("text.filter.label")}>
+                {[
+                  ...VIEWS,
+                  // What the title stage left in the source language: shown while there is some.
+                  ...((outline.totals.untranslated ?? 0) > 0 || view === "untranslated" ? [["untranslated", "text.filter.untranslated"] as [TextView, MessageKey]] : []),
+                ].map(([value, label]) => (
                   <button
                     key={value}
                     type="button"
@@ -883,17 +880,17 @@ export function TextPage() {
                     className={view === value ? "on" : ""}
                     onClick={() => setView(value)}
                   >
-                    {label}
+                    {t(label)}
                   </button>
                 ))}
               </div>}
-              {detail && <span className="meta">{visible.length} of {rows.length} segments</span>}
+              {detail && <span className="meta">{t("text.filter.count", { shown: visible.length, total: rows.length })}</span>}
             </div>
             {detailError && <div className="banner bad">{detailError}</div>}
             {detail && (
               <table className="grid text-pairs">
                 <thead>
-                  <tr><th className="sid">#</th><th>Source</th><th>Translation</th><th>Status</th></tr>
+                  <tr><th className="sid">#</th><th>{t("text.table.source")}</th><th>{t("text.table.translation")}</th><th>{t("text.table.status")}</th></tr>
                 </thead>
                 <tbody>
                   {visibleRows.map(({ segment, kind }, index) => {
@@ -905,7 +902,7 @@ export function TextPage() {
                     return (
                       <Fragment key={segment.segment_id}>
                         {note && visibleRows[index - 1]?.kind !== "note" && (
-                          <tr className="group-head"><td colSpan={4}>Notes</td></tr>
+                          <tr className="group-head"><td colSpan={4}>{t("text.notes.heading")}</td></tr>
                         )}
                         <tr
                           key={segment.segment_id}
@@ -915,12 +912,12 @@ export function TextPage() {
                           <td className="sid mono">
                             {segment.segment_id}
                             {segment.kind && (
-                              <div><Chip>{segment.kind === "note" && noteNumber(segment.source) ? `Note ${noteNumber(segment.source)}` : KIND_LABELS[segment.kind]}</Chip></div>
+                              <div><Chip>{segment.kind === "note" && noteNumber(segment.source) ? t("text.notes.numbered", { number: noteNumber(segment.source) }) : t(KIND_LABELS[segment.kind])}</Chip></div>
                             )}
                             {picture && picture.picture_path && (
                               <img className="thumb" src={pictureUrl(jobId, picture.picture_path)} alt={picture.source} loading="lazy" />
                             )}
-                            {segment.cue && <div className="meta" title={`Cue ${segment.cue.number}: when it comes on screen, and for how long`}>{cueLabel(segment.cue)}</div>}
+                            {segment.cue && <div className="meta" title={t("text.subtitles.cueTitle", { number: segment.cue.number })}>{cueLabel(segment.cue)}</div>}
                           </td>
                           <td lang={sourceLang}>
                             {segment.source}
@@ -928,15 +925,18 @@ export function TextPage() {
                               <div className="row note-refs" style={{ marginTop: 4 }}>
                                 {(segment.notes ?? []).map((noteId) => {
                                   const number = noteNumber(notesById.get(noteId)?.source ?? "");
+                                  const here = notesById.has(noteId);
                                   return (
                                     <button
                                       key={noteId}
                                       className="small"
                                       aria-expanded={peek?.passage === segment.segment_id && peek.note === noteId}
-                                      title={notesById.has(noteId) ? "Show the note under this passage" : "Open the note in its chapter"}
+                                      title={here ? t("text.notes.showUnder") : t("text.notes.openInChapter")}
                                       onClick={() => openNote(segment.segment_id, noteId)}
                                     >
-                                      {number ? `Note ${number}` : "Note"}{notesById.has(noteId) ? "" : " →"}
+                                      {number
+                                        ? t(here ? "text.notes.refNumbered" : "text.notes.refNumberedElsewhere", { number })
+                                        : t(here ? "text.notes.ref" : "text.notes.refElsewhere")}
                                     </button>
                                   );
                                 })}
@@ -944,7 +944,7 @@ export function TextPage() {
                             )}
                             {note && note.referred_from.length > 0 && (
                               <div className="row" style={{ marginTop: 4 }}>
-                                <span className="meta">Referred to from</span>
+                                <span className="meta">{t("text.notes.referredFrom")}</span>
                                 {note.referred_from.map((passageId) => (
                                   <button key={passageId} className="small" onClick={() => goToRow(passageId)}>↑ {passageId}</button>
                                 ))}
@@ -953,43 +953,43 @@ export function TextPage() {
                           </td>
                           <td lang={targetLang}>
                             {outline.editable ? (
-                              <div className="editable-text" onClick={() => startEdit(segment)} title="Click to edit">
+                              <div className="editable-text" onClick={() => startEdit(segment)} title={t("text.edit.clickToEdit")}>
                                 {segment.text}
                               </div>
                             ) : segment.text}
                           </td>
                           <td>
-                            {chip && <Chip kind={chip.kind}>{chip.label}</Chip>}
+                            {chip && <Chip kind={chip.kind}>{t(chip.label)}</Chip>}
                             {segment.in_review_queue && (
                               <>
-                                <Chip kind="warn">in review</Chip>{" "}
-                                <Link className="meta" to={`/jobs/${encodeURIComponent(jobId)}/review`}>Open in Final review →</Link>
+                                <Chip kind="warn">{t("text.status.inReview")}</Chip>{" "}
+                                <Link className="meta" to={`/jobs/${encodeURIComponent(jobId)}/review`}>{t("text.status.openInReview")}</Link>
                               </>
                             )}
                             {segment.untranslated ? (
-                              <Chip kind="warn">untranslated</Chip>
+                              <Chip kind="warn">{t("text.status.untranslated")}</Chip>
                             ) : (
-                              segment.flagged && !segment.in_review_queue && <Chip kind="warn">flagged</Chip>
+                              segment.flagged && !segment.in_review_queue && <Chip kind="warn">{t("text.status.flagged")}</Chip>
                             )}
                             {segment.findings.map((finding, i) => (
                               <div className="meta" key={i}>{finding.message}</div>
                             ))}
                             <div className="row" style={{ marginTop: 4 }}>
                               {segment.state === "conflict" ? (
-                                <button className="small danger" onClick={() => openConflict(segment.segment_id)}>Resolve conflict</button>
+                                <button className="small danger" onClick={() => openConflict(segment.segment_id)}>{t("text.conflict.resolve")}</button>
                               ) : (
-                                outline.editable && <button className="small" onClick={() => startEdit(segment)}>Edit</button>
+                                outline.editable && <button className="small" onClick={() => startEdit(segment)}>{t("common.edit")}</button>
                               )}
-                              {segment.state !== "pipeline" && <button className="small" onClick={() => openHistory(segment.segment_id)}>History</button>}
+                              {segment.state !== "pipeline" && <button className="small" onClick={() => openHistory(segment.segment_id)}>{t("text.history.open")}</button>}
                             </div>
                           </td>
                         </tr>
                         {peeked && (
                           <tr className="note-peek">
                             <td />
-                            <td lang={sourceLang}><span className="meta">Note {noteNumber(peeked.source)}</span> {peeked.source}</td>
+                            <td lang={sourceLang}><span className="meta">{t("text.notes.numbered", { number: noteNumber(peeked.source) })}</span> {peeked.source}</td>
                             <td lang={targetLang}>{peeked.text}</td>
-                            <td><button className="small" onClick={() => { setPeek(null); goToRow(peeked.segment_id); }}>Go to the note</button></td>
+                            <td><button className="small" onClick={() => { setPeek(null); goToRow(peeked.segment_id); }}>{t("text.notes.goTo")}</button></td>
                           </tr>
                         )}
                         {editingId === segment.segment_id && editorRow(segment)}
@@ -999,7 +999,7 @@ export function TextPage() {
                     );
                   })}
                   {visible.length === 0 && (
-                    <tr><td colSpan={4} className="meta">No segments match.</td></tr>
+                    <tr><td colSpan={4} className="meta">{t("text.empty")}</td></tr>
                   )}
                 </tbody>
               </table>
@@ -1013,7 +1013,7 @@ export function TextPage() {
   return (
     <Shell jobId={jobId}>
       {sidebar ? (
-        <SideLayout sidebar={sidebar} storageKey="sidebar-collapsed:text" label="Chapters">{body}</SideLayout>
+        <SideLayout sidebar={sidebar} storageKey="sidebar-collapsed:text" label={t("text.chapters")}>{body}</SideLayout>
       ) : (
         <main className="page">{body}</main>
       )}

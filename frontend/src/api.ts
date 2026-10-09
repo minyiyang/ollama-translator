@@ -1,3 +1,5 @@
+import { serverError } from "./lib/serverText";
+
 // All requests go to the local book-agent server. POSTs carry the per-server
 // token, fetched from the same origin (cross-site pages cannot read it). A
 // restarted server issues a new token, so a 403 refreshes it and retries once.
@@ -26,7 +28,7 @@ export async function api<T = any>(path: string, body?: unknown): Promise<T> {
       ? await fetch(path)
       : await postWithToken(path, { headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   const json = await response.json();
-  if (!response.ok) throw new ApiError(json.error || response.statusText);
+  if (!response.ok) throw new ApiError(serverError(json, response.statusText));
   return json as T;
 }
 
@@ -40,6 +42,6 @@ export async function uploadSource(file: File): Promise<string> {
     body: file,
   });
   const json = await response.json();
-  if (!response.ok) throw new ApiError(json.error || response.statusText);
+  if (!response.ok) throw new ApiError(serverError(json, response.statusText));
   return json.path as string;
 }

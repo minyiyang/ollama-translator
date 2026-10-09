@@ -1,7 +1,8 @@
 import { useState } from "react";
+import { rich, useT } from "../i18n";
 import { importReportUrl } from "../lib/format";
 import {
-  CATEGORY_LABELS,
+  categoryLabel,
   summarizeImport,
   type ImportFilter,
   type ImportOptions,
@@ -9,8 +10,6 @@ import {
   type ImportResult,
   type SkippedItem,
 } from "../lib/xliffImport";
-
-const plural = (n: number, one: string, many = `${one}s`) => `${n} ${n === 1 ? one : many}`;
 
 /** The Text tab's import review card: counts that filter the table, opt-ins, and the apply form. */
 export function ImportPreviewCard({
@@ -43,14 +42,15 @@ export function ImportPreviewCard({
   onApply: () => void;
   onCancel: () => void;
 }) {
+  const t = useT();
   const summary = summarizeImport(preview.items, options);
   const unknown = preview.items.filter((item) => item.category === "unknown_id");
   const filters: [ImportFilter, string][] = [
-    ["will_import", `Will import ${summary.willImport}`],
-    ["skipped", `Skipped ${summary.skipped}`],
-    ["unchanged", `Unchanged ${summary.unchanged}`],
-    ["not_in_file", `Not in file ${notInFile}`],
-    ["all", "All"],
+    ["will_import", t("jobs.import.filter.willImport", { count: summary.willImport })],
+    ["skipped", t("jobs.import.filter.skipped", { count: summary.skipped })],
+    ["unchanged", t("jobs.import.filter.unchanged", { count: summary.unchanged })],
+    ["not_in_file", t("jobs.import.filter.notInFile", { count: notInFile })],
+    ["all", t("jobs.import.filter.all")],
   ];
   const optIn = (key: keyof ImportOptions, count: number, label: string) =>
     count > 0 && (
@@ -61,17 +61,17 @@ export function ImportPreviewCard({
   const canApply = summary.willImport > 0 && reason.trim().length >= 3 && !applying && !blocked;
 
   return (
-    <section className="card import-card" aria-label="Import preview">
+    <section className="card import-card" aria-label={t("jobs.import.preview")}>
       <div className="row import-head">
-        <h2>Import preview · {preview.file_name}</h2>
-        <a className="button small" href={importReportUrl(jobId, preview.import_id)} download>Download report</a>
+        <h2>{t("jobs.import.previewOf", { file: preview.file_name })}</h2>
+        <a className="button small" href={importReportUrl(jobId, preview.import_id)} download>{t("jobs.import.downloadReport")}</a>
       </div>
       {preview.error ? (
-        <div className="banner bad">This import can't be checked right now: {preview.error}</div>
+        <div className="banner bad">{t("jobs.import.cannotCheck", { error: preview.error })}</div>
       ) : (
         <>
           {preview.warnings.map((warning) => <div key={warning} className="banner warn">{warning}</div>)}
-          <div className="segmented" role="radiogroup" aria-label="Import filter">
+          <div className="segmented" role="radiogroup" aria-label={t("jobs.import.filter")}>
             {filters.map(([value, label]) => (
               <button key={value} type="button" role="radio" aria-checked={filter === value}
                 className={filter === value ? "on" : ""} onClick={() => onFilter(value)}>
@@ -81,23 +81,18 @@ export function ImportPreviewCard({
           </div>
           {summary.skippedBy.length > 0 && (
             <p className="meta">
-              Skipped: {summary.skippedBy.map(([category, n]) => `${CATEGORY_LABELS[category]} ${n}`).join(" · ")}
+              {t("jobs.import.skippedBy", { list: summary.skippedBy.map(([category, n]) => t("jobs.import.categoryCount", { category: categoryLabel(category), count: n })).join(" · ") })}
             </p>
           )}
           {unknown.length > 0 && (
             <p className="meta">
-              {plural(unknown.length, "unit")} in the file {unknown.length === 1 ? "is" : "are"} not in this book:{" "}
-              {unknown.slice(0, 8).map((item) => item.unit_id).join(", ")}
-              {unknown.length > 8 && ", … (all are in the report)"}
+              {t(unknown.length > 8 ? "jobs.import.unknownUnitsMore" : "jobs.import.unknownUnits", { count: unknown.length, ids: unknown.slice(0, 8).map((item) => item.unit_id).join(", ") })}
             </p>
           )}
           <div className="import-optins">
-            {optIn("include_stale", summary.optIns.stale,
-              `Also import ${plural(summary.optIns.stale, "stale segment")} (the pipeline text changed after export)`)}
-            {optIn("include_edited", summary.optIns.edited,
-              `Also import ${plural(summary.optIns.edited, "segment")} edited in the Text tab after export (replaces those edits)`)}
-            {optIn("include_overridable", summary.optIns.overridable,
-              `Also import ${plural(summary.optIns.overridable, "segment")} with overridable findings (your reason is recorded as the override)`)}
+            {optIn("include_stale", summary.optIns.stale, t("jobs.import.includeStale", { count: summary.optIns.stale }))}
+            {optIn("include_edited", summary.optIns.edited, t("jobs.import.includeEdited", { count: summary.optIns.edited }))}
+            {optIn("include_overridable", summary.optIns.overridable, t("jobs.import.includeOverridable", { count: summary.optIns.overridable }))}
           </div>
         </>
       )}
@@ -105,16 +100,16 @@ export function ImportPreviewCard({
         {!preview.error && (
           <>
             <input type="text" value={reason} onChange={(e) => onReason(e.target.value)}
-              placeholder="Reason for this import (required), e.g. Translator pass, Sept 2026" aria-label="Import reason" />
+              placeholder={t("jobs.import.reasonPlaceholder")} aria-label={t("jobs.import.reason")} />
             <span title={blocked}>
               <button className="primary" disabled={!canApply} onClick={onApply}>
-                {applying ? "Importing…" : `Import ${summary.willImport}`}
+                {applying ? t("jobs.import.importing") : t("jobs.import.apply", { count: summary.willImport })}
               </button>
             </span>
           </>
         )}
-        <button className="small" disabled={applying} onClick={onCancel}>Cancel import</button>
-        {!preview.error && <span className="meta">Nothing is written until you import.</span>}
+        <button className="small" disabled={applying} onClick={onCancel}>{t("jobs.import.cancel")}</button>
+        {!preview.error && <span className="meta">{t("jobs.import.nothingWritten")}</span>}
       </div>
     </section>
   );
@@ -132,22 +127,25 @@ export function LastImportCard({
   onOpen: (item: SkippedItem) => void;
   onDismiss: () => void;
 }) {
+  const t = useT();
   const [open, setOpen] = useState(false);
   return (
-    <section className="card import-card" aria-label="Last import">
+    <section className="card import-card" aria-label={t("jobs.import.last")}>
       <div className="row import-head">
         <span>
-          <b>Last import</b> · {result.file_name}: imported {result.applied.length}, skipped {result.skipped.length}
-          {result.dropped_at_apply > 0 && ` (${result.dropped_at_apply} failed the checks when applied)`}
+          {rich(result.dropped_at_apply > 0 ? "jobs.import.lastSummaryDropped" : "jobs.import.lastSummary", {
+            file: result.file_name, applied: result.applied.length, skipped: result.skipped.length, dropped: result.dropped_at_apply,
+            b: (chunks) => <b>{chunks}</b>,
+          })}
         </span>
         <span className="spacer" />
         {result.skipped.length > 0 && (
           <button className="small" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
-            {open ? "Hide skipped ▴" : "Show skipped ▾"}
+            {open ? t("jobs.import.hideSkipped") : t("jobs.import.showSkipped")}
           </button>
         )}
-        <a className="button small" href={importReportUrl(jobId, result.import_id)} download>Download report</a>
-        <button className="small" onClick={onDismiss}>Dismiss</button>
+        <a className="button small" href={importReportUrl(jobId, result.import_id)} download>{t("jobs.import.downloadReport")}</a>
+        <button className="small" onClick={onDismiss}>{t("jobs.import.dismiss")}</button>
       </div>
       {open && (
         <table className="grid import-skipped">
@@ -155,12 +153,12 @@ export function LastImportCard({
             {result.skipped.map((item) => (
               <tr key={item.unit_id}>
                 <td className="mono">{item.segment_id ?? item.unit_id}</td>
-                <td><b>{CATEGORY_LABELS[item.category]}</b>{item.message && <>: {item.message}</>}</td>
+                <td><b>{categoryLabel(item.category)}</b>{item.message && <>: {item.message}</>}</td>
                 <td>
                   {item.segment_id && (
                     <button className="small" onClick={() => onOpen(item)}
-                      title="Go to this segment; where the file had a usable translation, the editor opens with it">
-                      Open
+                      title={t("jobs.import.openTip")}>
+                      {t("jobs.import.open")}
                     </button>
                   )}
                 </td>

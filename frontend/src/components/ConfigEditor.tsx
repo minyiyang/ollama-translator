@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { api } from "../api";
+import { useT, type MessageKey } from "../i18n";
 import {
   COMMON_GROUPS,
   GLOSSARY_REVIEW_FLAGS,
-  HELP,
-  LABELS,
+  optionHelp,
+  optionLabel,
   MODEL_PATHS,
   SPECIAL_PATHS,
   glossaryReviewMode,
@@ -22,6 +23,12 @@ import { Segmented, Switch } from "./ui";
 
 type FieldError = { path: string; message: string };
 type Tab = "options" | "all" | "yaml";
+
+const GLOSSARY_REVIEW_HELP: Record<GlossaryReviewMode, MessageKey> = {
+  llm: "config.glossaryReview.help.llm",
+  human: "config.glossaryReview.help.human",
+  none: "config.glossaryReview.help.none",
+};
 
 let schemaCache: Promise<SchemaSection[]> | null = null;
 function loadSchema() {
@@ -49,6 +56,7 @@ export function ConfigEditor({
   hasComments: boolean;
   readOnly?: boolean;
 }) {
+  const t = useT();
   const [sections, setSections] = useState<SchemaSection[]>([]);
   const [values, setValues] = useState<Values>({});
   const [syntaxError, setSyntaxError] = useState<SyntaxError_ | null>(null);
@@ -159,15 +167,15 @@ export function ConfigEditor({
     return (
       <div key={field.path} className={`opt ${modified ? "modified" : ""} ${error ? "invalid" : ""}`} id={`opt-${field.path}`}>
         <div>
-          <div className="name">{LABELS[field.path] ?? humanize(field.key)}</div>
+          <div className="name">{optionLabel(field.path) ?? humanize(field.key)}</div>
           <div className="path">{field.path}</div>
-          {HELP[field.path] && <div className="help">{HELP[field.path]}</div>}
+          {optionHelp(field.path) && <div className="help">{optionHelp(field.path)}</div>}
         </div>
         <div className="control">
           <FieldControl field={field} value={value} onChange={(v) => change(field.path, v)} installed={installed} isModel={MODEL_PATHS.has(field.path)} />
           {modified && (
-            <button type="button" className="small" title={`Default: ${JSON.stringify(field.default)}`} onClick={() => reset(field.path)}>
-              Reset
+            <button type="button" className="small" title={t("config.editor.default", { value: String(JSON.stringify(field.default)) })} onClick={() => reset(field.path)}>
+              {t("config.editor.reset")}
             </button>
           )}
         </div>
@@ -185,16 +193,12 @@ export function ConfigEditor({
     return (
       <div className="opt" key="glossary-review">
         <div>
-          <div className="name">Glossary approval</div>
+          <div className="name">{t("config.glossaryReview.title")}</div>
           <div className="path">workflow.require_glossary_review, workflow.llm_glossary_review</div>
-          <div className="help">
-            {mode === "llm" && "The LLM reviewer approves the glossary and the run continues."}
-            {mode === "human" && "The run pauses so you can review the glossary on the Glossary page."}
-            {mode === "none" && "The draft glossary is used unreviewed. Only for already-reviewed glossaries."}
-          </div>
+          <div className="help">{t(GLOSSARY_REVIEW_HELP[mode])}</div>
         </div>
         <div className="control">
-          <Segmented value={mode} onChange={set} options={[["llm", "LLM reviews"], ["human", "I review"], ["none", "No review"]] as const} />
+          <Segmented value={mode} onChange={set} options={[["llm", t("config.glossaryReview.llm")], ["human", t("config.glossaryReview.human")], ["none", t("config.glossaryReview.none")]] as const} />
         </div>
       </div>
     );
@@ -203,12 +207,9 @@ export function ConfigEditor({
   const renderLanguagePair = () => (
     <div className="opt" key="language-pair">
       <div>
-        <div className="name">Languages</div>
+        <div className="name">{t("config.languages.title")}</div>
         <div className="path">translation.direction</div>
-        <div className="help">
-          English and Simplified Chinese are tuned; any other language code works at the generic tier,
-          with the checks it cannot support skipped.
-        </div>
+        <div className="help">{t("config.languages.help")}</div>
       </div>
       <div className="control">
         <LanguagePairPicker
@@ -225,11 +226,11 @@ export function ConfigEditor({
 
   /** A line naming the options this pair does not use, and why. */
   const renderHidden = (group: (typeof COMMON_GROUPS)[number]) => {
-    const names = group.options.flatMap((o) => ("path" in o && hidden.has(o.path) ? [[o.label, hidden.get(o.path)!.reason] as const] : []));
+    const names = group.options.flatMap((o) => ("path" in o && hidden.has(o.path) ? [[t(o.label), hidden.get(o.path)!.reason] as const] : []));
     if (!names.length) return null;
     return (
       <p className="meta" key="hidden">
-        Not used for {pair}: {names.map(([label, reason]) => `${label} (${reason})`).join("; ")}.
+        {t("config.editor.notUsed", { pair, options: names.map(([label, reason]) => `${label} (${reason})`).join("; ") })}
       </p>
     );
   };
@@ -249,9 +250,9 @@ export function ConfigEditor({
         <button type="button" className="group-toggle" aria-expanded={!closed} onClick={() => toggle(key)}>
           <span className="caret">▾</span>
           <span className="group-title">{title}</span>
-          {invalid > 0 && <span className="chip bad">{invalid} invalid</span>}
-          {modified > 0 && <span className="chip running">{modified} changed</span>}
-          <span className="meta">{paths.length} setting{paths.length === 1 ? "" : "s"}</span>
+          {invalid > 0 && <span className="chip bad">{t("config.editor.invalidCount", { count: invalid })}</span>}
+          {modified > 0 && <span className="chip running">{t("config.editor.changedCount", { count: modified })}</span>}
+          <span className="meta">{t("config.editor.settingCount", { count: paths.length })}</span>
         </button>
         {!closed && (
           <fieldset disabled={readOnly || reading} className="plain-fieldset group-body">
@@ -267,32 +268,32 @@ export function ConfigEditor({
 
   const q = query.trim().toLowerCase();
   const matches = (f: SchemaField) =>
-    (!q || f.path.toLowerCase().includes(q) || (LABELS[f.path] ?? "").toLowerCase().includes(q)) &&
+    (!q || f.path.toLowerCase().includes(q) || (optionLabel(f.path) ?? "").toLowerCase().includes(q)) &&
     (!changedOnly || (hasPath(values, f.path) && !sameValue(getPath(values, f.path), f.default)));
 
   return (
     <div>
       <datalist id="installed-models">{(installed ?? []).map((m) => <option key={m} value={m} />)}</datalist>
       <div className="tabs-inline" role="tablist">
-        {([["options", "Options"], ["all", "All settings"], ["yaml", "YAML"]] as const).map(([key, label]) => (
+        {([["options", t("config.editor.tab.options")], ["all", t("config.editor.tab.all")], ["yaml", "YAML"]] as const).map(([key, label]) => (
           <button key={key} type="button" role="tab" aria-selected={tab === key} className={tab === key ? "on" : ""} onClick={() => setTab(key)}>
             {label}
           </button>
         ))}
       </div>
       {schemaFailure && (
-        <div className="banner bad">Could not load the list of settings from the server: {schemaFailure}. Reload the page to try again.</div>
+        <div className="banner bad">{t("config.editor.schemaFailure", { error: schemaFailure })}</div>
       )}
       {parseFailure && (
-        <div className="banner bad">Could not check the configuration with the server: {parseFailure}</div>
+        <div className="banner bad">{t("config.editor.parseFailure", { error: parseFailure })}</div>
       )}
       {writeFailure && tab !== "yaml" && (
-        <div className="banner bad">The change was not written to the YAML, so it was undone: {writeFailure}</div>
+        <div className="banner bad">{t("config.editor.writeFailure", { error: writeFailure })}</div>
       )}
       {syntaxError && tab !== "yaml" && (
         <div className="banner bad">
-          The YAML has a syntax error{syntaxError.line ? ` on line ${syntaxError.line}` : ""}, so the form shows its last valid state.{" "}
-          <button type="button" className="small" onClick={() => setTab("yaml")}>Open the YAML tab</button>
+          {syntaxError.line ? t("config.editor.syntaxErrorOnLine", { line: syntaxError.line }) : t("config.editor.syntaxError")}{" "}
+          <button type="button" className="small" onClick={() => setTab("yaml")}>{t("config.editor.openYaml")}</button>
         </div>
       )}
       {!syntaxError && tab !== "yaml" && generalErrors.length > 0 && (
@@ -301,20 +302,20 @@ export function ConfigEditor({
         </div>
       )}
       {hasComments && !readOnly && tab !== "yaml" && (
-        <p className="meta">Changing an option rewrites the YAML from the form; comments in the file are not kept.</p>
+        <p className="meta">{t("config.editor.commentsNotKept")}</p>
       )}
 
       {tab === "options" && sections.length > 0 && (
         <>
           <div className="row group-actions">
-            <button type="button" className="small" onClick={() => setAll(COMMON_GROUPS.map((g) => `opt:${g.title}`), false)}>Expand all</button>
-            <button type="button" className="small" onClick={() => setAll(COMMON_GROUPS.map((g) => `opt:${g.title}`), true)}>Collapse all</button>
+            <button type="button" className="small" onClick={() => setAll(COMMON_GROUPS.map((g) => `opt:${g.title}`), false)}>{t("config.editor.expandAll")}</button>
+            <button type="button" className="small" onClick={() => setAll(COMMON_GROUPS.map((g) => `opt:${g.title}`), true)}>{t("config.editor.collapseAll")}</button>
           </div>
           <>
             {COMMON_GROUPS.map((group) =>
               renderGroup(
                 `opt:${group.title}`,
-                group.title,
+                t(group.title),
                 optionPaths(group),
                 [
                   ...group.options.map((option) =>
@@ -324,7 +325,7 @@ export function ConfigEditor({
                   ),
                   renderHidden(group),
                 ],
-                group.help,
+                group.help && t(group.help),
               ),
             )}
           </>
@@ -336,13 +337,13 @@ export function ConfigEditor({
           {/* Stays pinned under the page header while the settings scroll. */}
           <div className="settings-toolbar">
             <div className="row" style={{ marginTop: 0 }}>
-              <input type="text" placeholder="Filter settings, e.g. num_ctx" value={query} onChange={(e) => setQuery(e.target.value)} style={{ maxWidth: 320 }} />
+              <input type="text" placeholder={t("config.editor.filterPlaceholder")} value={query} onChange={(e) => setQuery(e.target.value)} style={{ maxWidth: 320 }} />
               <label className="row meta" style={{ margin: 0 }}>
-                <Switch checked={changedOnly} onChange={setChangedOnly} label="Only changed from default" /> only changed from default
+                <Switch checked={changedOnly} onChange={setChangedOnly} label={t("config.editor.changedOnlyLabel")} /> {t("config.editor.changedOnly")}
               </label>
               <span style={{ flex: 1 }} />
-              <button type="button" className="small" onClick={() => setAll(sections.map((s) => `all:${s.key}`), false)}>Expand all</button>
-              <button type="button" className="small" onClick={() => setAll(sections.map((s) => `all:${s.key}`), true)}>Collapse all</button>
+              <button type="button" className="small" onClick={() => setAll(sections.map((s) => `all:${s.key}`), false)}>{t("config.editor.expandAll")}</button>
+              <button type="button" className="small" onClick={() => setAll(sections.map((s) => `all:${s.key}`), true)}>{t("config.editor.collapseAll")}</button>
             </div>
             <div className="section-nav">
               {sections.map((s) => (

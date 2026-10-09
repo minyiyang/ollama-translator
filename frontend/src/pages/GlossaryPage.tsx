@@ -8,6 +8,8 @@ import { Shell } from "../components/Shell";
 import { SideItem, SideLayout } from "../components/SideLayout";
 import { useToast } from "../components/Toast";
 import { Chip, Highlight } from "../components/ui";
+import { rich, t as translate, useT, type MessageKey, type Values } from "../i18n";
+import { approvalModeLabel, approvalResultLabel, glossaryCategoryLabel, reviewModeLabel, statusLabel } from "../lib/enums";
 import { FALLBACK_PAIR, langAttr, pairCodes, type GlossaryPair } from "../lib/languages";
 
 type Entry = { source: string; target: string; note: string; category: string; aliases: string[]; evidence: string[]; confidence: number };
@@ -36,14 +38,17 @@ type Payload = {
 /** keep: enforce this translation. defer: decide later (kept as drafted if approved).
  *  drop: not a glossary term (e.g. a generic word); the translator handles it in context. */
 type Decision = "keep" | "defer" | "drop";
-type Row = { original: Entry; entry: Entry; decision: Decision; flags: string[]; record?: Record_; draft?: Entry };
+/** Why a drafted term deserves a second look: a message and its values. */
+type Flag = { key: MessageKey; values?: Values };
+type Row = { original: Entry; entry: Entry; decision: Decision; flags: Flag[]; record?: Record_; draft?: Entry };
 type Saved = { source: string; entry: Entry; decision?: Decision; keep?: boolean };
 
-const DECISIONS: [Decision, string, string][] = [
-  ["keep", "✓ Keep", "Enforce this translation everywhere the term appears."],
-  ["defer", "⏸ Defer", "Decide later. Deferred terms stay in the Deferred view; if you approve before deciding, they are kept as drafted."],
-  ["drop", "✗ Drop", "Not a glossary term (for example a generic word). It is left out of the glossary and translated from context; the book text is not changed."],
+const DECISIONS: [Decision, MessageKey, MessageKey][] = [
+  ["keep", "glossary.decision.keep", "glossary.decision.keepTip"],
+  ["defer", "glossary.decision.defer", "glossary.decision.deferTip"],
+  ["drop", "glossary.decision.drop", "glossary.decision.dropTip"],
 ];
+const GENERIC: MessageKey = "glossary.flag.generic";
 
 const storeKey = (jobId: string) => `glossary-review:${jobId}`;
 
@@ -77,12 +82,12 @@ function buildRows(data: Payload, saved: ReturnType<typeof readStore>): Row[] {
   const generic = new Set(data.quality.suspicious_generic_terms ?? []);
   return data.entries.map((original) => {
     const flags = [
-      generic.has(original.source) && "generic word",
-      original.confidence < 0.9 && `confidence ${original.confidence}`,
-      (shared.get(original.target) ?? 0) > 1 && "shared translation",
-      !original.evidence?.length && "no evidence",
-      original.category === data.other_category && "uncategorized",
-    ].filter(Boolean) as string[];
+      generic.has(original.source) && { key: GENERIC },
+      original.confidence < 0.9 && { key: "glossary.flag.confidence", values: { value: original.confidence } },
+      (shared.get(original.target) ?? 0) > 1 && { key: "glossary.flag.sharedTranslation" },
+      !original.evidence?.length && { key: "glossary.flag.noEvidence" },
+      original.category === data.other_category && { key: "glossary.flag.uncategorized" },
+    ].filter(Boolean) as Flag[];
     const s = savedBy.get(original.source);
     return {
       original,
@@ -101,6 +106,7 @@ const changed = (r: Row) =>
   (r.entry.aliases ?? []).join("|") !== (r.original.aliases ?? []).join("|");
 
 export function GlossaryPage() {
+  const t = useT();
   const { jobId, info, refresh: refreshJob } = useJob();
   const started = info?.kind === "job";
   const toast = useToast();
@@ -115,7 +121,7 @@ export function GlossaryPage() {
   const [view, setView] = useState("all");
   const [submitting, setSubmitting] = useState(false);
   const [loadedAt, setLoadedAt] = useState(0);
-  const [approvalMode, setApprovalMode] = useState("");
+  const [approvalMode, setApprovalMode] = useState<"" | "edited" | "draft" | "reviewed">("");
   /** The reviewer's style-sheet edits; null while untouched (the draft or LLM review applies). */
   const [styleEdit, setStyleEdit] = useState<StyleSheet | null>(null);
 
@@ -142,12 +148,12 @@ export function GlossaryPage() {
           if (wasRunning.current) {
             wasRunning.current = false;
             refreshJob();
-            if (payload.approve_status === "completed") toast("ok", "Glossary approved. Translation continues on the Progress tab.");
+            if (payload.approve_status === "completed") toast("ok", translate("glossary.toast.approved"));
           }
           const saved = payload.editable ? readStore(jobId) : null;
           setRows(buildRows(payload, saved));
           setLoadedAt(Date.now());
-          if (saved && first) toast("info", "Restored your unsaved glossary edits from this browser.");
+          if (saved && first) toast("info", translate("glossary.toast.restored"));
           first = false;
         })
         .catch((e: Error) => setError(e.message));
@@ -183,7 +189,7 @@ export function GlossaryPage() {
   // Terms are grouped and counted by their drafted category, so editing a
   // term's category does not move it while you review.
   const home = (row: Row) => row.original.category;
-  const catLabel = (value: string) => data?.category_labels?.[value] ?? value;
+  const catLabel = (value: string) => glossaryCategoryLabel(value, data?.category_labels);
   const indexed = useMemo(() => rows.map((row, index) => ({ row, index })), [rows]);
   const searched = useMemo(() => indexed.filter(({ row }) => matchesQuery(row)), [indexed, matchesQuery]);
   const inView = searched.filter(({ row }) => matchesView(row, view));
@@ -210,18 +216,18 @@ export function GlossaryPage() {
   const toggleGroup = (name: string) =>
     setCollapsed((old) => { const next = new Set(old); if (!next.delete(name)) next.add(name); return next; });
 
-  const submit = async (body: { entries?: Entry[]; llm?: boolean; style?: StyleSheet }, title: string, detail: string, label: string, note = "") => {
-    if (!(await confirm(title, <p>{detail}{note}</p>, label))) return;
+  const submit = async (body: { entries?: Entry[]; llm?: boolean; style?: StyleSheet }, title: string, detail: string, label: string) => {
+    if (!(await confirm(title, <p>{detail}</p>, label))) return;
     setSubmitting(true);
     try {
       await jobApi(jobId, "glossary/approve", body);
       writeStore(jobId, null);
-      setApprovalMode(body.llm ? (body.entries ? "LLM review of your edited glossary" : "LLM review of the draft") : "Applying your reviewed glossary");
+      setApprovalMode(body.llm ? (body.entries ? "edited" : "draft") : "reviewed");
       // Stay here: the tab switches to its "approval is running" state and follows it.
       setReload((n) => n + 1);
       refreshJob();
     } catch (e) {
-      toast("bad", <>Not submitted:<pre>{(e as Error).message}</pre></>, 0);
+      toast("bad", <>{t("glossary.toast.notSubmitted")}<pre>{(e as Error).message}</pre></>, 0);
     } finally {
       setSubmitting(false);
     }
@@ -237,39 +243,38 @@ export function GlossaryPage() {
   const reviewed = () =>
     rows.filter((r) => r.decision !== "drop").map((r) => ({ ...r.entry, aliases: (r.entry.aliases ?? []).map((a) => a.trim()).filter(Boolean) }));
   const deferredCount = rows.filter((r) => r.decision === "defer").length;
-  const deferNote = deferredCount ? ` ${deferredCount} deferred term${deferredCount === 1 ? " is" : "s are"} still undecided and will be kept as drafted.` : "";
-  const genericIndexes = rows.flatMap((r, i) => (r.flags.includes("generic word") && r.decision !== "drop" ? [i] : []));
+  const genericIndexes = rows.flatMap((r, i) => (r.flags.some((flag) => flag.key === GENERIC) && r.decision !== "drop" ? [i] : []));
   const dropGeneric = () => {
     setRows((old) => {
       const next = old.map((row, i) => (genericIndexes.includes(i) ? { ...row, decision: "drop" as Decision } : row));
       writeStore(jobId, next);
       return next;
     });
-    toast("ok", `Dropped ${genericIndexes.length} generic word${genericIndexes.length === 1 ? "" : "s"}; they will be translated from context. Keep any of them again to undo.`);
+    toast("ok", t("glossary.toast.droppedGeneric", { count: genericIndexes.length }));
   };
 
   const progressLink = `/jobs/${encodeURIComponent(jobId)}/progress`;
   const editable = !!data?.editable;
   const summary = data?.approval_summary ?? {};
-  const stats: [string, number | string][] = editable
+  const stats: [MessageKey, number | string][] = editable
     ? [
-        ["terms", rows.length],
-        ["kept", rows.filter((r) => r.decision === "keep").length],
-        ["deferred", deferredCount],
-        ["dropped", rows.filter((r) => r.decision === "drop").length],
-        ["edited", rows.filter((r) => r.decision !== "drop" && changed(r)).length],
-        ["flagged", rows.filter((r) => r.flags.length).length],
+        ["glossary.stat.terms", rows.length],
+        ["glossary.stat.kept", rows.filter((r) => r.decision === "keep").length],
+        ["glossary.stat.deferred", deferredCount],
+        ["glossary.stat.dropped", rows.filter((r) => r.decision === "drop").length],
+        ["glossary.stat.edited", rows.filter((r) => r.decision !== "drop" && changed(r)).length],
+        ["glossary.stat.flagged", rows.filter((r) => r.flags.length).length],
       ]
     : [
-        ["approved terms", data?.entries.length ?? 0],
-        ["auto-approved", summary.deterministic_count ?? "—"],
-        ["LLM-reviewed", summary.llm_count ?? "—"],
-        ["revised", summary.revised_count ?? "—"],
-        ["rejected", summary.rejected_count ?? "—"],
+        ["glossary.stat.approvedTerms", data?.entries.length ?? 0],
+        ["glossary.stat.autoApproved", summary.deterministic_count ?? "—"],
+        ["glossary.stat.llmReviewed", summary.llm_count ?? "—"],
+        ["glossary.stat.revised", summary.revised_count ?? "—"],
+        ["glossary.stat.rejected", summary.rejected_count ?? "—"],
       ];
-  const views = editable
-    ? [["all", "All terms"], ["flagged", "Needs attention"], ["edited", "Edited"], ["deferred", "Deferred"], ["dropped", "Dropped"]]
-    : [["all", "All terms"], ["llm", "Reviewed by LLM"], ["changed", "Changed by LLM"], ["flagged", "Flagged in draft"]];
+  const views: [string, MessageKey][] = editable
+    ? [["all", "glossary.filter.all"], ["flagged", "glossary.filter.flagged"], ["edited", "glossary.filter.edited"], ["deferred", "glossary.filter.deferred"], ["dropped", "glossary.filter.dropped"]]
+    : [["all", "glossary.filter.all"], ["llm", "glossary.filter.llmReviewed"], ["changed", "glossary.filter.llmChanged"], ["flagged", "glossary.filter.flaggedInDraft"]];
   const span = editable ? 8 : 6;
   const pair = data?.glossary_pair ?? FALLBACK_PAIR;
   const [sourceLang, targetLang] = pairCodes(pair.pair).map(langAttr);
@@ -279,9 +284,9 @@ export function GlossaryPage() {
       <td colSpan={span}>
         {row.original.evidence?.length
           ? row.original.evidence.map((id) => (
-              <div key={id}><span className="sid">{id}</span><Highlight text={data?.evidence[id] ?? "(source text unavailable)"} quote={row.original.source} /></div>
+              <div key={id}><span className="sid">{id}</span><Highlight text={data?.evidence[id] ?? t("glossary.evidence.unavailable")} quote={row.original.source} /></div>
             ))
-          : <span className="meta">No evidence recorded.</span>}
+          : <span className="meta">{t("glossary.evidence.none")}</span>}
       </td>
     </tr>
   );
@@ -299,12 +304,12 @@ export function GlossaryPage() {
                           <Fragment key={row.original.source}>
                             <tr className={`decision-${row.decision} ${changed(row) ? "changed" : ""} ${matchingIndexes.has(index) ? "" : "stale"}`}>
                               <td className="keep">
-                                <div className="decision-pick" role="radiogroup" aria-label={`Decision for ${row.entry.source}`}>
+                                <div className="decision-pick" role="radiogroup" aria-label={t("glossary.decision.for", { term: row.entry.source })}>
                                   {DECISIONS.map(([value, label, tip]) => (
-                                    <button key={value} type="button" role="radio" aria-checked={row.decision === value} title={tip}
+                                    <button key={value} type="button" role="radio" aria-checked={row.decision === value} title={t(tip)}
                                       className={`small ${value} ${row.decision === value ? "on" : ""}`}
                                       onClick={() => update(index, { decision: value })}>
-                                      {label}
+                                      {t(label)}
                                     </button>
                                   ))}
                                 </div>
@@ -318,10 +323,10 @@ export function GlossaryPage() {
                               </td>
                               <td className="note"><input type="text" value={row.entry.note} onChange={(e) => edit(index, "note", e.target.value)} /></td>
                               <td>
-                                <input type="text" placeholder="comma-separated" defaultValue={(row.entry.aliases ?? []).join(", ")}
+                                <input type="text" placeholder={t("glossary.aliasesPlaceholder")} defaultValue={(row.entry.aliases ?? []).join(", ")}
                                   onChange={(e) => edit(index, "aliases", e.target.value.split(",").map((a) => a.trim()).filter(Boolean))} />
                               </td>
-                              <td>{row.flags.map((f) => <span className="flag" key={f}>{f}</span>)}</td>
+                              <td>{row.flags.map((flag) => <span className="flag" key={flag.key}>{t(flag.key, flag.values)}</span>)}</td>
                               <td>{evidenceButton}</td>
                             </tr>
                             {open.has(index) && evidenceRow(row)}
@@ -340,7 +345,7 @@ export function GlossaryPage() {
                             <td>
                               {record ? (
                                 <>
-                                  <Chip kind={record.result === "approved" ? "ok" : "warn"}>{record.result}</Chip> <span className="meta">{record.mode}</span>
+                                  <Chip kind={record.result === "approved" ? "ok" : "warn"}>{approvalResultLabel(record.result)}</Chip> <span className="meta">{approvalModeLabel(record.mode)}</span>
                                   {record.reasons.map((r) => <div className="meta" key={r}>{r.replace(/_/g, " ")}</div>)}
                                 </>
                               ) : <span className="meta">—</span>}
@@ -354,16 +359,16 @@ export function GlossaryPage() {
 
   const sidebar = data?.ready ? (
     <>
-      <div className="navhead">Categories</div>
-      <SideItem active={!category} onClick={() => setCategory("")} count={inView.length}>All categories</SideItem>
+      <div className="navhead">{t("glossary.filter.categories")}</div>
+      <SideItem active={!category} onClick={() => setCategory("")} count={inView.length}>{t("glossary.filter.allCategories")}</SideItem>
       {categoryOrder.map((name) => (
         <SideItem key={name} active={category === name} onClick={() => setCategory(category === name ? "" : name)} count={categoryCounts.get(name) ?? 0}>
           {catLabel(name)}
         </SideItem>
       ))}
-      <div className="navhead">Show</div>
+      <div className="navhead">{t("glossary.filter.show")}</div>
       {views.map(([name, label]) => (
-        <SideItem key={name} active={view === name} onClick={() => setView(name)} count={viewCount(name)}>{label}</SideItem>
+        <SideItem key={name} active={view === name} onClick={() => setView(name)} count={viewCount(name)}>{t(label)}</SideItem>
       ))}
     </>
   ) : null;
@@ -376,32 +381,36 @@ export function GlossaryPage() {
         <div className="banner info approval-running" role="status">
           <span className="spinner" aria-hidden="true" />
           <div>
-            <b>Glossary approval is running.</b> {approvalMode && <span>{approvalMode}. </span>}
-            The glossary is locked until it finishes; this page updates by itself.{" "}
-            <Link to={progressLink}>Follow progress →</Link>
+            {rich("glossary.approval.running", {
+              mode: approvalMode,
+              b: (chunks) => <b>{chunks}</b>,
+              span: (chunks) => <span>{chunks}</span>,
+              link: (chunks) => <Link to={progressLink}>{chunks}</Link>,
+            })}
           </div>
         </div>
       )}
       {!data?.approval_running && data?.process?.label === "glossary approval" && data.process.outcome === "failed" && (
         <div className="banner bad">
-          Glossary approval failed (exit code {data.process.exit_code}); your glossary is editable again.
+          {t("glossary.approval.failed", { code: data.process.exit_code })}
           <pre>{data.process.output_tail}</pre>
         </div>
       )}
       {!data?.approval_running && data?.process?.running && data.process.label !== "glossary approval" && (
-        <div className="banner info">{data.process.label} is running. <Link to={progressLink}>Follow progress →</Link></div>
+        <div className="banner info">{rich("glossary.processRunning", { label: data.process.label, link: (chunks) => <Link to={progressLink}>{chunks}</Link> })}</div>
       )}
-      {started && !data && !error && <p className="meta">Loading…</p>}
+      {started && !data && !error && <p className="meta">{t("common.loading")}</p>}
       {data && !data.ready && (
-        <div className="banner warn">The glossary draft is not ready yet; extraction and resolution run first. <Link to={progressLink}>Watch progress →</Link></div>
+        <div className="banner warn">{rich("glossary.notReady", { link: (chunks) => <Link to={progressLink}>{chunks}</Link> })}</div>
       )}
       {data?.ready && data.editable && data.series_overlay && (
         <div className="banner info">
-          This book is in series{" "}
-          <Link to={`/series/${encodeURIComponent(data.series_overlay.series_id)}`}>{data.series_overlay.name}</Link>: the
-          candidate below is its glossary synchronized to series glossary <b>{data.series_overlay.version}</b>, so shared
-          terms use the series translation. Approving pins this book to {data.series_overlay.version}; its own entries
-          still take precedence for book-specific exceptions.
+          {rich("glossary.seriesOverlay", {
+            name: data.series_overlay.name,
+            version: data.series_overlay.version,
+            link: (chunks) => <Link to={`/series/${encodeURIComponent(data.series_overlay!.series_id)}`}>{chunks}</Link>,
+            b: (chunks) => <b>{chunks}</b>,
+          })}
         </div>
       )}
       {data?.ready && (
@@ -409,26 +418,26 @@ export function GlossaryPage() {
           <section className="card">
             <div className="row" style={{ margin: "0 0 12px", justifyContent: "space-between" }}>
               <div>
-                <Chip kind={data.approve_status}>{data.approve_status === "paused" ? "waiting for review" : data.approve_status}</Chip>
-                {data.review_mode && <span className="meta" style={{ marginLeft: 6 }}>review mode: {data.review_mode}</span>}
+                <Chip kind={data.approve_status}>{data.approve_status === "paused" ? t("glossary.status.waitingForReview") : statusLabel(data.approve_status)}</Chip>
+                {data.review_mode && <span className="meta" style={{ marginInlineStart: 6 }}>{t("glossary.reviewMode", { mode: reviewModeLabel(data.review_mode) })}</span>}
               </div>
               {editable && (
                 <div className="row" style={{ margin: 0 }}>
-                  <button disabled={submitting} title="Send the untouched draft to the LLM reviewer"
-                    onClick={() => submit({ llm: true, ...styleToSend() }, "LLM review the original draft?", "Your edits on this page are discarded; the LLM reviews the untouched draft.", "LLM review the draft")}>LLM review the draft</button>
-                  <button disabled={submitting} title="The LLM reviews your edited list and may still revise or reject entries"
-                    onClick={() => submit({ entries: reviewed(), llm: true, ...styleToSend() }, "Send your edits to the LLM reviewer?", "The LLM reviews your edited list and may still revise or reject entries; the pipeline then continues.", "Send for LLM review", deferNote)}>LLM review my edits</button>
+                  <button disabled={submitting} title={t("glossary.action.llmDraftTip")}
+                    onClick={() => submit({ llm: true, ...styleToSend() }, t("glossary.confirm.llmDraft.title"), t("glossary.confirm.llmDraft.detail"), t("glossary.confirm.llmDraft.action"))}>{t("glossary.action.llmDraft")}</button>
+                  <button disabled={submitting} title={t("glossary.action.llmEditsTip")}
+                    onClick={() => submit({ entries: reviewed(), llm: true, ...styleToSend() }, t("glossary.confirm.llmEdits.title"), t("glossary.confirm.llmEdits.detail", { deferred: deferredCount }), t("glossary.confirm.llmEdits.action"))}>{t("glossary.action.llmEdits")}</button>
                   <button className="primary" disabled={submitting}
-                    onClick={() => submit({ entries: reviewed(), ...styleToSend() }, "Approve your reviewed glossary?", "The pipeline continues with this glossary.", "Approve & continue", deferNote)}>Approve my review &amp; continue</button>
+                    onClick={() => submit({ entries: reviewed(), ...styleToSend() }, t("glossary.confirm.approve.title"), t("glossary.confirm.approve.detail", { deferred: deferredCount }), t("glossary.confirm.approve.action"))}>{t("glossary.action.approve")}</button>
                 </div>
               )}
             </div>
-            <div className="stats">{stats.map(([label, n]) => <div className="stat" key={label}><b>{n}</b><span>{label}</span></div>)}</div>
+            <div className="stats">{stats.map(([label, n]) => <div className="stat" key={label}><b>{n}</b><span>{t(label)}</span></div>)}</div>
             {!!data.quality.warnings?.length && <ul className="warnings-list">{data.quality.warnings.map((w) => <li key={w}>{w}</li>)}</ul>}
               {editable && genericIndexes.length > 0 && (
                 <div className="row">
-                  <button className="small" onClick={dropGeneric} title={DECISIONS[2][2]}>
-                    ✗ Drop {genericIndexes.length} generic word{genericIndexes.length === 1 ? "" : "s"}
+                  <button className="small" onClick={dropGeneric} title={t("glossary.decision.dropTip")}>
+                    {t("glossary.action.dropGeneric", { count: genericIndexes.length })}
                   </button>
                   <span className="meta">{genericIndexes.map((i) => rows[i].original.source).join(", ")}</span>
                 </div>
@@ -457,27 +466,26 @@ export function GlossaryPage() {
 
           <section className="card">
             <div className="filters">
-              <input type="text" placeholder={`Search ${pair.source}, ${pair.target}, note, or alias`} value={query} onChange={(e) => setQuery(e.target.value)} />
-              <span className="meta">{visible.length} of {rows.length} terms</span>
+              <input type="text" placeholder={t("glossary.list.searchPlaceholder", { source: pair.source, target: pair.target })} value={query} onChange={(e) => setQuery(e.target.value)} />
+              <span className="meta">{t("glossary.list.shown", { shown: visible.length, total: rows.length })}</span>
               {staleCount > 0 && (
                 <span className="meta">
-                  · {staleCount} no longer match this view and stay until you{" "}
-                  <button className="small" onClick={refreshList}>Refresh list</button>
+                  {rich("glossary.list.stale", { count: staleCount, button: (chunks) => <button className="small" onClick={refreshList}>{chunks}</button> })}
                 </span>
               )}
               <span style={{ flex: 1 }} />
-              <button className="small" onClick={() => setCollapsed(new Set())}>Expand all</button>
-              <button className="small" onClick={() => setCollapsed(new Set(groups.map((g) => g.name)))}>Collapse all</button>
+              <button className="small" onClick={() => setCollapsed(new Set())}>{t("glossary.list.expandAll")}</button>
+              <button className="small" onClick={() => setCollapsed(new Set(groups.map((g) => g.name)))}>{t("glossary.list.collapseAll")}</button>
             </div>
             {groups.length === 0 ? (
-              <p className="meta">No terms match.</p>
+              <p className="meta">{t("glossary.list.empty")}</p>
             ) : (
               <table className="grid term-table">
                 <thead>
                   {editable ? (
-                    <tr><th>Decision</th><th>{pair.source}</th><th>{pair.target}</th><th>Category</th><th>Note</th><th>Aliases</th><th>Flags</th><th>Evidence</th></tr>
+                    <tr><th>{t("glossary.column.decision")}</th><th>{pair.source}</th><th>{pair.target}</th><th>{t("glossary.column.category")}</th><th>{t("glossary.column.note")}</th><th>{t("glossary.column.aliases")}</th><th>{t("glossary.column.flags")}</th><th>{t("glossary.column.evidence")}</th></tr>
                   ) : (
-                    <tr><th>{pair.source}</th><th>{pair.target}</th><th>Category</th><th>Note</th><th>Approval</th><th>Evidence</th></tr>
+                    <tr><th>{pair.source}</th><th>{pair.target}</th><th>{t("glossary.column.category")}</th><th>{t("glossary.column.note")}</th><th>{t("glossary.column.approval")}</th><th>{t("glossary.column.evidence")}</th></tr>
                   )}
                 </thead>
                 {groups.map((group) => {
@@ -506,7 +514,7 @@ export function GlossaryPage() {
   return (
     <Shell jobId={jobId}>
       {sidebar ? (
-        <SideLayout sidebar={sidebar} storageKey="sidebar-collapsed:glossary" label="Filters">{body}</SideLayout>
+        <SideLayout sidebar={sidebar} storageKey="sidebar-collapsed:glossary" label={t("glossary.filter.sidebar")}>{body}</SideLayout>
       ) : (
         <main className="page">{body}</main>
       )}

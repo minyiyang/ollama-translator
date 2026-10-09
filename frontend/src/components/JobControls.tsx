@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { jobApi } from "../api";
-import { OUTPUT_FORMATS, outputUrl } from "../lib/format";
+import { useT, type MessageKey } from "../i18n";
+import { statusLabel } from "../lib/enums";
+import { outputFormats, outputUrl } from "../lib/format";
 import { attentionFrom } from "../lib/stages";
 import { useConfirm } from "./Dialog";
 import { useJob } from "./JobContext";
@@ -9,17 +11,18 @@ import { useToast } from "./Toast";
 import { Chip } from "./ui";
 
 const TIPS = {
-  start: "Starts the pipeline with the validated configuration.",
-  startBlocked: "Validate the configuration on the Config tab first.",
-  pause: "Lets the current LLM call finish, then pauses. Resume continues from there; no finished work is lost.",
-  pausing: "Waiting for the current LLM call to finish.",
-  stop: "Stops immediately. The LLM call in progress is lost and redone on resume.",
-  stopBlocked: "Only runs started from this dashboard can be stopped here; use Pause.",
-  resume: "Continues from the last checkpoint.",
-};
+  start: "jobs.controls.startTip",
+  startBlocked: "jobs.controls.startBlockedTip",
+  pause: "jobs.controls.pauseTip",
+  pausing: "jobs.controls.pausingTip",
+  stop: "jobs.controls.stopTip",
+  stopBlocked: "jobs.controls.stopBlockedTip",
+  resume: "jobs.controls.resumeTip",
+} as const satisfies Record<string, MessageKey>;
 
 /** Start / Pause / Stop / Resume for the current job, shown in the header on every job tab. */
 export function JobControls() {
+  const t = useT();
   const { jobId, info, refresh } = useJob();
   const toast = useToast();
   const confirm = useConfirm();
@@ -51,47 +54,47 @@ export function JobControls() {
 
   return (
     <>
-      <Chip kind={status}>{status}</Chip>
+      <Chip kind={status}>{statusLabel(status)}</Chip>
       {info.kind === "draft" && !info.running && (
         <>
-          <button onClick={() => act("discard", "Draft discarded.", { title: "Discard this job?", body: "The draft job is removed. Its config file is kept.", label: "Discard" })} disabled={busy}>Discard</button>
-          <span title={info.validated ? TIPS.start : TIPS.startBlocked}>
-            <button className="primary" disabled={busy || !info.validated} onClick={() => act("start", "Translation started.")}>
-              Start translation
+          <button onClick={() => act("discard", t("jobs.controls.discarded"), { title: t("jobs.controls.discardTitle"), body: t("jobs.controls.discardBody"), label: t("jobs.controls.discard") })} disabled={busy}>{t("jobs.controls.discard")}</button>
+          <span title={t(info.validated ? TIPS.start : TIPS.startBlocked)}>
+            <button className="primary" disabled={busy || !info.validated} onClick={() => act("start", t("jobs.controls.started"))}>
+              {t("jobs.controls.start")}
             </button>
           </span>
         </>
       )}
       {info.running && info.kind === "job" && (
-        <span title={info.pause_requested ? TIPS.pausing : TIPS.pause}>
-          <button disabled={busy || info.pause_requested} onClick={() => act("pause", "Pause requested: the run stops after the current LLM call.")}>
-            {info.pause_requested ? "Pausing…" : "❚❚ Pause"}
+        <span title={t(info.pause_requested ? TIPS.pausing : TIPS.pause)}>
+          <button disabled={busy || info.pause_requested} onClick={() => act("pause", t("jobs.controls.pauseRequested"))}>
+            {info.pause_requested ? t("jobs.controls.pausing") : t("jobs.controls.pause")}
           </button>
         </span>
       )}
       {info.running && (
-        <span title={info.can_stop ? TIPS.stop : TIPS.stopBlocked}>
+        <span title={t(info.can_stop ? TIPS.stop : TIPS.stopBlocked)}>
           <button disabled={busy || !info.can_stop}
-            onClick={() => act("stop", "Stopped.", { title: "Stop the run now?", body: "The LLM call in progress is discarded and redone when you resume.", label: "Stop" })}>
-            ■ Stop
+            onClick={() => act("stop", t("jobs.controls.stopped"), { title: t("jobs.controls.stopTitle"), body: t("jobs.controls.stopBody"), label: t("jobs.controls.stopConfirm") })}>
+            {t("jobs.controls.stop")}
           </button>
         </span>
       )}
       {info.downloadable && info.job_type === "subtitles" && (
-        <a className="button primary" href={outputUrl(jobId)} download title="Download the translated subtitles">⤓ Download</a>
+        <a className="button primary" href={outputUrl(jobId)} download title={t("jobs.downloadSubtitles")}>{t("jobs.download")}</a>
       )}
       {info.downloadable && info.job_type !== "subtitles" && (
         <>
-          <select className="small" aria-label="Download format" value={format} onChange={(e) => setFormat(e.target.value)}
-            title="The EPUB keeps the book's layout and pictures; the others carry its text, headings, and emphasis.">
-            {OUTPUT_FORMATS.map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          <select className="small" aria-label={t("jobs.controls.downloadFormat")} value={format} onChange={(e) => setFormat(e.target.value)}
+            title={t("jobs.controls.downloadFormatTip")}>
+            {outputFormats().map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select>
-          <a className="button primary" href={outputUrl(jobId, format)} download title="Download the translated book">⤓ Download</a>
+          <a className="button primary" href={outputUrl(jobId, format)} download title={t("jobs.downloadBook")}>{t("jobs.download")}</a>
         </>
       )}
       {info.kind === "job" && !info.running && !waiting && info.overall !== "complete" && (
-        <span title={TIPS.resume}>
-          <button className="primary" disabled={busy} onClick={() => act("resume", "Resumed.")}>▶ Resume</button>
+        <span title={t(TIPS.resume)}>
+          <button className="primary" disabled={busy} onClick={() => act("resume", t("jobs.controls.resumed"))}>{t("jobs.controls.resume")}</button>
         </span>
       )}
     </>

@@ -1,3 +1,5 @@
+import type { MessageKey } from "../i18n";
+
 /** A series id suggestion from its display name: "The Qel Cycle" -> "the-qel-cycle". */
 export function seriesIdFromName(name: string): string {
   return name
@@ -49,17 +51,17 @@ type FixedView = "suggested" | "pending" | "conflict" | "keep" | "single_book" |
 /** A fixed view, or ``book:<job id>`` for one book's single-book terms. */
 export type WorkbenchView = FixedView | `book:${string}`;
 
-/** Sidebar views of the series workbench, in display order. */
-export const WORKBENCH_VIEWS: [FixedView, string][] = [
-  ["suggested", "LLM suggestions"],
-  ["pending", "Needs a decision"],
-  ["conflict", "Conflicts"],
-  ["keep", "To publish"],
-  ["single_book", "Single-book terms"],
-  ["elsewhere", "Found in other books"],
-  ["carried", "Already published"],
-  ["drop", "Dropped"],
-  ["all", "All terms"],
+/** Sidebar views of the series workbench, in display order, each with the message that names it. */
+export const WORKBENCH_VIEWS: [FixedView, MessageKey][] = [
+  ["suggested", "series.view.suggested"],
+  ["pending", "series.view.pending"],
+  ["conflict", "series.view.conflict"],
+  ["keep", "series.view.keep"],
+  ["single_book", "series.view.singleBook"],
+  ["elsewhere", "series.view.elsewhere"],
+  ["carried", "series.view.carried"],
+  ["drop", "series.view.drop"],
+  ["all", "series.view.all"],
 ];
 
 /** The one book whose glossary has a single-book term. */

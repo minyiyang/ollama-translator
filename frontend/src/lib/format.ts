@@ -1,30 +1,32 @@
+import { getLocale, t } from "../i18n";
+
 export function duration(from?: string, to?: string): string {
   if (!from || !to) return "";
   const s = Math.max(0, (Date.parse(to) - Date.parse(from)) / 1000);
-  if (s < 60) return `${Math.round(s)}s`;
-  if (s < 3600) return `${Math.floor(s / 60)}m ${Math.round(s % 60)}s`;
-  return `${Math.floor(s / 3600)}h ${Math.round((s % 3600) / 60)}m`;
+  if (s < 60) return t("format.duration.s", { s: Math.round(s) });
+  if (s < 3600) return t("format.duration.ms", { m: Math.floor(s / 60), s: Math.round(s % 60) });
+  return t("format.duration.hm", { h: Math.floor(s / 3600), m: Math.round((s % 3600) / 60) });
 }
 
 export function relativeTime(iso: string, now = Date.now()): string {
   if (!iso) return "";
   const s = (now - Date.parse(iso)) / 1000;
-  if (s < 90) return "just now";
-  if (s < 5400) return `${Math.round(s / 60)} min ago`;
-  if (s < 129600) return `${Math.round(s / 3600)} h ago`;
-  return `${Math.round(s / 86400)} d ago`;
+  if (s < 90) return t("format.ago.now");
+  if (s < 5400) return t("format.ago.min", { n: Math.round(s / 60) });
+  if (s < 129600) return t("format.ago.h", { n: Math.round(s / 3600) });
+  return t("format.ago.d", { n: Math.round(s / 86400) });
 }
 
-export const count = (n?: number) => (n ? n.toLocaleString() : "");
+export const count = (n?: number) => (n ? n.toLocaleString(getLocale()) : "");
 
 /** Rough, readable span for estimates: "45 s", "12 min", "1 h 20 min". */
 export function roughDuration(seconds: number): string {
-  if (seconds < 60) return `${Math.max(1, Math.round(seconds))} s`;
+  if (seconds < 60) return t("format.rough.s", { n: Math.max(1, Math.round(seconds)) });
   const minutes = Math.round(seconds / 60);
-  if (minutes < 60) return `${minutes} min`;
+  if (minutes < 60) return t("format.rough.min", { n: minutes });
   const hours = Math.floor(minutes / 60);
   const rest = minutes % 60;
-  return rest ? `${hours} h ${rest} min` : `${hours} h`;
+  return rest ? t("format.rough.hMin", { h: hours, m: rest }) : t("format.rough.h", { n: hours });
 }
 
 /** "en-zh" -> "EN → ZH", "pt-BR>ja" -> "PT-BR → JA"; an unknown or missing direction shows as a dash. */
@@ -38,19 +40,19 @@ export function directionLabel(direction: string | undefined): string {
 export const SOURCE_ACCEPT = ".epub,.rtf,.txt,.md,.markdown,.html,.htm,.xhtml,.docx,.pdf,.srt,.vtt,.ass,.ssa";
 export const isSubtitleFile = (name: string) => /\.(srt|vtt|ass|ssa)$/i.test(name);
 export const isSourceBook = (name: string) => /\.(epub|rtf|txt|md|markdown|html?|xhtml|docx|pdf)$/i.test(name) || isSubtitleFile(name);
-export const SOURCE_KINDS = "a book (EPUB, RTF, text, Markdown, HTML, Word .docx, PDF) or a subtitle file (.srt, .vtt, .ass)";
+export const sourceKinds = () => t("format.sourceKinds");
 
 /** The two kinds of job, as the server names them and as the dashboard shows them. */
 export type JobType = "book" | "subtitles";
-export const JOB_TYPE_LABELS: Record<JobType, string> = { book: "Book", subtitles: "Subtitles" };
+export const jobTypeLabel = (type: JobType) => t(type === "subtitles" ? "format.jobType.subtitles" : "format.jobType.book");
 
 /** What a translated book can be downloaded as: the EPUB the pipeline builds, or its text in another format. */
-export const OUTPUT_FORMATS: [string, string][] = [
+export const outputFormats = (): [string, string][] => [
   ["epub", "EPUB"],
-  ["docx", "Word (.docx)"],
+  ["docx", t("format.output.docx")],
   ["html", "HTML"],
   ["md", "Markdown"],
-  ["txt", "Plain text"],
+  ["txt", t("format.output.txt")],
 ];
 
 /** Download URL of a completed job's translated book. */
@@ -64,8 +66,6 @@ export const xliffExportUrl = (jobId: string) => `/api/jobs/${encodeURIComponent
 export const importReportUrl = (jobId: string, importId: string) =>
   `/api/jobs/${encodeURIComponent(jobId)}/text/import/report?import_id=${encodeURIComponent(importId)}`;
 
-const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-
 /** Compact local time for a table cell: "14:05" today, "Sep 18 14:05" this year, else "2025-09-18 14:05". */
 export function shortTimestamp(iso: string, now = new Date()): string {
   const at = new Date(iso);
@@ -73,6 +73,6 @@ export function shortTimestamp(iso: string, now = new Date()): string {
   const pad = (n: number) => String(n).padStart(2, "0");
   const time = `${pad(at.getHours())}:${pad(at.getMinutes())}`;
   if (at.toDateString() === now.toDateString()) return time;
-  if (at.getFullYear() === now.getFullYear()) return `${MONTHS[at.getMonth()]} ${at.getDate()} ${time}`;
+  if (at.getFullYear() === now.getFullYear()) return `${at.toLocaleDateString(getLocale(), { month: "short", day: "numeric" })} ${time}`;
   return `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())} ${time}`;
 }

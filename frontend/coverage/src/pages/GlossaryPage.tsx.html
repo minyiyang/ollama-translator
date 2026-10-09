@@ -1,0 +1,1654 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+    <title>Code coverage report for src/pages/GlossaryPage.tsx</title>
+    <meta charset="utf-8" />
+    <link rel="stylesheet" href="../../prettify.css" />
+    <link rel="stylesheet" href="../../base.css" />
+    <link rel="shortcut icon" type="image/x-icon" href="../../favicon.png" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style type='text/css'>
+        .coverage-summary .sorter {
+            background-image: url(../../sort-arrow-sprite.png);
+        }
+    </style>
+</head>
+    
+<body>
+<div class='wrapper'>
+    <div class='pad1'>
+        <h1><a href="../../index.html">All files</a> / <a href="index.html">src/pages</a> GlossaryPage.tsx</h1>
+        <div class='clearfix'>
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">99.61% </span>
+                <span class="quiet">Statements</span>
+                <span class='fraction'>260/261</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">94.3% </span>
+                <span class="quiet">Branches</span>
+                <span class='fraction'>232/246</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">99.08% </span>
+                <span class="quiet">Functions</span>
+                <span class='fraction'>108/109</span>
+            </div>
+        
+            
+            <div class='fl pad1y space-right2'>
+                <span class="strong">99.49% </span>
+                <span class="quiet">Lines</span>
+                <span class='fraction'>197/198</span>
+            </div>
+        
+            
+        </div>
+        <p class="quiet">
+            Press <em>n</em> or <em>j</em> to go to the next uncovered block, <em>b</em>, <em>p</em> or <em>k</em> for the previous block.
+        </p>
+        <template id="filterTemplate">
+            <div class="quiet">
+                Filter:
+                <input type="search" id="fileSearch">
+            </div>
+        </template>
+    </div>
+    <div class='status-line high'></div>
+    <pre><table class="coverage">
+<tr><td class="line-count quiet"><a name='L1'></a><a href='#L1'>1</a>
+<a name='L2'></a><a href='#L2'>2</a>
+<a name='L3'></a><a href='#L3'>3</a>
+<a name='L4'></a><a href='#L4'>4</a>
+<a name='L5'></a><a href='#L5'>5</a>
+<a name='L6'></a><a href='#L6'>6</a>
+<a name='L7'></a><a href='#L7'>7</a>
+<a name='L8'></a><a href='#L8'>8</a>
+<a name='L9'></a><a href='#L9'>9</a>
+<a name='L10'></a><a href='#L10'>10</a>
+<a name='L11'></a><a href='#L11'>11</a>
+<a name='L12'></a><a href='#L12'>12</a>
+<a name='L13'></a><a href='#L13'>13</a>
+<a name='L14'></a><a href='#L14'>14</a>
+<a name='L15'></a><a href='#L15'>15</a>
+<a name='L16'></a><a href='#L16'>16</a>
+<a name='L17'></a><a href='#L17'>17</a>
+<a name='L18'></a><a href='#L18'>18</a>
+<a name='L19'></a><a href='#L19'>19</a>
+<a name='L20'></a><a href='#L20'>20</a>
+<a name='L21'></a><a href='#L21'>21</a>
+<a name='L22'></a><a href='#L22'>22</a>
+<a name='L23'></a><a href='#L23'>23</a>
+<a name='L24'></a><a href='#L24'>24</a>
+<a name='L25'></a><a href='#L25'>25</a>
+<a name='L26'></a><a href='#L26'>26</a>
+<a name='L27'></a><a href='#L27'>27</a>
+<a name='L28'></a><a href='#L28'>28</a>
+<a name='L29'></a><a href='#L29'>29</a>
+<a name='L30'></a><a href='#L30'>30</a>
+<a name='L31'></a><a href='#L31'>31</a>
+<a name='L32'></a><a href='#L32'>32</a>
+<a name='L33'></a><a href='#L33'>33</a>
+<a name='L34'></a><a href='#L34'>34</a>
+<a name='L35'></a><a href='#L35'>35</a>
+<a name='L36'></a><a href='#L36'>36</a>
+<a name='L37'></a><a href='#L37'>37</a>
+<a name='L38'></a><a href='#L38'>38</a>
+<a name='L39'></a><a href='#L39'>39</a>
+<a name='L40'></a><a href='#L40'>40</a>
+<a name='L41'></a><a href='#L41'>41</a>
+<a name='L42'></a><a href='#L42'>42</a>
+<a name='L43'></a><a href='#L43'>43</a>
+<a name='L44'></a><a href='#L44'>44</a>
+<a name='L45'></a><a href='#L45'>45</a>
+<a name='L46'></a><a href='#L46'>46</a>
+<a name='L47'></a><a href='#L47'>47</a>
+<a name='L48'></a><a href='#L48'>48</a>
+<a name='L49'></a><a href='#L49'>49</a>
+<a name='L50'></a><a href='#L50'>50</a>
+<a name='L51'></a><a href='#L51'>51</a>
+<a name='L52'></a><a href='#L52'>52</a>
+<a name='L53'></a><a href='#L53'>53</a>
+<a name='L54'></a><a href='#L54'>54</a>
+<a name='L55'></a><a href='#L55'>55</a>
+<a name='L56'></a><a href='#L56'>56</a>
+<a name='L57'></a><a href='#L57'>57</a>
+<a name='L58'></a><a href='#L58'>58</a>
+<a name='L59'></a><a href='#L59'>59</a>
+<a name='L60'></a><a href='#L60'>60</a>
+<a name='L61'></a><a href='#L61'>61</a>
+<a name='L62'></a><a href='#L62'>62</a>
+<a name='L63'></a><a href='#L63'>63</a>
+<a name='L64'></a><a href='#L64'>64</a>
+<a name='L65'></a><a href='#L65'>65</a>
+<a name='L66'></a><a href='#L66'>66</a>
+<a name='L67'></a><a href='#L67'>67</a>
+<a name='L68'></a><a href='#L68'>68</a>
+<a name='L69'></a><a href='#L69'>69</a>
+<a name='L70'></a><a href='#L70'>70</a>
+<a name='L71'></a><a href='#L71'>71</a>
+<a name='L72'></a><a href='#L72'>72</a>
+<a name='L73'></a><a href='#L73'>73</a>
+<a name='L74'></a><a href='#L74'>74</a>
+<a name='L75'></a><a href='#L75'>75</a>
+<a name='L76'></a><a href='#L76'>76</a>
+<a name='L77'></a><a href='#L77'>77</a>
+<a name='L78'></a><a href='#L78'>78</a>
+<a name='L79'></a><a href='#L79'>79</a>
+<a name='L80'></a><a href='#L80'>80</a>
+<a name='L81'></a><a href='#L81'>81</a>
+<a name='L82'></a><a href='#L82'>82</a>
+<a name='L83'></a><a href='#L83'>83</a>
+<a name='L84'></a><a href='#L84'>84</a>
+<a name='L85'></a><a href='#L85'>85</a>
+<a name='L86'></a><a href='#L86'>86</a>
+<a name='L87'></a><a href='#L87'>87</a>
+<a name='L88'></a><a href='#L88'>88</a>
+<a name='L89'></a><a href='#L89'>89</a>
+<a name='L90'></a><a href='#L90'>90</a>
+<a name='L91'></a><a href='#L91'>91</a>
+<a name='L92'></a><a href='#L92'>92</a>
+<a name='L93'></a><a href='#L93'>93</a>
+<a name='L94'></a><a href='#L94'>94</a>
+<a name='L95'></a><a href='#L95'>95</a>
+<a name='L96'></a><a href='#L96'>96</a>
+<a name='L97'></a><a href='#L97'>97</a>
+<a name='L98'></a><a href='#L98'>98</a>
+<a name='L99'></a><a href='#L99'>99</a>
+<a name='L100'></a><a href='#L100'>100</a>
+<a name='L101'></a><a href='#L101'>101</a>
+<a name='L102'></a><a href='#L102'>102</a>
+<a name='L103'></a><a href='#L103'>103</a>
+<a name='L104'></a><a href='#L104'>104</a>
+<a name='L105'></a><a href='#L105'>105</a>
+<a name='L106'></a><a href='#L106'>106</a>
+<a name='L107'></a><a href='#L107'>107</a>
+<a name='L108'></a><a href='#L108'>108</a>
+<a name='L109'></a><a href='#L109'>109</a>
+<a name='L110'></a><a href='#L110'>110</a>
+<a name='L111'></a><a href='#L111'>111</a>
+<a name='L112'></a><a href='#L112'>112</a>
+<a name='L113'></a><a href='#L113'>113</a>
+<a name='L114'></a><a href='#L114'>114</a>
+<a name='L115'></a><a href='#L115'>115</a>
+<a name='L116'></a><a href='#L116'>116</a>
+<a name='L117'></a><a href='#L117'>117</a>
+<a name='L118'></a><a href='#L118'>118</a>
+<a name='L119'></a><a href='#L119'>119</a>
+<a name='L120'></a><a href='#L120'>120</a>
+<a name='L121'></a><a href='#L121'>121</a>
+<a name='L122'></a><a href='#L122'>122</a>
+<a name='L123'></a><a href='#L123'>123</a>
+<a name='L124'></a><a href='#L124'>124</a>
+<a name='L125'></a><a href='#L125'>125</a>
+<a name='L126'></a><a href='#L126'>126</a>
+<a name='L127'></a><a href='#L127'>127</a>
+<a name='L128'></a><a href='#L128'>128</a>
+<a name='L129'></a><a href='#L129'>129</a>
+<a name='L130'></a><a href='#L130'>130</a>
+<a name='L131'></a><a href='#L131'>131</a>
+<a name='L132'></a><a href='#L132'>132</a>
+<a name='L133'></a><a href='#L133'>133</a>
+<a name='L134'></a><a href='#L134'>134</a>
+<a name='L135'></a><a href='#L135'>135</a>
+<a name='L136'></a><a href='#L136'>136</a>
+<a name='L137'></a><a href='#L137'>137</a>
+<a name='L138'></a><a href='#L138'>138</a>
+<a name='L139'></a><a href='#L139'>139</a>
+<a name='L140'></a><a href='#L140'>140</a>
+<a name='L141'></a><a href='#L141'>141</a>
+<a name='L142'></a><a href='#L142'>142</a>
+<a name='L143'></a><a href='#L143'>143</a>
+<a name='L144'></a><a href='#L144'>144</a>
+<a name='L145'></a><a href='#L145'>145</a>
+<a name='L146'></a><a href='#L146'>146</a>
+<a name='L147'></a><a href='#L147'>147</a>
+<a name='L148'></a><a href='#L148'>148</a>
+<a name='L149'></a><a href='#L149'>149</a>
+<a name='L150'></a><a href='#L150'>150</a>
+<a name='L151'></a><a href='#L151'>151</a>
+<a name='L152'></a><a href='#L152'>152</a>
+<a name='L153'></a><a href='#L153'>153</a>
+<a name='L154'></a><a href='#L154'>154</a>
+<a name='L155'></a><a href='#L155'>155</a>
+<a name='L156'></a><a href='#L156'>156</a>
+<a name='L157'></a><a href='#L157'>157</a>
+<a name='L158'></a><a href='#L158'>158</a>
+<a name='L159'></a><a href='#L159'>159</a>
+<a name='L160'></a><a href='#L160'>160</a>
+<a name='L161'></a><a href='#L161'>161</a>
+<a name='L162'></a><a href='#L162'>162</a>
+<a name='L163'></a><a href='#L163'>163</a>
+<a name='L164'></a><a href='#L164'>164</a>
+<a name='L165'></a><a href='#L165'>165</a>
+<a name='L166'></a><a href='#L166'>166</a>
+<a name='L167'></a><a href='#L167'>167</a>
+<a name='L168'></a><a href='#L168'>168</a>
+<a name='L169'></a><a href='#L169'>169</a>
+<a name='L170'></a><a href='#L170'>170</a>
+<a name='L171'></a><a href='#L171'>171</a>
+<a name='L172'></a><a href='#L172'>172</a>
+<a name='L173'></a><a href='#L173'>173</a>
+<a name='L174'></a><a href='#L174'>174</a>
+<a name='L175'></a><a href='#L175'>175</a>
+<a name='L176'></a><a href='#L176'>176</a>
+<a name='L177'></a><a href='#L177'>177</a>
+<a name='L178'></a><a href='#L178'>178</a>
+<a name='L179'></a><a href='#L179'>179</a>
+<a name='L180'></a><a href='#L180'>180</a>
+<a name='L181'></a><a href='#L181'>181</a>
+<a name='L182'></a><a href='#L182'>182</a>
+<a name='L183'></a><a href='#L183'>183</a>
+<a name='L184'></a><a href='#L184'>184</a>
+<a name='L185'></a><a href='#L185'>185</a>
+<a name='L186'></a><a href='#L186'>186</a>
+<a name='L187'></a><a href='#L187'>187</a>
+<a name='L188'></a><a href='#L188'>188</a>
+<a name='L189'></a><a href='#L189'>189</a>
+<a name='L190'></a><a href='#L190'>190</a>
+<a name='L191'></a><a href='#L191'>191</a>
+<a name='L192'></a><a href='#L192'>192</a>
+<a name='L193'></a><a href='#L193'>193</a>
+<a name='L194'></a><a href='#L194'>194</a>
+<a name='L195'></a><a href='#L195'>195</a>
+<a name='L196'></a><a href='#L196'>196</a>
+<a name='L197'></a><a href='#L197'>197</a>
+<a name='L198'></a><a href='#L198'>198</a>
+<a name='L199'></a><a href='#L199'>199</a>
+<a name='L200'></a><a href='#L200'>200</a>
+<a name='L201'></a><a href='#L201'>201</a>
+<a name='L202'></a><a href='#L202'>202</a>
+<a name='L203'></a><a href='#L203'>203</a>
+<a name='L204'></a><a href='#L204'>204</a>
+<a name='L205'></a><a href='#L205'>205</a>
+<a name='L206'></a><a href='#L206'>206</a>
+<a name='L207'></a><a href='#L207'>207</a>
+<a name='L208'></a><a href='#L208'>208</a>
+<a name='L209'></a><a href='#L209'>209</a>
+<a name='L210'></a><a href='#L210'>210</a>
+<a name='L211'></a><a href='#L211'>211</a>
+<a name='L212'></a><a href='#L212'>212</a>
+<a name='L213'></a><a href='#L213'>213</a>
+<a name='L214'></a><a href='#L214'>214</a>
+<a name='L215'></a><a href='#L215'>215</a>
+<a name='L216'></a><a href='#L216'>216</a>
+<a name='L217'></a><a href='#L217'>217</a>
+<a name='L218'></a><a href='#L218'>218</a>
+<a name='L219'></a><a href='#L219'>219</a>
+<a name='L220'></a><a href='#L220'>220</a>
+<a name='L221'></a><a href='#L221'>221</a>
+<a name='L222'></a><a href='#L222'>222</a>
+<a name='L223'></a><a href='#L223'>223</a>
+<a name='L224'></a><a href='#L224'>224</a>
+<a name='L225'></a><a href='#L225'>225</a>
+<a name='L226'></a><a href='#L226'>226</a>
+<a name='L227'></a><a href='#L227'>227</a>
+<a name='L228'></a><a href='#L228'>228</a>
+<a name='L229'></a><a href='#L229'>229</a>
+<a name='L230'></a><a href='#L230'>230</a>
+<a name='L231'></a><a href='#L231'>231</a>
+<a name='L232'></a><a href='#L232'>232</a>
+<a name='L233'></a><a href='#L233'>233</a>
+<a name='L234'></a><a href='#L234'>234</a>
+<a name='L235'></a><a href='#L235'>235</a>
+<a name='L236'></a><a href='#L236'>236</a>
+<a name='L237'></a><a href='#L237'>237</a>
+<a name='L238'></a><a href='#L238'>238</a>
+<a name='L239'></a><a href='#L239'>239</a>
+<a name='L240'></a><a href='#L240'>240</a>
+<a name='L241'></a><a href='#L241'>241</a>
+<a name='L242'></a><a href='#L242'>242</a>
+<a name='L243'></a><a href='#L243'>243</a>
+<a name='L244'></a><a href='#L244'>244</a>
+<a name='L245'></a><a href='#L245'>245</a>
+<a name='L246'></a><a href='#L246'>246</a>
+<a name='L247'></a><a href='#L247'>247</a>
+<a name='L248'></a><a href='#L248'>248</a>
+<a name='L249'></a><a href='#L249'>249</a>
+<a name='L250'></a><a href='#L250'>250</a>
+<a name='L251'></a><a href='#L251'>251</a>
+<a name='L252'></a><a href='#L252'>252</a>
+<a name='L253'></a><a href='#L253'>253</a>
+<a name='L254'></a><a href='#L254'>254</a>
+<a name='L255'></a><a href='#L255'>255</a>
+<a name='L256'></a><a href='#L256'>256</a>
+<a name='L257'></a><a href='#L257'>257</a>
+<a name='L258'></a><a href='#L258'>258</a>
+<a name='L259'></a><a href='#L259'>259</a>
+<a name='L260'></a><a href='#L260'>260</a>
+<a name='L261'></a><a href='#L261'>261</a>
+<a name='L262'></a><a href='#L262'>262</a>
+<a name='L263'></a><a href='#L263'>263</a>
+<a name='L264'></a><a href='#L264'>264</a>
+<a name='L265'></a><a href='#L265'>265</a>
+<a name='L266'></a><a href='#L266'>266</a>
+<a name='L267'></a><a href='#L267'>267</a>
+<a name='L268'></a><a href='#L268'>268</a>
+<a name='L269'></a><a href='#L269'>269</a>
+<a name='L270'></a><a href='#L270'>270</a>
+<a name='L271'></a><a href='#L271'>271</a>
+<a name='L272'></a><a href='#L272'>272</a>
+<a name='L273'></a><a href='#L273'>273</a>
+<a name='L274'></a><a href='#L274'>274</a>
+<a name='L275'></a><a href='#L275'>275</a>
+<a name='L276'></a><a href='#L276'>276</a>
+<a name='L277'></a><a href='#L277'>277</a>
+<a name='L278'></a><a href='#L278'>278</a>
+<a name='L279'></a><a href='#L279'>279</a>
+<a name='L280'></a><a href='#L280'>280</a>
+<a name='L281'></a><a href='#L281'>281</a>
+<a name='L282'></a><a href='#L282'>282</a>
+<a name='L283'></a><a href='#L283'>283</a>
+<a name='L284'></a><a href='#L284'>284</a>
+<a name='L285'></a><a href='#L285'>285</a>
+<a name='L286'></a><a href='#L286'>286</a>
+<a name='L287'></a><a href='#L287'>287</a>
+<a name='L288'></a><a href='#L288'>288</a>
+<a name='L289'></a><a href='#L289'>289</a>
+<a name='L290'></a><a href='#L290'>290</a>
+<a name='L291'></a><a href='#L291'>291</a>
+<a name='L292'></a><a href='#L292'>292</a>
+<a name='L293'></a><a href='#L293'>293</a>
+<a name='L294'></a><a href='#L294'>294</a>
+<a name='L295'></a><a href='#L295'>295</a>
+<a name='L296'></a><a href='#L296'>296</a>
+<a name='L297'></a><a href='#L297'>297</a>
+<a name='L298'></a><a href='#L298'>298</a>
+<a name='L299'></a><a href='#L299'>299</a>
+<a name='L300'></a><a href='#L300'>300</a>
+<a name='L301'></a><a href='#L301'>301</a>
+<a name='L302'></a><a href='#L302'>302</a>
+<a name='L303'></a><a href='#L303'>303</a>
+<a name='L304'></a><a href='#L304'>304</a>
+<a name='L305'></a><a href='#L305'>305</a>
+<a name='L306'></a><a href='#L306'>306</a>
+<a name='L307'></a><a href='#L307'>307</a>
+<a name='L308'></a><a href='#L308'>308</a>
+<a name='L309'></a><a href='#L309'>309</a>
+<a name='L310'></a><a href='#L310'>310</a>
+<a name='L311'></a><a href='#L311'>311</a>
+<a name='L312'></a><a href='#L312'>312</a>
+<a name='L313'></a><a href='#L313'>313</a>
+<a name='L314'></a><a href='#L314'>314</a>
+<a name='L315'></a><a href='#L315'>315</a>
+<a name='L316'></a><a href='#L316'>316</a>
+<a name='L317'></a><a href='#L317'>317</a>
+<a name='L318'></a><a href='#L318'>318</a>
+<a name='L319'></a><a href='#L319'>319</a>
+<a name='L320'></a><a href='#L320'>320</a>
+<a name='L321'></a><a href='#L321'>321</a>
+<a name='L322'></a><a href='#L322'>322</a>
+<a name='L323'></a><a href='#L323'>323</a>
+<a name='L324'></a><a href='#L324'>324</a>
+<a name='L325'></a><a href='#L325'>325</a>
+<a name='L326'></a><a href='#L326'>326</a>
+<a name='L327'></a><a href='#L327'>327</a>
+<a name='L328'></a><a href='#L328'>328</a>
+<a name='L329'></a><a href='#L329'>329</a>
+<a name='L330'></a><a href='#L330'>330</a>
+<a name='L331'></a><a href='#L331'>331</a>
+<a name='L332'></a><a href='#L332'>332</a>
+<a name='L333'></a><a href='#L333'>333</a>
+<a name='L334'></a><a href='#L334'>334</a>
+<a name='L335'></a><a href='#L335'>335</a>
+<a name='L336'></a><a href='#L336'>336</a>
+<a name='L337'></a><a href='#L337'>337</a>
+<a name='L338'></a><a href='#L338'>338</a>
+<a name='L339'></a><a href='#L339'>339</a>
+<a name='L340'></a><a href='#L340'>340</a>
+<a name='L341'></a><a href='#L341'>341</a>
+<a name='L342'></a><a href='#L342'>342</a>
+<a name='L343'></a><a href='#L343'>343</a>
+<a name='L344'></a><a href='#L344'>344</a>
+<a name='L345'></a><a href='#L345'>345</a>
+<a name='L346'></a><a href='#L346'>346</a>
+<a name='L347'></a><a href='#L347'>347</a>
+<a name='L348'></a><a href='#L348'>348</a>
+<a name='L349'></a><a href='#L349'>349</a>
+<a name='L350'></a><a href='#L350'>350</a>
+<a name='L351'></a><a href='#L351'>351</a>
+<a name='L352'></a><a href='#L352'>352</a>
+<a name='L353'></a><a href='#L353'>353</a>
+<a name='L354'></a><a href='#L354'>354</a>
+<a name='L355'></a><a href='#L355'>355</a>
+<a name='L356'></a><a href='#L356'>356</a>
+<a name='L357'></a><a href='#L357'>357</a>
+<a name='L358'></a><a href='#L358'>358</a>
+<a name='L359'></a><a href='#L359'>359</a>
+<a name='L360'></a><a href='#L360'>360</a>
+<a name='L361'></a><a href='#L361'>361</a>
+<a name='L362'></a><a href='#L362'>362</a>
+<a name='L363'></a><a href='#L363'>363</a>
+<a name='L364'></a><a href='#L364'>364</a>
+<a name='L365'></a><a href='#L365'>365</a>
+<a name='L366'></a><a href='#L366'>366</a>
+<a name='L367'></a><a href='#L367'>367</a>
+<a name='L368'></a><a href='#L368'>368</a>
+<a name='L369'></a><a href='#L369'>369</a>
+<a name='L370'></a><a href='#L370'>370</a>
+<a name='L371'></a><a href='#L371'>371</a>
+<a name='L372'></a><a href='#L372'>372</a>
+<a name='L373'></a><a href='#L373'>373</a>
+<a name='L374'></a><a href='#L374'>374</a>
+<a name='L375'></a><a href='#L375'>375</a>
+<a name='L376'></a><a href='#L376'>376</a>
+<a name='L377'></a><a href='#L377'>377</a>
+<a name='L378'></a><a href='#L378'>378</a>
+<a name='L379'></a><a href='#L379'>379</a>
+<a name='L380'></a><a href='#L380'>380</a>
+<a name='L381'></a><a href='#L381'>381</a>
+<a name='L382'></a><a href='#L382'>382</a>
+<a name='L383'></a><a href='#L383'>383</a>
+<a name='L384'></a><a href='#L384'>384</a>
+<a name='L385'></a><a href='#L385'>385</a>
+<a name='L386'></a><a href='#L386'>386</a>
+<a name='L387'></a><a href='#L387'>387</a>
+<a name='L388'></a><a href='#L388'>388</a>
+<a name='L389'></a><a href='#L389'>389</a>
+<a name='L390'></a><a href='#L390'>390</a>
+<a name='L391'></a><a href='#L391'>391</a>
+<a name='L392'></a><a href='#L392'>392</a>
+<a name='L393'></a><a href='#L393'>393</a>
+<a name='L394'></a><a href='#L394'>394</a>
+<a name='L395'></a><a href='#L395'>395</a>
+<a name='L396'></a><a href='#L396'>396</a>
+<a name='L397'></a><a href='#L397'>397</a>
+<a name='L398'></a><a href='#L398'>398</a>
+<a name='L399'></a><a href='#L399'>399</a>
+<a name='L400'></a><a href='#L400'>400</a>
+<a name='L401'></a><a href='#L401'>401</a>
+<a name='L402'></a><a href='#L402'>402</a>
+<a name='L403'></a><a href='#L403'>403</a>
+<a name='L404'></a><a href='#L404'>404</a>
+<a name='L405'></a><a href='#L405'>405</a>
+<a name='L406'></a><a href='#L406'>406</a>
+<a name='L407'></a><a href='#L407'>407</a>
+<a name='L408'></a><a href='#L408'>408</a>
+<a name='L409'></a><a href='#L409'>409</a>
+<a name='L410'></a><a href='#L410'>410</a>
+<a name='L411'></a><a href='#L411'>411</a>
+<a name='L412'></a><a href='#L412'>412</a>
+<a name='L413'></a><a href='#L413'>413</a>
+<a name='L414'></a><a href='#L414'>414</a>
+<a name='L415'></a><a href='#L415'>415</a>
+<a name='L416'></a><a href='#L416'>416</a>
+<a name='L417'></a><a href='#L417'>417</a>
+<a name='L418'></a><a href='#L418'>418</a>
+<a name='L419'></a><a href='#L419'>419</a>
+<a name='L420'></a><a href='#L420'>420</a>
+<a name='L421'></a><a href='#L421'>421</a>
+<a name='L422'></a><a href='#L422'>422</a>
+<a name='L423'></a><a href='#L423'>423</a>
+<a name='L424'></a><a href='#L424'>424</a>
+<a name='L425'></a><a href='#L425'>425</a>
+<a name='L426'></a><a href='#L426'>426</a>
+<a name='L427'></a><a href='#L427'>427</a>
+<a name='L428'></a><a href='#L428'>428</a>
+<a name='L429'></a><a href='#L429'>429</a>
+<a name='L430'></a><a href='#L430'>430</a>
+<a name='L431'></a><a href='#L431'>431</a>
+<a name='L432'></a><a href='#L432'>432</a>
+<a name='L433'></a><a href='#L433'>433</a>
+<a name='L434'></a><a href='#L434'>434</a>
+<a name='L435'></a><a href='#L435'>435</a>
+<a name='L436'></a><a href='#L436'>436</a>
+<a name='L437'></a><a href='#L437'>437</a>
+<a name='L438'></a><a href='#L438'>438</a>
+<a name='L439'></a><a href='#L439'>439</a>
+<a name='L440'></a><a href='#L440'>440</a>
+<a name='L441'></a><a href='#L441'>441</a>
+<a name='L442'></a><a href='#L442'>442</a>
+<a name='L443'></a><a href='#L443'>443</a>
+<a name='L444'></a><a href='#L444'>444</a>
+<a name='L445'></a><a href='#L445'>445</a>
+<a name='L446'></a><a href='#L446'>446</a>
+<a name='L447'></a><a href='#L447'>447</a>
+<a name='L448'></a><a href='#L448'>448</a>
+<a name='L449'></a><a href='#L449'>449</a>
+<a name='L450'></a><a href='#L450'>450</a>
+<a name='L451'></a><a href='#L451'>451</a>
+<a name='L452'></a><a href='#L452'>452</a>
+<a name='L453'></a><a href='#L453'>453</a>
+<a name='L454'></a><a href='#L454'>454</a>
+<a name='L455'></a><a href='#L455'>455</a>
+<a name='L456'></a><a href='#L456'>456</a>
+<a name='L457'></a><a href='#L457'>457</a>
+<a name='L458'></a><a href='#L458'>458</a>
+<a name='L459'></a><a href='#L459'>459</a>
+<a name='L460'></a><a href='#L460'>460</a>
+<a name='L461'></a><a href='#L461'>461</a>
+<a name='L462'></a><a href='#L462'>462</a>
+<a name='L463'></a><a href='#L463'>463</a>
+<a name='L464'></a><a href='#L464'>464</a>
+<a name='L465'></a><a href='#L465'>465</a>
+<a name='L466'></a><a href='#L466'>466</a>
+<a name='L467'></a><a href='#L467'>467</a>
+<a name='L468'></a><a href='#L468'>468</a>
+<a name='L469'></a><a href='#L469'>469</a>
+<a name='L470'></a><a href='#L470'>470</a>
+<a name='L471'></a><a href='#L471'>471</a>
+<a name='L472'></a><a href='#L472'>472</a>
+<a name='L473'></a><a href='#L473'>473</a>
+<a name='L474'></a><a href='#L474'>474</a>
+<a name='L475'></a><a href='#L475'>475</a>
+<a name='L476'></a><a href='#L476'>476</a>
+<a name='L477'></a><a href='#L477'>477</a>
+<a name='L478'></a><a href='#L478'>478</a>
+<a name='L479'></a><a href='#L479'>479</a>
+<a name='L480'></a><a href='#L480'>480</a>
+<a name='L481'></a><a href='#L481'>481</a>
+<a name='L482'></a><a href='#L482'>482</a>
+<a name='L483'></a><a href='#L483'>483</a>
+<a name='L484'></a><a href='#L484'>484</a>
+<a name='L485'></a><a href='#L485'>485</a>
+<a name='L486'></a><a href='#L486'>486</a>
+<a name='L487'></a><a href='#L487'>487</a>
+<a name='L488'></a><a href='#L488'>488</a>
+<a name='L489'></a><a href='#L489'>489</a>
+<a name='L490'></a><a href='#L490'>490</a>
+<a name='L491'></a><a href='#L491'>491</a>
+<a name='L492'></a><a href='#L492'>492</a>
+<a name='L493'></a><a href='#L493'>493</a>
+<a name='L494'></a><a href='#L494'>494</a>
+<a name='L495'></a><a href='#L495'>495</a>
+<a name='L496'></a><a href='#L496'>496</a>
+<a name='L497'></a><a href='#L497'>497</a>
+<a name='L498'></a><a href='#L498'>498</a>
+<a name='L499'></a><a href='#L499'>499</a>
+<a name='L500'></a><a href='#L500'>500</a>
+<a name='L501'></a><a href='#L501'>501</a>
+<a name='L502'></a><a href='#L502'>502</a>
+<a name='L503'></a><a href='#L503'>503</a>
+<a name='L504'></a><a href='#L504'>504</a>
+<a name='L505'></a><a href='#L505'>505</a>
+<a name='L506'></a><a href='#L506'>506</a>
+<a name='L507'></a><a href='#L507'>507</a>
+<a name='L508'></a><a href='#L508'>508</a>
+<a name='L509'></a><a href='#L509'>509</a>
+<a name='L510'></a><a href='#L510'>510</a>
+<a name='L511'></a><a href='#L511'>511</a>
+<a name='L512'></a><a href='#L512'>512</a>
+<a name='L513'></a><a href='#L513'>513</a>
+<a name='L514'></a><a href='#L514'>514</a>
+<a name='L515'></a><a href='#L515'>515</a>
+<a name='L516'></a><a href='#L516'>516</a>
+<a name='L517'></a><a href='#L517'>517</a>
+<a name='L518'></a><a href='#L518'>518</a>
+<a name='L519'></a><a href='#L519'>519</a>
+<a name='L520'></a><a href='#L520'>520</a>
+<a name='L521'></a><a href='#L521'>521</a>
+<a name='L522'></a><a href='#L522'>522</a>
+<a name='L523'></a><a href='#L523'>523</a>
+<a name='L524'></a><a href='#L524'>524</a></td><td class="line-coverage quiet"><span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">167x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">64x</span>
+<span class="cline-any cline-yes">64x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">64x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">103x</span>
+<span class="cline-any cline-yes">330x</span>
+<span class="cline-any cline-yes">15x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">73x</span>
+<span class="cline-any cline-yes">73x</span>
+<span class="cline-any cline-yes">266x</span>
+<span class="cline-any cline-yes">73x</span>
+<span class="cline-any cline-yes">262x</span>
+<span class="cline-any cline-yes">73x</span>
+<span class="cline-any cline-yes">73x</span>
+<span class="cline-any cline-yes">262x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">262x</span>
+<span class="cline-any cline-yes">262x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">9x</span>
+<span class="cline-any cline-yes">2899x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-yes">135x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">75x</span>
+<span class="cline-any cline-yes">75x</span>
+<span class="cline-any cline-yes">77x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">74x</span>
+<span class="cline-any cline-yes">74x</span>
+<span class="cline-any cline-yes">73x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">71x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">71x</span>
+<span class="cline-any cline-yes">74x</span>
+<span class="cline-any cline-yes">74x</span>
+<span class="cline-any cline-yes">74x</span>
+<span class="cline-any cline-yes">71x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-yes">75x</span>
+<span class="cline-any cline-yes">75x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-yes">87x</span>
+<span class="cline-any cline-yes">326x</span>
+<span class="cline-any cline-yes">87x</span>
+<span class="cline-any cline-yes">87x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-yes">701x</span>
+<span class="cline-any cline-yes">701x</span>
+<span class="cline-any cline-yes">701x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-yes">5854x</span>
+<span class="cline-any cline-yes">1007x</span>
+<span class="cline-any cline-yes">917x</span>
+<span class="cline-any cline-yes">933x</span>
+<span class="cline-any cline-yes">917x</span>
+<span class="cline-any cline-yes">84x</span>
+<span class="cline-any cline-yes">90x</span>
+<span class="cline-any cline-yes">1906x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4841x</span>
+<span class="cline-any cline-yes">4415x</span>
+<span class="cline-any cline-yes">577x</span>
+<span class="cline-any cline-yes">701x</span>
+<span class="cline-any cline-yes">997x</span>
+<span class="cline-any cline-yes">938x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-yes">1015x</span>
+<span class="cline-any cline-yes">928x</span>
+<span class="cline-any cline-yes">963x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-yes">938x</span>
+<span class="cline-any cline-yes">4907x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">726x</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-yes">2869x</span>
+<span class="cline-any cline-yes">964x</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-yes">18x</span>
+<span class="cline-any cline-yes">16x</span>
+<span class="cline-any cline-yes">16x</span>
+<span class="cline-any cline-yes">16x</span>
+<span class="cline-any cline-yes">15x</span>
+<span class="cline-any cline-yes">15x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">18x</span>
+<span class="cline-any cline-yes">18x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">16x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-yes">18x</span>
+<span class="cline-any cline-yes">18x</span>
+<span class="cline-any cline-yes">18x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-yes">55x</span>
+<span class="cline-any cline-yes">1224x</span>
+<span class="cline-any cline-yes">1224x</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1146x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1146x</span>
+<span class="cline-any cline-yes">1146x</span>
+<span class="cline-any cline-yes">1146x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-yes">32x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">32x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-yes">6x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">957x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">957x</span>
+<span class="cline-any cline-yes">887x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2661x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">18x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">29x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2641x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">17x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">48x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">817x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">70x</span>
+<span class="cline-any cline-yes">70x</span>
+<span class="cline-any cline-yes">957x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">32x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">961x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1611x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">4x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-yes">2x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">12x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1938x</span>
+<span class="cline-any cline-yes">298x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">223x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">327x</span>
+<span class="cline-any cline-yes">327x</span>
+<span class="cline-any cline-yes">327x</span>
+<span class="cline-any cline-yes">10x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">31x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">24x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-yes">3x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">743x</span>
+<span class="cline-any cline-yes">743x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">1x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-yes">452x</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js">import { Fragment, useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { StyleSheetSection, type StyleSheet } from "../components/StyleSheetSection";
+import { Link } from "react-router-dom";
+import { jobApi } from "../api";
+import { useConfirm } from "../components/Dialog";
+import { NotStarted, useJob } from "../components/JobContext";
+import { Shell } from "../components/Shell";
+import { SideItem, SideLayout } from "../components/SideLayout";
+import { useToast } from "../components/Toast";
+import { Chip, Highlight } from "../components/ui";
+import { rich, t as translate, useT, type MessageKey, type Values } from "../i18n";
+import { approvalModeLabel, approvalResultLabel, glossaryCategoryLabel, reviewModeLabel, statusLabel } from "../lib/enums";
+import { FALLBACK_PAIR, langAttr, pairCodes, type GlossaryPair } from "../lib/languages";
+&nbsp;
+type Entry = { source: string; target: string; note: string; category: string; aliases: string[]; evidence: string[]; confidence: number };
+type Record_ = { source: string; result: string; mode: string; reasons: string[]; target: string };
+type Payload = {
+  ready: boolean;
+  approve_status: string;
+  editable: boolean;
+  review_mode: string;
+  entries: Entry[];
+  draft_entries: Entry[];
+  /** The glossary's pair (an en/zh book's glossary is en-zh either way). */
+  glossary_pair?: GlossaryPair | null;
+  approval_records: Record_[];
+  approval_summary: Record&lt;string, number | string&gt;;
+  quality: { warnings?: string[]; suspicious_generic_terms?: string[] };
+  evidence: Record&lt;string, string&gt;;
+  categories: string[];
+  category_labels: Record&lt;string, string&gt;;
+  other_category: string;
+  process: { label: string; running: boolean; outcome?: string; exit_code?: number | null; output_tail?: string } | null;
+  approval_running: boolean;
+  series_overlay?: { series_id: string; name: string; version: string } | null;
+  style_sheet?: { draft: StyleSheet | null; approved: StyleSheet | null; review: "human" | "glossary"; pronouns: string[]; addresses: string[] };
+};
+/** keep: enforce this translation. defer: decide later (kept as drafted if approved).
+ *  drop: not a glossary term (e.g. a generic word); the translator handles it in context. */
+type Decision = "keep" | "defer" | "drop";
+/** Why a drafted term deserves a second look: a message and its values. */
+type Flag = { key: MessageKey; values?: Values };
+type Row = { original: Entry; entry: Entry; decision: Decision; flags: Flag[]; record?: Record_; draft?: Entry };
+type Saved = { source: string; entry: Entry; decision?: Decision; keep?: boolean };
+&nbsp;
+const DECISIONS: [Decision, MessageKey, MessageKey][] = [
+  ["keep", "glossary.decision.keep", "glossary.decision.keepTip"],
+  ["defer", "glossary.decision.defer", "glossary.decision.deferTip"],
+  ["drop", "glossary.decision.drop", "glossary.decision.dropTip"],
+];
+const GENERIC: MessageKey = "glossary.flag.generic";
+&nbsp;
+const storeKey = (jobId: string) =&gt; `glossary-review:${jobId}`;
+&nbsp;
+function readStore(jobId: string): Saved[] | null {
+  try {
+    const edits = JSON.parse(localStorage.getItem(storeKey(jobId)) ?? "null")?.edits ?? null;
+    // Edits saved before the glossary sides were named source/target said english/chinese.
+    return edits?.map((saved: any) =&gt; {
+      const { english, chinese, ...rest } = saved.entry ?? <span class="branch-1 cbranch-no" title="branch not covered" >{};</span>
+      return {
+        ...saved,
+        source: saved.source ?? saved.english,
+        entry: english === undefined ? saved.entry : { ...rest, source: english, target: chinese },
+      };
+    }) ?? null;
+  } catch { return null; }
+}
+function writeStore(jobId: string, rows: Row[] | null) {
+  try {
+    if (rows) localStorage.setItem(storeKey(jobId), JSON.stringify({ edits: rows.map((r) =&gt; ({ source: r.original.source, entry: r.entry, decision: r.decision })) }));
+    else localStorage.removeItem(storeKey(jobId));
+  } catch { /* storage unavailable: edits live only in this tab */ }
+}
+&nbsp;
+function buildRows(data: Payload, saved: ReturnType&lt;typeof readStore&gt;): Row[] {
+  const savedBy = new Map((saved ?? []).map((e) =&gt; [e.source, e]));
+  const records = new Map(data.approval_records.map((r) =&gt; [r.source, r]));
+  const drafts = new Map(data.draft_entries.map((e) =&gt; [e.source, e]));
+  const shared = new Map&lt;string, number&gt;();
+  data.entries.forEach((e) =&gt; shared.set(e.target, (shared.get(e.target) ?? 0) + 1));
+  const generic = new Set(data.quality.suspicious_generic_terms ?? []);
+  return data.entries.map((original) =&gt; {
+    const flags = [
+      generic.has(original.source) &amp;&amp; { key: GENERIC },
+      original.confidence &lt; 0.9 &amp;&amp; { key: "glossary.flag.confidence", values: { value: original.confidence } },
+      (shared.get(original.target) ?? <span class="branch-1 cbranch-no" title="branch not covered" >0) &gt; 1</span> &amp;&amp; { key: "glossary.flag.sharedTranslation" },
+      !original.evidence?.length &amp;&amp; { key: "glossary.flag.noEvidence" },
+      original.category === data.other_category &amp;&amp; { key: "glossary.flag.uncategorized" },
+    ].filter(Boolean) as Flag[];
+    const s = savedBy.get(original.source);
+    return {
+      original,
+      entry: s ? { ...s.entry } : { ...original, aliases: [...(original.aliases ?? <span class="branch-1 cbranch-no" title="branch not covered" >[])]</span> },
+      // Edits saved before Defer existed stored a keep flag.
+      decision: s?.decision ?? (s?.keep === false ? "drop" : "keep"),
+      flags,
+      record: records.get(original.source),
+      draft: drafts.get(original.source),
+    };
+  });
+}
+&nbsp;
+const changed = (r: Row) =&gt;
+  r.entry.target !== r.original.target || r.entry.category !== r.original.category || r.entry.note !== r.original.note ||
+  (r.entry.aliases ?? <span class="branch-1 cbranch-no" title="branch not covered" >[])</span>.join("|") !== (r.original.aliases ?? <span class="branch-1 cbranch-no" title="branch not covered" >[])</span>.join("|");
+&nbsp;
+export function GlossaryPage() {
+  const t = useT();
+  const { jobId, info, refresh: refreshJob } = useJob();
+  const started = info?.kind === "job";
+  const toast = useToast();
+  const confirm = useConfirm();
+  const [data, setData] = useState&lt;Payload | null&gt;(null);
+  const [error, setError] = useState("");
+  const [rows, setRows] = useState&lt;Row[]&gt;([]);
+  const [open, setOpen] = useState&lt;Set&lt;number&gt;&gt;(new Set());
+  const [collapsed, setCollapsed] = useState&lt;Set&lt;string&gt;&gt;(new Set());
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("");
+  const [view, setView] = useState("all");
+  const [submitting, setSubmitting] = useState(false);
+  const [loadedAt, setLoadedAt] = useState(0);
+  const [approvalMode, setApprovalMode] = useState&lt;"" | "edited" | "draft" | "reviewed"&gt;("");
+  /** The reviewer's style-sheet edits; null while untouched (the draft or LLM review applies). */
+  const [styleEdit, setStyleEdit] = useState&lt;StyleSheet | null&gt;(null);
+&nbsp;
+  const [reload, setReload] = useState(0);
+  const wasRunning = useRef(false);
+&nbsp;
+  // Loads the glossary; keeps polling while the draft is not ready or an approval runs.
+  useEffect(() =&gt; {
+    if (!started) return;
+    let timer: number | undefined;
+    let first = true;
+    const load = () =&gt;
+      jobApi&lt;Payload&gt;(jobId, "glossary")
+        .then((payload) =&gt; {
+          setData(payload);
+          if (!payload.ready) { timer = window.setTimeout(load, 5000); return; }
+          if (payload.approval_running) {
+            wasRunning.current = true;
+            <span class="missing-if-branch" title="else path not taken" >E</span>if (first) { setRows(buildRows(payload, null)); setLoadedAt(Date.now()); }
+            first = false;
+            timer = window.setTimeout(load, 3000);
+            return;
+          }
+          if (wasRunning.current) {
+            wasRunning.current = false;
+            refreshJob();
+            <span class="missing-if-branch" title="else path not taken" >E</span>if (payload.approve_status === "completed") toast("ok", translate("glossary.toast.approved"));
+          }
+          const saved = payload.editable ? readStore(jobId) : null;
+          setRows(buildRows(payload, saved));
+          setLoadedAt(Date.now());
+          if (saved &amp;&amp; first) toast("info", translate("glossary.toast.restored"));
+          first = false;
+        })
+        .catch((e: Error) =&gt; setError(e.message));
+    load();
+    return () =&gt; window.clearTimeout(timer);
+  }, [jobId, toast, started, reload]); // eslint-disable-line react-hooks/exhaustive-deps
+&nbsp;
+  const update = (index: number, patch: Partial&lt;Row&gt; | ((row: Row) =&gt; Row)) =&gt;
+    setRows((old) =&gt; {
+      const next = old.map((row, i) =&gt; (i !== index ? row : typeof patch === "function" ? patch(row) : { ...row, ...patch }));
+      writeStore(jobId, next);
+      return next;
+    });
+  const edit = (index: number, field: keyof Entry, value: any) =&gt; update(index, (row) =&gt; ({ ...row, entry: { ...row.entry, [field]: value } }));
+&nbsp;
+  const matchesQuery = useCallback((row: Row) =&gt; {
+    const q = query.trim().toLowerCase();
+    const e = row.entry;
+    return !q || [e.source, e.target, e.note, ...(e.aliases ?? <span class="branch-1 cbranch-no" title="branch not covered" >[])]</span>.some((v) =&gt; String(v ?? <span class="branch-1 cbranch-no" title="branch not covered" >"")</span>.toLowerCase().includes(q));
+  }, [query]);
+  const matchesView = (row: Row, name: string) =&gt; {
+    switch (name) {
+      case "flagged": return row.flags.length &gt; 0;
+      case "edited": return changed(row);
+      case "deferred": return row.decision === "defer";
+      case "dropped": return row.decision === "drop";
+      case "llm": return row.record?.mode === "llm";
+      case "changed": return !!row.draft &amp;&amp; row.draft.target !== row.original.target;
+      default: return true;
+    }
+  };
+&nbsp;
+  // Terms are grouped and counted by their drafted category, so editing a
+  // term's category does not move it while you review.
+  const home = (row: Row) =&gt; row.original.category;
+  const catLabel = (value: string) =&gt; glossaryCategoryLabel(value, data?.category_labels);
+  const indexed = useMemo(() =&gt; rows.map((row, index) =&gt; ({ row, index })), [rows]);
+  const searched = useMemo(() =&gt; indexed.filter(({ row }) =&gt; matchesQuery(row)), [indexed, matchesQuery]);
+  const inView = searched.filter(({ row }) =&gt; matchesView(row, view));
+  const matching = inView.filter(({ row }) =&gt; !category || home(row) === category);
+&nbsp;
+  // The listed terms are fixed when you pick a filter, not on every decision:
+  // keeping, deferring, or dropping a term never makes it jump out of the list.
+  const [shown, setShown] = useState&lt;Set&lt;number&gt; | null&gt;(null);
+  const refreshList = () =&gt; setShown(new Set(matching.map(({ index }) =&gt; index)));
+  useEffect(() =&gt; { if (rows.length) refreshList(); }, [view, category, query, loadedAt]); // eslint-disable-line react-hooks/exhaustive-deps
+  const visible = shown ? indexed.filter(({ index }) =&gt; shown.has(index)) : matching;
+  const matchingIndexes = new Set(matching.map(({ index }) =&gt; index));
+  const staleCount = visible.filter(({ index }) =&gt; !matchingIndexes.has(index)).length;
+&nbsp;
+  // Sidebar counts stay live: categories within the current view, views within the current category.
+  const categoryCounts = new Map&lt;string, number&gt;();
+  inView.forEach(({ row }) =&gt; categoryCounts.set(home(row), (categoryCounts.get(home(row)) ?? 0) + 1));
+  const viewCount = (name: string) =&gt; searched.filter(({ row }) =&gt; (!category || home(row) === category) &amp;&amp; matchesView(row, name)).length;
+&nbsp;
+  const categoryOrder = [...(data?.categories ?? []), ...[...categoryCounts.keys()].filter((c) =&gt; !data?.categories.includes(c))];
+  const groups = categoryOrder
+    .map((name) =&gt; ({ name, items: visible.filter(({ row }) =&gt; home(row) === name) }))
+    .filter((group) =&gt; group.items.length &gt; 0);
+  const toggleGroup = (name: string) =&gt;
+    setCollapsed((old) =&gt; { const next = new Set(old); <span class="missing-if-branch" title="else path not taken" >E</span>if (!next.delete(name)) next.add(name); return next; });
+&nbsp;
+  const submit = async (body: { entries?: Entry[]; llm?: boolean; style?: StyleSheet }, title: string, detail: string, label: string) =&gt; {
+    if (!(await confirm(title, &lt;p&gt;{detail}&lt;/p&gt;, label))) return;
+    setSubmitting(true);
+    try {
+      await jobApi(jobId, "glossary/approve", body);
+      writeStore(jobId, null);
+      setApprovalMode(body.llm ? (body.entries ? "edited" : "draft") : "reviewed");
+      // Stay here: the tab switches to its "approval is running" state and follows it.
+      setReload((n) =&gt; n + 1);
+      refreshJob();
+    } catch (e) {
+      toast("bad", &lt;&gt;{t("glossary.toast.notSubmitted")}&lt;pre&gt;{(e as Error).message}&lt;/pre&gt;&lt;/&gt;, 0);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+  /** The style sheet sent with an approval: always when a person must review it
+   *  (approving is that review), otherwise only when edited. */
+  const styleToSend = (): { style?: StyleSheet } =&gt; {
+    const style = data?.style_sheet;
+    const sheet = styleEdit ?? style?.draft;
+    if (!sheet || !style) return {};
+    return style.review === "human" || styleEdit ? { style: sheet } : {};
+  };
+  const reviewed = () =&gt;
+    rows.filter((r) =&gt; r.decision !== "drop").map((r) =&gt; ({ ...r.entry, aliases: (r.entry.aliases ?? <span class="branch-1 cbranch-no" title="branch not covered" >[])</span>.map((a) =&gt; a.trim()).filter(Boolean) }));
+  const deferredCount = rows.filter((r) =&gt; r.decision === "defer").length;
+  const genericIndexes = rows.flatMap((r, i) =&gt; (r.flags.some((flag) =&gt; flag.key === GENERIC) &amp;&amp; r.decision !== "drop" ? [i] : []));
+  const dropGeneric = () =&gt; {
+    setRows((old) =&gt; {
+      const next = old.map((row, i) =&gt; (genericIndexes.includes(i) ? { ...row, decision: "drop" as Decision } : row));
+      writeStore(jobId, next);
+      return next;
+    });
+    toast("ok", t("glossary.toast.droppedGeneric", { count: genericIndexes.length }));
+  };
+&nbsp;
+  const progressLink = `/jobs/${encodeURIComponent(jobId)}/progress`;
+  const editable = !!data?.editable;
+  const summary = data?.approval_summary ?? {};
+  const stats: [MessageKey, number | string][] = editable
+    ? [
+        ["glossary.stat.terms", rows.length],
+        ["glossary.stat.kept", rows.filter((r) =&gt; r.decision === "keep").length],
+        ["glossary.stat.deferred", deferredCount],
+        ["glossary.stat.dropped", rows.filter((r) =&gt; r.decision === "drop").length],
+        ["glossary.stat.edited", rows.filter((r) =&gt; r.decision !== "drop" &amp;&amp; changed(r)).length],
+        ["glossary.stat.flagged", rows.filter((r) =&gt; r.flags.length).length],
+      ]
+    : [
+        ["glossary.stat.approvedTerms", data?.entries.length ?? 0],
+        ["glossary.stat.autoApproved", summary.deterministic_count ?? "—"],
+        ["glossary.stat.llmReviewed", summary.llm_count ?? "—"],
+        ["glossary.stat.revised", summary.revised_count ?? "—"],
+        ["glossary.stat.rejected", summary.rejected_count ?? "—"],
+      ];
+  const views: [string, MessageKey][] = editable
+    ? [["all", "glossary.filter.all"], ["flagged", "glossary.filter.flagged"], ["edited", "glossary.filter.edited"], ["deferred", "glossary.filter.deferred"], ["dropped", "glossary.filter.dropped"]]
+    : [["all", "glossary.filter.all"], ["llm", "glossary.filter.llmReviewed"], ["changed", "glossary.filter.llmChanged"], ["flagged", "glossary.filter.flaggedInDraft"]];
+  const span = editable ? 8 : 6;
+  const pair = data?.glossary_pair ?? FALLBACK_PAIR;
+  const [sourceLang, targetLang] = pairCodes(pair.pair).map(langAttr);
+&nbsp;
+  const evidenceRow = (row: Row) =&gt; (
+    &lt;tr className="evidence"&gt;
+      &lt;td colSpan={span}&gt;
+        {row.original.evidence?.length
+          ? row.original.evidence.map((id) =&gt; (
+              &lt;div key={id}&gt;&lt;span className="sid"&gt;{id}&lt;/span&gt;&lt;Highlight text={data?.evidence[id] ?? t("glossary.evidence.unavailable")} quote={row.original.source} /&gt;&lt;/div&gt;
+            ))
+          : &lt;span className="meta"&gt;{t("glossary.evidence.none")}&lt;/span&gt;}
+      &lt;/td&gt;
+    &lt;/tr&gt;
+  );
+  const toggleEvidence = (index: number) =&gt;
+    setOpen((old) =&gt; { const next = new Set(old); if (!next.delete(index)) next.add(index); return next; });
+&nbsp;
+  const renderRow = ({ row, index }: { row: Row; index: number }) =&gt; {
+                      const evidenceButton = (
+                        &lt;button className="small" onClick={() =&gt; toggleEvidence(index)}&gt;
+                          {row.original.evidence?.length ?? <span class="branch-1 cbranch-no" title="branch not covered" >0} </span>{open.has(index) ? "▴" : "▾"}
+                        &lt;/button&gt;
+                      );
+                      if (editable) {
+                        return (
+                          &lt;Fragment key={row.original.source}&gt;
+                            &lt;tr className={`decision-${row.decision} ${changed(row) ? "changed" : ""} ${matchingIndexes.has(index) ? "" : "stale"}`}&gt;
+                              &lt;td className="keep"&gt;
+                                &lt;div className="decision-pick" role="radiogroup" aria-label={t("glossary.decision.for", { term: row.entry.source })}&gt;
+                                  {DECISIONS.map(([value, label, tip]) =&gt; (
+                                    &lt;button key={value} type="button" role="radio" aria-checked={row.decision === value} title={t(tip)}
+                                      className={`small ${value} ${row.decision === value ? "on" : ""}`}
+                                      onClick={() =&gt; update(index, { decision: value })}&gt;
+                                      {t(label)}
+                                    &lt;/button&gt;
+                                  ))}
+                                &lt;/div&gt;
+                              &lt;/td&gt;
+                              &lt;td className="en" lang={sourceLang}&gt;{row.entry.source}&lt;/td&gt;
+                              &lt;td className="zh"&gt;&lt;input type="text" lang={targetLang} value={row.entry.target} onChange={(e) =&gt; edit(index, "target", e.target.value)} /&gt;&lt;/td&gt;
+                              &lt;td className="cat"&gt;
+                                &lt;select value={row.entry.category} onChange={(e) =&gt; edit(index, "category", e.target.value)}&gt;
+                                  {data.categories.map((c) =&gt; &lt;option key={c} value={c}&gt;{catLabel(c)}&lt;/option&gt;)}
+                                &lt;/select&gt;
+                              &lt;/td&gt;
+                              &lt;td className="note"&gt;&lt;input type="text" value={row.entry.note} onChange={(e) =&gt; edit(index, "note", e.target.value)} /&gt;&lt;/td&gt;
+                              &lt;td&gt;
+                                &lt;input type="text" placeholder={t("glossary.aliasesPlaceholder")} defaultValue={(row.entry.aliases ?? <span class="branch-1 cbranch-no" title="branch not covered" >[])</span>.join(", ")}
+                                  onChange={(e) =&gt; edit(index, "aliases", e.target.value.split(",").map((a) =&gt; a.trim()).filter(Boolean))} /&gt;
+                              &lt;/td&gt;
+                              &lt;td&gt;{row.flags.map((flag) =&gt; &lt;span className="flag" key={flag.key}&gt;{t(flag.key, flag.values)}&lt;/span&gt;)}&lt;/td&gt;
+                              &lt;td&gt;{evidenceButton}&lt;/td&gt;
+                            &lt;/tr&gt;
+                            {open.has(index) &amp;&amp; evidenceRow(row)}
+                          &lt;/Fragment&gt;
+                        );
+                      }
+                      const record = row.record;
+                      const llmChanged = !!row.draft &amp;&amp; row.draft.target !== row.original.target;
+                      return (
+                        &lt;Fragment key={row.original.source}&gt;
+                          &lt;tr&gt;
+                            &lt;td className="en" lang={sourceLang}&gt;{row.original.source}&lt;/td&gt;
+                            &lt;td lang={targetLang}&gt;{llmChanged &amp;&amp; &lt;span className="was"&gt;{row.draft!.target}&lt;/span&gt;}{row.original.target}&lt;/td&gt;
+                            &lt;td&gt;{catLabel(row.original.category)}&lt;/td&gt;
+                            &lt;td className="meta"&gt;{row.original.note}&lt;/td&gt;
+                            &lt;td&gt;
+                              {record ? (
+                                &lt;&gt;
+                                  &lt;Chip kind={record.result === "approved" ? "ok" : "warn"}&gt;{approvalResultLabel(record.result)}&lt;/Chip&gt; &lt;span className="meta"&gt;{approvalModeLabel(record.mode)}&lt;/span&gt;
+                                  {record.reasons.map((r) =&gt; &lt;div className="meta" key={r}&gt;{r.replace(/_/g, " ")}&lt;/div&gt;)}
+                                &lt;/&gt;
+                              ) : &lt;span className="meta"&gt;—&lt;/span&gt;}
+                            &lt;/td&gt;
+                            &lt;td&gt;{evidenceButton}&lt;/td&gt;
+                          &lt;/tr&gt;
+                          {open.has(index) &amp;&amp; <span class="branch-1 cbranch-no" title="branch not covered" >evidenceRow(row)}</span>
+                        &lt;/Fragment&gt;
+                      );
+  };
+&nbsp;
+  const sidebar = data?.ready ? (
+    &lt;&gt;
+      &lt;div className="navhead"&gt;{t("glossary.filter.categories")}&lt;/div&gt;
+      &lt;SideItem active={!category} onClick={() =&gt; setCategory("")} count={inView.length}&gt;{t("glossary.filter.allCategories")}&lt;/SideItem&gt;
+      {categoryOrder.map((name) =&gt; (
+        &lt;SideItem key={name} active={category === name} onClick={() =&gt; setCategory(category === name ? "" : name)} count={categoryCounts.get(name) ?? 0}&gt;
+          {catLabel(name)}
+        &lt;/SideItem&gt;
+      ))}
+      &lt;div className="navhead"&gt;{t("glossary.filter.show")}&lt;/div&gt;
+      {views.map(([name, label]) =&gt; (
+        &lt;SideItem key={name} active={view === name} onClick={() =&gt; setView(name)} count={viewCount(name)}&gt;{t(label)}&lt;/SideItem&gt;
+      ))}
+    &lt;/&gt;
+  ) : null;
+&nbsp;
+  const body = (
+    &lt;&gt;
+      {info?.kind === "draft" &amp;&amp; &lt;NotStarted what="glossary" /&gt;}
+      {error &amp;&amp; &lt;div className="banner bad"&gt;{error}&lt;/div&gt;}
+      {data?.approval_running &amp;&amp; (
+        &lt;div className="banner info approval-running" role="status"&gt;
+          &lt;span className="spinner" aria-hidden="true" /&gt;
+          &lt;div&gt;
+            {rich("glossary.approval.running", {
+              mode: approvalMode,
+              b: (chunks) =&gt; &lt;b&gt;{chunks}&lt;/b&gt;,
+              span: (chunks) =&gt; &lt;span&gt;{chunks}&lt;/span&gt;,
+              link: (chunks) =&gt; &lt;Link to={progressLink}&gt;{chunks}&lt;/Link&gt;,
+            })}
+          &lt;/div&gt;
+        &lt;/div&gt;
+      )}
+      {!data?.approval_running &amp;&amp; data?.process?.label === "glossary approval" &amp;&amp; data.process.outcome === "failed" &amp;&amp; (
+        &lt;div className="banner bad"&gt;
+          {t("glossary.approval.failed", { code: data.process.exit_code })}
+          &lt;pre&gt;{data.process.output_tail}&lt;/pre&gt;
+        &lt;/div&gt;
+      )}
+      {!data?.approval_running &amp;&amp; data?.process?.running &amp;&amp; data.process.label !== "glossary approval" &amp;&amp; (
+        &lt;div className="banner info"&gt;{rich("glossary.processRunning", { label: data.process.label, link: (chunks) =&gt; &lt;Link to={progressLink}&gt;{chunks}&lt;/Link&gt; })}&lt;/div&gt;
+      )}
+      {started &amp;&amp; !data &amp;&amp; !error &amp;&amp; &lt;p className="meta"&gt;{t("common.loading")}&lt;/p&gt;}
+      {data &amp;&amp; !data.ready &amp;&amp; (
+        &lt;div className="banner warn"&gt;{rich("glossary.notReady", { link: (chunks) =&gt; &lt;Link to={progressLink}&gt;{chunks}&lt;/Link&gt; })}&lt;/div&gt;
+      )}
+      {data?.ready &amp;&amp; data.editable &amp;&amp; data.series_overlay &amp;&amp; (
+        &lt;div className="banner info"&gt;
+          {rich("glossary.seriesOverlay", {
+            name: data.series_overlay.name,
+            version: data.series_overlay.version,
+            link: (chunks) =&gt; &lt;Link to={`/series/${encodeURIComponent(data.series_overlay!.series_id)}`}&gt;{chunks}&lt;/Link&gt;,
+            b: (chunks) =&gt; &lt;b&gt;{chunks}&lt;/b&gt;,
+          })}
+        &lt;/div&gt;
+      )}
+      {data?.ready &amp;&amp; (
+        &lt;&gt;
+          &lt;section className="card"&gt;
+            &lt;div className="row" style={{ margin: "0 0 12px", justifyContent: "space-between" }}&gt;
+              &lt;div&gt;
+                &lt;Chip kind={data.approve_status}&gt;{data.approve_status === "paused" ? t("glossary.status.waitingForReview") : statusLabel(data.approve_status)}&lt;/Chip&gt;
+                {data.review_mode &amp;&amp; &lt;span className="meta" style={{ marginInlineStart: 6 }}&gt;{t("glossary.reviewMode", { mode: reviewModeLabel(data.review_mode) })}&lt;/span&gt;}
+              &lt;/div&gt;
+              {editable &amp;&amp; (
+                &lt;div className="row" style={{ margin: 0 }}&gt;
+                  &lt;button disabled={submitting} title={t("glossary.action.llmDraftTip")}
+                    onClick={() =&gt; submit({ llm: true, ...styleToSend() }, t("glossary.confirm.llmDraft.title"), t("glossary.confirm.llmDraft.detail"), t("glossary.confirm.llmDraft.action"))}&gt;{t("glossary.action.llmDraft")}&lt;/button&gt;
+                  &lt;button disabled={submitting} title={t("glossary.action.llmEditsTip")}
+                    onClick={() =&gt; submit({ entries: reviewed(), llm: true, ...styleToSend() }, t("glossary.confirm.llmEdits.title"), t("glossary.confirm.llmEdits.detail", { deferred: deferredCount }), t("glossary.confirm.llmEdits.action"))}&gt;{t("glossary.action.llmEdits")}&lt;/button&gt;
+                  &lt;button className="primary" disabled={submitting}
+                    onClick={() =&gt; submit({ entries: reviewed(), ...styleToSend() }, t("glossary.confirm.approve.title"), t("glossary.confirm.approve.detail", { deferred: deferredCount }), t("glossary.confirm.approve.action"))}&gt;{t("glossary.action.approve")}&lt;/button&gt;
+                &lt;/div&gt;
+              )}
+            &lt;/div&gt;
+            &lt;div className="stats"&gt;{stats.map(([label, n]) =&gt; &lt;div className="stat" key={label}&gt;&lt;b&gt;{n}&lt;/b&gt;&lt;span&gt;{t(label)}&lt;/span&gt;&lt;/div&gt;)}&lt;/div&gt;
+            {!!data.quality.warnings?.length &amp;&amp; &lt;ul className="warnings-list"&gt;{data.quality.warnings.map((w) =&gt; &lt;li key={w}&gt;{w}&lt;/li&gt;)}&lt;/ul&gt;}
+              {editable &amp;&amp; genericIndexes.length &gt; 0 &amp;&amp; (
+                &lt;div className="row"&gt;
+                  &lt;button className="small" onClick={dropGeneric} title={t("glossary.decision.dropTip")}&gt;
+                    {t("glossary.action.dropGeneric", { count: genericIndexes.length })}
+                  &lt;/button&gt;
+                  &lt;span className="meta"&gt;{genericIndexes.map((i) =&gt; rows[i].original.source).join(", ")}&lt;/span&gt;
+                &lt;/div&gt;
+              )}
+          &lt;/section&gt;
+&nbsp;
+          {(() =&gt; {
+            const style = data.style_sheet;
+            const sheet = editable ? styleEdit ?? style?.draft : style?.approved ?? style?.draft;
+            if (!style || !sheet) return null;
+            return (
+              &lt;StyleSheetSection
+                sourceLang={sourceLang}
+                targetLang={targetLang}
+                sheet={sheet}
+                editable={editable}
+                edited={styleEdit !== null}
+                needsReview={editable &amp;&amp; style.review === "human"}
+                pronouns={style.pronouns}
+                addresses={style.addresses}
+                onChange={setStyleEdit}
+<span class="fstat-no" title="function not covered" >                onReset={() =&gt; <span class="cstat-no" title="statement not covered" >s</span>etStyleEdit(null)}</span>
+              /&gt;
+            );
+          })()}
+&nbsp;
+          &lt;section className="card"&gt;
+            &lt;div className="filters"&gt;
+              &lt;input type="text" placeholder={t("glossary.list.searchPlaceholder", { source: pair.source, target: pair.target })} value={query} onChange={(e) =&gt; setQuery(e.target.value)} /&gt;
+              &lt;span className="meta"&gt;{t("glossary.list.shown", { shown: visible.length, total: rows.length })}&lt;/span&gt;
+              {staleCount &gt; 0 &amp;&amp; (
+                &lt;span className="meta"&gt;
+                  {rich("glossary.list.stale", { count: staleCount, button: (chunks) =&gt; &lt;button className="small" onClick={refreshList}&gt;{chunks}&lt;/button&gt; })}
+                &lt;/span&gt;
+              )}
+              &lt;span style={{ flex: 1 }} /&gt;
+              &lt;button className="small" onClick={() =&gt; setCollapsed(new Set())}&gt;{t("glossary.list.expandAll")}&lt;/button&gt;
+              &lt;button className="small" onClick={() =&gt; setCollapsed(new Set(groups.map((g) =&gt; g.name)))}&gt;{t("glossary.list.collapseAll")}&lt;/button&gt;
+            &lt;/div&gt;
+            {groups.length === 0 ? (
+              &lt;p className="meta"&gt;{t("glossary.list.empty")}&lt;/p&gt;
+            ) : (
+              &lt;table className="grid term-table"&gt;
+                &lt;thead&gt;
+                  {editable ? (
+                    &lt;tr&gt;&lt;th&gt;{t("glossary.column.decision")}&lt;/th&gt;&lt;th&gt;{pair.source}&lt;/th&gt;&lt;th&gt;{pair.target}&lt;/th&gt;&lt;th&gt;{t("glossary.column.category")}&lt;/th&gt;&lt;th&gt;{t("glossary.column.note")}&lt;/th&gt;&lt;th&gt;{t("glossary.column.aliases")}&lt;/th&gt;&lt;th&gt;{t("glossary.column.flags")}&lt;/th&gt;&lt;th&gt;{t("glossary.column.evidence")}&lt;/th&gt;&lt;/tr&gt;
+                  ) : (
+                    &lt;tr&gt;&lt;th&gt;{pair.source}&lt;/th&gt;&lt;th&gt;{pair.target}&lt;/th&gt;&lt;th&gt;{t("glossary.column.category")}&lt;/th&gt;&lt;th&gt;{t("glossary.column.note")}&lt;/th&gt;&lt;th&gt;{t("glossary.column.approval")}&lt;/th&gt;&lt;th&gt;{t("glossary.column.evidence")}&lt;/th&gt;&lt;/tr&gt;
+                  )}
+                &lt;/thead&gt;
+                {groups.map((group) =&gt; {
+                  const closed = collapsed.has(group.name);
+                  return (
+                    &lt;tbody className="group" key={group.name}&gt;
+                      &lt;tr className={`group-head ${closed ? "closed" : ""}`}&gt;
+                        &lt;td colSpan={span}&gt;
+                          &lt;button type="button" aria-expanded={!closed} onClick={() =&gt; toggleGroup(group.name)}&gt;
+                            &lt;span className="caret"&gt;▾&lt;/span&gt;{catLabel(group.name)}&lt;span className="meta"&gt;{group.items.length}&lt;/span&gt;
+                          &lt;/button&gt;
+                        &lt;/td&gt;
+                      &lt;/tr&gt;
+                      {!closed &amp;&amp; group.items.map(renderRow)}
+                    &lt;/tbody&gt;
+                  );
+                })}
+              &lt;/table&gt;
+            )}
+          &lt;/section&gt;
+        &lt;/&gt;
+      )}
+    &lt;/&gt;
+  );
+&nbsp;
+  return (
+    &lt;Shell jobId={jobId}&gt;
+      {sidebar ? (
+        &lt;SideLayout sidebar={sidebar} storageKey="sidebar-collapsed:glossary" label={t("glossary.filter.sidebar")}&gt;{body}&lt;/SideLayout&gt;
+      ) : (
+        &lt;main className="page"&gt;{body}&lt;/main&gt;
+      )}
+    &lt;/Shell&gt;
+  );
+}
+&nbsp;</pre></td></tr></table></pre>
+
+                <div class='push'></div><!-- for sticky footer -->
+            </div><!-- /wrapper -->
+            <div class='footer quiet pad2 space-top1 center small'>
+                Code coverage generated by
+                <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
+                at 2026-10-09T11:12:36.961Z
+            </div>
+        <script src="../../prettify.js"></script>
+        <script>
+            window.onload = function () {
+                prettyPrint();
+            };
+        </script>
+        <script src="../../sorter.js"></script>
+        <script src="../../block-navigation.js"></script>
+    </body>
+</html>
+    

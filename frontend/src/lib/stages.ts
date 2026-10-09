@@ -1,3 +1,5 @@
+import { t, type MessageKey } from "../i18n";
+
 export type Stage = { name: string; status: string; attempts: number; message: string; updated_at?: string };
 export type WorkflowStatus = {
   job_id: string;
@@ -6,28 +8,28 @@ export type WorkflowStatus = {
   configuration: { source_path: string };
 };
 
-export const STAGE_LABELS: Record<string, string> = {
-  decompile: "Decompile source",
-  extract_glossary: "Extract glossary",
-  resolve_glossary: "Resolve glossary",
-  approve_glossary: "Approve glossary",
-  build_story_context: "Build story context",
-  preprocess: "Preprocess",
-  translate: "Translate",
-  rescue_translation: "Rescue with fallback models",
-  audit_translation: "Audit translation",
-  audit_consistency: "Check consistency",
-  repair_translation: "Repair findings",
-  reprose_translation: "Prose rewrite",
-  review_repaired: "Review repairs",
-  repair_review: "Repair review feedback",
-  validate_repaired: "Validate draft",
-  translate_title: "Translate title",
-  compile: "Compile EPUB",
-  validate_epub: "Validate EPUB",
+export const STAGE_LABELS: Record<string, MessageKey> = {
+  decompile: "progress.stageName.decompile",
+  extract_glossary: "progress.stageName.extractGlossary",
+  resolve_glossary: "progress.stageName.resolveGlossary",
+  approve_glossary: "progress.stageName.approveGlossary",
+  build_story_context: "progress.stageName.buildStoryContext",
+  preprocess: "progress.stageName.preprocess",
+  translate: "progress.stageName.translate",
+  rescue_translation: "progress.stageName.rescueTranslation",
+  audit_translation: "progress.stageName.auditTranslation",
+  audit_consistency: "progress.stageName.auditConsistency",
+  repair_translation: "progress.stageName.repairTranslation",
+  reprose_translation: "progress.stageName.reproseTranslation",
+  review_repaired: "progress.stageName.reviewRepaired",
+  repair_review: "progress.stageName.repairReview",
+  validate_repaired: "progress.stageName.validateRepaired",
+  translate_title: "progress.stageName.translateTitle",
+  compile: "progress.stageName.compile",
+  validate_epub: "progress.stageName.validateEpub",
 };
 
-export const stageLabel = (name: string) => STAGE_LABELS[name] ?? name;
+export const stageLabel = (name: string) => (STAGE_LABELS[name] ? t(STAGE_LABELS[name]) : name);
 
 export type TabKey = "config" | "glossary" | "progress" | "text" | "review";
 export type TabState = "running" | "waiting";
@@ -89,15 +91,15 @@ export function stageActions(stage: Stage): StageAction[] {
 export function lastStageAction(stage: Stage): string | null {
   if (!stage.updated_at) return null;
   switch (stage.status) {
-    case "running": return "started";
-    case "completed": return "done";
-    case "failed": return "failed";
+    case "running": return t("progress.lastChange.started");
+    case "completed": return t("progress.lastChange.done");
+    case "failed": return t("progress.lastChange.failed");
     case "paused":
-      if (HUMAN_GATES.has(stage.name) && !/stopped|paused on request/.test(stage.message)) return "waiting for review";
-      if (stage.message.includes("stopped from the dashboard")) return "stopped";
-      return "paused";
+      if (HUMAN_GATES.has(stage.name) && !/stopped|paused on request/.test(stage.message)) return t("progress.lastChange.waitingForReview");
+      if (stage.message.includes("stopped from the dashboard")) return t("progress.lastChange.stopped");
+      return t("progress.lastChange.paused");
     // A pending stage that has run before was reset by a rerun of it or an earlier stage.
-    case "pending": return stage.attempts > 0 ? "reset" : null;
+    case "pending": return stage.attempts > 0 ? t("progress.lastChange.reset") : null;
     default: return stage.status;
   }
 }

@@ -7,7 +7,9 @@ import { Shell } from "../components/Shell";
 import { SideLayout } from "../components/SideLayout";
 import { useToast } from "../components/Toast";
 import { Chip, Highlight } from "../components/ui";
+import { rich, t as translate, useT, type MessageKey, type Translate } from "../i18n";
 import { diffChars } from "../lib/diff";
+import { findingCategoryLabel, findingOriginLabel, reviewKindLabel, severityLabel, statusLabel, versionLabel } from "../lib/enums";
 import { FALLBACK_PAIR, langAttr, leftoverSourceText, pairCodes } from "../lib/languages";
 import { cueLabel, readingProblems, type Cue, type ReadingLimits } from "../lib/subtitles";
 import type { WorkflowStatus } from "../lib/stages";
@@ -47,12 +49,21 @@ type Payload = {
 type Blocking = { category: string; severity: string; message: string };
 type Item = { res: Resolution; edit: string; custom: string; customOn: boolean; check?: { key: string; blocking: Blocking[] } };
 
+// Each preset is the reason as the worksheet records it, the same in every interface language, and the message that shows it.
 const REASONS = {
-  accept: ["Verified against source; the audit finding is a false positive.", "Current wording is faithful; flagged difference is stylistic only."],
-  replace: ["Corrected the mistranslation identified by the audit.", "Translated the text left in the source language.", "Restored meaning omitted from the source."],
-};
+  accept: [
+    ["Verified against source; the audit finding is a false positive.", "review.reason.falsePositive"],
+    ["Current wording is faithful; flagged difference is stylistic only.", "review.reason.stylisticOnly"],
+  ],
+  replace: [
+    ["Corrected the mistranslation identified by the audit.", "review.reason.mistranslation"],
+    ["Translated the text left in the source language.", "review.reason.leftInSource"],
+    ["Restored meaning omitted from the source.", "review.reason.omission"],
+  ],
+} as const satisfies Record<string, readonly (readonly [string, MessageKey])[]>;
+const REASON_GROUPS = [["review.reason.keepGroup", REASONS.accept], ["review.reason.fixGroup", REASONS.replace]] as const;
 // The last is how that reason read when every book was English: a worksheet saved with it is not a custom reason.
-const PRESETS = [...REASONS.accept, ...REASONS.replace, "Translated the remaining English text."];
+const PRESETS: string[] = [...[...REASONS.accept, ...REASONS.replace].map(([reason]) => reason), "Translated the remaining English text."];
 
 const edited = (it: Item) => it.edit !== it.res.current_translation;
 const hasReason = (it: Item) => it.res.reason.trim().length >= 3;
@@ -62,14 +73,14 @@ const currentCheck = (it: Item) => (it.check && it.check.key === checkKey(it) ? 
 
 type Pair = { source: string; target: string; sourceName: string };
 
-function lint(it: Item, pair: Pair): string[] {
+function lint(it: Item, pair: Pair, t: Translate): string[] {
   const out: string[] = [];
-  if (!it.edit.trim()) out.push("translation is empty");
+  if (!it.edit.trim()) out.push(t("review.lint.empty"));
   const left = leftoverSourceText(it.edit, pair.source, pair.target);
-  if (left.length) out.push(`${pair.sourceName} left in text: ${left.slice(0, 5).join(", ")}`);
+  if (left.length) out.push(t("review.lint.leftInSource", { language: pair.sourceName, words: left.slice(0, 5).join(", ") }));
   const digits = (s: string) => (s.match(/\d+(?:\.\d+)?/g) ?? []).sort().join(",");
-  if (edited(it) && digits(it.edit) !== digits(it.res.current_translation)) out.push("digits changed from current");
-  if (it.res.decision !== "pending" && !hasReason(it)) out.push("reason required");
+  if (edited(it) && digits(it.edit) !== digits(it.res.current_translation)) out.push(t("review.lint.digitsChanged"));
+  if (it.res.decision !== "pending" && !hasReason(it)) out.push(t("review.lint.reasonRequired"));
   return out;
 }
 
@@ -84,6 +95,7 @@ function Diff({ before, after, lang }: { before: string; after: string; lang: st
 }
 
 function CompileCard({ jobId, initial }: { jobId: string; initial?: CompileState }) {
+  const t = useT();
   const toast = useToast();
   const [state, setState] = useState<CompileState | undefined>(initial);
   const timer = useRef<number | undefined>(undefined);
@@ -97,14 +109,15 @@ function CompileCard({ jobId, initial }: { jobId: string; initial?: CompileState
     } catch (e) {
       if (asked !== visit.current) return;
       // Keep following: one failed request does not mean the compile stopped.
-      toast("bad", `Could not check the compile: ${(e as Error).message}`, 0);
+      toast("bad", translate("review.compile.checkFailed", { error: (e as Error).message }), 0);
       timer.current = window.setTimeout(poll, 1500);
       return;
     }
     if (asked !== visit.current) return;
     setState(next);
     if (next.state === "running") timer.current = window.setTimeout(poll, 1500);
-    else if (next.result) toast(next.result.result === "complete" ? "ok" : "warn", `Compile finished: ${next.result.result}`, 0);
+    else if (next.result) toast(next.result.result === "complete" ? "ok" : "warn", translate("review.compile.finished", { result: statusLabel(next.result.result) }), 0);
+    // `translate` is the language of the moment: depending on `t` would stop the polling when the language changes.
   }, [jobId, toast]);
   useEffect(() => {
     if (initial?.state === "running") poll();
@@ -116,16 +129,16 @@ function CompileCard({ jobId, initial }: { jobId: string; initial?: CompileState
   const events = (state?.events ?? []).filter((e) => e.status !== "skipped");
   return (
     <section className="card">
-      <h2>Compile EPUB</h2>
-      <p className="meta">Resumes the job: compile → validate_epub. Runs in this server; you can keep the page open.</p>
-      <div className="row"><button className="primary" disabled={state?.state === "running"} onClick={start}>Compile now</button></div>
+      <h2>{t("review.compile.title")}</h2>
+      <p className="meta">{t("review.compile.help")}</p>
+      <div className="row"><button className="primary" disabled={state?.state === "running"} onClick={start}>{t("review.compile.start")}</button></div>
       {(events.length > 0 || state?.result) && (
         <div className="log compile-log" style={{ marginTop: 10 }}>
           {events.map((e, i) => <div key={i}>{`${e.stage.padEnd(22)} ${e.status}${e.message ? `  ${e.message}` : ""}`}</div>)}
           {state?.result && (
             <div style={{ marginTop: 10 }}>
               → {state.result.result}{state.result.message ? `: ${state.result.message}` : ""}
-              {state.result.output && <div>EPUB: {state.result.output}</div>}
+              {state.result.output && <div>{t("review.compile.output", { path: state.result.output })}</div>}
             </div>
           )}
         </div>
@@ -135,6 +148,7 @@ function CompileCard({ jobId, initial }: { jobId: string; initial?: CompileState
 }
 
 export function ReviewPage() {
+  const t = useT();
   const { jobId, info } = useJob();
   const started = info?.kind === "job";
   // What the title stage left in the source language: listed here, translated on the Text tab.
@@ -241,9 +255,9 @@ export function ReviewPage() {
     try {
       await jobApi(jobId, "review/save", { worksheet: serialize() });
       setDirty(false);
-      if (!quiet) toast("ok", "Draft saved.");
+      if (!quiet) toast("ok", t("review.draftSaved"));
     } catch (e) {
-      toast("bad", `Save failed: ${(e as Error).message}`, 0);
+      toast("bad", t("review.saveFailed", { error: (e as Error).message }), 0);
     }
   };
 
@@ -253,19 +267,14 @@ export function ReviewPage() {
   // Offered when the undecided segments fit within the compile limit.
   const askApproveNow = async () =>
     (await ask(
-      "Within the compile limit",
+      t("review.withinLimit.title"),
       <>
-        <p>
-          {undecided} segment{undecided === 1 ? " is" : "s are"} still undecided, and this job's compile limit allows {limit} unresolved.
-        </p>
-        <p>
-          You can keep resolving, or apply your {items.length - undecided} decision{items.length - undecided === 1 ? "" : "s"} now and approve the final
-          draft. Undecided segments keep their current translation and stay listed in the review report.
-        </p>
+        <p>{t("review.withinLimit.undecided", { count: undecided, limit })}</p>
+        <p>{t("review.withinLimit.choice", { count: items.length - undecided })}</p>
       </>,
       [
-        { value: "continue", label: "Continue resolving", primary: true },
-        { value: "approve", label: "Apply & approve now" },
+        { value: "continue", label: t("review.withinLimit.continue"), primary: true },
+        { value: "approve", label: t("review.withinLimit.approve") },
       ],
     )) === "approve";
 
@@ -274,7 +283,7 @@ export function ReviewPage() {
     if (pending >= 0) {
       if (undecided <= limit && (await askApproveNow())) { await submit(true); return; }
       go(pending);
-      toast("warn", `Decide every segment with a reason first (${undecided} left${limit ? `; the compile limit allows ${limit}` : ""}).`);
+      toast("warn", t("review.decideFirst", { undecided, limit }));
       return;
     }
     await submit(false);
@@ -299,7 +308,7 @@ export function ReviewPage() {
       if (check?.blocking.length) {
         setBusy(false);
         go(i);
-        toast("bad", `${items[i].res.segment_id} would fail deterministic validation; see the red box under the editor.`);
+        toast("bad", t("review.wouldFail", { segment: items[i].res.segment_id }));
         return;
       }
     }
@@ -310,7 +319,7 @@ export function ReviewPage() {
       setApplied({ passed: res.report.passed, approved: res.approved, remaining: res.report.review_segment_ids });
       setData(await jobApi<Payload>(jobId, "review"));
     } catch (e) {
-      toast("bad", <>Apply refused; nothing was changed.<br />{(e as Error).message}</>, 0);
+      toast("bad", <>{t("review.applyRefused")}<br />{(e as Error).message}</>, 0);
     } finally {
       setBusy(false);
     }
@@ -321,10 +330,10 @@ export function ReviewPage() {
     setBusy(true);
     try {
       await jobApi(jobId, "review/approve", {});
-      toast("ok", "Final draft approved.");
+      toast("ok", t("review.draftApproved"));
       await load();
     } catch (e) {
-      toast("bad", <>Approval refused; nothing was changed.<br />{(e as Error).message}</>, 0);
+      toast("bad", <>{t("review.approvalRefused")}<br />{(e as Error).message}</>, 0);
     } finally {
       setBusy(false);
     }
@@ -346,12 +355,12 @@ export function ReviewPage() {
   const tools = active ? (
     <>
       <span className="progress-mini">
-        {decided}/{items.length} decided
+        {t("review.progress", { decided, total: items.length })}
         <span className="bar"><i style={{ width: `${(100 * decided) / items.length}%` }} /></span>
       </span>
-      <button onClick={() => save()} title="Ctrl+S">Save draft{dirty ? " •" : ""}</button>
-      <label className="meta"><input type="checkbox" checked={approve} onChange={(e) => setApprove(e.target.checked)} /> approve final draft</label>
-      <button className="primary" disabled={busy} onClick={apply}>Apply decisions</button>
+      <button onClick={() => save()} title={t("review.saveShortcut")}>{dirty ? t("review.saveDraftUnsaved") : t("review.saveDraft")}</button>
+      <label className="meta"><input type="checkbox" checked={approve} onChange={(e) => setApprove(e.target.checked)} /> {t("review.approveToggle")}</label>
+      <button className="primary" disabled={busy} onClick={apply}>{t("review.applyDecisions")}</button>
     </>
   ) : null;
 
@@ -361,9 +370,9 @@ export function ReviewPage() {
     </Shell>
   );
 
-  if (info?.kind === "draft") return shell(<main className="page"><NotStarted what="review queue" /></main>);
+  if (info?.kind === "draft") return shell(<main className="page"><NotStarted what="review" /></main>);
   if (error) return shell(<main className="page"><div className="banner bad">{error}</div></main>);
-  if (!data) return shell(<main className="page"><p className="meta">Loading…</p></main>);
+  if (!data) return shell(<main className="page"><p className="meta">{t("common.loading")}</p></main>);
 
   if (!active) {
     const complete = data.status.overall === "complete";
@@ -371,33 +380,26 @@ export function ReviewPage() {
       <main className="page">
         {applied ? (
           applied.passed ? (
-            <div className="banner ok">All decisions applied. {applied.approved ? "Final draft approved. " : ""}Nothing left in the review queue.</div>
+            <div className="banner ok">{applied.approved ? t("review.applied.allApproved") : t("review.applied.all")}</div>
           ) : applied.approved ? (
-            <div className="banner ok">
-              Decisions applied and final draft approved. {applied.remaining.length} segment(s) stay unresolved within the compile limit: {applied.remaining.join(", ")}.
-            </div>
+            <div className="banner ok">{t("review.applied.approvedWithRemaining", { count: applied.remaining.length, segments: applied.remaining.join(", ") })}</div>
           ) : (
-            <div className="banner warn">Applied, but {applied.remaining.length} segment(s) still need review: {applied.remaining.join(", ")}. Compile to regenerate the worksheet.</div>
+            <div className="banner warn">{t("review.applied.remaining", { count: applied.remaining.length, segments: applied.remaining.join(", ") })}</div>
           )
         ) : data.approval_required ? (
-          <div className="banner warn">The final draft is waiting for approval. No passage is waiting for a decision.</div>
+          <div className="banner warn">{t("review.state.approvalWaiting")}</div>
         ) : complete ? (
-          <div className="banner ok">This job is complete; there is nothing left to review.</div>
+          <div className="banner ok">{t("review.state.complete")}</div>
         ) : (
           <div className="banner warn">
-            {!data.worksheet ? "No final-review worksheet exists for this job yet."
-              : data.stale ? "The review queue has been resolved or the draft changed since this worksheet was written. Compile to regenerate reports."
-              : "The review queue is empty."}
+            {!data.worksheet ? t("review.state.noWorksheet") : data.stale ? t("review.state.stale") : t("review.state.empty")}
           </div>
         )}
         {data.approval_required && (
-          <section className="card" aria-label="Approve final draft">
-            <h2>Approve final draft</h2>
-            <p className="meta">
-              This job compiles only a draft a person has approved. The draft as it stands has not been: it was never approved, or its text, title,
-              contents, or notes changed since it was. Approve it here, then compile.
-            </p>
-            <div className="row"><button className="primary" disabled={busy} onClick={approveDraft}>Approve final draft</button></div>
+          <section className="card" aria-label={t("review.approve.title")}>
+            <h2>{t("review.approve.title")}</h2>
+            <p className="meta">{t("review.approve.help")}</p>
+            <div className="row"><button className="primary" disabled={busy} onClick={approveDraft}>{t("review.approve.button")}</button></div>
           </section>
         )}
         <LeftInSourceCard jobId={jobId} items={leftInSource} />
@@ -438,12 +440,12 @@ export function ReviewPage() {
   const setDecision = (decision: Decision) => {
     if (decision === "accept" && !hasReason(it)) return;
     if (decision === "accept" && edited(it)) {
-      confirm("Discard your edit?", "Accepting keeps the current translation and discards your edit.", "Accept current").then((ok) => {
+      confirm(t("review.discardEdit.title"), t("review.discardEdit.body"), t("review.decision.accept")).then((ok) => {
         if (ok) patch(index, (x) => withRes({ ...x, edit: x.res.current_translation }, { decision }));
       });
       return;
     }
-    if (decision === "replace" && !edited(it)) { toast("warn", "Edit the translation first: replace needs a changed text."); return; }
+    if (decision === "replace" && !edited(it)) { toast("warn", t("review.editFirst")); return; }
     patch(index, (x) => withRes(x, { decision }));
   };
 
@@ -461,96 +463,96 @@ export function ReviewPage() {
 
   const sidebar = (
     <>
-      {resolvedCount > 0 && <div className="navhead">Resolved ({resolvedCount})</div>}
+      {resolvedCount > 0 && <div className="navhead">{t("review.nav.resolved", { count: resolvedCount })}</div>}
       {order.slice(0, resolvedCount).map(navItem)}
-      {order.length - resolvedCount > 0 && <div className="navhead">To review ({order.length - resolvedCount})</div>}
+      {order.length - resolvedCount > 0 && <div className="navhead">{t("review.nav.toReview", { count: order.length - resolvedCount })}</div>}
       {order.slice(resolvedCount).map(navItem)}
     </>
   );
 
   return shell(
-    <SideLayout sidebar={sidebar} storageKey="sidebar-collapsed:review" label="Segments" navRef={navRef}>
+    <SideLayout sidebar={sidebar} storageKey="sidebar-collapsed:review" label={t("review.nav.label")} navRef={navRef}>
         <div className="seghead">
           <span className="title">{it.res.segment_id}</span>
-          {ctx.cue && <span className="meta" title={`Cue ${ctx.cue.number}: when it comes on screen, and for how long`}>{cueLabel(ctx.cue)}</span>}
+          {ctx.cue && <span className="meta" title={t("review.cueTitle", { number: ctx.cue.number })}>{cueLabel(ctx.cue)}</span>}
           {ctx.chapter_title && <Chip>{ctx.chapter_title}</Chip>}
-          {ctx.review_kind && <Chip>{ctx.review_kind}</Chip>}
-          <span className="meta">{order.indexOf(index) + 1} of {items.length} · <kbd>Alt</kbd>+<kbd>↑</kbd>/<kbd>↓</kbd> to move</span>
+          {ctx.review_kind && <Chip>{reviewKindLabel(ctx.review_kind)}</Chip>}
+          <span className="meta">{rich("review.position", { position: order.indexOf(index) + 1, total: items.length, kbd: (chunks) => <kbd>{chunks}</kbd> })}</span>
         </div>
         <div className="cols">
           <section className="card">
-            <h2>Source</h2>
-            {ctx.previous_source_context && <div className="ctx">{ctx.previous_source_context}</div>}
+            <h2>{t("review.source")}</h2>
+            {ctx.previous_source_context && <div className="ctx" lang={sourceLang}>{ctx.previous_source_context}</div>}
             <div className="text" lang={sourceLang}><Highlight text={it.res.source_text} quote={focus?.source_quote} /></div>
-            {ctx.next_source_context && <div className="ctx">{ctx.next_source_context}</div>}
+            {ctx.next_source_context && <div className="ctx" lang={sourceLang}>{ctx.next_source_context}</div>}
           </section>
           <section className="card">
-            <h2>Current translation</h2>
+            <h2>{t("review.current")}</h2>
             <div className="text zh" lang={targetLang}><Highlight text={it.res.current_translation} quote={focus?.translation_quote} /></div>
           </section>
         </div>
 
         <section className="card">
-          <h2>Your translation</h2>
+          <h2>{t("review.yours")}</h2>
           <textarea className="editor" lang={targetLang} spellCheck={false} value={it.edit} onChange={(e) => setEdit(e.target.value)} />
           <div className="row">
-            <button className="small" onClick={() => setEdit(it.res.current_translation)}>Reset to current</button>
-            <span className="meta">{[...it.edit].length} chars (current {[...it.res.current_translation].length})</span>
-            <button className="small" onClick={() => runCheck(index)}>Check</button>
-            <span className="lint">{[...lint(it, pair), ...readingProblems(it.edit, ctx.cue, data.reading)].join(" · ")}</span>
+            <button className="small" onClick={() => setEdit(it.res.current_translation)}>{t("review.resetToCurrent")}</button>
+            <span className="meta">{t("review.charCount", { count: [...it.edit].length, current: [...it.res.current_translation].length })}</span>
+            <button className="small" onClick={() => runCheck(index)}>{t("review.check.run")}</button>
+            <span className="lint">{[...lint(it, pair, t), ...readingProblems(it.edit, ctx.cue, data.reading)].join(" · ")}</span>
           </div>
           {check && it.res.decision !== "pending" && (
             check.blocking.length ? (
               <div className="check bad">
-                Would be refused by deterministic validation:
-                <ul>{check.blocking.map((b, i) => <li key={i}><b>{b.category}</b> ({b.severity}): {b.message}</li>)}</ul>
+                {t("review.check.refused")}
+                <ul>{check.blocking.map((b, i) => <li key={i}><b>{findingCategoryLabel(b.category)}</b> ({severityLabel(b.severity)}): {b.message}</li>)}</ul>
               </div>
-            ) : <div className="check ok">Passes deterministic validation.</div>
+            ) : <div className="check ok">{t("review.check.passes")}</div>
           )}
           {edited(it) && (
             <>
-              <h2 style={{ marginTop: 14 }}>Changes vs current</h2>
+              <h2 style={{ marginTop: 14 }}>{t("review.changes")}</h2>
               <Diff before={it.res.current_translation} after={it.edit} lang={targetLang} />
             </>
           )}
 
-          <h2 style={{ marginTop: 16 }}>Reason <span className="meta" style={{ textTransform: "none" }}>(required before accepting)</span></h2>
+          <h2 style={{ marginTop: 16 }}>{rich("review.reason.title", { note: (chunks) => <span className="meta" style={{ textTransform: "none" }}>{chunks}</span> })}</h2>
           <div className="reasons">
-            {([["Keep current translation", REASONS.accept], ["Fix translation", REASONS.replace]] as const).map(([label, list]) => (
+            {REASON_GROUPS.map(([label, list]) => (
               <div className="rgroup" key={label}>
-                <span className="meta">{label}</span>
-                {list.map((text) => (
-                  <label className="ropt" key={text}>
-                    <input type="radio" name="reason" checked={!custom && it.res.reason === text} onChange={() => setReason(text, false)} /> {text}
+                <span className="meta">{t(label)}</span>
+                {list.map(([reason, shown]) => (
+                  <label className="ropt" key={reason}>
+                    <input type="radio" name="reason" checked={!custom && it.res.reason === reason} onChange={() => setReason(reason, false)} /> {t(shown)}
                   </label>
                 ))}
               </div>
             ))}
             <div className="rgroup">
               <label className="ropt">
-                <input type="radio" name="reason" checked={custom} onChange={() => setReason(it.custom, true)} /> Custom reason
+                <input type="radio" name="reason" checked={custom} onChange={() => setReason(it.custom, true)} /> {t("review.reason.custom")}
               </label>
-              <input type="text" className="customreason" placeholder="Describe the source-grounded reason (at least 3 characters)" value={it.custom}
+              <input type="text" className="customreason" placeholder={t("review.reason.customPlaceholder")} value={it.custom}
                 onFocus={() => { if (!custom) setReason(it.custom, true); }}
                 onChange={(e) => setReason(e.target.value, true, e.target.value)} />
             </div>
           </div>
           <div className="row" style={{ marginTop: 14 }}>
             <div className="segmented">
-              <button className={it.res.decision === "pending" ? "on" : ""} aria-pressed={it.res.decision === "pending"} onClick={() => setDecision("pending")}>Pending</button>
-              <button className={it.res.decision === "accept" ? "on" : ""} aria-pressed={it.res.decision === "accept"} disabled={!hasReason(it)} title={hasReason(it) ? "" : "Select or enter a reason first"} onClick={() => setDecision("accept")}>Accept current</button>
-              <button className={it.res.decision === "replace" ? "on" : ""} aria-pressed={it.res.decision === "replace"} onClick={() => setDecision("replace")}>Replace with edit</button>
+              <button className={it.res.decision === "pending" ? "on" : ""} aria-pressed={it.res.decision === "pending"} onClick={() => setDecision("pending")}>{t("review.decision.pending")}</button>
+              <button className={it.res.decision === "accept" ? "on" : ""} aria-pressed={it.res.decision === "accept"} disabled={!hasReason(it)} title={hasReason(it) ? "" : t("review.reason.selectFirst")} onClick={() => setDecision("accept")}>{t("review.decision.accept")}</button>
+              <button className={it.res.decision === "replace" ? "on" : ""} aria-pressed={it.res.decision === "replace"} onClick={() => setDecision("replace")}>{t("review.decision.replace")}</button>
             </div>
-            {!hasReason(it) && <span className="meta">Select a reason to enable Accept.</span>}
+            {!hasReason(it) && <span className="meta">{t("review.reason.selectToAccept")}</span>}
           </div>
         </section>
 
         <div className="cols">
           <section className="card">
-            <h2>Findings ({findings.length}) · click to highlight</h2>
+            <h2>{t("review.findings.title", { count: findings.length })}</h2>
             {findings.map((f, i) => (
               <div key={i} className={`finding ${i === activeFinding ? "on" : ""}`} onClick={() => setActiveFinding(i === activeFinding ? -1 : i)}>
-                {f.severity && <Chip kind={f.severity}>{f.severity}</Chip>} {f.category && <Chip>{f.category}</Chip>} {f.origin && <span className="meta">{f.origin}</span>}
+                {f.severity && <Chip kind={f.severity}>{severityLabel(f.severity)}</Chip>} {f.category && <Chip>{findingCategoryLabel(f.category)}</Chip>} {f.origin && <span className="meta">{findingOriginLabel(f.origin)}</span>}
                 <div className="msg">{f.message}</div>
                 {f.source_quote && <div className="quote" lang={sourceLang}>{source.toUpperCase()}: {f.source_quote}</div>}
                 {f.translation_quote && <div className="quote" lang={targetLang}>{target.toUpperCase()}: {f.translation_quote}</div>}
@@ -558,16 +560,16 @@ export function ReviewPage() {
             ))}
           </section>
           <section className="card">
-            <h2>Pipeline versions</h2>
+            <h2>{t("review.versions.title")}</h2>
             {versions.length ? versions.map((v, i) => (
               <div className="version" key={i}>
                 <div className="row" style={{ margin: "0 0 6px" }}>
-                  <Chip>{v.stage}</Chip>
-                  <button className="small" onClick={() => setEdit(v.text)}>Load into editor</button>
+                  <Chip>{versionLabel(v.stage)}</Chip>
+                  <button className="small" onClick={() => setEdit(v.text)}>{t("review.versions.load")}</button>
                 </div>
                 <div className="text zh" lang={targetLang}>{v.text}</div>
               </div>
-            )) : <p className="meta">No alternative versions recorded.</p>}
+            )) : <p className="meta">{t("review.versions.none")}</p>}
           </section>
         </div>
         <LeftInSourceCard jobId={jobId} items={leftInSource} />

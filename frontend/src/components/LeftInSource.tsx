@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { jobApi } from "../api";
+import { useT } from "../i18n";
 import { KIND_LABELS, textLink, type LeftInSource } from "../lib/bookItems";
 import { Chip } from "./ui";
 
@@ -26,25 +27,23 @@ export function useLeftInSource(jobId: string, when: boolean): LeftInSource[] {
 }
 
 export function LeftInSourceCard({ jobId, items }: { jobId: string; items: LeftInSource[] }) {
+  const t = useT();
   if (items.length === 0) return null;
   return (
-    <section className="card" aria-label="Left in the source language">
-      <h2>Left in the source language ({items.length})</h2>
-      <p className="meta">
-        The title stage could not translate these. They do not stop the book from compiling; it keeps them as
-        they are until you translate them on the Text tab.
-      </p>
+    <section className="card" aria-label={t("text.leftInSource.label")}>
+      <h2>{t("text.leftInSource.heading", { count: items.length })}</h2>
+      <p className="meta">{t("text.leftInSource.explain")}</p>
       <table className="grid">
         <thead>
-          <tr><th>What</th><th>Where</th><th>Source</th><th /></tr>
+          <tr><th>{t("text.leftInSource.what")}</th><th>{t("text.leftInSource.where")}</th><th>{t("text.table.source")}</th><th /></tr>
         </thead>
         <tbody>
           {items.map((item) => (
             <tr key={item.item_id}>
-              <td><Chip>{KIND_LABELS[item.kind]}</Chip></td>
+              <td><Chip>{t(KIND_LABELS[item.kind])}</Chip></td>
               <td>{item.chapter}</td>
               <td>{item.source}</td>
-              <td><Link to={textLink(jobId, item.document_id, item.item_id)}>Translate on Text →</Link></td>
+              <td><Link to={textLink(jobId, item.document_id, item.item_id)}>{t("text.leftInSource.translate")}</Link></td>
             </tr>
           ))}
         </tbody>

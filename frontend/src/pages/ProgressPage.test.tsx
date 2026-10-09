@@ -4,6 +4,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { App } from "../App";
 import { apiError, deferred, mockApi } from "../test/mockApi";
 import { jobInfo, stage } from "../test/job";
+import { setLocale } from "../i18n";
+import de from "../i18n/locales/de.json";
 
 // -- fixtures -----------------------------------------------------------------
 
@@ -452,6 +454,22 @@ describe("Progress tab", () => {
       warnings: [{ code: "edits", message: "2 manual edits on the Text tab are kept and re-checked." }],
       previous_seconds: 5400,
       ...overrides,
+    });
+
+    it("says a warning the catalog knows in the interface language, and any other as the server wrote it", async () => {
+      const warnings = [
+        { code: "compiled_epub", message: "The compiled EPUB is replaced by the new output." },
+        { code: "edits", message: "2 manual edits on the Text tab are kept and re-checked." },
+      ];
+      progressApi({ "GET /api/jobs/demo/rerun": preview({ warnings }) });
+      const user = renderProgressTab();
+      await pipeline();
+      await act(() => setLocale("de", false));
+      await user.click(within(rowOf("translate")).getByRole("button", { name: "Ab hier neu ausführen" }));
+      const dialog = await screen.findByRole("alertdialog");
+      expect(dialog).toHaveTextContent(de["server.rerun.compiled_epub"]);
+      expect(dialog).not.toHaveTextContent("The compiled EPUB is replaced");
+      expect(dialog).toHaveTextContent("2 manual edits on the Text tab are kept and re-checked.");
     });
 
     it("warns what a rerun discards before doing it", async () => {

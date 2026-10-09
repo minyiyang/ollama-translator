@@ -1,4 +1,5 @@
 import { api } from "../api";
+import { t } from "../i18n";
 
 /** A glossary's language pair as the API reports it: its code and each side's language name. */
 export type GlossaryPair = { pair: string; source: string; target: string };
@@ -39,11 +40,8 @@ export type LanguageSupport = {
   notice: string;
 };
 
-export const TIER_HELP: Record<Tier, string> = {
-  tuned: "Full profile, benchmarked, prompts with examples.",
-  profiled: "Profile filled in; its checks run.",
-  generic: "No profile yet: universal checks only, so more passages land in human review.",
-};
+const TIER_HELP = { tuned: "format.tier.tuned", profiled: "format.tier.profiled", generic: "format.tier.generic" } as const;
+export const tierHelp = (tier: Tier) => t(TIER_HELP[tier]);
 
 /** Whether a pair goes beyond the tuned languages (and so deserves a notice). */
 export const isGeneric = (support: LanguageSupport | null | undefined) =>

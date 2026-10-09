@@ -1,7 +1,7 @@
 import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { describe, expect, it } from "vitest";
-import { STAGE_INFO } from "../lib/stageInfo";
+import { stageInfo } from "../lib/stageInfo";
 import { StageTip } from "./StageTip";
 
 const icon = () => screen.getByRole("button", { name: "About this stage" });
@@ -31,7 +31,7 @@ describe("The ⓘ next to a pipeline stage", () => {
     await userEvent.setup().hover(icon());
 
     const tip = screen.getByRole("tooltip");
-    const info = STAGE_INFO.translate;
+    const info = stageInfo("translate")!;
     expect(tip).toHaveTextContent(info.does);
     for (const [term, text] of [["Input", info.input], ["Output", info.output], ["Checks", info.checks], ["Model", "ollama.model"], ["Result", "Running · 3/9 units."]]) {
       expect(within(tip).getByText(term).nextElementSibling).toHaveTextContent(text);

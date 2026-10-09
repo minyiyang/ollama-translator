@@ -244,6 +244,8 @@ class ServerTests:
 
                 status, body = call("/api/jobs/fixture/glossary/approve", {}, token)
                 assert status == 422 and "submit reviewed entries" in json.loads(body)["error"]
+                # The dashboard translates the refusal by its code.
+                assert json.loads(body)["code"] == "approve_nothing" and json.loads(body)["params"] == {}
             finally:
                 server.shutdown()
                 server.server_close()
@@ -494,6 +496,8 @@ class RequestRobustnessTests:
                 binary = b"PK\x03\x04\x14\x00\x00\x00\xfa\xb1\xab" + bytes(range(128, 256))
                 status, body = self._raw(call.base, "/api/jobs/fixture/start", binary, headers)
                 assert status == 400 and "UTF-8 JSON" in body["error"]
+                # A refusal the dashboard has no translation for carries its text alone.
+                assert "code" not in body
                 status, body = self._raw(call.base, "/api/jobs/new", b"{not json", headers)
                 assert status == 400
                 status, body = self._raw(call.base, "/api/jobs/new", b"[1, 2]", headers)
@@ -530,6 +534,20 @@ class RequestRobustnessTests:
                     status, body = call(f"/api/book/cover?path={urllib.parse.quote(str(path))}")
                 assert status == 500 and "boom" in json.loads(body)["error"]
                 assert call("/api/setup")[0] == 200
+            finally:
+                server.shutdown()
+                server.server_close()
+
+    def test_cover_of_a_book_outside_the_known_folders_is_not_found(self):
+        with tempfile.TemporaryDirectory() as directory:
+            workspace, _ = paused_glossary_workspace(Path(directory))
+            app = UiApp(workspace.root.parent, Path(directory) / "configs", [])
+            server, call = self.serve(app)
+            try:
+                elsewhere = Path(directory) / "elsewhere.epub"
+                elsewhere.write_bytes(b"x")
+                status, body = call(f"/api/book/cover?path={urllib.parse.quote(str(elsewhere))}")
+                assert status == 404 and json.loads(body)["error"]
             finally:
                 server.shutdown()
                 server.server_close()
@@ -677,6 +695,20 @@ class RerunTests:
             assert names[-1] == "validate_epub"
             codes = {item["code"] for item in preview["warnings"]}
             assert codes == {"glossary_approval", "full_translation"}
+
+    def test_compiled_book_warning_appears_once_the_book_is_compiled(self):
+        with tempfile.TemporaryDirectory() as directory:
+            workspace, _ = paused_glossary_workspace(Path(directory))
+            app = UiApp(workspace.root.parent, Path(directory), [])
+            codes = {item["code"] for item in app.rerun_preview("fixture", "resolve_glossary")["warnings"]}
+            assert "compiled_epub" not in codes
+            connection = connect_state(workspace.state_file)
+            try:
+                set_stage_status(connection, "compile", StageStatus.COMPLETED)
+            finally:
+                connection.close()
+            codes = {item["code"] for item in app.rerun_preview("fixture", "resolve_glossary")["warnings"]}
+            assert "compiled_epub" in codes
 
     def test_review_gates_pending_and_unknown_stages_cannot_be_rerun(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -960,6 +992,7 @@ class EndpointCoverageTests(ServerTests):
                 assert post("/api/jobs/fixture/pause", {}) == (200, {"pause_requested": True})
                 status, stopped = post("/api/jobs/fixture/stop", {})
                 assert status == 422 and "use Pause" in stopped["error"]
+                assert stopped["code"] == "no_dashboard_run"
             finally:
                 server.shutdown()
                 server.server_close()

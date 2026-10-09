@@ -1,5 +1,6 @@
 import { useId, useState, type ReactNode } from "react";
-import { STAGE_INFO } from "../lib/stageInfo";
+import { useT } from "../i18n";
+import { stageInfo } from "../lib/stageInfo";
 
 /**
  * ⓘ next to a stage name: what the stage does, its input/output, what it checks,
@@ -7,7 +8,8 @@ import { STAGE_INFO } from "../lib/stageInfo";
  * clicking pins it open until the next click.
  */
 export function StageTip({ stage, result }: { stage: string; result: ReactNode }) {
-  const info = STAGE_INFO[stage];
+  const t = useT();
+  const info = stageInfo(stage);
   const id = useId();
   const [hover, setHover] = useState(false);
   const [pinned, setPinned] = useState(false);
@@ -18,7 +20,7 @@ export function StageTip({ stage, result }: { stage: string; result: ReactNode }
       <button
         type="button"
         className="tip-icon"
-        aria-label={`About this stage`}
+        aria-label={t("progress.tip.about")}
         aria-describedby={open ? id : undefined}
         aria-expanded={open}
         onFocus={() => setHover(true)}
@@ -31,12 +33,12 @@ export function StageTip({ stage, result }: { stage: string; result: ReactNode }
         <div className="tip-card" role="tooltip" id={id}>
           <p className="tip-does">{info.does}</p>
           <dl>
-            <dt>Input</dt><dd>{info.input}</dd>
-            <dt>Output</dt><dd>{info.output}</dd>
-            <dt>Checks</dt><dd>{info.checks}</dd>
-            {info.model && (<><dt>Model</dt><dd className="mono">{info.model}</dd></>)}
-            {info.pauses && (<><dt>Pauses</dt><dd>{info.pauses}</dd></>)}
-            <dt>Result</dt><dd>{result}</dd>
+            <dt>{t("progress.tip.input")}</dt><dd>{info.input}</dd>
+            <dt>{t("progress.tip.output")}</dt><dd>{info.output}</dd>
+            <dt>{t("progress.tip.checks")}</dt><dd>{info.checks}</dd>
+            {info.model && (<><dt>{t("progress.tip.model")}</dt><dd className="mono">{info.model}</dd></>)}
+            {info.pauses && (<><dt>{t("progress.tip.pauses")}</dt><dd>{info.pauses}</dd></>)}
+            <dt>{t("progress.tip.result")}</dt><dd>{result}</dd>
           </dl>
         </div>
       )}

@@ -4,7 +4,7 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11%2B-blue.svg)](https://www.python.org/downloads/)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green.svg)](LICENSE)
 
-**English** | [简体中文](README.zh-CN.md)
+**English** | [简体中文](README.zh-CN.md) | [日本語](README.ja.md) | [Français](README.fr.md) | [Español](README.es.md) | [Deutsch](README.de.md) | [한국어](README.ko.md)
 
 A local, resumable book-translation pipeline for English-to-Chinese and
 Chinese-to-English literary prose. It takes an EPUB, RTF, text, Markdown,
@@ -143,7 +143,7 @@ reasoning to justify the additional runtime.
 - [Current production operations](docs/OPERATIONS.md)
 - [Design](docs/DESIGN.md)
 - [Book-level consistency proposal](docs/BOOK_CONSISTENCY.md)
-- [Dashboard localization plan](docs/LOCALIZATION.md)
+- [Dashboard localization](docs/LOCALIZATION.md)
 - [Dashboard stage control: resume, rerun, early approval](docs/STAGE_CONTROL.md)
 - [Full-text review and tracked manual edits](docs/FULL_TEXT_REVIEW.md)
 - [XLIFF import](docs/XLIFF_IMPORT.md)
@@ -694,7 +694,14 @@ leaving LLM review disabled performs no independent review.
 ### Browser dashboard
 
 `book-agent ui` serves a dashboard on loopback only (`--runs`, `--configs`,
-`--port`, `--no-browser`). It covers the same gates as the commands above:
+`--port`, `--no-browser`). It covers the same gates as the commands above.
+
+The interface comes in English, Simplified Chinese, Japanese, French,
+Spanish, German, and Korean, the languages the pipeline has a profile for.
+Pick one from the menu at the right of the header; the choice is saved in the
+browser, and English is the default. The interface language is independent of
+a job's translation direction
+([Dashboard localization](docs/LOCALIZATION.md)).
 
 - **Jobs** lists jobs with their translation direction (for example
   `EN → ZH`) and creates new ones; a completed job has a *Download* button for

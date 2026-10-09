@@ -1,8 +1,10 @@
-import { render, screen, within } from "@testing-library/react";
+import { act, render, screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { mockApi } from "../test/mockApi";
 import { jobInfo, renderInJob, stage } from "../test/job";
+import { setLocale } from "../i18n";
 import { Shell } from "./Shell";
 
 const renderOutside = (ui: React.ReactNode, at = "/") => render(<MemoryRouter initialEntries={[at]}>{ui}</MemoryRouter>);
@@ -149,5 +151,34 @@ describe("The header", () => {
     vi.spyOn(HTMLElement.prototype, "getBoundingClientRect").mockReturnValue({ height: 57.2 } as DOMRect);
     renderOutside(<Shell>page</Shell>);
     expect(document.documentElement.style.getPropertyValue("--header-h")).toBe("58px");
+  });
+});
+
+describe("The interface-language menu", () => {
+  const menu = () => screen.getByRole("combobox", { name: "Interface language" });
+
+  it("offers each language under its own name, starting in English", () => {
+    renderOutside(<Shell>page</Shell>);
+    expect(menu()).toHaveValue("en");
+    expect(within(menu()).getAllByRole("option").map((option) => option.textContent))
+      .toEqual(["English", "简体中文", "日本語", "Français", "Español", "Deutsch", "한국어"]);
+  });
+
+  it("lists a layout-test language only while it is in use", async () => {
+    renderOutside(<Shell>page</Shell>);
+    await act(() => setLocale("ar-XB", false));
+    expect(screen.getByRole("combobox")).toHaveValue("ar-XB");
+    expect(within(screen.getByRole("combobox")).getAllByRole("option")).toHaveLength(9);
+    expect(document.documentElement.dir).toBe("rtl");
+  });
+
+  it("translates the header at once and remembers the choice", async () => {
+    renderOutside(<Shell>page</Shell>);
+    await userEvent.selectOptions(menu(), "简体中文");
+    expect(await screen.findByRole("combobox", { name: /界面语言|语言/ })).toHaveValue("zh-CN");
+    expect(tabs().map((link) => link.textContent)).not.toContain("Jobs");
+    expect(tabs().map((link) => link.getAttribute("href"))).toEqual(["/", "/series"]);
+    expect(document.documentElement.lang).toBe("zh-CN");
+    expect(window.localStorage.getItem("ui-language")).toBe("zh-CN");
   });
 });
