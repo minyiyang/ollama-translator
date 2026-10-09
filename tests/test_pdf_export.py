@@ -31,12 +31,28 @@ def pages_of(pdf: Path) -> int:
         return sum(1 for _ in PDFPage.get_pages(stream))
 
 
-def png() -> bytes:
+def png(width: int = 320, height: int = 120) -> bytes:
     from PIL import Image
 
     data = io.BytesIO()
-    Image.new("RGB", (320, 120), (40, 110, 180)).save(data, "PNG")
+    Image.new("RGB", (width, height), (40, 110, 180)).save(data, "PNG")
     return data.getvalue()
+
+
+def pictures_of(pdf: Path) -> list[tuple[float, float]]:
+    """The width and height, in points, of each picture as it is set on its page."""
+    from pdfminer.high_level import extract_pages
+    from pdfminer.layout import LTFigure, LTImage
+
+    def found(item):
+        if isinstance(item, (LTImage, LTFigure)) and not hasattr(item, "get_text"):
+            if isinstance(item, LTImage) or not list(item):
+                yield (item.width, item.height)
+                return
+        for child in getattr(item, "_objs", []):
+            yield from found(child)
+
+    return [size for page in extract_pages(str(pdf)) for size in found(page)]
 
 
 @pytest.fixture
@@ -92,6 +108,27 @@ class WrittenBookTests:
         assert "[A torn page]" in text and "[A plan of the house]" not in text
         data = (folder / "sign.pdf").read_bytes()
         assert b"/Subtype /Image" in data and b"https://example.org/times" in data
+
+    @pytest.mark.parametrize("pixels", [(1000, 2000), (2000, 1000), (600, 627), (3000, 3000), (40, 4000), (4000, 40)])
+    def test_a_picture_larger_than_the_page_is_made_to_fit_it(self, folder, pixels):
+        # A tall plate filled the page to its margins, which is more than the page's frame holds: the book was refused.
+        book = Book(
+            title="The Sign of the Four", language="en",
+            blocks=[Block("h1", "Chapter I"), Block("p", "A plan of the house."), Block("img", "The plan", "plan.png"),
+                    Block("p", "He studied it.")],
+            images={"plan.png": png(*pixels)},
+        )
+        write_pdf(book, folder / "plate.pdf", VERA)
+        assert "He studied it." in text_of(folder / "plate.pdf")
+        (wide, high), = pictures_of(folder / "plate.pdf")
+        # A5 is 419.5 by 595.3 points; the text and its pictures stand inside 18 mm margins and the frame's padding.
+        assert wide <= 419.53 - 2 * 51.03 - 12 and high <= 595.28 - 51.03 - 62.37 - 12
+        assert wide / high == pytest.approx(pixels[0] / pixels[1], rel=0.01)
+
+    def test_a_small_picture_keeps_its_size(self, folder):
+        book = Book(language="en", blocks=[Block("img", "A mark", "mark.png")], images={"mark.png": png(160, 80)})
+        write_pdf(book, folder / "mark.pdf", VERA)
+        assert pictures_of(folder / "mark.pdf") == [pytest.approx((120, 60))]  # 96 pixels to the inch
 
     def test_a_book_with_nothing_in_it_is_still_a_file(self, folder):
         write_pdf(Book(language="en"), folder / "empty.pdf", VERA)

@@ -364,7 +364,15 @@ def write_pdf(book: Book, output: Path, font: Path | None = None) -> None:
         )
 
     margin = 18 * mm
-    width, height = A5[0] - 2 * margin, A5[1] - 2 * margin - 8 * mm
+    document = SimpleDocTemplate(
+        str(output), pagesize=A5, leftMargin=margin, rightMargin=margin, topMargin=margin, bottomMargin=margin + 4 * mm,
+        title=book.title or None, author=book.author or None, lang=book.language or None,
+        # A fixed date and identifier: the same book gives the same file.
+        invariant=1,
+    )
+    # What a picture may fill: the page inside its margins, less the frame's own
+    # padding on each side and a point for rounding. One any larger fits no page.
+    width, height = document.width - 2 * _FRAME_PADDING - 1, document.height - 2 * _FRAME_PADDING - 1
     story: list = []
     if book.title and not any(block.kind == "h1" for block in book.blocks):
         story.append(Paragraph(_xml(book.title), styles["h1"]))
@@ -400,13 +408,11 @@ def write_pdf(book: Book, output: Path, font: Path | None = None) -> None:
         canvas.setFont(fonts.regular, 8)
         canvas.drawCentredString(A5[0] / 2, 10 * mm, str(document.page))
 
-    document = SimpleDocTemplate(
-        str(output), pagesize=A5, leftMargin=margin, rightMargin=margin, topMargin=margin, bottomMargin=margin + 4 * mm,
-        title=book.title or None, author=book.author or None, lang=book.language or None,
-        # A fixed date and identifier: the same book gives the same file.
-        invariant=1,
-    )
     document.build(story, onFirstPage=page_number, onLaterPages=page_number)
+
+
+# The space reportlab's page frame leaves inside each of its edges, in points.
+_FRAME_PADDING = 6
 
 
 def _picture(book: Book, block: Block, width: float, height: float, caption, Image, Paragraph, Spacer) -> list:
