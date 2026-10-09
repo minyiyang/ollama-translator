@@ -170,7 +170,8 @@ export type JobKind = "book" | "subtitles";
 // Settings only one kind of job reads, by path or by section ("epub."). The
 // other kind's form leaves them out; the YAML tab shows every setting.
 const ONLY_FOR: Record<JobKind, string[]> = {
-  book: ["epub.", "reprose.", "output.pdf_font", "translation.translated_title"],
+  // Subtitles are dialogue without quotation marks: the check of quoted lines finds nothing in them.
+  book: ["epub.", "reprose.", "output.pdf_font", "translation.translated_title", "consistency.quoted_speech"],
   subtitles: ["subtitles."],
 };
 
@@ -189,10 +190,10 @@ const OPTIONS = new Map(COMMON_GROUPS.flatMap((g) => g.options).flatMap((o) => (
 /** The paths the curated view names. */
 export const LABELLED_PATHS = [...OPTIONS.keys()];
 
-/** An option's name in the interface language; undefined for one the curated view does not list. */
-export const optionLabel = (path: string): string | undefined => {
+/** An option's name in the interface language, worded for the kind of job; undefined for one the curated view does not list. */
+export const optionLabel = (path: string, jobType?: JobKind): string | undefined => {
   const option = OPTIONS.get(path);
-  return option && t(option.label);
+  return option && t(jobKey(option.label, jobType));
 };
 
 /** An option's help in the interface language, worded for the kind of job; undefined when it has none. */

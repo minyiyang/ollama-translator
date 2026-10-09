@@ -29,6 +29,15 @@ const SCHEMA = {
       ],
     },
     { key: "subtitles", title: "Subtitles", fields: [field("subtitles.line_characters", "integer", null, { nullable: true })] },
+    { key: "glossary", title: "Glossary", fields: [field("glossary.extraction_enabled", "boolean", true)] },
+    {
+      key: "consistency", title: "Content consistency", fields: [
+        field("consistency.enabled", "boolean", true),
+        field("consistency.quoted_speech", "boolean", true),
+        field("consistency.story_context.enabled", "boolean", false),
+        field("consistency.story_context.chapters_before", "integer", 2),
+      ],
+    },
   ],
 };
 
@@ -92,6 +101,32 @@ describe("Config editor: the settings a kind of job reads", () => {
     expect(screen.getByText(/The format the finished book is given back in\./)).toBeInTheDocument();
   });
 
+  it("words a subtitle job's settings for subtitles: the film and its parts, not a book and its chapters", async () => {
+    editorApi();
+    await renderEditor("subtitles");
+    const named = (path: string) =>
+      (screen.getByText(path, { selector: ".path" }).closest(".opt") as HTMLElement).querySelector(".name")?.textContent;
+    expect(named("glossary.extraction_enabled")).toBe("Extract terms from the subtitles");
+    expect(named("consistency.story_context.chapters_before")).toBe("Earlier parts in context");
+    expect(screen.getByText("How many previous part summaries each chunk sees.")).toBeInTheDocument();
+    expect(screen.getByText(/^Summarize each part of the film first/)).toBeInTheDocument();
+    // The check of lines inside quotation marks finds nothing in subtitles, and is not offered.
+    expect(paths()).toContain("consistency.enabled");
+    expect(paths()).not.toContain("consistency.quoted_speech");
+    expect(groups()).toContain("Content consistency");
+    // A setting's path is its name in the file and stays as it is; what is said about it is the subtitles' wording.
+    const said = [...document.querySelectorAll(".opt .name, .opt .help")].map((node) => node.textContent).join(" ");
+    expect(said).not.toMatch(/chapter|\bbook\b/i);
+  });
+
+  it("keeps a book's settings worded for a book", async () => {
+    editorApi();
+    await renderEditor("book");
+    expect(screen.getByText("Extract terms from the book")).toBeInTheDocument();
+    expect(screen.getByText("Earlier chapters in context")).toBeInTheDocument();
+    expect(paths()).toContain("consistency.quoted_speech");
+  });
+
   it("shows everything where the kind of job is not known", async () => {
     editorApi();
     await renderEditor();
@@ -116,6 +151,7 @@ describe("Config editor: the settings a kind of job reads", () => {
     expect(paths()).not.toContain("epub.strip_print_page_markers");
     expect(paths()).not.toContain("output.pdf_font");
     const jumps = [...document.querySelectorAll(".section-nav button")].map((button) => button.textContent);
-    expect(jumps).toEqual(["Translation", "Output format", "Subtitles"]);
+    expect(jumps).toEqual(["Translation", "Output format", "Subtitles", "Glossary", "Content consistency"]);
+    expect(paths()).not.toContain("consistency.quoted_speech");
   });
 });

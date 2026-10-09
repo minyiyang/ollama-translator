@@ -271,6 +271,19 @@ describe("stageLabel", () => {
     expect(stageInfo("compile", "book")!.does).toMatch(/^Builds the book as an EPUB/);
   });
 
+  it("words every setting a subtitle job is shown without a book, a chapter, or an EPUB", async () => {
+    const { LABELLED_PATHS, optionHelp, optionLabel, usedByJob } = await import("./configCatalog");
+    const shown = LABELLED_PATHS.filter((path) => usedByJob(path, "subtitles"));
+    expect(shown).toContain("consistency.enabled");
+    expect(shown).not.toContain("consistency.quoted_speech");
+    for (const path of shown) {
+      expect(`${optionLabel(path, "subtitles")} ${optionHelp(path, "subtitles") ?? ""}`, path).not.toMatch(/EPUB|\bbooks?\b|chapter/i);
+    }
+    expect(optionLabel("glossary.book_glossaries", "subtitles")).toBe("Glossaries for this file");
+    expect(optionLabel("glossary.book_glossaries", "book")).toBe("Book glossaries");
+    expect(optionLabel("glossary.book_glossaries")).toBe("Book glossaries");
+  });
+
   it("offers a subtitle job its formats in the order the server gives them, the file's own first", async () => {
     const { outputFormats, outputFormatLabel } = await import("./format");
     expect(outputFormats(["vtt", "srt", "ass"])).toEqual([["vtt", "WebVTT"], ["srt", "SRT"], ["ass", "ASS"]]);

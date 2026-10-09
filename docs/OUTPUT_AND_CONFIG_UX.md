@@ -298,6 +298,10 @@ source's. Only a conversion goes through the new writer.
   subtitle job with a book's format, or a book with a subtitle format, is
   refused before any model call (`check_output`), by `export`, and by
   `GET /api/jobs/<id>/output?format=`.
+- **Said when the config is validated.** The dashboard's Validate step runs
+  the same check (`validate_setup`), for books and subtitle jobs: a format the
+  job cannot be given, or a PDF that cannot be written, is a problem listed
+  there instead of a job that fails as it starts.
 - **Existing jobs.** A subtitle job that names no format, or its own, hashes
   as it did and is not compiled again.
 - **Wording.** A message with a wording of its own for a subtitle job has the
@@ -307,8 +311,14 @@ source's. Only a conversion goes through the new writer.
   Two server messages that named a book were reworded for both kinds.
 - **Settings by kind of job.** The Config tab's form leaves out what the
   other kind alone reads (`ONLY_FOR` in `frontend/src/lib/configCatalog.ts`):
-  for a subtitle job `epub.*`, `reprose.*`, `output.pdf_font`, and
-  `translation.translated_title`; for a book `subtitles.*`. `output.format`
+  for a subtitle job `epub.*`, `reprose.*`, `output.pdf_font`,
+  `translation.translated_title`, and `consistency.quoted_speech`
+  (subtitles are dialogue without quotation marks, so that check finds
+  nothing in them); for a book `subtitles.*`. The settings a subtitle job
+  does see are worded for it where the book's wording speaks of a book or
+  its chapters ("Extract terms from the subtitles", "Earlier parts in
+  context"), and the group once called "Book consistency" is "Content
+  consistency" for both kinds. `output.format`
   offers the formats of the job's kind. The YAML tab shows the whole file,
   and a line above the form says what is left out.
 - **The Jobs list has the menu too**, for books and subtitle jobs alike: one

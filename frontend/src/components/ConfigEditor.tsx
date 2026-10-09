@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { api } from "../api";
-import { useT, type MessageKey } from "../i18n";
+import { jobKey, useT, type MessageKey } from "../i18n";
 import {
   COMMON_GROUPS,
   GLOSSARY_REVIEW_FLAGS,
@@ -178,7 +178,7 @@ export function ConfigEditor({
     return (
       <div key={field.path} className={`opt ${modified ? "modified" : ""} ${error ? "invalid" : ""}`} id={`opt-${field.path}`}>
         <div>
-          <div className="name">{optionLabel(field.path) ?? humanize(field.key)}</div>
+          <div className="name">{optionLabel(field.path, jobType) ?? humanize(field.key)}</div>
           <div className="path">{field.path}</div>
           {optionHelp(field.path, jobType) && <div className="help">{optionHelp(field.path, jobType)}</div>}
         </div>
@@ -237,7 +237,7 @@ export function ConfigEditor({
 
   /** A line naming the options this pair does not use, and why. */
   const renderHidden = (group: (typeof COMMON_GROUPS)[number]) => {
-    const names = group.options.flatMap((o) => ("path" in o && hidden.has(o.path) ? [[t(o.label), hidden.get(o.path)!.reason] as const] : []));
+    const names = group.options.flatMap((o) => ("path" in o && hidden.has(o.path) && usedByJob(o.path, jobType) ? [[t(jobKey(o.label, jobType)), hidden.get(o.path)!.reason] as const] : []));
     if (!names.length) return null;
     return (
       <p className="meta" key="hidden">
@@ -282,7 +282,7 @@ export function ConfigEditor({
   const q = query.trim().toLowerCase();
   const matches = (f: SchemaField) =>
     usedByJob(f.path, jobType) &&
-    (!q || f.path.toLowerCase().includes(q) || (optionLabel(f.path) ?? "").toLowerCase().includes(q)) &&
+    (!q || f.path.toLowerCase().includes(q) || (optionLabel(f.path, jobType) ?? "").toLowerCase().includes(q)) &&
     (!changedOnly || (hasPath(values, f.path) && !sameValue(getPath(values, f.path), f.default)));
 
   return (

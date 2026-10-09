@@ -16,6 +16,7 @@ from ..subtitles import JOB_SOURCE_NAMES, JOB_SOURCE_SUFFIXES
 from ..cli import resolve_config_paths
 from ..config import AppConfig
 from ..languages import LanguagePair, language_catalog, language_support
+from ..output import check_output
 from ..pipeline_state import WorkflowStage
 from ..workspace import build_job_id, slugify_job_name, validate_job_id
 from .jobs import shown_stages
@@ -129,6 +130,12 @@ def validate_setup(
         problems.append(f"source file not found: {source_path}")
     elif source_path.suffix.casefold() not in JOB_SOURCE_SUFFIXES:
         problems.append(f"source must be {JOB_SOURCE_NAMES}")
+    else:
+        # An output format this job cannot be given is said here, not when the job starts.
+        try:
+            check_output(source_path, config)
+        except ValueError as error:
+            problems.append(str(error))
     readable = f"{slugify_job_name(source_path.stem)}-{config.translation.direction.slug}" if source else ""
     job = job_id or (readable if readable and not (runs / readable).exists() else build_job_id(source_path) if source else "")
     try:

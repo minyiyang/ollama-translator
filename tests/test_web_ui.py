@@ -133,6 +133,24 @@ class SetupTests:
             assert "qwen3.8:latest" in text
             assert {m["model"]: m["installed"] for m in result["models"]}["gemma4:31b"] is True
 
+    def test_validate_setup_says_an_output_format_the_job_cannot_be_given(self):
+        with tempfile.TemporaryDirectory() as directory:
+            folder = Path(directory)
+            (folder / "film.srt").write_text("1\n00:00:01,000 --> 00:00:02,000\nYes.\n", encoding="utf-8")
+            (folder / "book.epub").write_bytes(b"")
+
+            def problems(source, text):
+                with patch.object(setup_api, "installed_models", return_value=None):
+                    return " | ".join(setup_api.validate_setup(text, folder, folder / "runs", str(folder / source), "")["problems"])
+
+            # Said when the config is validated, not when the job starts.
+            assert "a book's format, and this is a subtitle job" in problems("film.srt", "output: {format: docx}")
+            assert "a subtitle format, and this is a book" in problems("book.epub", "output: {format: vtt}")
+            assert "output.format" not in problems("film.srt", "output: {format: vtt}")
+            assert "output.format" not in problems("book.epub", "output: {format: docx}")
+            with patch("book_agent.pdf_export.check_pdf_output", side_effect=ValueError("writing a PDF needs the reportlab package")):
+                assert "needs the reportlab package" in problems("book.epub", "output: {format: pdf}")
+
     def test_config_names_cannot_escape_the_config_directory(self):
         with pytest.raises(ValueError):
             setup_api.config_path(Path("."), "../secrets.yaml")

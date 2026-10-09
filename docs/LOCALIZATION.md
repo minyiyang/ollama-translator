@@ -57,6 +57,10 @@ translates any pair (docs/GENERIC_LANGUAGES.md).
 - Keys are typed from `en.json`, so `t("jobs.addNew")` with a misspelled key
   fails the build.
 - English is bundled; other catalogs are **loaded on demand** when selected.
+- A message worded differently for a subtitle job has a second key, the same
+  one ending in `.subtitles` (`stage.compile.does.subtitles`).
+  `jobKey(key, jobType)` picks it for a subtitle job and the plain key
+  otherwise, so a message without one is shared by both kinds of job.
 
 ### 2.3 Language selection
 
