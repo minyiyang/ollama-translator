@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useT, type MessageKey } from "../i18n";
+import { tierLabel } from "../lib/enums";
 import {
   tierHelp,
   isGeneric,
@@ -20,7 +21,7 @@ export function LanguageNotes({ support, open = false }: { support: LanguageSupp
         <span>{t("jobs.languages.pair", { source: support.source.name, target: support.target.name })}</span>
         {[support.source, support.target].map((side, i) => (
           <Chip key={i} kind={side.tier === "tuned" ? "ok" : "warn"} title={tierHelp(side.tier)}>
-            {side.code}: {side.tier}
+            {side.code}: {tierLabel(side.tier)}
           </Chip>
         ))}
       </div>
@@ -110,7 +111,7 @@ export function LanguagePairPicker({
     <div className="pair-picker">
       <datalist id="language-codes">
         {languages.map((language) => (
-          <option key={language.code} value={language.code} label={`${language.name}${language.tier === "generic" ? "" : ` · ${language.tier}`}`} />
+          <option key={language.code} value={language.code} label={`${language.name}${language.tier === "generic" ? "" : ` · ${tierLabel(language.tier)}`}`} />
         ))}
       </datalist>
       <div className="row" style={{ margin: 0, alignItems: "flex-start" }}>

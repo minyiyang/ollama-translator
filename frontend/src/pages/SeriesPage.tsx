@@ -5,6 +5,7 @@ import { Shell } from "../components/Shell";
 import { useToast } from "../components/Toast";
 import { LanguagePairPicker } from "../components/LanguagePairPicker";
 import { Card, Chip } from "../components/ui";
+import { glossaryBoundaryLabel } from "../lib/enums";
 import { directionLabel, relativeTime } from "../lib/format";
 import { rich, useT, type MessageKey } from "../i18n";
 import { FALLBACK_PAIR, langAttr, pairCodes, type GlossaryPair } from "../lib/languages";
@@ -215,7 +216,7 @@ function BooksTab({ detail, onChange, onCurate }: { detail: Detail; onChange: (d
                 <label key={job.job_id} className="ropt">
                   <input type="checkbox" checked={picked.includes(job.job_id)}
                     onChange={(e) => setPicked((old) => (e.target.checked ? [...old, job.job_id] : old.filter((id) => id !== job.job_id)))} />
-                  <span className="mono">{job.job_id}</span> <span className="meta">{job.source} · {job.glossary}</span>
+                  <span className="mono">{job.job_id}</span> <span className="meta">{job.source} · {glossaryBoundaryLabel(job.glossary)}</span>
                 </label>
               ))}
             </div>

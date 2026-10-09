@@ -288,10 +288,8 @@ Die Oberfläche gibt es auf Englisch, vereinfachtem Chinesisch, Japanisch,
 Französisch, Spanisch, Deutsch und Koreanisch, also in den Sprachen, für die
 die Pipeline ein Profil hat. Die Sprache wählst du im Menü rechts in der
 Kopfzeile; die Auswahl wird im Browser gespeichert, Standard ist Englisch. Die
-Oberflächensprache ist unabhängig von der Übersetzungsrichtung eines Jobs.
-Stufenbeschreibungen, Hilfetexte zu Optionen und Meldungen des Servers sind
-vorerst weiterhin englisch (siehe
-[Lokalisierung des Dashboards](docs/LOCALIZATION.md), Englisch).
+Oberflächensprache ist unabhängig von der Übersetzungsrichtung eines Jobs
+(siehe [Lokalisierung des Dashboards](docs/LOCALIZATION.md), Englisch).
 
 - **Jobs** listet die Jobs mit ihrer Übersetzungsrichtung auf (zum Beispiel
   `EN → ZH`) und legt neue an. Ein abgeschlossener Job hat in der Liste und in

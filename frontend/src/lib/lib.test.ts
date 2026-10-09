@@ -68,10 +68,11 @@ describe("configValues paths", () => {
 
 describe("config catalog", () => {
   it("indexes labels, help, and model settings by path", async () => {
-    const { COMMON_GROUPS, HELP, LABELS, MODEL_PATHS } = await import("./configCatalog");
-    expect(LABELS["ollama.model"]).toBe("Primary model");
-    expect(HELP["ollama.temperature"]).toBe("0 keeps output deterministic and resumable.");
-    expect(HELP["ollama.host"]).toBeUndefined(); // an option without help text
+    const { COMMON_GROUPS, LABELLED_PATHS, MODEL_PATHS, optionHelp, optionLabel } = await import("./configCatalog");
+    expect(optionLabel("ollama.model")).toBe("Primary model");
+    expect(optionHelp("ollama.temperature")).toBe("0 keeps output deterministic and resumable.");
+    expect(optionHelp("ollama.host")).toBeUndefined(); // an option without help text
+    expect(optionLabel("ollama.no_such_option")).toBeUndefined();
     expect(MODEL_PATHS.has("ollama.model")).toBe(true);
     expect(MODEL_PATHS.has("translation.fallback_models")).toBe(true);
     expect(MODEL_PATHS.has("audit.quantity.model")).toBe(true); // only under All settings
@@ -79,7 +80,7 @@ describe("config catalog", () => {
 
     const paths = COMMON_GROUPS.flatMap((g) => g.options).flatMap((o) => ("path" in o ? [o.path] : []));
     expect(new Set(paths).size, "an option is listed in two groups").toBe(paths.length);
-    expect(Object.keys(LABELS).sort()).toEqual([...paths].sort());
+    expect([...LABELLED_PATHS].sort()).toEqual([...paths].sort());
   });
 
   it("names the settings each special option writes", async () => {
@@ -226,12 +227,13 @@ describe("roughDuration", () => {
 describe("stage descriptions", () => {
   it("cover every pipeline stage with the required parts", async () => {
     const { STAGE_LABELS } = await import("./stages");
-    const { STAGE_INFO } = await import("./stageInfo");
+    const { stageInfo } = await import("./stageInfo");
     for (const stage of Object.keys(STAGE_LABELS)) {
-      const info = STAGE_INFO[stage];
+      const info = stageInfo(stage);
       expect(info, stage).toBeDefined();
-      for (const part of ["does", "input", "output", "checks"] as const) expect(info[part].length, `${stage}.${part}`).toBeGreaterThan(10);
+      for (const part of ["does", "input", "output", "checks"] as const) expect(info![part].length, `${stage}.${part}`).toBeGreaterThan(10);
     }
+    expect(stageInfo("no_such_stage")).toBeUndefined();
   });
 });
 

@@ -700,8 +700,7 @@ The interface comes in English, Simplified Chinese, Japanese, French,
 Spanish, German, and Korean, the languages the pipeline has a profile for.
 Pick one from the menu at the right of the header; the choice is saved in the
 browser, and English is the default. The interface language is independent of
-a job's translation direction. Stage descriptions, option help, and messages
-from the server are still in English
+a job's translation direction
 ([Dashboard localization](docs/LOCALIZATION.md)).
 
 - **Jobs** lists jobs with their translation direction (for example

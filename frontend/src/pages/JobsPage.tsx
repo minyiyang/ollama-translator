@@ -6,6 +6,7 @@ import { Shell } from "../components/Shell";
 import { useToast } from "../components/Toast";
 import { Bar, Card, Chip } from "../components/ui";
 import { rich, useT } from "../i18n";
+import { statusLabel } from "../lib/enums";
 import { directionLabel, isSourceBook, jobTypeLabel, outputUrl, relativeTime, SOURCE_ACCEPT, sourceKinds, type JobType } from "../lib/format";
 import { stageLabel } from "../lib/stages";
 
@@ -67,7 +68,7 @@ function JobsTable({ jobs }: { jobs: Job[] }) {
               <td>{job.source}</td>
               <td>{jobTypeLabel(job.job_type ?? "book")}</td>
               <td className="mono nowrap" title={job.direction || t("jobs.table.directionNotSet")}>{directionLabel(job.direction)}</td>
-              <td><Chip kind={job.overall}>{job.overall}</Chip></td>
+              <td><Chip kind={job.overall}>{statusLabel(job.overall)}</Chip></td>
               <td>
                 {draft ? <span className="meta">{t("jobs.table.notStarted")}</span> : job.current_stage ? stageLabel(job.current_stage) : "—"}
                 {waiting && <div><Link to={`${base}/${waiting[0]}`}>{waiting[1]}</Link></div>}

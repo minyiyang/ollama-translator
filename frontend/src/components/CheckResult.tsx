@@ -1,4 +1,5 @@
 import { rich, useT } from "../i18n";
+import { glossaryReviewLabel, roleLabel, styleLabel } from "../lib/enums";
 import { directionLabel } from "../lib/format";
 import { isGeneric, type LanguageSupport } from "../lib/languages";
 import { stageLabel } from "../lib/stages";
@@ -27,8 +28,8 @@ export function CheckResult({ check }: { check: Check }) {
       <h2 className="label">{t("glossary.check.settings")}</h2>
       <div className="row" style={{ marginBottom: 14 }}>
         <Chip title={String(s.direction)}>{directionLabel(String(s.direction))}</Chip>
-        <Chip>{t("glossary.check.style", { style: String(s.style) })}</Chip>
-        <Chip>{t("glossary.check.glossaryReview", { mode: String(s.glossary_review) })}</Chip>
+        <Chip>{t("glossary.check.style", { style: styleLabel(String(s.style)) })}</Chip>
+        <Chip>{t("glossary.check.glossaryReview", { mode: glossaryReviewLabel(String(s.glossary_review)) })}</Chip>
         <Chip>{t("glossary.check.semanticAudit", { on: String(!!s.semantic_audit) })}</Chip>
         <Chip>{t("glossary.check.proseRewrite", { on: String(!!s.reprose) })}</Chip>
         <Chip>{t("glossary.check.finalApproval", { always: String(!!s.final_review_required) })}</Chip>
@@ -42,7 +43,7 @@ export function CheckResult({ check }: { check: Check }) {
         <tbody>
           {check.models.map((m) => (
             <tr key={m.role}>
-              <td>{m.role}</td>
+              <td>{roleLabel(m.role)}</td>
               <td className="mono">{m.model}</td>
               <td>{m.installed === null ? <span className="meta">{t("glossary.check.unknown")}</span> : m.installed ? <span className="ok-mark">✓</span> : <span className="bad-mark">{t("glossary.check.missing")}</span>}</td>
             </tr>

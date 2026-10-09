@@ -1,6 +1,7 @@
 import { useLayoutEffect, useRef, type ReactNode } from "react";
 import { Link, NavLink } from "react-router-dom";
 import { LOCALES, setLocale, useLocale, useT, type Locale, type MessageKey } from "../i18n";
+import { tierLabel } from "../lib/enums";
 import { directionLabel } from "../lib/format";
 import { isGeneric } from "../lib/languages";
 import { tabStates } from "../lib/stages";
@@ -69,7 +70,7 @@ export function Shell({
         {(jobId || crumb) && <span className={jobId ? "crumb mono" : "crumb"}>{jobId ?? crumb}</span>}
         {jobId && info?.languages && isGeneric(info.languages) && (
           <span className="chip warn" title={[
-            t("shell.pairTiers", { source: info.languages.source.name, sourceTier: info.languages.source.tier, target: info.languages.target.name, targetTier: info.languages.target.tier }),
+            t("shell.pairTiers", { source: info.languages.source.name, sourceTier: tierLabel(info.languages.source.tier), target: info.languages.target.name, targetTier: tierLabel(info.languages.target.tier) }),
             ...info.languages.skipped.map((item) => t("shell.skipped", { check: item.check, reason: item.reason })),
           ].join("\n")}>
             {t("shell.checksSkipped", { direction: directionLabel(info.direction), count: info.languages.skipped.length })}

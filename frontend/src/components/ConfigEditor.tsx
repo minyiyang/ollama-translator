@@ -4,8 +4,8 @@ import { useT, type MessageKey } from "../i18n";
 import {
   COMMON_GROUPS,
   GLOSSARY_REVIEW_FLAGS,
-  HELP,
-  LABELS,
+  optionHelp,
+  optionLabel,
   MODEL_PATHS,
   SPECIAL_PATHS,
   glossaryReviewMode,
@@ -167,9 +167,9 @@ export function ConfigEditor({
     return (
       <div key={field.path} className={`opt ${modified ? "modified" : ""} ${error ? "invalid" : ""}`} id={`opt-${field.path}`}>
         <div>
-          <div className="name">{LABELS[field.path] ?? humanize(field.key)}</div>
+          <div className="name">{optionLabel(field.path) ?? humanize(field.key)}</div>
           <div className="path">{field.path}</div>
-          {HELP[field.path] && <div className="help">{HELP[field.path]}</div>}
+          {optionHelp(field.path) && <div className="help">{optionHelp(field.path)}</div>}
         </div>
         <div className="control">
           <FieldControl field={field} value={value} onChange={(v) => change(field.path, v)} installed={installed} isModel={MODEL_PATHS.has(field.path)} />
@@ -226,7 +226,7 @@ export function ConfigEditor({
 
   /** A line naming the options this pair does not use, and why. */
   const renderHidden = (group: (typeof COMMON_GROUPS)[number]) => {
-    const names = group.options.flatMap((o) => ("path" in o && hidden.has(o.path) ? [[o.label, hidden.get(o.path)!.reason] as const] : []));
+    const names = group.options.flatMap((o) => ("path" in o && hidden.has(o.path) ? [[t(o.label), hidden.get(o.path)!.reason] as const] : []));
     if (!names.length) return null;
     return (
       <p className="meta" key="hidden">
@@ -268,7 +268,7 @@ export function ConfigEditor({
 
   const q = query.trim().toLowerCase();
   const matches = (f: SchemaField) =>
-    (!q || f.path.toLowerCase().includes(q) || (LABELS[f.path] ?? "").toLowerCase().includes(q)) &&
+    (!q || f.path.toLowerCase().includes(q) || (optionLabel(f.path) ?? "").toLowerCase().includes(q)) &&
     (!changedOnly || (hasPath(values, f.path) && !sameValue(getPath(values, f.path), f.default)));
 
   return (
@@ -315,7 +315,7 @@ export function ConfigEditor({
             {COMMON_GROUPS.map((group) =>
               renderGroup(
                 `opt:${group.title}`,
-                group.title,
+                t(group.title),
                 optionPaths(group),
                 [
                   ...group.options.map((option) =>
@@ -325,7 +325,7 @@ export function ConfigEditor({
                   ),
                   renderHidden(group),
                 ],
-                group.help,
+                group.help && t(group.help),
               ),
             )}
           </>

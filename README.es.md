@@ -283,9 +283,8 @@ La interfaz está disponible en inglés, chino simplificado, japonés, francés,
 español, alemán y coreano, los idiomas para los que el pipeline tiene perfil.
 Elige uno en el menú de la derecha de la cabecera; la elección se guarda en
 el navegador y el idioma por defecto es el inglés. El idioma de la interfaz
-es independiente de la dirección de traducción del trabajo. Las descripciones
-de las etapas, la ayuda de las opciones y los mensajes del servidor siguen en
-inglés (véase [Localización del panel](docs/LOCALIZATION.md), en inglés).
+es independiente de la dirección de traducción del trabajo (véase
+[Localización del panel](docs/LOCALIZATION.md), en inglés).
 
 - **Trabajos**: lista los trabajos con su dirección de traducción (por
   ejemplo, `EN → ZH`) y crea otros nuevos. Un trabajo terminado tiene un

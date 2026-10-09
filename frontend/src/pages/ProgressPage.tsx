@@ -9,7 +9,9 @@ import { NotStarted, useJob } from "../components/JobContext";
 import { useToast } from "../components/Toast";
 import { Bar, Card, Chip } from "../components/ui";
 import { getLocale, rich, useT, type MessageKey, type Translate } from "../i18n";
+import { statusLabel } from "../lib/enums";
 import { count, duration, relativeTime, roughDuration, shortTimestamp } from "../lib/format";
+import { rerunWarning, stageMessage } from "../lib/serverText";
 import { attentionFrom, lastStageAction, stageActions, stageLabel, type Stage, type WorkflowStatus } from "../lib/stages";
 
 type Activity = {
@@ -126,7 +128,7 @@ function stageResult(t: Translate, stage: Stage, activity?: Activity): string {
   }
   if (activity?.first && activity.last && stage.status !== "pending") parts.push(t("progress.result.thisSession", { time: duration(activity.first, activity.last) }));
   const summary = parts.join(" · ");
-  return stage.message ? t("progress.result.summaryWithMessage", { summary, message: stage.message }) : t("progress.result.summary", { summary });
+  return stage.message ? t("progress.result.summaryWithMessage", { summary, message: stageMessage(stage.message) }) : t("progress.result.summary", { summary });
 }
 
 type RerunPreview = {
@@ -187,7 +189,7 @@ function StageActionButtons({ stage, live, onLaunched }: { stage: Stage; live: b
         </ol>
         {later > 0 && <p className="meta">{t("progress.rerun.continues", { count: later })}</p>}
         {preview.previous_seconds ? <p className="meta">{t("progress.rerun.tookSoFar", { time: roughDuration(preview.previous_seconds) })}</p> : null}
-        {preview.warnings.map((w) => <div key={w.code} className="banner warn">{w.message}</div>)}
+        {preview.warnings.map((w) => <div key={w.code} className="banner warn">{rerunWarning(w)}</div>)}
       </>,
       [
         { value: "cancel", label: t("common.cancel"), primary: true },
@@ -317,10 +319,10 @@ export function ProgressPage() {
           <>
             <section className="card summary">
               <div>
-                <Chip kind={status.overall}>{status.overall}</Chip>
+                <Chip kind={status.overall}>{statusLabel(status.overall)}</Chip>
                 <span className="meta" style={{ marginLeft: 6 }}>{data.source}</span>
                 <div className="big">{current ? stageLabel(current.name) : t("progress.summary.allComplete")}</div>
-                {current?.message && <div className="meta">{current.message}</div>}
+                {current?.message && <div className="meta">{stageMessage(current.message)}</div>}
                 <Bar percent={(100 * done) / stages.length} running={status.overall !== "complete"} />
                 <span className="meta">{t("progress.summary.stagesComplete", { done, total: stages.length })}</span>
                 {proc && (
@@ -367,7 +369,7 @@ export function ProgressPage() {
                         <td>
                           <b>{stageLabel(stage.name)}</b> <StageTip stage={stage.name} result={stageResult(t, stage, activity)} />{" "}
                           <span className="meta mono">{stage.name}</span>
-                          {stage.message && <div className="msg">{stage.message}</div>}
+                          {stage.message && <div className="msg">{stageMessage(stage.message)}</div>}
                           {stage.name === "translate_title" && leftInSource.length > 0 && (
                             <div className="msg">
                               <Link to={`${base}/text?view=untranslated`}>

@@ -18,6 +18,7 @@ from ..config import AppConfig
 from ..languages import LanguagePair, language_catalog, language_support
 from ..pipeline_state import WorkflowStage
 from ..workspace import build_job_id, slugify_job_name, validate_job_id
+from .messages import UserError
 
 _CONFIG_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*\.ya?ml$")
 
@@ -34,7 +35,7 @@ def list_configs(config_dir: Path) -> list[dict[str, str]]:
 
 def config_path(config_dir: Path, name: str) -> Path:
     if not _CONFIG_NAME_RE.match(name):
-        raise ValueError("config name must be a simple .yaml/.yml file name")
+        raise UserError("config_name_invalid")
     return config_dir / name
 
 

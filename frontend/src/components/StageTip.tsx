@@ -1,6 +1,6 @@
 import { useId, useState, type ReactNode } from "react";
 import { useT } from "../i18n";
-import { STAGE_INFO } from "../lib/stageInfo";
+import { stageInfo } from "../lib/stageInfo";
 
 /**
  * ⓘ next to a stage name: what the stage does, its input/output, what it checks,
@@ -9,7 +9,7 @@ import { STAGE_INFO } from "../lib/stageInfo";
  */
 export function StageTip({ stage, result }: { stage: string; result: ReactNode }) {
   const t = useT();
-  const info = STAGE_INFO[stage];
+  const info = stageInfo(stage);
   const id = useId();
   const [hover, setHover] = useState(false);
   const [pinned, setPinned] = useState(false);

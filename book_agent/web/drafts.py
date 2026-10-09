@@ -14,10 +14,11 @@ from pathlib import Path
 from typing import Any
 
 from ..atomic_io import atomic_write_text
-from ..subtitles import JOB_SOURCE_NAMES, JOB_SOURCE_SUFFIXES
+from ..subtitles import JOB_SOURCE_SUFFIXES
 from ..hashing import sha256_text
 from ..workspace import slugify_job_name, validate_job_id
 from . import setup as setup_api
+from .messages import UserError
 
 DRAFT_DIR = ".drafts"
 UPLOAD_DIR = ".uploads"
@@ -78,14 +79,14 @@ def create_draft(
     """Record a new job; create its config from the template unless it already exists."""
     source_path = Path(source).expanduser()
     if not source_path.is_file():
-        raise ValueError(f"source file not found: {source_path}")
+        raise UserError("source_not_found", path=source_path)
     if source_path.suffix.casefold() not in _SOURCE_SUFFIXES:
-        raise ValueError(f"source must be {JOB_SOURCE_NAMES}")
+        raise UserError("source_unsupported")
     config_path = setup_api.config_path(config_dir, config_name)
     job_id = job_id or Path(config_name).stem
     validate_job_id(job_id)
     if (runs / job_id).exists() or _draft_path(runs, job_id).exists():
-        raise ValueError(f"a job named {job_id} already exists")
+        raise UserError("job_exists", job=job_id)
     created_config = False
     if not config_path.is_file():
         text = template.read_text(encoding="utf-8") if template and template.is_file() else ""
@@ -108,7 +109,7 @@ def store_upload(runs: Path, filename: str, stream, length: int) -> Path:
     name = Path(filename).name
     stem, suffix = Path(name).stem, Path(name).suffix
     if suffix.casefold() not in _SOURCE_SUFFIXES:
-        raise ValueError(f"only {JOB_SOURCE_NAMES} can be uploaded")
+        raise UserError("upload_unsupported")
     safe_stem = re.sub(r"[^\w .'()-]+", "_", stem).strip() or "book"
     directory = runs / UPLOAD_DIR
     directory.mkdir(parents=True, exist_ok=True)
@@ -117,7 +118,7 @@ def store_upload(runs: Path, filename: str, stream, length: int) -> Path:
     while remaining > 0:
         chunk = stream.read(min(remaining, 1 << 20))
         if not chunk:
-            raise ValueError("upload ended early")
+            raise UserError("upload_incomplete")
         data.extend(chunk)
         remaining -= len(chunk)
     target = directory / f"{safe_stem}{suffix}"

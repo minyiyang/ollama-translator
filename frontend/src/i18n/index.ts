@@ -69,6 +69,9 @@ const subscribe = (notify: () => void) => {
   return () => void listeners.delete(notify);
 };
 
+/** Whether the catalog has this message: for a key built from what the server sent. */
+export const hasMessage = (key: string): key is MessageKey => Object.hasOwn(en, key);
+
 /** The interface language in use. */
 export const getLocale = (): Locale => current.locale;
 

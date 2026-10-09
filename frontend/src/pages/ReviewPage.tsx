@@ -9,6 +9,7 @@ import { useToast } from "../components/Toast";
 import { Chip, Highlight } from "../components/ui";
 import { rich, useT, type MessageKey, type Translate } from "../i18n";
 import { diffChars } from "../lib/diff";
+import { findingCategoryLabel, findingOriginLabel, reviewKindLabel, severityLabel, statusLabel, versionLabel } from "../lib/enums";
 import { FALLBACK_PAIR, langAttr, leftoverSourceText, pairCodes } from "../lib/languages";
 import { cueLabel, readingProblems, type Cue, type ReadingLimits } from "../lib/subtitles";
 import type { WorkflowStatus } from "../lib/stages";
@@ -115,7 +116,7 @@ function CompileCard({ jobId, initial }: { jobId: string; initial?: CompileState
     if (asked !== visit.current) return;
     setState(next);
     if (next.state === "running") timer.current = window.setTimeout(poll, 1500);
-    else if (next.result) toast(next.result.result === "complete" ? "ok" : "warn", t("review.compile.finished", { result: next.result.result }), 0);
+    else if (next.result) toast(next.result.result === "complete" ? "ok" : "warn", t("review.compile.finished", { result: statusLabel(next.result.result) }), 0);
   }, [jobId, toast, t]);
   useEffect(() => {
     if (initial?.state === "running") poll();
@@ -474,7 +475,7 @@ export function ReviewPage() {
           <span className="title">{it.res.segment_id}</span>
           {ctx.cue && <span className="meta" title={t("review.cueTitle", { number: ctx.cue.number })}>{cueLabel(ctx.cue)}</span>}
           {ctx.chapter_title && <Chip>{ctx.chapter_title}</Chip>}
-          {ctx.review_kind && <Chip>{ctx.review_kind}</Chip>}
+          {ctx.review_kind && <Chip>{reviewKindLabel(ctx.review_kind)}</Chip>}
           <span className="meta">{rich("review.position", { position: order.indexOf(index) + 1, total: items.length, kbd: (chunks) => <kbd>{chunks}</kbd> })}</span>
         </div>
         <div className="cols">
@@ -503,7 +504,7 @@ export function ReviewPage() {
             check.blocking.length ? (
               <div className="check bad">
                 {t("review.check.refused")}
-                <ul>{check.blocking.map((b, i) => <li key={i}><b>{b.category}</b> ({b.severity}): {b.message}</li>)}</ul>
+                <ul>{check.blocking.map((b, i) => <li key={i}><b>{findingCategoryLabel(b.category)}</b> ({severityLabel(b.severity)}): {b.message}</li>)}</ul>
               </div>
             ) : <div className="check ok">{t("review.check.passes")}</div>
           )}
@@ -550,7 +551,7 @@ export function ReviewPage() {
             <h2>{t("review.findings.title", { count: findings.length })}</h2>
             {findings.map((f, i) => (
               <div key={i} className={`finding ${i === activeFinding ? "on" : ""}`} onClick={() => setActiveFinding(i === activeFinding ? -1 : i)}>
-                {f.severity && <Chip kind={f.severity}>{f.severity}</Chip>} {f.category && <Chip>{f.category}</Chip>} {f.origin && <span className="meta">{f.origin}</span>}
+                {f.severity && <Chip kind={f.severity}>{severityLabel(f.severity)}</Chip>} {f.category && <Chip>{findingCategoryLabel(f.category)}</Chip>} {f.origin && <span className="meta">{findingOriginLabel(f.origin)}</span>}
                 <div className="msg">{f.message}</div>
                 {f.source_quote && <div className="quote" lang={sourceLang}>{source.toUpperCase()}: {f.source_quote}</div>}
                 {f.translation_quote && <div className="quote" lang={targetLang}>{target.toUpperCase()}: {f.translation_quote}</div>}
@@ -562,7 +563,7 @@ export function ReviewPage() {
             {versions.length ? versions.map((v, i) => (
               <div className="version" key={i}>
                 <div className="row" style={{ margin: "0 0 6px" }}>
-                  <Chip>{v.stage}</Chip>
+                  <Chip>{versionLabel(v.stage)}</Chip>
                   <button className="small" onClick={() => setEdit(v.text)}>{t("review.versions.load")}</button>
                 </div>
                 <div className="text zh" lang={targetLang}>{v.text}</div>

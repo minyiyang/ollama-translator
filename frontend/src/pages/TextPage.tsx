@@ -11,6 +11,7 @@ import { ImportPreviewCard, LastImportCard } from "../components/XliffImport";
 import { rich, useT, type MessageKey } from "../i18n";
 import { KIND_LABELS, chapterOf, noteNumber, pictureUrl, type BookItemKind } from "../lib/bookItems";
 import { diffChars } from "../lib/diff";
+import { editActionLabel, findingCategoryLabel, severityLabel } from "../lib/enums";
 import { xliffExportUrl } from "../lib/format";
 import { cueLabel, readingProblems, type Cue, type ReadingLimits } from "../lib/subtitles";
 import { FALLBACK_PAIR, langAttr, pairCodes } from "../lib/languages";
@@ -621,13 +622,13 @@ export function TextPage() {
               {checkResult.hard.length > 0 && (
                 <>
                   {t("text.editor.cannotSave")}
-                  <ul>{checkResult.hard.map((f, i) => <li key={i}><b>{f.category}</b> ({f.severity}): {f.message}</li>)}</ul>
+                  <ul>{checkResult.hard.map((f, i) => <li key={i}><b>{findingCategoryLabel(f.category)}</b> ({severityLabel(f.severity)}): {f.message}</li>)}</ul>
                 </>
               )}
               {checkResult.overridable.length > 0 && (
                 <>
                   {t("text.editor.needsOverride")}
-                  <ul>{checkResult.overridable.map((f, i) => <li key={i}><b>{f.category}</b> ({f.severity}): {f.message}</li>)}</ul>
+                  <ul>{checkResult.overridable.map((f, i) => <li key={i}><b>{findingCategoryLabel(f.category)}</b> ({severityLabel(f.severity)}): {f.message}</li>)}</ul>
                 </>
               )}
             </div>
@@ -670,7 +671,7 @@ export function TextPage() {
             {historyEvents.map((event) => (
               <div className="hist-event" key={event.event_id}>
                 <div className="row" style={{ margin: 0 }}>
-                  <Chip>{event.action}</Chip>
+                  <Chip>{editActionLabel(event.action)}</Chip>
                   <span className="meta">{event.author} · {event.at}</span>
                 </div>
                 {event.text && <div className="text zh" lang={targetLang}>{event.text}</div>}

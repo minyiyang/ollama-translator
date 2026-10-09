@@ -16,6 +16,7 @@ from ..style_sheet import StyleSheet, address_choices, check_style_choices, pron
 from ..stages.decompile import load_decompile_manifest
 from ..state import connect_state, get_job_metadata, get_stage_status
 from ..workspace import JobWorkspace
+from .messages import UserError
 
 REVIEW_DIR = "glossary/ui-reviews"
 
@@ -135,7 +136,7 @@ def write_reviewed_glossary(workspace: JobWorkspace, entries: list[dict[str, Any
     pair = glossary_pair(config.translation.direction) if config is not None else None
     result = GlossaryResult.model_validate({"pair": pair, "entries": entries})
     if not result.entries:
-        raise ValueError("the reviewed glossary is empty; keep at least one entry")
+        raise UserError("glossary_empty")
     stamp = datetime.now().astimezone().strftime("%Y%m%dT%H%M%S")
     path = workspace.directory(f"{REVIEW_DIR}/glossary.reviewed-{stamp}.json")
     path.parent.mkdir(parents=True, exist_ok=True)

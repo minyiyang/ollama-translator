@@ -6,6 +6,7 @@ import { useToast } from "../components/Toast";
 import { Chip } from "../components/ui";
 import { Highlight } from "../components/ui";
 import { rich, useT, type MessageKey, type Translate } from "../i18n";
+import { glossaryCategoryLabel } from "../lib/enums";
 import { FALLBACK_PAIR, langAttr, pairCodes, type GlossaryPair } from "../lib/languages";
 import {
   WORKBENCH_VIEWS, matchesView, mentioningBooks, singleBookOf, suggestionEligible,
@@ -66,7 +67,7 @@ function EvidencePanel({ seriesId, term, labels, lang }: { seriesId: string; ter
           </div>
           {book.glossary.length ? book.glossary.map((entry, i) => (
             <div key={i} className="evidence-entry">
-              {rich("series.evidence.glossary", { target: <span lang={lang}><b>{entry.target}</b></span>, category: <Chip>{labels[entry.category] ?? entry.category}</Chip> })}
+              {rich("series.evidence.glossary", { target: <span lang={lang}><b>{entry.target}</b></span>, category: <Chip>{glossaryCategoryLabel(entry.category, labels)}</Chip> })}
               {entry.note && <span className="meta"> {entry.note}</span>}
               {entry.evidence.map((sentence, j) => <div key={j} className="quote"><Highlight text={sentence} quote={data.source} /></div>)}
             </div>
@@ -222,7 +223,7 @@ function TermEditor({ term, categoryLabels, onDecide, busy, lang }: {
         <input type="text" lang={lang} className="term-input" value={rendering} aria-label={t("series.editor.translation")} onChange={(e) => setRendering(e.target.value)} />
         <label className="meta" htmlFor={`category-${term.term_id}`}>{t("series.editor.category")}</label>
         <select id={`category-${term.term_id}`} className="term-category" value={category} onChange={(e) => setCategory(e.target.value)}>
-          {categories.map((value) => <option key={value} value={value}>{categoryLabels[value] ?? value}</option>)}
+          {categories.map((value) => <option key={value} value={value}>{glossaryCategoryLabel(value, categoryLabels)}</option>)}
         </select>
       </div>
       <h3 className="term-subhead">{rich("series.reason.heading", { hint: (chunks) => <span className="meta">{chunks}</span> })}</h3>
@@ -461,7 +462,7 @@ export function WorkbenchTab({ seriesId, process, onChanged, onPublished }: {
               onChange={(e) => setChecked((old) => (e.target.checked ? [...old, term.term_id] : old.filter((id) => id !== term.term_id)))} />
             <b lang={sourceLang}>{term.source}</b>
             <span lang={targetLang} className="term-zh">{term.target}</span>
-            <Chip>{data.category_labels?.[term.category] ?? term.category}</Chip>
+            <Chip>{glossaryCategoryLabel(term.category, data.category_labels)}</Chip>
             {term.origin !== "carried" && <Chip kind={term.origin === "conflict" ? "warn" : undefined}>{t(ORIGIN_LABEL[term.origin])}</Chip>}
             {term.origin === "single_book" && mentioningBooks(term).length >= 2 && (
               <Chip kind="warn" title={t("series.term.inOtherBooksHint")}>

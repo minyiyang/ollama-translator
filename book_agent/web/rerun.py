@@ -14,6 +14,7 @@ from ..text_edits import active_edit_texts
 from ..workflow import workflow_status
 from ..workspace import JobWorkspace
 from .estimate import stage_seconds
+from .messages import UserError, rerun_warning
 
 _ORDER = list(WorkflowStage)
 # Paused here means waiting for a person (Glossary / Final review tabs), not interrupted.
@@ -25,7 +26,7 @@ def parse_stage(name: str) -> WorkflowStage:
     try:
         return WorkflowStage(name)
     except ValueError:
-        raise ValueError(f"unknown workflow stage: {name}") from None
+        raise UserError("stage_unknown", stage=name) from None
 
 
 def _at_or_before(stage: WorkflowStage, limit: WorkflowStage) -> bool:
@@ -39,13 +40,9 @@ def rerun_preview(workspace: JobWorkspace, name: str) -> dict[str, Any]:
     current = statuses.get(stage.value)
     status = str(current["status"]) if current else "unknown"
     if status not in _RERUNNABLE:
-        raise ValueError(
-            f"only a completed, failed, or paused stage can be rerun; {stage.value} is {status}"
-        )
+        raise UserError("stage_not_rerunnable", stage=stage.value, status=status)
     if status == StageStatus.PAUSED.value and stage in _HUMAN_GATES:
-        raise ValueError(
-            f"{stage.value} is waiting for your review; finish it on its tab instead"
-        )
+        raise UserError("stage_waiting_review", stage=stage.value)
     seconds = stage_seconds(workspace)
     affected = [stage, *downstream_stages(stage)]
     stages = [
@@ -69,37 +66,15 @@ def rerun_preview(workspace: JobWorkspace, name: str) -> dict[str, Any]:
 
     warnings: list[dict[str, str]] = []
     if _at_or_before(stage, WorkflowStage.APPROVE_GLOSSARY):
-        warnings.append({
-            "code": "glossary_approval",
-            "message": "The glossary must be reviewed and approved again; the run pauses at that gate.",
-        })
+        warnings.append(rerun_warning("glossary_approval"))
     if _at_or_before(stage, WorkflowStage.TRANSLATE):
-        warnings.append({
-            "code": "full_translation",
-            "message": "The whole book is translated again. This is the most expensive rerun.",
-        })
+        warnings.append(rerun_warning("full_translation"))
     if _at_or_before(stage, WorkflowStage.VALIDATE_REPAIRED) and manual_work:
-        warnings.append({
-            "code": "manual_review",
-            "message": (
-                "The final-draft approval and any unapplied Final review decisions are "
-                "discarded, and the review queue is rebuilt from the new draft. Applied "
-                "decisions are kept as Text tab edits."
-            ),
-        })
+        warnings.append(rerun_warning("manual_review"))
     if statuses.get(WorkflowStage.COMPILE.value, {}).get("status") == StageStatus.COMPLETED.value:
-        warnings.append({
-            "code": "compiled_epub",
-            "message": "The compiled EPUB is replaced by the new output.",
-        })
+        warnings.append(rerun_warning("compiled_epub"))
     if _at_or_before(stage, WorkflowStage.VALIDATE_REPAIRED) and active_edit_texts(workspace):
-        warnings.append({
-            "code": "text_edits",
-            "message": (
-                "Manual text edits are kept; segments whose translation changes "
-                "become conflicts."
-            ),
-        })
+        warnings.append(rerun_warning("text_edits"))
     known = [item["seconds"] for item in stages if item["seconds"] is not None]
     return {
         "stage": stage.value,

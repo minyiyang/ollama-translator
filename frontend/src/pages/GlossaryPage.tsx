@@ -9,6 +9,7 @@ import { SideItem, SideLayout } from "../components/SideLayout";
 import { useToast } from "../components/Toast";
 import { Chip, Highlight } from "../components/ui";
 import { rich, t as translate, useT, type MessageKey, type Values } from "../i18n";
+import { approvalModeLabel, approvalResultLabel, glossaryCategoryLabel, reviewModeLabel, statusLabel } from "../lib/enums";
 import { FALLBACK_PAIR, langAttr, pairCodes, type GlossaryPair } from "../lib/languages";
 
 type Entry = { source: string; target: string; note: string; category: string; aliases: string[]; evidence: string[]; confidence: number };
@@ -188,7 +189,7 @@ export function GlossaryPage() {
   // Terms are grouped and counted by their drafted category, so editing a
   // term's category does not move it while you review.
   const home = (row: Row) => row.original.category;
-  const catLabel = (value: string) => data?.category_labels?.[value] ?? value;
+  const catLabel = (value: string) => glossaryCategoryLabel(value, data?.category_labels);
   const indexed = useMemo(() => rows.map((row, index) => ({ row, index })), [rows]);
   const searched = useMemo(() => indexed.filter(({ row }) => matchesQuery(row)), [indexed, matchesQuery]);
   const inView = searched.filter(({ row }) => matchesView(row, view));
@@ -344,7 +345,7 @@ export function GlossaryPage() {
                             <td>
                               {record ? (
                                 <>
-                                  <Chip kind={record.result === "approved" ? "ok" : "warn"}>{record.result}</Chip> <span className="meta">{record.mode}</span>
+                                  <Chip kind={record.result === "approved" ? "ok" : "warn"}>{approvalResultLabel(record.result)}</Chip> <span className="meta">{approvalModeLabel(record.mode)}</span>
                                   {record.reasons.map((r) => <div className="meta" key={r}>{r.replace(/_/g, " ")}</div>)}
                                 </>
                               ) : <span className="meta">—</span>}
@@ -417,8 +418,8 @@ export function GlossaryPage() {
           <section className="card">
             <div className="row" style={{ margin: "0 0 12px", justifyContent: "space-between" }}>
               <div>
-                <Chip kind={data.approve_status}>{data.approve_status === "paused" ? t("glossary.status.waitingForReview") : data.approve_status}</Chip>
-                {data.review_mode && <span className="meta" style={{ marginLeft: 6 }}>{t("glossary.reviewMode", { mode: data.review_mode })}</span>}
+                <Chip kind={data.approve_status}>{data.approve_status === "paused" ? t("glossary.status.waitingForReview") : statusLabel(data.approve_status)}</Chip>
+                {data.review_mode && <span className="meta" style={{ marginLeft: 6 }}>{t("glossary.reviewMode", { mode: reviewModeLabel(data.review_mode) })}</span>}
               </div>
               {editable && (
                 <div className="row" style={{ margin: 0 }}>

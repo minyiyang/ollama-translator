@@ -51,6 +51,7 @@ from ..book_formats import EXPORT_MEDIA_TYPES, export_book
 from ..stages.compile import load_compiled_epub_path
 from ..subtitles import SUBTITLE_MEDIA_TYPES, job_type
 from .jobs import ProgressReader, draft_direction, job_direction, job_path, list_jobs, open_job
+from .messages import UserError, error_payload
 from .text_view import text_chapter, text_outline, text_picture
 from ..xliff_export import export_xliff
 from ..xliff_import import (
@@ -126,7 +127,7 @@ class UiApp:
         with self._lock:
             current = self._processes.get(job_id)
             if current and current["process"].poll() is None:
-                raise ValueError(f"{current['label']} is already running for this job")
+                raise UserError("already_running", label=current["label"])
             launch_dir = self.runs / ".ui-launch"
             launch_dir.mkdir(parents=True, exist_ok=True)
             stamp = datetime.now().strftime("%Y%m%dT%H%M%S")
@@ -248,7 +249,7 @@ class UiApp:
             }
         draft = drafts.load_draft(self.runs, job_id)
         if draft is None:
-            raise ValueError(f"no job or draft named {job_id}")
+            raise UserError("job_unknown", job=job_id)
         return {
             "job_id": job_id,
             "kind": "draft",
@@ -306,7 +307,7 @@ class UiApp:
                 "validated": drafts.is_validated(self.config_dir, draft),
             }
         if workspace is None:
-            raise ValueError(f"no job or draft named {job_id}")
+            raise UserError("job_unknown", job=job_id)
         captured = json.loads(workspace.config_file.read_text(encoding="utf-8"))
         return {
             "editable": False,
@@ -319,7 +320,7 @@ class UiApp:
         """Save the draft's config, then run every pre-start check against it."""
         draft = drafts.load_draft(self.runs, job_id)
         if draft is None:
-            raise ValueError("only a job that has not started can be validated")
+            raise UserError("validate_started_job")
         setup_api.save_config(self.config_dir, draft["config"], body["text"])
         text = setup_api.read_config(self.config_dir, draft["config"])
         check = setup_api.validate_setup(text, self.config_dir, self.runs, draft["source"], job_id)
@@ -359,9 +360,9 @@ class UiApp:
     def start_job(self, job_id: str) -> dict[str, Any]:
         draft = drafts.load_draft(self.runs, job_id)
         if draft is None:
-            raise ValueError("this job has already started; use Resume")
+            raise UserError("job_already_started")
         if not drafts.is_validated(self.config_dir, draft):
-            raise ValueError("validate the configuration on the Config tab first")
+            raise UserError("validate_first")
         state = self.launch(
             job_id,
             [
@@ -384,7 +385,7 @@ class UiApp:
         """Kill a dashboard-launched run now; the interrupted stage is left paused for resume."""
         entry = self._processes.get(job_id)
         if entry is None or entry["process"].poll() is not None:
-            raise ValueError("no run started from this dashboard is active; use Pause instead")
+            raise UserError("no_dashboard_run")
         entry["process"].terminate()
         try:
             entry["process"].wait(timeout=15)
@@ -444,7 +445,7 @@ class UiApp:
 
         term_ids = [str(item) for item in body.get("term_ids", [])]
         if not term_ids:
-            raise ValueError("choose at least one suggestion")
+            raise UserError("suggestions_none_chosen")
         accept_suggestions(self.runs, series_id, term_ids, bool(body.get("accept")))
         return self.series_workbench(series_id)
 
@@ -457,7 +458,7 @@ class UiApp:
     def series_add_books(self, series_id: str, body: dict[str, Any]) -> dict[str, Any]:
         job_ids = [str(item) for item in body.get("job_ids", [])]
         if not job_ids:
-            raise ValueError("choose at least one job")
+            raise UserError("jobs_none_chosen")
         series_api.add_books(self.runs, series_id, job_ids)
         return self.series_detail(series_id)
 
@@ -478,7 +479,7 @@ class UiApp:
     def series_workbench(self, series_id: str) -> dict[str, Any]:
         view = series_api.workbench_view(self.runs, series_id)
         if view is None:
-            raise ValueError("no candidate yet; build it on the Books tab")
+            raise UserError("no_candidate")
         # Categories are stored as schema values; the UI shows English names.
         return {**view, "category_labels": {c.value: c.name.title() for c in GlossaryCategory}}
 
@@ -503,7 +504,7 @@ class UiApp:
     def series_version(self, series_id: str, version: str) -> dict[str, Any]:
         manifest = series_api.load_manifest(self.runs, series_id)
         if version not in {item.version for item in manifest.versions}:
-            raise ValueError(f"series {series_id} has no version {version}")
+            raise UserError("series_no_version", series=series_id, version=version)
         path = series_api.version_glossary_path(self.runs, series_id, version)
         report = path.with_name(f"{version}.report.json")
         # Versions published before phase 3 say english/chinese; they are shown as source/target.
@@ -519,7 +520,7 @@ class UiApp:
         """The translated book of a completed job."""
         workspace = open_job(self.runs, job_id)
         if workflow_status(workspace)["overall"] != "complete":
-            raise ValueError("the job has not completed; there is no translated book yet")
+            raise UserError("job_not_complete")
         return Path(load_compiled_epub_path(workspace))
 
     def job_xliff(self, job_id: str) -> tuple[bytes, str]:
@@ -528,7 +529,7 @@ class UiApp:
         stages = {str(stage["name"]): stage for stage in workflow_status(workspace)["stages"]}
         validated = stages.get(WorkflowStage.VALIDATE_REPAIRED.value, {})
         if validated.get("status") != StageStatus.COMPLETED.value:
-            raise ValueError("XLIFF export needs the validated draft; wait for Validate draft to complete")
+            raise UserError("xliff_needs_draft")
         direction = load_workspace_config(workspace).translation.direction.slug
         name = f"{workspace.source_file.stem}.{direction}.xlf"
         return export_xliff(workspace).encode("utf-8"), name
@@ -536,7 +537,7 @@ class UiApp:
     def apply_xliff_import(self, job_id: str, body: dict[str, Any]) -> dict[str, Any]:
         """Apply a pending XLIFF import (docs/XLIFF_IMPORT.md); refused while the job runs."""
         if self.job_info(job_id)["running"]:
-            raise ValueError("the job is running; wait for it to finish or pause it before importing")
+            raise UserError("import_while_running")
         return apply_import(
             open_job(self.runs, job_id),
             str(body.get("import_id", "")),
@@ -555,7 +556,7 @@ class UiApp:
         """Reset a stage and everything after it, then resume."""
         stage = parse_stage(str(body.get("stage", "")))
         if self.job_info(job_id)["running"]:
-            raise ValueError("the job is running; pause or stop it before rerunning a stage")
+            raise UserError("rerun_while_running")
         self.rerun_preview(job_id, stage.value)  # refuses pending, running, and review gates
         return self.launch(
             job_id,
@@ -565,7 +566,7 @@ class UiApp:
 
     def discard_draft(self, job_id: str) -> dict[str, Any]:
         if drafts.load_draft(self.runs, job_id) is None:
-            raise ValueError("only a job that has not started can be discarded")
+            raise UserError("discard_started_job")
         membership = series_api.series_of_job(self.runs, job_id)
         if membership is not None:
             series_api.remove_book(self.runs, str(membership["series_id"]), job_id)
@@ -616,7 +617,7 @@ class UiApp:
         if body.get("llm"):
             args.append("--llm-glossary")
         if len(args) == 2:
-            raise ValueError("submit reviewed entries, request LLM review, or both")
+            raise UserError("approve_nothing")
         args.append("--resume")
         if overlay is not None:
             # Pin before the run so its preprocessing uses the series version.
@@ -851,7 +852,7 @@ def make_handler(app: UiApp, port_ref: list[int]) -> type[BaseHTTPRequestHandler
                 try:
                     data, media_type = book_cover(allowed_book(parse_qs(url.query).get("path", [""])[0], app.book_roots()))
                 except (ValueError, KeyError, OSError) as error:
-                    return self._json({"error": str(error)}, HTTPStatus.NOT_FOUND)
+                    return self._json(error_payload(error), HTTPStatus.NOT_FOUND)
                 return self._send(data, media_type)
             if method == "GET" and len(parts) == 4 and parts[1] == "jobs" and parts[3] == "output":
                 wanted = parse_qs(url.query).get("format", ["epub"])[0]
@@ -865,7 +866,7 @@ def make_handler(app: UiApp, port_ref: list[int]) -> type[BaseHTTPRequestHandler
                             return self._send(exported.read_bytes(), EXPORT_MEDIA_TYPES[wanted], download=exported.name)
                     data = output.read_bytes()
                 except (ValueError, OSError) as error:
-                    return self._json({"error": str(error)}, HTTPStatus.NOT_FOUND)
+                    return self._json(error_payload(error), HTTPStatus.NOT_FOUND)
                 media_type = _DOWNLOAD_TYPES.get(output.suffix.lower(), "application/octet-stream")
                 return self._send(data, media_type, download=output.name)
             if method == "GET" and len(parts) == 5 and parts[1] == "jobs" and parts[3:] == ["text", "picture"]:
@@ -875,7 +876,7 @@ def make_handler(app: UiApp, port_ref: list[int]) -> type[BaseHTTPRequestHandler
                         open_job(app.runs, parts[2]), parse_qs(url.query).get("path", [""])[0]
                     )
                 except (ValueError, OSError) as error:
-                    return self._json({"error": str(error)}, HTTPStatus.NOT_FOUND)
+                    return self._json(error_payload(error), HTTPStatus.NOT_FOUND)
                 return self._send(data, media_type)
             if method == "GET" and len(parts) == 5 and parts[1] == "jobs" and parts[3:] == ["text", "export"]:
                 export_format = parse_qs(url.query).get("format", ["xliff"])[0]
@@ -885,7 +886,7 @@ def make_handler(app: UiApp, port_ref: list[int]) -> type[BaseHTTPRequestHandler
                     validate_job_id(parts[2])
                     data, name = app.job_xliff(parts[2])
                 except (ValueError, OSError) as error:
-                    return self._json({"error": str(error)}, HTTPStatus.NOT_FOUND)
+                    return self._json(error_payload(error), HTTPStatus.NOT_FOUND)
                 return self._send(data, "application/xliff+xml; charset=utf-8", download=name)
             if method == "GET" and len(parts) == 6 and parts[1] == "jobs" and parts[3:] == ["text", "import", "report"]:
                 try:
@@ -894,7 +895,7 @@ def make_handler(app: UiApp, port_ref: list[int]) -> type[BaseHTTPRequestHandler
                         open_job(app.runs, parts[2]), parse_qs(url.query).get("import_id", [""])[0]
                     )
                 except (ValueError, OSError) as error:
-                    return self._json({"error": str(error)}, HTTPStatus.NOT_FOUND)
+                    return self._json(error_payload(error), HTTPStatus.NOT_FOUND)
                 return self._send(data, "text/csv; charset=utf-8", download=name)
             if method == "POST" and parts == ["api", "uploads"]:
                 return self._upload(parse_qs(url.query).get("name", [""])[0])
@@ -925,11 +926,11 @@ def make_handler(app: UiApp, port_ref: list[int]) -> type[BaseHTTPRequestHandler
                 self._json(action(query, body))
             except BlockingCheckError as error:
                 self._json(
-                    {"error": str(error), "findings": error.findings},
+                    {**error_payload(error), "findings": error.findings},
                     HTTPStatus.UNPROCESSABLE_ENTITY,
                 )
             except Exception as error:
-                self._json({"error": str(error)}, HTTPStatus.UNPROCESSABLE_ENTITY)
+                self._json(error_payload(error), HTTPStatus.UNPROCESSABLE_ENTITY)
 
         def _upload(self, name: str) -> None:
             """Raw-body upload of a source book picked or dropped in the browser."""
@@ -937,11 +938,11 @@ def make_handler(app: UiApp, port_ref: list[int]) -> type[BaseHTTPRequestHandler
                 return self._json({"error": "forbidden"}, HTTPStatus.FORBIDDEN)
             length = int(self.headers.get("Content-Length") or 0)
             if not 0 < length <= _MAX_UPLOAD_BYTES:
-                return self._json({"error": "file is empty or larger than 1 GB"}, HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
+                return self._json(error_payload(UserError("upload_size")), HTTPStatus.REQUEST_ENTITY_TOO_LARGE)
             try:
                 path = drafts.store_upload(app.runs, name, self.rfile, length)
             except ValueError as error:
-                return self._json({"error": str(error)}, HTTPStatus.UNPROCESSABLE_ENTITY)
+                return self._json(error_payload(error), HTTPStatus.UNPROCESSABLE_ENTITY)
             self._json({"path": str(path)})
 
         def _page(self, parts: list[str]) -> None:

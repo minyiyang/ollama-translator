@@ -1,5 +1,8 @@
 // Curated view over AppConfig: the options most jobs change, with help text.
+// Titles, labels, and help are message keys; the text is in the catalog (src/i18n).
 // Every other field is still editable under "All settings" (schema-driven).
+
+import { t, type MessageKey } from "../i18n";
 
 export type SchemaField = {
   path: string;
@@ -18,7 +21,7 @@ export type SchemaField = {
 export type SchemaSection = { key: string; title: string; fields: SchemaField[] };
 
 export type CommonOption =
-  | { path: string; label: string; help?: string; model?: boolean }
+  | { path: string; label: MessageKey; help?: MessageKey; model?: boolean }
   | { special: "glossary-review" | "language-pair" };
 
 /** The settings a special option writes, for counts of changed and invalid settings. */
@@ -26,147 +29,156 @@ export const SPECIAL_PATHS: Record<"glossary-review" | "language-pair", string[]
   "glossary-review": ["workflow.require_glossary_review", "workflow.llm_glossary_review"],
   "language-pair": ["translation.direction", "translation.source_language", "translation.target_language"],
 };
-export type CommonGroup = { title: string; help?: string; options: CommonOption[] };
+export type CommonGroup = { title: MessageKey; help?: MessageKey; options: CommonOption[] };
 
 export const COMMON_GROUPS: CommonGroup[] = [
   {
-    title: "Translation",
+    title: "option.group.translation",
     options: [
       { special: "language-pair" },
-      { path: "translation.style", label: "Prose style", help: "Voice preset for the translation. “custom” uses the style file below." },
-      { path: "translation.custom_style_file", label: "Custom style file", help: "Style instructions file, relative to this config. Used only with style “custom”." },
-      { path: "translation.boundary_context", label: "Neighbor context", help: "Show the previous and next source segments read-only, for continuity across chunks." },
+      { path: "translation.style", label: "option.translation.style.label", help: "option.translation.style.help" },
+      { path: "translation.custom_style_file", label: "option.translation.custom_style_file.label", help: "option.translation.custom_style_file.help" },
+      { path: "translation.boundary_context", label: "option.translation.boundary_context.label", help: "option.translation.boundary_context.help" },
       {
         path: "translation.de_ai_enabled",
-        label: "Naturalness guidance",
-        help: "Adds anti-'AI prose' instructions to the translation, repair, and prose-rewrite prompts. Not a separate pass: no extra model calls.",
+        label: "option.translation.de_ai_enabled.label",
+        help: "option.translation.de_ai_enabled.help",
       },
       {
         path: "translation.de_ai_strength",
-        label: "Naturalness strength",
-        help: "conservative: keep the author's voice and avoid adding formulaic phrasing. moderate: actively avoid model-like prose (rhetorical triplets, uniform rhythm, over-explanation). For verified rewrites of stiff passages, turn on Prose rewrite.",
+        label: "option.translation.de_ai_strength.label",
+        help: "option.translation.de_ai_strength.help",
       },
-      { path: "translation.thinking", label: "Model thinking", help: "Let the translation model reason before answering. Slower; off by default." },
+      { path: "translation.thinking", label: "option.translation.thinking.label", help: "option.translation.thinking.help" },
     ],
   },
   {
-    title: "Models",
-    help: "Each model must be installed in Ollama. ✓ / ✗ shows what the configured host reports.",
+    title: "option.group.models",
+    help: "option.group.models.help",
     options: [
-      { path: "ollama.model", label: "Primary model", model: true, help: "Translates, resolves and approves the glossary, and repairs unless overridden." },
-      { path: "glossary.extraction_model", label: "Glossary extraction", model: true },
-      { path: "audit.model", label: "Semantic audit", model: true, help: "Checks each translated passage against the source." },
-      { path: "audit.verifier_model", label: "Repair verification", model: true, help: "Compares a proposed repair with the current translation." },
-      { path: "audit.repair_model", label: "Targeted repair", model: true, help: "Leave empty to use the primary model." },
-      { path: "reprose.model", label: "Prose rewrite", model: true },
-      { path: "reprose.verifier_model", label: "Rewrite verification", model: true },
-      { path: "translation.model", label: "Translation model", model: true, help: "Translates instead of the primary model, which keeps the glossary and review calls. Leave empty to translate with the primary model." },
-      { path: "translation.fallback_models", label: "Fallback models", model: true, help: "Tried in order for passages the primary model could not translate." },
+      { path: "ollama.model", label: "option.ollama.model.label", model: true, help: "option.ollama.model.help" },
+      { path: "glossary.extraction_model", label: "option.glossary.extraction_model.label", model: true },
+      { path: "audit.model", label: "option.audit.model.label", model: true, help: "option.audit.model.help" },
+      { path: "audit.verifier_model", label: "option.audit.verifier_model.label", model: true, help: "option.audit.verifier_model.help" },
+      { path: "audit.repair_model", label: "option.audit.repair_model.label", model: true, help: "option.audit.repair_model.help" },
+      { path: "reprose.model", label: "option.reprose.model.label", model: true },
+      { path: "reprose.verifier_model", label: "option.reprose.verifier_model.label", model: true },
+      { path: "translation.model", label: "option.translation.model.label", model: true, help: "option.translation.model.help" },
+      { path: "translation.fallback_models", label: "option.translation.fallback_models.label", model: true, help: "option.translation.fallback_models.help" },
     ],
   },
   {
-    title: "Glossary",
+    title: "option.group.glossary",
     options: [
       { special: "glossary-review" },
-      { path: "glossary.extraction_enabled", label: "Extract terms from the book", help: "Turn off only when every glossary below is already reviewed." },
-      { path: "glossary.approval_auto_approve_min_confidence", label: "Auto-approve confidence", help: "With LLM review, evidence-backed terms at or above this confidence skip the model." },
+      { path: "glossary.extraction_enabled", label: "option.glossary.extraction_enabled.label", help: "option.glossary.extraction_enabled.help" },
+      { path: "glossary.approval_auto_approve_min_confidence", label: "option.glossary.approval_auto_approve_min_confidence.label", help: "option.glossary.approval_auto_approve_min_confidence.help" },
       {
         path: "glossary.drop_generic_terms",
-        label: "Drop ordinary words",
-        help: "With LLM or automatic approval, leave single ordinary words (“anchor”, “cheese”) out of the glossary so the translator words them by context. Human review decides on its own. Turn off if the book's invented words are lowercase.",
+        label: "option.glossary.drop_generic_terms.label",
+        help: "option.glossary.drop_generic_terms.help",
       },
-      { path: "glossary.extraction_max_entries", label: "Max extracted terms" },
-      { path: "glossary.seed_glossaries", label: "Seed glossaries", help: "Glossary files merged in before extraction (lowest precedence)." },
-      { path: "glossary.series_glossaries", label: "Series glossaries", help: "Shared, reviewed terms for a book series." },
-      { path: "glossary.book_glossaries", label: "Book glossaries", help: "Reviewed terms for this book (highest precedence)." },
+      { path: "glossary.extraction_max_entries", label: "option.glossary.extraction_max_entries.label" },
+      { path: "glossary.seed_glossaries", label: "option.glossary.seed_glossaries.label", help: "option.glossary.seed_glossaries.help" },
+      { path: "glossary.series_glossaries", label: "option.glossary.series_glossaries.label", help: "option.glossary.series_glossaries.help" },
+      { path: "glossary.book_glossaries", label: "option.glossary.book_glossaries.label", help: "option.glossary.book_glossaries.help" },
     ],
   },
   {
-    title: "Quality checks",
+    title: "option.group.qualityChecks",
     options: [
-      { path: "audit.semantic_enabled", label: "Semantic audit", help: "Model-check risky passages for meaning errors and repair them." },
-      { path: "audit.repair_min_severity", label: "Repair threshold", help: "Lowest finding severity that triggers a repair." },
-      { path: "audit.quantity.enabled", label: "Quantity audit", help: "Extra checks that numbers, units, and durations survived translation." },
-      { path: "reprose.enabled", label: "Prose rewrite", help: "Propose more natural wording, verified against the source before it is kept." },
-      { path: "reprose.candidate_mode", label: "Rewrite candidates", help: "risk-filtered rewrites only passages that read like translationese." },
+      { path: "audit.semantic_enabled", label: "option.audit.semantic_enabled.label", help: "option.audit.semantic_enabled.help" },
+      { path: "audit.repair_min_severity", label: "option.audit.repair_min_severity.label", help: "option.audit.repair_min_severity.help" },
+      { path: "audit.quantity.enabled", label: "option.audit.quantity.enabled.label", help: "option.audit.quantity.enabled.help" },
+      { path: "reprose.enabled", label: "option.reprose.enabled.label", help: "option.reprose.enabled.help" },
+      { path: "reprose.candidate_mode", label: "option.reprose.candidate_mode.label", help: "option.reprose.candidate_mode.help" },
     ],
   },
   {
-    title: "Book consistency",
-    help: "Book-wide checks with no model calls. Drift goes to repair; what repair cannot fix joins the review queue.",
+    title: "option.group.bookConsistency",
+    help: "option.group.bookConsistency.help",
     options: [
-      { path: "consistency.enabled", label: "Consistency checks", help: "Find repeated lines, and repeated lines of dialogue, translated differently in different places." },
-      { path: "consistency.quoted_speech", label: "Repeated dialogue", help: "Also compare quoted lines inside longer paragraphs, such as a character's catchphrase." },
-      { path: "consistency.conventions", label: "Punctuation conventions", help: "Flag a single — where the book uses ——, and straight \" in Chinese text." },
-      { path: "consistency.min_repeat_characters", label: "Shortest repeat", help: "Lines shorter than this are ignored, so “Yes.” or “Oh!” may vary." },
+      { path: "consistency.enabled", label: "option.consistency.enabled.label", help: "option.consistency.enabled.help" },
+      { path: "consistency.quoted_speech", label: "option.consistency.quoted_speech.label", help: "option.consistency.quoted_speech.help" },
+      { path: "consistency.conventions", label: "option.consistency.conventions.label", help: "option.consistency.conventions.help" },
+      { path: "consistency.min_repeat_characters", label: "option.consistency.min_repeat_characters.label", help: "option.consistency.min_repeat_characters.help" },
       {
         path: "consistency.style_sheet.enabled",
-        label: "Book style sheet",
-        help: "Also extract, with the glossary, lines the book repeats (rendered the same way throughout) and notes on each character. Character notes are context only: the source wording and the scene decide pronouns and 你/您.",
+        label: "option.consistency.style_sheet.enabled.label",
+        help: "option.consistency.style_sheet.enabled.help",
       },
       {
         path: "consistency.story_context.enabled",
-        label: "Story context",
-        help: "Summarize each chapter first (about 6 s per chapter) and give each translation chunk the story so far: the previous chapters and its own. Context only; the source still decides.",
+        label: "option.consistency.story_context.enabled.label",
+        help: "option.consistency.story_context.enabled.help",
       },
-      { path: "consistency.story_context.chapters_before", label: "Earlier chapters in context", help: "How many previous chapter summaries each chunk sees." },
+      { path: "consistency.story_context.chapters_before", label: "option.consistency.story_context.chapters_before.label", help: "option.consistency.story_context.chapters_before.help" },
       {
         path: "consistency.style_sheet.review",
-        label: "Style sheet review",
-        help: "human: the glossary gate waits for you to review the style sheet on the Glossary tab, even when the glossary itself is LLM-reviewed. glossary: follow the glossary's review setting.",
+        label: "option.consistency.style_sheet.review.label",
+        help: "option.consistency.style_sheet.review.help",
       },
       {
         path: "consistency.close_variant_similarity",
-        label: "Drift threshold",
-        help: "How similar two renderings must be to count as drift (repaired). Less similar wording is treated as intentional and only listed.",
+        label: "option.consistency.close_variant_similarity.label",
+        help: "option.consistency.close_variant_similarity.help",
       },
     ],
   },
   {
-    title: "Review and output",
+    title: "option.group.reviewAndOutput",
     options: [
-      { path: "workflow.require_final_review", label: "Always require final approval", help: "Pause before compiling even when nothing is left in the review queue." },
-      { path: "workflow.compile_max_unresolved_review_segments", label: "Allowed unresolved segments", help: "Compile still pauses when more flagged segments than this remain." },
-      { path: "workflow.defer_failed_translation_segments", label: "Defer failed passages", help: "Keep going when one passage fails validation; it goes to repair instead of stopping the run." },
-      { path: "epub.strip_print_page_markers", label: "Remove print page markers" },
-      { path: "epub.insert_missing_chapter_headings", label: "Add missing chapter headings", help: "Uses the book's table of contents for chapters without a visible heading." },
+      { path: "workflow.require_final_review", label: "option.workflow.require_final_review.label", help: "option.workflow.require_final_review.help" },
+      { path: "workflow.compile_max_unresolved_review_segments", label: "option.workflow.compile_max_unresolved_review_segments.label", help: "option.workflow.compile_max_unresolved_review_segments.help" },
+      { path: "workflow.defer_failed_translation_segments", label: "option.workflow.defer_failed_translation_segments.label", help: "option.workflow.defer_failed_translation_segments.help" },
+      { path: "epub.strip_print_page_markers", label: "option.epub.strip_print_page_markers.label" },
+      { path: "epub.insert_missing_chapter_headings", label: "option.epub.insert_missing_chapter_headings.label", help: "option.epub.insert_missing_chapter_headings.help" },
     ],
   },
   {
-    title: "Book title",
+    title: "option.group.bookTitle",
     options: [
-      { path: "translation.translated_title", label: "Translated title", help: "The book's title in the language translated into. Left empty, the title follows its passage's translation where it is one, and is translated by one short model call where it is not." },
+      { path: "translation.translated_title", label: "option.translation.translated_title.label", help: "option.translation.translated_title.help" },
     ],
   },
   {
-    title: "Subtitles",
-    help: "Only for a subtitle job (.srt, .vtt, .ass). Left unset, each limit is the usual one for the language translated into: 42 characters a line and 20 a second for most, fewer for Chinese, Japanese, and Korean.",
+    title: "option.group.subtitles",
+    help: "option.group.subtitles.help",
     options: [
-      { path: "subtitles.line_characters", label: "Characters a line", help: "The longest line a cue may have. A translation is broken into lines no longer than this." },
-      { path: "subtitles.lines", label: "Lines a cue", help: "A cue that needs more lines than this is a finding: repair is asked to shorten it, and what it cannot shorten waits for you." },
-      { path: "subtitles.characters_per_second", label: "Reading speed", help: "Characters a viewer can read in a second. A cue with more than this for its time on screen is a finding." },
+      { path: "subtitles.line_characters", label: "option.subtitles.line_characters.label", help: "option.subtitles.line_characters.help" },
+      { path: "subtitles.lines", label: "option.subtitles.lines.label", help: "option.subtitles.lines.help" },
+      { path: "subtitles.characters_per_second", label: "option.subtitles.characters_per_second.label", help: "option.subtitles.characters_per_second.help" },
     ],
   },
   {
-    title: "Ollama and context",
+    title: "option.group.ollamaAndContext",
     options: [
-      { path: "ollama.host", label: "Ollama host" },
-      { path: "ollama.num_ctx", label: "Context ceiling", help: "Largest context any request may use; requests start small and grow only as needed." },
-      { path: "translation.max_num_ctx", label: "Translation context limit" },
-      { path: "ollama.temperature", label: "Temperature", help: "0 keeps output deterministic and resumable." },
-      { path: "ollama.timeout_seconds", label: "Request timeout (s)" },
-      { path: "ollama.keep_alive", label: "Keep model loaded" },
+      { path: "ollama.host", label: "option.ollama.host.label" },
+      { path: "ollama.num_ctx", label: "option.ollama.num_ctx.label", help: "option.ollama.num_ctx.help" },
+      { path: "translation.max_num_ctx", label: "option.translation.max_num_ctx.label" },
+      { path: "ollama.temperature", label: "option.ollama.temperature.label", help: "option.ollama.temperature.help" },
+      { path: "ollama.timeout_seconds", label: "option.ollama.timeout_seconds.label" },
+      { path: "ollama.keep_alive", label: "option.ollama.keep_alive.label" },
     ],
   },
 ];
 
-export const HELP: Record<string, string> = Object.fromEntries(
-  COMMON_GROUPS.flatMap((g) => g.options).flatMap((o) => ("path" in o && o.help ? [[o.path, o.help]] : [])),
-);
+const OPTIONS = new Map(COMMON_GROUPS.flatMap((g) => g.options).flatMap((o) => ("path" in o ? [[o.path, o] as const] : [])));
 
-export const LABELS: Record<string, string> = Object.fromEntries(
-  COMMON_GROUPS.flatMap((g) => g.options).flatMap((o) => ("path" in o ? [[o.path, o.label]] : [])),
-);
+/** The paths the curated view names. */
+export const LABELLED_PATHS = [...OPTIONS.keys()];
+
+/** An option's name in the interface language; undefined for one the curated view does not list. */
+export const optionLabel = (path: string): string | undefined => {
+  const option = OPTIONS.get(path);
+  return option && t(option.label);
+};
+
+/** An option's help in the interface language; undefined when it has none. */
+export const optionHelp = (path: string): string | undefined => {
+  const help = OPTIONS.get(path)?.help;
+  return help && t(help);
+};
 
 export const MODEL_PATHS = new Set(
   COMMON_GROUPS.flatMap((g) => g.options).flatMap((o) => ("path" in o && o.model ? [o.path] : [])),

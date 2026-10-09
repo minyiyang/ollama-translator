@@ -292,8 +292,7 @@ espagnol, allemand et coréen, c'est-à-dire les langues pour lesquelles le
 pipeline dispose d'un profil. La langue se choisit dans le menu à droite de
 l'en-tête ; le choix est conservé dans le navigateur, et l'anglais est la
 langue par défaut. La langue de l'interface est indépendante du sens de
-traduction d'une tâche. Les descriptions des étapes, l'aide des options et
-les messages renvoyés par le serveur restent pour l'instant en anglais (voir
+traduction d'une tâche (voir
 [Localisation du tableau de bord](docs/LOCALIZATION.md), en anglais).
 
 - **Tâches** liste les tâches avec leur sens de traduction (par exemple

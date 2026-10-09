@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { jobApi } from "../api";
 import { useT, type MessageKey } from "../i18n";
+import { statusLabel } from "../lib/enums";
 import { outputFormats, outputUrl } from "../lib/format";
 import { attentionFrom } from "../lib/stages";
 import { useConfirm } from "./Dialog";
@@ -53,7 +54,7 @@ export function JobControls() {
 
   return (
     <>
-      <Chip kind={status}>{status}</Chip>
+      <Chip kind={status}>{statusLabel(status)}</Chip>
       {info.kind === "draft" && !info.running && (
         <>
           <button onClick={() => act("discard", t("jobs.controls.discarded"), { title: t("jobs.controls.discardTitle"), body: t("jobs.controls.discardBody"), label: t("jobs.controls.discard") })} disabled={busy}>{t("jobs.controls.discard")}</button>

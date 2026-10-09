@@ -1,6 +1,6 @@
 # Dashboard localization
 
-Status: **phases 1 and 2 implemented; 3 and 4 planned; 5 deferred.**
+Status: **phases 1 to 4 implemented; 5 deferred.**
 Last updated: 2026-10-08.
 
 How the browser dashboard (`book-agent ui`, source in `frontend/`) is
@@ -87,12 +87,18 @@ translates any pair (docs/GENERIC_LANGUAGES.md).
 
 - The UI translates known codes and **falls back to the English text**
   otherwise, so nothing breaks while coverage grows. The CLI stays English.
-- Covered: validation problems, blocked actions ("only runs started from this
-  dashboard can be stopped"), the glossary lock, draft and start errors, and
-  the most common stage status messages ("paused on request; resume to
-  continue", "N segment(s) require human review").
-- Glossary categories: the server sends the enum name (`PERSON`) and the UI
-  looks up the label, giving "Person" in English and 人名 in Chinese.
+- The codes and their English text are in `book_agent/web/messages.py`; the
+  server raises `UserError(code, **values)`. The catalog holds each under
+  `server.error.<code>`, and a rerun's warnings under `server.rerun.<code>`.
+- Stage status messages ("paused on request; resume to continue", "N
+  segment(s) require human review") are written by the pipeline, which the CLI
+  shares, so they stay English in the workspace. The UI recognizes them by
+  their English wording (`server.stage.<code>`, `lib/serverText.ts`).
+- Status and enum words (stage status, finding category, glossary category,
+  review mode, …) are looked up by value in `lib/enums.ts`; a value the
+  catalog does not know is shown as the server sent it.
+- Still English: errors without a code, compile log lines, the reasons an LLM
+  reviewer gives, and the names of skipped checks.
 
 ### 2.6 Layout for any language (phase 5)
 
@@ -118,8 +124,8 @@ translates any pair (docs/GENERIC_LANGUAGES.md).
 | Key typos | Keys are typed from `en.json`; the build fails | done |
 | New hard-coded text | `i18n/hardcoded.test.ts` parses every component and fails on literal text in JSX or in a `title`, `aria-label`, or `placeholder` | done |
 | Broken translations | `i18n/catalog.test.ts`: every message parses, has no key English lacks, and uses the same values as the English message | done |
-| Missing translations | `npm run i18n:coverage` reports per-language coverage and missing keys | phase 5 |
-| Server codes | A Python test exports every code the server can send; a frontend test checks each has an English entry | phase 4 |
+| Missing translations | `npm run i18n -- status` reports per-language coverage | done |
+| Server codes | `tests/test_web_messages.py`: the English catalog has every code the server sends, with the server's text, and no other | done |
 | Layout | A browser pass in each language and the pseudo-locale over every page and state (draft, running, gates, errors) | phase 5 |
 
 ## 4. Translation workflow
@@ -127,6 +133,14 @@ translates any pair (docs/GENERIC_LANGUAGES.md).
 - Contributors edit JSON catalogs in a pull request, or a translation platform
   (Weblate, Crowdin) syncs the files. Both work with the standard ICU JSON
   format.
+- For a batch of new messages, in `frontend/`:
+  - `npm run i18n -- md` writes `i18n-work/strings.md`, one numbered section
+    per message some language lacks;
+  - translate the text under each heading, keeping the numbers, the
+    `{values}`, and config keys such as `audit.model`;
+  - `npm run i18n -- merge-md <locale> <file>` checks the file and merges it.
+    A message that is empty, is not valid ICU, or takes other values than the
+    English one stops the merge.
 - The first catalogs for Japanese, French, Spanish, German, and Korean were
   machine-drafted and **have not been reviewed by a native speaker**.
 - Vocabulary: each language's catalog uses the terms of that language's
@@ -140,13 +154,10 @@ translates any pair (docs/GENERIC_LANGUAGES.md).
 |---|---|---|
 | 1 | Message runtime, `en.json` with ICU messages, typed keys, language menu; all interface strings moved into the catalog | done |
 | 2 | Catalogs for the six other languages; locale-aware formatting | done |
-| 3 | Long help texts: stage descriptions (`lib/stageInfo.ts`), config labels and help (`lib/configCatalog.ts`) | planned |
-| 4 | Server message codes | planned |
-| 5 | Direction-neutral CSS, pseudo-locale, coverage script, contributor docs | deferred until a right-to-left or eighth language is asked for |
+| 3 | Long help texts: stage descriptions (`lib/stageInfo.ts`), config labels and help (`lib/configCatalog.ts`) | done |
+| 4 | Server message codes; status and enum words | done |
+| 5 | Direction-neutral CSS, pseudo-locale, contributor docs | deferred until a right-to-left or eighth language is asked for |
 | later | Each additional language: one JSON file plus native review | |
-
-Until phases 3 and 4, stage descriptions, option help, and messages from the
-server are English in every interface language.
 
 ## 6. Decisions (2026-10-08)
 
