@@ -7,7 +7,7 @@ import { Shell } from "../components/Shell";
 import { SideLayout } from "../components/SideLayout";
 import { useToast } from "../components/Toast";
 import { Chip, Highlight } from "../components/ui";
-import { rich, t as translate, useT, type MessageKey, type Translate } from "../i18n";
+import { jobKey, rich, t as translate, useT, type MessageKey, type Translate } from "../i18n";
 import { diffChars } from "../lib/diff";
 import { findingCategoryLabel, findingOriginLabel, reviewKindLabel, severityLabel, statusLabel, versionLabel } from "../lib/enums";
 import { FALLBACK_PAIR, langAttr, leftoverSourceText, pairCodes } from "../lib/languages";
@@ -94,7 +94,7 @@ function Diff({ before, after, lang }: { before: string; after: string; lang: st
   );
 }
 
-function CompileCard({ jobId, initial }: { jobId: string; initial?: CompileState }) {
+function CompileCard({ jobId, initial, jobType }: { jobId: string; initial?: CompileState; jobType?: string }) {
   const t = useT();
   const toast = useToast();
   const [state, setState] = useState<CompileState | undefined>(initial);
@@ -129,7 +129,7 @@ function CompileCard({ jobId, initial }: { jobId: string; initial?: CompileState
   const events = (state?.events ?? []).filter((e) => e.status !== "skipped");
   return (
     <section className="card">
-      <h2>{t("review.compile.title")}</h2>
+      <h2>{t(jobKey("review.compile.title", jobType))}</h2>
       <p className="meta">{t("review.compile.help")}</p>
       <div className="row"><button className="primary" disabled={state?.state === "running"} onClick={start}>{t("review.compile.start")}</button></div>
       {(events.length > 0 || state?.result) && (
@@ -403,7 +403,7 @@ export function ReviewPage() {
           </section>
         )}
         <LeftInSourceCard jobId={jobId} items={leftInSource} />
-        {!complete && <CompileCard jobId={jobId} initial={data.compile} />}
+        {!complete && <CompileCard jobId={jobId} initial={data.compile} jobType={info?.job_type} />}
       </main>,
     );
   }

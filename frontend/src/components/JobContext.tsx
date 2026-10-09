@@ -10,6 +10,8 @@ export type JobInfo = {
   kind: "draft" | "job";
   /** A book, or a subtitle file; a server from before subtitle jobs does not say. */
   job_type?: "book" | "subtitles";
+  /** For a subtitle job: what each other format does not carry over, as codes (subtitles.note.*). */
+  output_notes?: Record<string, string[]>;
   overall: string;
   source: string;
   source_path?: string;

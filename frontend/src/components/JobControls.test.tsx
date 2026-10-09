@@ -225,6 +225,62 @@ describe("The job's buttons in the header", () => {
       expect(within(format).queryByRole("option", { name: "PDF" })).not.toBeInTheDocument();
     });
 
+    describe("a subtitle job", () => {
+      const film = (overrides: Record<string, unknown> = {}) => jobInfo({
+        downloadable: true, job_type: "subtitles", output_format: "srt", output_formats: ["srt", "vtt", "ass"],
+        output_notes: { vtt: [], ass: ["times", "default_style"] }, ...overrides,
+      });
+
+      it("is offered as a subtitle file in its own format or another, and in no book format", async () => {
+        controlsApi(film());
+        await renderControls("complete");
+        const format = screen.getByRole("combobox", { name: "Download format" });
+        expect(format).toHaveValue("srt");
+        expect(within(format).getAllByRole("option").map((option) => option.textContent)).toEqual(["SRT", "WebVTT", "ASS"]);
+        expect(format).toHaveAttribute("title", expect.stringContaining("another format keeps the cues, their times"));
+        const download = () => screen.getByRole("link", { name: "⤓ Download" });
+        expect(download()).toHaveAttribute("href", "/api/jobs/demo/output");
+        expect(download()).toHaveAttribute("title", "Download the translated subtitles");
+        await userEvent.selectOptions(format, "WebVTT");
+        expect(download()).toHaveAttribute("href", "/api/jobs/demo/output?format=vtt");
+        await userEvent.selectOptions(format, "SRT");
+        expect(download()).toHaveAttribute("href", "/api/jobs/demo/output");
+      });
+
+      it("says what another format does not hold as the file is downloaded, and nothing when all is kept", async () => {
+        controlsApi(film());
+        const user = await renderControls("complete");
+        const format = screen.getByRole("combobox", { name: "Download format" });
+        const download = screen.getByRole("link", { name: "⤓ Download" });
+        download.addEventListener("click", (event) => event.preventDefault()); // jsdom does not download
+        await user.click(download);
+        expect(screen.queryByRole("status")).not.toBeInTheDocument();
+        await userEvent.selectOptions(format, "WebVTT");
+        await user.click(download);
+        expect(screen.queryByRole("status")).not.toBeInTheDocument();
+        await userEvent.selectOptions(format, "ASS");
+        await user.click(download);
+        expect(screen.getByRole("status")).toHaveTextContent(
+          "Downloading as ASS, which is not the file's own format: times are rounded to hundredths of a second, which is what ASS holds; "
+          + "one default style is added, with every cue at the bottom centre.",
+        );
+      });
+
+      it("starts on the format its config names", async () => {
+        controlsApi(film({ output_format: "vtt" }));
+        await renderControls("complete");
+        expect(screen.getByRole("combobox", { name: "Download format" })).toHaveValue("vtt");
+        expect(screen.getByRole("link", { name: "⤓ Download" })).toHaveAttribute("href", "/api/jobs/demo/output");
+      });
+
+      it("has its one file and no menu on a server that names no formats", async () => {
+        controlsApi(jobInfo({ downloadable: true, job_type: "subtitles" }));
+        await renderControls("complete");
+        expect(screen.queryByRole("combobox", { name: "Download format" })).not.toBeInTheDocument();
+        expect(screen.getByRole("link", { name: "⤓ Download" })).toHaveAttribute("href", "/api/jobs/demo/output");
+      });
+    });
+
     it("has no download link before there is a book", async () => {
       controlsApi(stopped());
       await renderControls("paused");

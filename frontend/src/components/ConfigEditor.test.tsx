@@ -23,7 +23,7 @@ const SCHEMA = {
       ],
     },
     { key: "reprose", title: "Prose rewrite", fields: [field("reprose.enabled", "boolean", false)] },
-    { key: "consistency", title: "Book consistency", fields: [field("consistency.conventions", "boolean", true)] },
+    { key: "consistency", title: "Content consistency", fields: [field("consistency.conventions", "boolean", true)] },
     {
       key: "ollama", title: "Ollama", fields: [
         field("ollama.model", "string", "qwen3:14b"),

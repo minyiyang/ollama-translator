@@ -62,6 +62,19 @@ def draft_direction(config_dir: Path | None, name: str) -> str:
         return ""
 
 
+# Stages with nothing to do for a subtitle file, which has no title, contents, notes, or pictures.
+_BOOK_ONLY_STAGES = {WorkflowStage.TRANSLATE_TITLE.value}
+
+
+def shown_stages(source: str | Path, stages: list[Any]) -> list[Any]:
+    """The stages a job's pages list, of `stages` (statuses, or names): a
+    subtitle job's leave out those that only a book has work for. They still
+    run, and pass at once."""
+    if job_type(source) != "subtitles":
+        return list(stages)
+    return [stage for stage in stages if (stage["name"] if isinstance(stage, dict) else stage) not in _BOOK_ONLY_STAGES]
+
+
 def list_jobs(runs: Path, config_dir: Path | None = None) -> list[dict[str, Any]]:
     """Summarize every valid workspace, newest first."""
     jobs = []
@@ -75,7 +88,7 @@ def list_jobs(runs: Path, config_dir: Path | None = None) -> list[dict[str, Any]
             status = workflow_status(workspace)
         except (ValueError, OSError):
             continue
-        stages = status["stages"]
+        stages = shown_stages(workspace.source_file, status["stages"])
         current = next(
             (s for s in stages if s["status"] in {"running", "paused", "failed"}),
             next((s for s in stages if s["status"] == "pending"), None),
@@ -113,7 +126,7 @@ def list_jobs(runs: Path, config_dir: Path | None = None) -> list[dict[str, Any]
                 "current_stage": "",
                 "current_message": "",
                 "completed": 0,
-                "total": len(WorkflowStage),
+                "total": len(shown_stages(draft["source"], [stage.value for stage in WorkflowStage])),
                 "updated": draft.get("launched") or draft["created"],
             }
         )
@@ -249,4 +262,5 @@ class ProgressReader:
                         for name, activity in tracker.stages.items()
                     },
                 }
+        status = {**status, "stages": shown_stages(workspace.source_file, status["stages"])}
         return {"status": status, "progress": progress, "source": workspace.source_file.name}

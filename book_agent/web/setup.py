@@ -16,8 +16,10 @@ from ..subtitles import JOB_SOURCE_NAMES, JOB_SOURCE_SUFFIXES
 from ..cli import resolve_config_paths
 from ..config import AppConfig
 from ..languages import LanguagePair, language_catalog, language_support
+from ..output import check_output
 from ..pipeline_state import WorkflowStage
 from ..workspace import build_job_id, slugify_job_name, validate_job_id
+from .jobs import shown_stages
 from .messages import UserError
 
 _CONFIG_NAME_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._-]*\.ya?ml$")
@@ -128,6 +130,12 @@ def validate_setup(
         problems.append(f"source file not found: {source_path}")
     elif source_path.suffix.casefold() not in JOB_SOURCE_SUFFIXES:
         problems.append(f"source must be {JOB_SOURCE_NAMES}")
+    else:
+        # An output format this job cannot be given is said here, not when the job starts.
+        try:
+            check_output(source_path, config)
+        except ValueError as error:
+            problems.append(str(error))
     readable = f"{slugify_job_name(source_path.stem)}-{config.translation.direction.slug}" if source else ""
     job = job_id or (readable if readable and not (runs / readable).exists() else build_job_id(source_path) if source else "")
     try:
@@ -167,7 +175,7 @@ def validate_setup(
             "final_review_required": config.workflow.require_final_review,
             "runs": str(runs),
         },
-        "stages": [stage.value for stage in WorkflowStage],
+        "stages": shown_stages(source_path, [stage.value for stage in WorkflowStage]),
     }
 
 
@@ -191,7 +199,7 @@ _SECTION_TITLES = {
     "epub": "EPUB output",
     "audit": "Audit and repair",
     "reprose": "Prose rewrite",
-    "consistency": "Book consistency",
+    "consistency": "Content consistency",
     "workflow": "Workflow gates",
     "paths": "Paths",
     "subtitles": "Subtitles",

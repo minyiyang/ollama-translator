@@ -1,4 +1,4 @@
-import { t, type MessageKey } from "../i18n";
+import { jobKey, t, type MessageKey } from "../i18n";
 
 export type Stage = { name: string; status: string; attempts: number; message: string; updated_at?: string };
 export type WorkflowStatus = {
@@ -29,7 +29,8 @@ export const STAGE_LABELS: Record<string, MessageKey> = {
   validate_epub: "progress.stageName.validateEpub",
 };
 
-export const stageLabel = (name: string) => (STAGE_LABELS[name] ? t(STAGE_LABELS[name]) : name);
+/** A stage's name; a subtitle job's stages that write and check its file are named for a subtitle file. */
+export const stageLabel = (name: string, jobType?: string) => (STAGE_LABELS[name] ? t(jobKey(STAGE_LABELS[name], jobType)) : name);
 
 export type TabKey = "config" | "glossary" | "progress" | "text" | "review";
 export type TabState = "running" | "waiting";

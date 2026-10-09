@@ -54,6 +54,7 @@ type Estimate = {
 /** "About 1 h 20 min left": how the number was made is shown right under it. */
 function EstimatePanel({ estimate, running }: { estimate: Estimate; running: boolean }) {
   const t = useT();
+  const type = useJob().info?.job_type;
   if (estimate.complete) return null;
   const later = estimate.pending.reduce((sum, p) => sum + p.seconds, 0);
   const cur = estimate.current;
@@ -70,7 +71,7 @@ function EstimatePanel({ estimate, running }: { estimate: Estimate; running: boo
       <ul className="estimate-parts">
         {cur && (
           <li>
-            {rich("progress.estimate.current", { b: (chunks) => <b>{chunks}</b>, stage: stageLabel(cur.stage), time: roughDuration(cur.remaining_seconds), done: cur.done, total: cur.total, basis: cur.basis })}
+            {rich("progress.estimate.current", { b: (chunks) => <b>{chunks}</b>, stage: stageLabel(cur.stage, type), time: roughDuration(cur.remaining_seconds), done: cur.done, total: cur.total, basis: cur.basis })}
           </li>
         )}
         {later > 0 && (
@@ -81,9 +82,9 @@ function EstimatePanel({ estimate, running }: { estimate: Estimate; running: boo
           </li>
         )}
         {estimate.unknown_stages.length > 0 && (
-          <li>{t("progress.estimate.notEstimated", { stages: estimate.unknown_stages.map(stageLabel).join(", ") })}</li>
+          <li>{t("progress.estimate.notEstimated", { stages: estimate.unknown_stages.map((stage) => stageLabel(stage, type)).join(", ") })}</li>
         )}
-        {estimate.excludes.length > 0 && <li>{t("progress.estimate.excludes", { gates: estimate.excludes.map((g) => (g.includes(" ") ? g : stageLabel(g))).join("; ") })}</li>}
+        {estimate.excludes.length > 0 && <li>{t("progress.estimate.excludes", { gates: estimate.excludes.map((g) => (g.includes(" ") ? g : stageLabel(g, type))).join("; ") })}</li>}
       </ul>
     </div>
   );
@@ -142,7 +143,8 @@ type RerunPreview = {
 /** Resume where the run stopped, or rerun a stage from scratch after a warning. */
 function StageActionButtons({ stage, live, onLaunched }: { stage: Stage; live: boolean; onLaunched: () => void }) {
   const t = useT();
-  const { jobId, refresh } = useJob();
+  const { jobId, info, refresh } = useJob();
+  const type = info?.job_type;
   const ask = useDialog();
   const toast = useToast();
   const [busy, setBusy] = useState(false);
@@ -175,14 +177,14 @@ function StageActionButtons({ stage, live, onLaunched }: { stage: Stage; live: b
     const ran = preview.stages.filter((s) => s.status !== "pending");
     const later = preview.stages.length - ran.length;
     const choice = await ask(
-      t("progress.rerun.title", { stage: stageLabel(stage.name) }),
+      t("progress.rerun.title", { stage: stageLabel(stage.name, type) }),
       <>
         {stopped && <p>{t("progress.rerun.resumeKeeps")}</p>}
         <p>{t("progress.rerun.resets", { count: ran.length })}</p>
         <ol className="rerun-stages">
           {ran.map((s) => (
             <li key={s.name}>
-              {stageLabel(s.name)}
+              {stageLabel(s.name, type)}
               {s.seconds ? <span className="meta"> · {t("progress.rerun.took", { time: roughDuration(s.seconds) })}</span> : null}
             </li>
           ))}
@@ -196,7 +198,7 @@ function StageActionButtons({ stage, live, onLaunched }: { stage: Stage; live: b
         { value: "rerun", label: t("progress.rerun.confirm"), danger: true },
       ],
     );
-    if (choice === "rerun") await launch("rerun", { stage: stage.name }, t("progress.rerun.started", { stage: stageLabel(stage.name) }));
+    if (choice === "rerun") await launch("rerun", { stage: stage.name }, t("progress.rerun.started", { stage: stageLabel(stage.name, type) }));
   };
 
   const blocked = live ? t("progress.action.blocked") : "";
@@ -321,7 +323,7 @@ export function ProgressPage() {
               <div>
                 <Chip kind={status.overall}>{statusLabel(status.overall)}</Chip>
                 <span className="meta" style={{ marginInlineStart: 6 }}>{data.source}</span>
-                <div className="big">{current ? stageLabel(current.name) : t("progress.summary.allComplete")}</div>
+                <div className="big">{current ? stageLabel(current.name, info?.job_type) : t("progress.summary.allComplete")}</div>
                 {current?.message && <div className="meta">{stageMessage(current.message)}</div>}
                 <Bar percent={(100 * done) / stages.length} running={status.overall !== "complete"} />
                 <span className="meta">{t("progress.summary.stagesComplete", { done, total: stages.length })}</span>
@@ -367,7 +369,7 @@ export function ProgressPage() {
                       <tr key={stage.name} className={stage.status}>
                         <td className={`icon ${stage.status}`}>{stage.status === "running" ? <span>◐</span> : ICONS[stage.status] ?? "○"}</td>
                         <td>
-                          <b>{stageLabel(stage.name)}</b> <StageTip stage={stage.name} result={stageResult(t, stage, activity)} />{" "}
+                          <b>{stageLabel(stage.name, info?.job_type)}</b> <StageTip stage={stage.name} jobType={info?.job_type} result={stageResult(t, stage, activity)} />{" "}
                           <span className="meta mono">{stage.name}</span>
                           {stage.message && <div className="msg">{stageMessage(stage.message)}</div>}
                           {stage.name === "translate_title" && leftInSource.length > 0 && (

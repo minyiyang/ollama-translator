@@ -14,6 +14,7 @@ from ..text_edits import active_edit_texts
 from ..workflow import workflow_status
 from ..workspace import JobWorkspace
 from .estimate import stage_seconds
+from .jobs import shown_stages
 from .messages import UserError, rerun_warning
 
 _ORDER = list(WorkflowStage)
@@ -53,6 +54,7 @@ def rerun_preview(workspace: JobWorkspace, name: str) -> dict[str, Any]:
         }
         for item in affected
     ]
+    stages = shown_stages(workspace.source_file, stages)
 
     connection = connect_state(workspace.state_file)
     try:

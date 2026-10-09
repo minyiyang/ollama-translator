@@ -29,7 +29,16 @@ from .pipeline_state import WorkflowStage
 from .ollama_client import GenerationProgressEvent, OllamaClient, PauseRequested
 from .styles import TranslationStyle
 from .book_formats import EXPORT_FORMATS, export_book
-from .subtitles import JOB_SOURCE_NAMES, JOB_SOURCE_SUFFIXES, job_type, subtitle_config
+from .subtitles import (
+    CONVERSION_NOTES,
+    JOB_SOURCE_NAMES,
+    JOB_SOURCE_SUFFIXES,
+    SUBTITLE_FORMATS,
+    convert_subtitle_file,
+    job_type,
+    subtitle_config,
+    subtitle_kind,
+)
 from .languages import LanguagePair, language_support
 from .stages.compile import load_compiled_epub_path
 from .output import check_output, output_format
@@ -210,12 +219,18 @@ def build_parser() -> argparse.ArgumentParser:
 
     export_parser = subparsers.add_parser(
         "export",
-        help="write a completed job's translated book as text, Markdown, HTML, a Word document, or a PDF",
+        help=(
+            "write a completed job's translated book as text, Markdown, HTML, a Word document, or a PDF; "
+            "or its subtitle file as SRT, WebVTT, or ASS"
+        ),
     )
     export_parser.add_argument("workspace", help="job workspace directory")
-    export_parser.add_argument("--format", required=True, choices=EXPORT_FORMATS, help="format to write")
+    export_parser.add_argument(
+        "--format", required=True, choices=(*EXPORT_FORMATS, *SUBTITLE_FORMATS),
+        help="format to write: a book's (txt, md, html, docx, pdf) or a subtitle file's (srt, vtt, ass)",
+    )
     export_parser.add_argument("--pdf-font", help="font file for a PDF (default: output.pdf_font, or a font of this system)")
-    export_parser.add_argument("--out", help="output path (default: next to the compiled EPUB)")
+    export_parser.add_argument("--out", help="output path (default: next to the compiled file)")
 
     status_parser = subparsers.add_parser("status", help="show current job state")
     status_parser.add_argument("workspace", help="job workspace path")
@@ -788,9 +803,7 @@ def build_dry_run_summary(source: str | Path, config: AppConfig, runs: str | Pat
     note = " ".join(part for part in (note, check_output(source_path, config)) if part)
     return {
         **({"note": note} if note else {}),
-        "output_format": (
-            source_format if job_type(source_path) == "subtitles" else output_format(source_path, config)[0]
-        ),
+        "output_format": output_format(source_path, config)[0],
         "dry_run": True,
         "source": str(source_path),
         "source_format": source_format,
@@ -1428,9 +1441,21 @@ def main(argv: Sequence[str] | None = None) -> int:
         if args.command == "export":
             workspace = open_job_workspace(args.workspace)
             compiled = Path(load_compiled_epub_path(workspace))
-            if compiled.suffix.casefold() != ".epub":
-                raise ValueError("a subtitle job has one output, its subtitle file; there is no book to export")
             target = Path(args.out) if args.out else compiled.with_suffix(f".{args.format}")
+            if job_type(workspace.source_file) == "subtitles":
+                if args.format not in SUBTITLE_FORMATS:
+                    raise ValueError(
+                        f"this is a subtitle job: it is written as srt, vtt, or ass, not as {args.format}"
+                    )
+                if args.format == subtitle_kind(compiled):
+                    raise ValueError(f"the job's subtitle file is already {args.format}: {compiled}")
+                notes = convert_subtitle_file(compiled, target, args.format)
+                print(target)
+                for note in notes:
+                    print(f"note: {CONVERSION_NOTES[note]}", file=sys.stderr)
+                return ExitCode.COMPLETE
+            if args.format in SUBTITLE_FORMATS:
+                raise ValueError(f"this is a book: it is written as txt, md, html, docx, or pdf, not as {args.format}")
             font = args.pdf_font or load_workspace_config(workspace).output.pdf_font
             print(export_book(compiled, target, args.format, pdf_font=font))
             return ExitCode.COMPLETE

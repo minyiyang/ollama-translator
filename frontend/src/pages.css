@@ -382,3 +382,7 @@ body [lang]:not(option) { direction: ltr; }
 body [lang]:not(option):is(:lang(ar), :lang(fa), :lang(he), :lang(ur)) { direction: rtl; }
 /* What is typed goes by its first letter. */
 textarea, input[type=text] { unicode-bidi: plaintext; }
+
+/* A finished job in the Jobs list: its format menu beside its Download link. */
+.row-download { display: flex; gap: 6px; align-items: center; }
+.row-download select { width: auto; max-width: 8.5em; }

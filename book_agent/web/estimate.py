@@ -24,7 +24,7 @@ from ..pipeline_state import WorkflowStage
 from ..stages.decompile import load_decompile_manifest
 from ..workflow import workflow_status
 from ..workspace import JobWorkspace, open_job_workspace
-from .jobs import LogTracker
+from .jobs import LogTracker, shown_stages
 
 _lock = threading.Lock()
 _trackers: dict[Path, LogTracker] = {}
@@ -174,7 +174,7 @@ def _current_stage_estimate(name: str, activity, now: str, history_seconds: floa
 
 def estimate(workspace: JobWorkspace, runs: Path, config: AppConfig) -> dict[str, Any]:
     status = workflow_status(workspace)
-    stages = status["stages"]
+    stages = shown_stages(workspace.source_file, status["stages"])
     now = datetime.now().astimezone().isoformat(timespec="seconds")
     logs = _tracked_logs(workspace)
     latest = logs[-1] if logs else None

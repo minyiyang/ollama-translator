@@ -2,18 +2,22 @@ import { useCallback, useEffect, useRef, useState, type DragEvent } from "react"
 import { Link, useNavigate } from "react-router-dom";
 import { api, uploadSource } from "../api";
 import { BookCard, type BookInfo } from "../components/BookCard";
+import { DownloadControl } from "../components/DownloadControl";
 import { Shell } from "../components/Shell";
 import { useToast } from "../components/Toast";
 import { Bar, Card, Chip } from "../components/ui";
 import { rich, useT } from "../i18n";
 import { statusLabel } from "../lib/enums";
-import { directionLabel, isSourceBook, jobTypeLabel, outputUrl, relativeTime, SOURCE_ACCEPT, sourceKinds, type JobType } from "../lib/format";
+import { directionLabel, isSourceBook, jobTypeLabel, relativeTime, SOURCE_ACCEPT, sourceKinds, type JobType } from "../lib/format";
 import { stageLabel } from "../lib/stages";
 
 type Job = {
   job_id: string; overall: string; source: string; direction: string; downloadable: boolean;
   /** A book, or a subtitle file; a server from before subtitle jobs does not say. */
   job_type?: JobType;
+  output_format?: string;
+  output_formats?: string[];
+  output_notes?: Record<string, string[]>;
   current_stage: string; completed: number; total: number; updated: string;
 };
 export type Setup = { configs: { name: string }[]; config_dir: string; runs: string; template: string; jobs: Job[] };
@@ -70,7 +74,7 @@ function JobsTable({ jobs }: { jobs: Job[] }) {
               <td className="mono nowrap" title={job.direction || t("jobs.table.directionNotSet")}>{directionLabel(job.direction)}</td>
               <td><Chip kind={job.overall}>{statusLabel(job.overall)}</Chip></td>
               <td>
-                {draft ? <span className="meta">{t("jobs.table.notStarted")}</span> : job.current_stage ? stageLabel(job.current_stage) : "—"}
+                {draft ? <span className="meta">{t("jobs.table.notStarted")}</span> : job.current_stage ? stageLabel(job.current_stage, job.job_type) : "—"}
                 {waiting && <div><Link to={`${base}/${waiting[0]}`}>{waiting[1]}</Link></div>}
               </td>
               <td style={{ minWidth: 140 }}>
@@ -79,9 +83,7 @@ function JobsTable({ jobs }: { jobs: Job[] }) {
               </td>
               <td className="meta">{relativeTime(job.updated)}</td>
               <td>
-                {job.downloadable && (
-                  <a className="button small" href={outputUrl(job.job_id)} download title={job.job_type === "subtitles" ? t("jobs.downloadSubtitles") : t("jobs.downloadBook")}>{t("jobs.download")}</a>
-                )}
+                {job.downloadable && <div className="row-download"><DownloadControl jobId={job.job_id} output={job} small /></div>}
               </td>
             </tr>
           );

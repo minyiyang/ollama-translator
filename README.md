@@ -376,9 +376,31 @@ book-agent run "D:\films\the-sign-of-the-four.srt" --config .\my-film.yaml
     characters_per_second: 17
   ```
 
+The job gives back a file in the format it was given. To have another
+subtitle format, name it in the config, or ask for it once the job is done:
+
+```yaml
+output:
+  format: vtt        # source (the default), srt, vtt, or ass
+```
+
+```powershell
+book-agent export .\runs\the-sign-of-the-four-en-de --format ass   # or srt, vtt
+```
+
+Every cue keeps its place, its times, its lines, and its italics, bold, and
+underline. What only one format can say is left behind, and the command and
+the dashboard say what: WebVTT's cue positions and its NOTE and STYLE blocks;
+an ASS file's styles, positions, colours, karaoke timing, and drawings. An
+ASS file made from another format gets one default style, and holds times in
+hundredths of a second. A subtitle job has no EPUB and no other book format.
+
 In the dashboard the Jobs list names each job's kind, Book or Subtitles; the
 Text tab lists parts of the film (by their times) where a book has chapters;
-and Download gives the subtitle file. Markup inside a cue (one word in
+the stages that write and check the result are named for a subtitle file; the
+Config tab leaves out the settings only a book uses (and a book's leaves out
+the reading limits); and Download gives the subtitle file, with a menu for
+the other subtitle formats. Markup inside a cue (one word in
 italics) is dropped from a translated cue, a sentence that runs over several
 cues is translated cue by cue, and the timing is never changed.
 [docs/FORMAT_SUPPORT.md](docs/FORMAT_SUPPORT.md) has the design and the limits.
@@ -714,9 +736,13 @@ a job's translation direction
 ([Dashboard localization](docs/LOCALIZATION.md)).
 
 - **Jobs** lists jobs with their translation direction (for example
-  `EN → ZH`) and creates new ones; a completed job has a *Download* button for
-  its translated book, also in the job header, where a format can be chosen
-  (EPUB, Word, HTML, Markdown, or text). Each job's **Config** tab edits,
+  `EN → ZH`) and creates new ones; a completed job has a *Download* button, in
+  the list and in the job header, with a format menu beside it. The menu
+  starts on the format the job gives back (`output.format` in its config;
+  by default the format the source came in). A book can be had as EPUB, PDF,
+  Word, HTML, Markdown, or text; a subtitle job as SRT, WebVTT, or ASS, and
+  the dashboard says what a subtitle format other than the file's own does
+  not carry over. Each job's **Config** tab edits,
   validates, and starts it; its *Languages* setting takes any two language
   codes, lists the tuned ones first, and for a generic pair shows the tiers,
   a model-quality notice, and the checks that will be skipped (options those

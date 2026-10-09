@@ -294,9 +294,13 @@ Oberflächensprache ist unabhängig von der Übersetzungsrichtung eines Jobs
 
 - **Jobs** listet die Jobs mit ihrer Übersetzungsrichtung auf (zum Beispiel
   `EN → ZH`) und legt neue an. Ein abgeschlossener Job hat in der Liste und in
-  der Kopfzeile eine Schaltfläche *Herunterladen* für das übersetzte Buch; in
-  der Kopfzeile lässt sich das Format wählen (EPUB, Word, HTML, Markdown oder
-  Text). Im Tab **Konfiguration** wird der Job bearbeitet, validiert und
+  der Kopfzeile eine Schaltfläche *Herunterladen* mit einem Formatmenü
+  daneben. Das Menü beginnt mit dem Format, das der Job zurückgibt
+  (`output.format` in seiner Konfiguration; standardmäßig das Format der
+  Quelle). Ein Buch gibt es als EPUB, PDF, Word, HTML, Markdown oder Text,
+  einen Untertitel-Job als SRT, WebVTT oder ASS; bei einem anderen
+  Untertitelformat als dem der Datei sagt das Dashboard, was nicht übernommen
+  wird. Im Tab **Konfiguration** wird der Job bearbeitet, validiert und
   gestartet; die Kopfzeile pausiert (nach dem laufenden Modellaufruf), stoppt
   oder setzt fort. `book-agent pause <workspace>` pausiert einen im Terminal
   gestarteten Lauf auf dieselbe Weise. **Reihen** fasst Jobs zusammen, die ein

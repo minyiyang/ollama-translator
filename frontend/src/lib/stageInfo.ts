@@ -2,7 +2,7 @@
 // Progress tab. The text is in the catalog (src/i18n); keep the English in sync
 // with docs/DESIGN.md (§4 workflow, §9 validation).
 
-import { t, type MessageKey } from "../i18n";
+import { jobKey, t, type MessageKey } from "../i18n";
 
 export type StageInfo = {
   does: string;
@@ -139,9 +139,12 @@ const STAGE_INFO: Record<string, { [Part in keyof StageInfo]: MessageKey }> = {
   },
 };
 
-/** A stage's description in the interface language; undefined for a stage it does not know. */
-export function stageInfo(stage: string): StageInfo | undefined {
+/**
+ * A stage's description in the interface language, for a book or for a
+ * subtitle job; undefined for a stage it does not know.
+ */
+export function stageInfo(stage: string, jobType?: string): StageInfo | undefined {
   const keys = STAGE_INFO[stage];
   if (!keys) return undefined;
-  return Object.fromEntries(Object.entries(keys).map(([part, key]) => [part, t(key)])) as StageInfo;
+  return Object.fromEntries(Object.entries(keys).map(([part, key]) => [part, t(jobKey(key, jobType))])) as StageInfo;
 }

@@ -104,6 +104,8 @@ epub:
 #   # The format the finished book is given back in: source (the format it came
 #   # in; an EPUB where that cannot be written), epub, pdf, docx, html, md, or txt.
 #   # Any other format can still be had from the finished job.
+#   # A subtitle job takes source, srt, vtt, or ass instead: a subtitle file in
+#   # the format it came in, or in another subtitle format.
 #   format: source
 #   # A .ttf or .ttc font for a PDF, with the letters of the language translated
 #   # into. Unset: a font of this system. A PDF needs `pip install reportlab`.

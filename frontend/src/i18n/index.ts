@@ -14,6 +14,15 @@ export type Values = Record<string, string | number | boolean | Date | null | un
 export type RichValues = Record<string, Values[string] | ReactNode | ((chunks: ReactNode[]) => ReactNode)>;
 export type Translate = (key: MessageKey, values?: Values) => string;
 
+/**
+ * The message for a job of this kind: a subtitle job's own wording where the
+ * catalog has one (the same key ending in ".subtitles"), the book's otherwise.
+ */
+export const jobKey = (key: MessageKey, jobType?: string): MessageKey => {
+  const own = `${key}.subtitles`;
+  return jobType === "subtitles" && own in en ? (own as MessageKey) : key;
+};
+
 /** The interface languages, each named in its own language. */
 export const LOCALES = [
   { code: "en", name: "English" },
