@@ -73,6 +73,31 @@ class RunAndResumeTests:
             code, _, error = run(["run", str(base / "fixture.epub"), "--runs", str(base / "more"), "--job-id", "third"])
         assert code == ExitCode.COMPLETE and "subtitle job: prose rewrite is off" in error
 
+    def test_run_refuses_an_output_format_the_job_cannot_be_given_before_any_work(self, job):
+        base = job.root.parent.parent
+        argv = ["run", str(base / "fixture.epub"), "--runs", str(base / "more"), "--job-id", "refused"]
+        with patch.object(cli, "run_workflow") as workflow, \
+             patch.object(cli, "check_output", side_effect=ValueError("no font of this system has the letters")):
+            code, _, error = run(argv)
+        assert code == ExitCode.FAILED and "error: no font of this system has the letters" in error
+        workflow.assert_not_called()
+        assert not (base / "more" / "refused").exists()
+        # A format that was quietly replaced is said, and the job runs.
+        with patch.object(cli, "run_workflow", return_value=finished()), \
+             patch.object(cli, "check_output", return_value="the book is written as an EPUB, not a PDF: no font"):
+            code, _, error = run(argv)
+        assert code == ExitCode.COMPLETE and "written as an EPUB, not a PDF" in error
+
+    def test_a_dry_run_names_the_output_format_and_resolves_the_font_beside_the_config(self, job):
+        base = job.root.parent.parent
+        config = base / "job.yaml"
+        config.write_text("output:\n  format: docx\n  pdf_font: fonts/serif.ttf\n", encoding="utf-8")
+        code, output, _ = run(["run", str(base / "fixture.epub"), "--config", str(config), "--dry-run"])
+        assert code == ExitCode.COMPLETE and json.loads(output)["output_format"] == "docx"
+        resolved = cli.resolve_config_paths(cli.load_config(config), base)
+        assert resolved.output.pdf_font == (base / "fonts" / "serif.ttf").resolve()
+        assert cli.resolve_config_paths(AppConfig(), base).output.pdf_font is None
+
     def test_resume_continues_the_job(self, job):
         with patch.object(cli, "run_workflow", return_value=finished(ExitCode.FAILED, "translate failed")) as workflow:
             code, _, error = run(["resume", str(job.root), "--plain"])
@@ -130,11 +155,14 @@ class ExportTests:
     def test_export_writes_the_compiled_book_in_the_asked_format(self, job):
         compiled = job.root / "output" / "book.epub"
         with patch.object(cli, "load_compiled_epub_path", return_value=str(compiled)), \
-             patch.object(cli, "export_book", side_effect=lambda source, target, kind: target) as export:
+             patch.object(cli, "export_book", side_effect=lambda source, target, kind, pdf_font=None: target) as export:
             code, output, _ = run(["export", str(job.root), "--format", "txt"])
             assert code == ExitCode.COMPLETE and output.strip() == str(compiled.with_suffix(".txt"))
             code, output, _ = run(["export", str(job.root), "--format", "md", "--out", "elsewhere.md"])
             assert output.strip() == "elsewhere.md" and export.call_args.args == (compiled, Path("elsewhere.md"), "md")
+            assert export.call_args.kwargs == {"pdf_font": None}
+            run(["export", str(job.root), "--format", "pdf", "--pdf-font", "serif.ttf"])
+            assert export.call_args.args[2] == "pdf" and export.call_args.kwargs == {"pdf_font": "serif.ttf"}
 
     def test_a_subtitle_job_has_no_book_to_export(self, job):
         with patch.object(cli, "load_compiled_epub_path", return_value=str(job.root / "output" / "film.srt")):

@@ -8,8 +8,8 @@
 
 책 한 권을 통째로 번역하는 로컬 파이프라인입니다. 중단된 지점부터 이어서 실행할 수
 있으며, 영어→중국어와 중국어→영어 문학 번역에 맞춰 다듬어져 있습니다. EPUB, RTF,
-텍스트, Markdown, HTML, Word(.docx), 텍스트 PDF 파일을 입력으로 받아 번역된 EPUB을
-만들고, 결과물은 Word, HTML, Markdown, 텍스트로도 내보낼 수 있습니다. 자막 파일
+텍스트, Markdown, HTML, Word(.docx), 텍스트 PDF 파일을 입력으로 받아 번역본을 원본과
+같은 형식으로 돌려주며, EPUB, PDF, Word, HTML, Markdown, 텍스트로도 내보낼 수 있습니다. 자막 파일
 (.srt, .vtt, .ass)도 타이밍을 그대로 둔 채 큐 단위로 번역합니다. 모든 처리는 로컬
 Ollama 모델만으로 이루어집니다. 클라우드 API나 MCP 서버가 필요 없고, LangGraph나
 AutoGen 같은 에이전트 프레임워크도 쓰지 않습니다.

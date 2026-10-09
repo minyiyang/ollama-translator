@@ -26,12 +26,12 @@ from typing import Any
 from urllib.parse import parse_qs, quote, urlparse
 
 from .. import series as series_api
-from ..languages import TranslationDirection, glossary_language_names
+from ..languages import TranslationDirection, glossary_language_names, profile
 from ..pipeline_state import WorkflowStage
 from ..schemas import GlossaryCategory, GlossaryResult
 from ..review_ui import ReviewSession
 from .rerun import parse_stage, rerun_preview
-from ..workspace import validate_job_id
+from ..workspace import JobWorkspace, validate_job_id
 from ..state import StageStatus
 from ..workflow import (
     ExitCode,
@@ -47,8 +47,10 @@ from .book_info import allowed_book, book_cover, book_info
 from .estimate import estimate as estimate_job
 from . import setup as setup_api
 from .glossary_view import glossary_payload, write_reviewed_glossary, write_reviewed_style_sheet
-from ..book_formats import EXPORT_MEDIA_TYPES, export_book
-from ..stages.compile import load_compiled_epub_path
+from ..book_formats import EXPORT_FORMATS, EXPORT_MEDIA_TYPES, export_book
+from ..output import output_format
+from ..pdf_export import pdf_output_problem
+from ..stages.compile import load_compiled_epub_path, load_output_path
 from ..subtitles import SUBTITLE_MEDIA_TYPES, job_type
 from .jobs import ProgressReader, draft_direction, job_direction, job_path, list_jobs, open_job
 from .messages import UserError, error_payload
@@ -79,7 +81,12 @@ from ..text_edits import (
 _MAX_BODY_BYTES = 8 * 1024 * 1024
 _MAX_UPLOAD_BYTES = 1024 * 1024 * 1024
 _PAGES = {"config", "progress", "glossary", "review", "text"}
-_DOWNLOAD_TYPES = {".epub": "application/epub+zip", ".rtf": "application/rtf", **SUBTITLE_MEDIA_TYPES}
+_DOWNLOAD_TYPES = {
+    ".epub": "application/epub+zip",
+    ".rtf": "application/rtf",
+    **SUBTITLE_MEDIA_TYPES,
+    **{f".{kind}": media_type for kind, media_type in EXPORT_MEDIA_TYPES.items()},
+}
 _ASSET_TYPES = {
     ".js": "text/javascript; charset=utf-8",
     ".css": "text/css; charset=utf-8",
@@ -240,6 +247,7 @@ class UiApp:
                 "direction": job_direction(workspace),
                 "languages": status["languages"],
                 "downloadable": overall == "complete",
+                **self._output_formats(workspace),
                 "series": series_api.series_of_job(self.runs, job_id),
                 "stages": status["stages"],
                 "running": overall == "running" or process_running,
@@ -516,12 +524,41 @@ class UiApp:
             "report": json.loads(report.read_text(encoding="utf-8")) if report.is_file() else None,
         }
 
-    def job_output(self, job_id: str) -> Path:
-        """The translated book of a completed job."""
+    def _output_formats(self, workspace: JobWorkspace) -> dict[str, Any]:
+        """The format the job gives back, and the formats its book can be had in (none for subtitles)."""
+        if job_type(workspace.source_file) == "subtitles":
+            return {"output_format": workspace.source_file.suffix.lower().lstrip("."), "output_formats": []}
+        try:
+            config = load_workspace_config(workspace)
+        except (OSError, ValueError):
+            return {"output_format": "epub", "output_formats": ["epub"]}
+        try:
+            given = Path(load_output_path(workspace)).suffix.lower().lstrip(".")
+        except (OSError, ValueError):
+            given = output_format(workspace.source_file, config)[0]  # not compiled yet
+        target = profile(config.translation.direction.target_language).code
+        writable = [
+            kind for kind in EXPORT_FORMATS if kind != "pdf" or not pdf_output_problem(target, config.output.pdf_font)
+        ]
+        return {"output_format": given, "output_formats": ["epub", *writable]}
+
+    def job_output(self, job_id: str, wanted: str = "") -> tuple[bytes, str]:
+        """The result of a completed job and its file name: the file the job
+        gives back, or for a book the format asked for, made from the EPUB as
+        it is asked for."""
         workspace = open_job(self.runs, job_id)
         if workflow_status(workspace)["overall"] != "complete":
             raise UserError("job_not_complete")
-        return Path(load_compiled_epub_path(workspace))
+        given = Path(load_output_path(workspace))
+        if not wanted or given.suffix.lower() == f".{wanted}" or job_type(workspace.source_file) == "subtitles":
+            return given.read_bytes(), given.name
+        compiled = Path(load_compiled_epub_path(workspace))
+        if wanted == "epub":
+            return compiled.read_bytes(), compiled.name
+        font = load_workspace_config(workspace).output.pdf_font
+        with tempfile.TemporaryDirectory() as directory:
+            exported = export_book(compiled, Path(directory) / f"{compiled.stem}.{wanted}", wanted, pdf_font=font)
+            return exported.read_bytes(), exported.name
 
     def job_xliff(self, job_id: str) -> tuple[bytes, str]:
         """The whole book as XLIFF 2.1 and its download name; edited segments are marked reviewed."""
@@ -855,20 +892,14 @@ def make_handler(app: UiApp, port_ref: list[int]) -> type[BaseHTTPRequestHandler
                     return self._json(error_payload(error), HTTPStatus.NOT_FOUND)
                 return self._send(data, media_type)
             if method == "GET" and len(parts) == 4 and parts[1] == "jobs" and parts[3] == "output":
-                wanted = parse_qs(url.query).get("format", ["epub"])[0]
+                wanted = parse_qs(url.query).get("format", [""])[0]
                 try:
                     validate_job_id(parts[2])
-                    output = app.job_output(parts[2])
-                    if wanted != "epub" and output.suffix.lower() == ".epub":
-                        # The same book in another format, made from the EPUB as it is asked for.
-                        with tempfile.TemporaryDirectory() as directory:
-                            exported = export_book(output, Path(directory) / f"{output.stem}.{wanted}", wanted)
-                            return self._send(exported.read_bytes(), EXPORT_MEDIA_TYPES[wanted], download=exported.name)
-                    data = output.read_bytes()
+                    data, name = app.job_output(parts[2], wanted)
                 except (ValueError, OSError) as error:
                     return self._json(error_payload(error), HTTPStatus.NOT_FOUND)
-                media_type = _DOWNLOAD_TYPES.get(output.suffix.lower(), "application/octet-stream")
-                return self._send(data, media_type, download=output.name)
+                media_type = _DOWNLOAD_TYPES.get(Path(name).suffix.lower(), "application/octet-stream")
+                return self._send(data, media_type, download=name)
             if method == "GET" and len(parts) == 5 and parts[1] == "jobs" and parts[3:] == ["text", "picture"]:
                 try:
                     validate_job_id(parts[2])

@@ -21,7 +21,7 @@ from .manual_review import (
     resolve_manual_review,
 )
 from .pipeline_state import WorkflowStage
-from .stages.compile import load_compiled_epub_path
+from .stages.compile import load_output_path
 from .stages.preprocess import load_preprocessed_documents
 from .stages.validate_repaired import load_repaired_validation_report, load_validated_repaired_documents
 from .subtitles import cue_views, job_type
@@ -247,7 +247,7 @@ class ReviewSession:
 
 def _compiled_output(workspace: JobWorkspace) -> str:
     try:
-        return load_compiled_epub_path(workspace)
+        return load_output_path(workspace)
     except (FileNotFoundError, ValueError):
         return ""
 

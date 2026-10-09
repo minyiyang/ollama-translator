@@ -262,7 +262,7 @@ class CompileFromTheReviewPageTests:
                 return self.result()
 
             with patch("book_agent.review_ui.run_workflow", side_effect=workflow), \
-                 patch("book_agent.review_ui.load_compiled_epub_path", return_value="output/book.epub"):
+                 patch("book_agent.review_ui.load_output_path", return_value="output/book.epub"):
                 assert session.start_compile()["state"] == "running"
                 with pytest.raises(ValueError, match="already running"):
                     session.start_compile()
@@ -279,7 +279,7 @@ class CompileFromTheReviewPageTests:
             session = ReviewSession(paused_workspace(directory))
             paused = self.result(result="paused", exit_code=2, stage="compile", message="approval needed")
             with patch("book_agent.review_ui.run_workflow", return_value=paused), \
-                 patch("book_agent.review_ui.load_compiled_epub_path", side_effect=FileNotFoundError("no book")):
+                 patch("book_agent.review_ui.load_output_path", side_effect=FileNotFoundError("no book")):
                 session.start_compile()
                 state = self.wait(session, "done")
             assert state["result"]["output"] == "" and state["result"]["message"] == "approval needed"

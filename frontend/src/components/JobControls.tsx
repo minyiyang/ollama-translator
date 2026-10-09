@@ -28,8 +28,11 @@ export function JobControls() {
   const confirm = useConfirm();
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
-  const [format, setFormat] = useState("epub");
+  // The format picked here; until one is, the one the job gives back.
+  const [picked, setPicked] = useState<string | null>(null);
   if (!info) return null;
+  const given = info.output_format ?? "epub";
+  const format = picked ?? given;
 
   type Ask = { title: string; body: string; label: string };
   const act = async (path: string, done: string, ask?: Ask) => {
@@ -85,11 +88,11 @@ export function JobControls() {
       )}
       {info.downloadable && info.job_type !== "subtitles" && (
         <>
-          <select className="small" aria-label={t("jobs.controls.downloadFormat")} value={format} onChange={(e) => setFormat(e.target.value)}
+          <select className="small" aria-label={t("jobs.controls.downloadFormat")} value={format} onChange={(e) => setPicked(e.target.value)}
             title={t("jobs.controls.downloadFormatTip")}>
-            {outputFormats().map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+            {outputFormats(info.output_formats).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
           </select>
-          <a className="button primary" href={outputUrl(jobId, format)} download title={t("jobs.downloadBook")}>{t("jobs.download")}</a>
+          <a className="button primary" href={outputUrl(jobId, format === given ? "" : format)} download title={t("jobs.downloadBook")}>{t("jobs.download")}</a>
         </>
       )}
       {info.kind === "job" && !info.running && !waiting && info.overall !== "complete" && (

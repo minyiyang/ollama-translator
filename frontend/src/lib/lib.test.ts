@@ -240,7 +240,7 @@ describe("stage descriptions", () => {
 describe("stageLabel", () => {
   it("falls back to the raw name for a stage it does not know", async () => {
     const { stageLabel } = await import("./stages");
-    expect(stageLabel("compile")).toBe("Compile EPUB");
+    expect(stageLabel("compile")).toBe("Build the book");
     expect(stageLabel("future_stage")).toBe("future_stage");
   });
 });

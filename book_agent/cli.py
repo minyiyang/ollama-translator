@@ -32,6 +32,7 @@ from .book_formats import EXPORT_FORMATS, export_book
 from .subtitles import JOB_SOURCE_NAMES, JOB_SOURCE_SUFFIXES, job_type, subtitle_config
 from .languages import LanguagePair, language_support
 from .stages.compile import load_compiled_epub_path
+from .output import check_output, output_format
 from .schemas import DEFAULT_GLOSSARY_PAIR
 from .series import (
     add_books,
@@ -209,10 +210,11 @@ def build_parser() -> argparse.ArgumentParser:
 
     export_parser = subparsers.add_parser(
         "export",
-        help="write a completed job's translated book as text, Markdown, HTML, or a Word document",
+        help="write a completed job's translated book as text, Markdown, HTML, a Word document, or a PDF",
     )
     export_parser.add_argument("workspace", help="job workspace directory")
     export_parser.add_argument("--format", required=True, choices=EXPORT_FORMATS, help="format to write")
+    export_parser.add_argument("--pdf-font", help="font file for a PDF (default: output.pdf_font, or a font of this system)")
     export_parser.add_argument("--out", help="output path (default: next to the compiled EPUB)")
 
     status_parser = subparsers.add_parser("status", help="show current job state")
@@ -769,6 +771,7 @@ def resolve_config_paths(config: AppConfig, base_directory: str | Path) -> AppCo
                     "prompts": resolved(config.paths.prompts),
                 }
             ),
+            "output": config.output.model_copy(update={"pdf_font": resolved(config.output.pdf_font)}),
         }
     )
 
@@ -782,8 +785,12 @@ def build_dry_run_summary(source: str | Path, config: AppConfig, runs: str | Pat
     if source_path.suffix.casefold() not in JOB_SOURCE_SUFFIXES:
         raise ValueError(f"source must be {JOB_SOURCE_NAMES}")
     config, note = subtitle_config(source_path, config)
+    note = " ".join(part for part in (note, check_output(source_path, config)) if part)
     return {
         **({"note": note} if note else {}),
+        "output_format": (
+            source_format if job_type(source_path) == "subtitles" else output_format(source_path, config)[0]
+        ),
         "dry_run": True,
         "source": str(source_path),
         "source_format": source_format,
@@ -1367,8 +1374,10 @@ def main(argv: Sequence[str] | None = None) -> int:
                 print(format_json(build_dry_run_summary(args.source, config, runs)))
                 return ExitCode.COMPLETE
             config, note = subtitle_config(args.source, config)
-            if note:
-                print(note, file=sys.stderr)
+            # An output format this job cannot be given is refused here, before any model call.
+            for message in (note, check_output(args.source, config)):
+                if message:
+                    print(message, file=sys.stderr)
             workspace = create_job_workspace(
                 args.source,
                 runs,
@@ -1417,11 +1426,13 @@ def main(argv: Sequence[str] | None = None) -> int:
             print("Pause requested; the run stops after its current model call. Use `resume` to continue.")
             return ExitCode.COMPLETE
         if args.command == "export":
-            compiled = Path(load_compiled_epub_path(open_job_workspace(args.workspace)))
+            workspace = open_job_workspace(args.workspace)
+            compiled = Path(load_compiled_epub_path(workspace))
             if compiled.suffix.casefold() != ".epub":
                 raise ValueError("a subtitle job has one output, its subtitle file; there is no book to export")
             target = Path(args.out) if args.out else compiled.with_suffix(f".{args.format}")
-            print(export_book(compiled, target, args.format))
+            font = args.pdf_font or load_workspace_config(workspace).output.pdf_font
+            print(export_book(compiled, target, args.format, pdf_font=font))
             return ExitCode.COMPLETE
         if args.command == "status":
             snapshot = workflow_status(open_job_workspace(args.workspace))

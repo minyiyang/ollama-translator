@@ -62,7 +62,7 @@ RERUN_WARNINGS: dict[str, str] = {
         "discarded, and the review queue is rebuilt from the new draft. Applied "
         "decisions are kept as Text tab edits."
     ),
-    "compiled_epub": "The compiled EPUB is replaced by the new output.",
+    "compiled_epub": "The compiled book is replaced by the new output.",
     "text_edits": "Manual text edits are kept; segments whose translation changes become conflicts.",
 }
 

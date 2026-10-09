@@ -18,6 +18,9 @@ export type JobInfo = {
   /** The pair's tiers and skipped checks (docs/GENERIC_LANGUAGES.md, 2.3). */
   languages?: LanguageSupport | null;
   downloadable?: boolean;
+  /** The format the job gives its book back in, and the formats it can be had in (docs/OUTPUT_AND_CONFIG_UX.md). */
+  output_format?: string;
+  output_formats?: string[];
   series?: { series_id: string; name: string; version: string | null; latest: string | null } | null;
   validated?: boolean;
   stages: Stage[];

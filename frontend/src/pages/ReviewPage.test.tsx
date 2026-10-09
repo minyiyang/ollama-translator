@@ -758,7 +758,7 @@ describe("Final review tab", () => {
       expect(log).toHaveTextContent(/validate_epub\s+completed/);
       expect(log).not.toHaveTextContent("reprose_translation"); // skipped stages are left out
       expect(log).toHaveTextContent("→ complete: all checks passed");
-      expect(log).toHaveTextContent("EPUB: output/alice.zh.epub");
+      expect(log).toHaveTextContent("Output: output/alice.zh.epub");
     });
 
     it("follows a compile that is already running until it ends", async () => {
@@ -923,7 +923,7 @@ describe("Final review tab: when the server stumbles", () => {
     expect(await screen.findByRole("status")).toHaveTextContent("Could not check the compile: server restarting");
 
     expect(await screen.findByText("Compile finished: complete", {}, { timeout: 4000 })).toBeInTheDocument();
-    expect(document.querySelector(".compile-log")).toHaveTextContent("EPUB: output/alice.zh.epub");
+    expect(document.querySelector(".compile-log")).toHaveTextContent("Output: output/alice.zh.epub");
     expect(button).toBeEnabled();
   });
 
@@ -1078,7 +1078,7 @@ describe("Final review tab: a reviewer works through the queue", () => {
 
     await user.click(screen.getByRole("button", { name: "Compile now" }));
     expect(await screen.findByText("Compile finished: complete")).toBeInTheDocument();
-    expect(document.querySelector(".compile-log")).toHaveTextContent("EPUB: output/alice.zh.epub");
+    expect(document.querySelector(".compile-log")).toHaveTextContent("Output: output/alice.zh.epub");
   });
 
   it("decides half the queue before lunch, saves a draft, and finds the decisions there on return", async () => {

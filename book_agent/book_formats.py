@@ -55,12 +55,13 @@ CONVERTED_SUFFIXES = {
 }
 SOURCE_SUFFIXES = {".epub", ".rtf", *CONVERTED_SUFFIXES}
 # What a compiled book can be written as, besides the EPUB it is.
-EXPORT_FORMATS = ("txt", "md", "html", "docx")
+EXPORT_FORMATS = ("txt", "md", "html", "docx", "pdf")
 EXPORT_MEDIA_TYPES = {
     "txt": "text/plain; charset=utf-8",
     "md": "text/markdown; charset=utf-8",
     "html": "text/html; charset=utf-8",
     "docx": "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+    "pdf": "application/pdf",
 }
 _MAX_SOURCE_BYTES = 64 * 1024 * 1024
 # The pictures a book can carry, by suffix, with the media type an EPUB gives them.
@@ -1936,8 +1937,9 @@ def _write_docx(book: Book, output: Path) -> None:
             archive.writestr(info, content.encode("utf-8") if isinstance(content, str) else content)
 
 
-def export_book(epub: str | Path, output: str | Path, export_format: str) -> Path:
-    """Write the text of a compiled EPUB as `export_format` (txt, md, html, docx)."""
+def export_book(epub: str | Path, output: str | Path, export_format: str, pdf_font: str | Path | None = None) -> Path:
+    """Write the text of a compiled EPUB as `export_format` (txt, md, html,
+    docx, pdf). A PDF is set in `pdf_font`, or in a font of this system."""
     if export_format not in EXPORT_FORMATS:
         raise BookFormatError(f"cannot write a book as {export_format}; choose one of {', '.join(EXPORT_FORMATS)}")
     book = read_epub(epub)
@@ -1945,6 +1947,10 @@ def export_book(epub: str | Path, output: str | Path, export_format: str) -> Pat
     target.parent.mkdir(parents=True, exist_ok=True)
     if export_format == "docx":
         _write_docx(book, target)
+    elif export_format == "pdf":
+        from .pdf_export import write_pdf  # imports this module
+
+        write_pdf(book, target, Path(pdf_font) if pdf_font else None)
     else:
         text = {"txt": _as_text, "md": _as_markdown, "html": _as_html}[export_format](book)
         target.write_bytes(text.encode("utf-8"))

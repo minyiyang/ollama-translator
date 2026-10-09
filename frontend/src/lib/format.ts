@@ -46,18 +46,24 @@ export const sourceKinds = () => t("format.sourceKinds");
 export type JobType = "book" | "subtitles";
 export const jobTypeLabel = (type: JobType) => t(type === "subtitles" ? "format.jobType.subtitles" : "format.jobType.book");
 
-/** What a translated book can be downloaded as: the EPUB the pipeline builds, or its text in another format. */
-export const outputFormats = (): [string, string][] => [
-  ["epub", "EPUB"],
-  ["docx", t("format.output.docx")],
-  ["html", "HTML"],
-  ["md", "Markdown"],
-  ["txt", t("format.output.txt")],
-];
+const OUTPUT_FORMATS = ["epub", "pdf", "docx", "html", "md", "txt"];
+// A server from before a job had an output format does not say which it can write.
+const FORMATS_BEFORE = ["epub", "docx", "html", "md", "txt"];
 
-/** Download URL of a completed job's translated book. */
-export const outputUrl = (jobId: string, format = "epub") =>
-  `/api/jobs/${encodeURIComponent(jobId)}/output${format === "epub" ? "" : `?format=${format}`}`;
+/** A book format's name: its own where it is one, translated where it is a description. */
+export const outputFormatLabel = (kind: string): string =>
+  kind === "docx" ? t("format.output.docx")
+    : kind === "txt" ? t("format.output.txt")
+    : kind === "md" ? "Markdown"
+    : kind.toUpperCase();
+
+/** What a translated book can be downloaded as: `kinds` are the formats the server can write it in. */
+export const outputFormats = (kinds: string[] = FORMATS_BEFORE): [string, string][] =>
+  OUTPUT_FORMATS.filter((kind) => kinds.includes(kind)).map((kind) => [kind, outputFormatLabel(kind)]);
+
+/** Download URL of a completed job's result: in the format the job gives back, or in `format`. */
+export const outputUrl = (jobId: string, format = "") =>
+  `/api/jobs/${encodeURIComponent(jobId)}/output${format ? `?format=${format}` : ""}`;
 
 /** Download URL of the whole book's current translation (edits included) as XLIFF 2.1. */
 export const xliffExportUrl = (jobId: string) => `/api/jobs/${encodeURIComponent(jobId)}/text/export?format=xliff`;

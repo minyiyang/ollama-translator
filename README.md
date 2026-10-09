@@ -8,8 +8,8 @@
 
 A local, resumable book-translation pipeline for English-to-Chinese and
 Chinese-to-English literary prose. It takes an EPUB, RTF, text, Markdown,
-HTML, Word (.docx), or text PDF file and produces a translated EPUB, which can also be
-written as Word, HTML, Markdown, or text. It also translates subtitle files
+HTML, Word (.docx), or text PDF file and gives the translation back in the format it came in,
+or as an EPUB, a PDF, Word, HTML, Markdown, or text. It also translates subtitle files
 (.srt, .vtt, .ass), cue by cue, keeping their timing. It runs entirely against local Ollama models: no cloud API,
 no MCP server, and no agent framework such as LangGraph or AutoGen.
 
@@ -286,11 +286,14 @@ contract; rendering and parse-back validation remain deterministic.
 A text (`.txt`), Markdown (`.md`), HTML (`.html`), or Word (`.docx`) file
 uses the same command too. It is read for its text and structure, turned into
 an EPUB inside the job, and translated as any EPUB is; the translated book is
-written as an EPUB and, next to it, in the format it came in.
+written as an EPUB and, next to it, in the format it came in. `output.format`
+in the config names another format for the job to give back (`epub`, `pdf`,
+`docx`, `html`, `md`, `txt`); the dashboard's **Download** gives that format,
+and its format menu any other.
 
 ```powershell
 book-agent run "D:\books\manuscript.docx" --config .\my-book.yaml
-book-agent export .\runs\manuscript-en-zh --format docx   # or html, md, txt; any completed job
+book-agent export .\runs\manuscript-en-zh --format docx   # or pdf, html, md, txt; any completed job
 ```
 
 What is kept from these files is headings, paragraphs, lists, quotations,
@@ -328,7 +331,14 @@ pages. Its paragraphs and headings are put together again from where the
 lines stand on the page and how large the type is, so a book set in two
 columns, or with footnotes and tables, comes out less well than a plain
 novel; look at the Text tab before trusting it. A scanned PDF is refused.
-The translation is an EPUB; nothing is written as PDF.
+
+A PDF is written too: the book's text set onto pages again, not the source's
+layout. It needs `pip install reportlab` and a font with the letters of the
+language translated into, which is embedded in the file: one of this
+system's, or the `.ttf`/`.ttc` file named by `output.pdf_font`. Languages
+whose letters join or run right to left (Arabic, Hebrew, Hindi, Thai) are not
+written as PDF. A book that came as a PDF comes back as a PDF where one can
+be written, and as an EPUB otherwise.
 [docs/FORMAT_SUPPORT.md](docs/FORMAT_SUPPORT.md) has the design and the
 limits.
 
