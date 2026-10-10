@@ -294,7 +294,11 @@ es independiente de la dirección de traducción del trabajo (véase
   de origen). Un libro se puede descargar como EPUB, PDF, Word, HTML,
   Markdown o texto; un trabajo de subtítulos, como SRT, WebVTT o ASS, y el
   panel indica qué no se conserva en un formato de subtítulos distinto del
-  propio del archivo. La pestaña **Configuración** de cada trabajo lo edita, lo valida y
+  propio del archivo. La configuración de un trabajo ya iniciado es de solo
+  lectura hasta que se pulsa *Desbloquear para editar* (no mientras el
+  trabajo se ejecuta); la página indica entonces qué hace cada cambio en el
+  pipeline y guarda reejecutando desde la primera etapa afectada. La pestaña
+  **Configuración** de cada trabajo lo edita, lo valida y
   lo inicia. **Series** agrupa los trabajos que comparten un glosario de
   serie versionado. Desde la cabecera se pausa (tras la llamada al modelo en
   curso), se detiene o se reanuda la ejecución; `book-agent pause

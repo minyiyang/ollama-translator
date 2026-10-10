@@ -22,10 +22,10 @@ test.describe("Someone looks into a job that is waiting for them", () => {
     await expect(page.getByRole("row", { name: /^Alice Alice/ })).toHaveCount(0);
   });
 
-  test("can read how the run was set up but not change it, and can still fold the sections away", async ({ page }) => {
+  test("can read how the run was set up, locked until it is unlocked, and can still fold the sections away", async ({ page }) => {
     await page.goto("/jobs/alice-german/config");
     await expect(page.getByText("Alice's Adventures in Wonderland").first()).toBeVisible();
-    await expect(page.getByText(/it is read-only/)).toBeVisible();
+    await expect(page.getByText(/Unlock it to change a setting/)).toBeVisible();
     const into = page.getByRole("combobox", { name: "Into language" });
     await expect(into).toBeDisabled();
     await expect(into).toHaveValue("de");

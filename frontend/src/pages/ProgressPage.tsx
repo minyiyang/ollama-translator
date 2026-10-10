@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { jobApi } from "../api";
-import { useDialog } from "../components/Dialog";
+import { useRerunDialog } from "../components/RerunDialog";
 import { useLeftInSource } from "../components/LeftInSource";
 import { Shell } from "../components/Shell";
 import { StageTip } from "../components/StageTip";
@@ -11,7 +11,7 @@ import { Bar, Card, Chip } from "../components/ui";
 import { getLocale, rich, useT, type MessageKey, type Translate } from "../i18n";
 import { statusLabel } from "../lib/enums";
 import { count, duration, relativeTime, roughDuration, shortTimestamp } from "../lib/format";
-import { rerunWarning, stageMessage } from "../lib/serverText";
+import { stageMessage } from "../lib/serverText";
 import { attentionFrom, lastStageAction, stageActions, stageLabel, type Stage, type WorkflowStatus } from "../lib/stages";
 
 type Activity = {
@@ -132,20 +132,12 @@ function stageResult(t: Translate, stage: Stage, activity?: Activity): string {
   return stage.message ? t("progress.result.summaryWithMessage", { summary, message: stageMessage(stage.message) }) : t("progress.result.summary", { summary });
 }
 
-type RerunPreview = {
-  stage: string;
-  status: string;
-  stages: { name: string; status: string; seconds: number | null }[];
-  warnings: { code: string; message: string }[];
-  previous_seconds: number | null;
-};
-
 /** Resume where the run stopped, or rerun a stage from scratch after a warning. */
 function StageActionButtons({ stage, live, onLaunched }: { stage: Stage; live: boolean; onLaunched: () => void }) {
   const t = useT();
   const { jobId, info, refresh } = useJob();
   const type = info?.job_type;
-  const ask = useDialog();
+  const confirmRerun = useRerunDialog();
   const toast = useToast();
   const [busy, setBusy] = useState(false);
   const actions = stageActions(stage);
@@ -166,39 +158,9 @@ function StageActionButtons({ stage, live, onLaunched }: { stage: Stage; live: b
   };
 
   const rerun = async () => {
-    let preview: RerunPreview;
-    try {
-      preview = await jobApi<RerunPreview>(jobId, `rerun?stage=${encodeURIComponent(stage.name)}`);
-    } catch (e) {
-      toast("bad", (e as Error).message, 0);
-      return;
+    if (await confirmRerun(stage.name)) {
+      await launch("rerun", { stage: stage.name }, t("progress.rerun.started", { stage: stageLabel(stage.name, type) }));
     }
-    const stopped = preview.status !== "completed";
-    const ran = preview.stages.filter((s) => s.status !== "pending");
-    const later = preview.stages.length - ran.length;
-    const choice = await ask(
-      t("progress.rerun.title", { stage: stageLabel(stage.name, type) }),
-      <>
-        {stopped && <p>{t("progress.rerun.resumeKeeps")}</p>}
-        <p>{t("progress.rerun.resets", { count: ran.length })}</p>
-        <ol className="rerun-stages">
-          {ran.map((s) => (
-            <li key={s.name}>
-              {stageLabel(s.name, type)}
-              {s.seconds ? <span className="meta"> · {t("progress.rerun.took", { time: roughDuration(s.seconds) })}</span> : null}
-            </li>
-          ))}
-        </ol>
-        {later > 0 && <p className="meta">{t("progress.rerun.continues", { count: later })}</p>}
-        {preview.previous_seconds ? <p className="meta">{t("progress.rerun.tookSoFar", { time: roughDuration(preview.previous_seconds) })}</p> : null}
-        {preview.warnings.map((w) => <div key={w.code} className="banner warn">{rerunWarning(w)}</div>)}
-      </>,
-      [
-        { value: "cancel", label: t("common.cancel"), primary: true },
-        { value: "rerun", label: t("progress.rerun.confirm"), danger: true },
-      ],
-    );
-    if (choice === "rerun") await launch("rerun", { stage: stage.name }, t("progress.rerun.started", { stage: stageLabel(stage.name, type) }));
   };
 
   const blocked = live ? t("progress.action.blocked") : "";

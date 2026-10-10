@@ -300,7 +300,11 @@ Oberflächensprache ist unabhängig von der Übersetzungsrichtung eines Jobs
   Quelle). Ein Buch gibt es als EPUB, PDF, Word, HTML, Markdown oder Text,
   einen Untertitel-Job als SRT, WebVTT oder ASS; bei einem anderen
   Untertitelformat als dem der Datei sagt das Dashboard, was nicht übernommen
-  wird. Im Tab **Konfiguration** wird der Job bearbeitet, validiert und
+  wird. Die Konfiguration eines gestarteten Jobs ist schreibgeschützt, bis
+  *Zum Bearbeiten entsperren* gedrückt wird (nicht, während der Job läuft);
+  die Seite zeigt dann, was jede Änderung für die Pipeline bedeutet, und
+  speichert mit einer Neuausführung ab der ersten betroffenen Stufe. Im Tab
+  **Konfiguration** wird der Job bearbeitet, validiert und
   gestartet; die Kopfzeile pausiert (nach dem laufenden Modellaufruf), stoppt
   oder setzt fort. `book-agent pause <workspace>` pausiert einen im Terminal
   gestarteten Lauf auf dieselbe Weise. **Reihen** fasst Jobs zusammen, die ein

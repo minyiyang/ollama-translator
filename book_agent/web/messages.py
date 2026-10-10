@@ -17,7 +17,11 @@ from ..workflow import PAUSED_ON_REQUEST
 MESSAGES: dict[str, str] = {
     "already_running": "{label} is already running for this job",
     "approve_nothing": "submit reviewed entries, request LLM review, or both",
+    "config_invalid": "the configuration has problems; nothing was saved",
+    "config_locked": "these settings cannot be changed once a job has started: {settings}",
     "config_name_invalid": "config name must be a simple .yaml/.yml file name",
+    "config_not_started": "this job has not started; edit and validate its configuration instead",
+    "config_while_running": "the job is running; pause or stop it before changing its configuration",
     "discard_started_job": "only a job that has not started can be discarded",
     "glossary_empty": "the reviewed glossary is empty; keep at least one entry",
     "import_while_running": "the job is running; wait for it to finish or pause it before importing",

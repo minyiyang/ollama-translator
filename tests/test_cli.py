@@ -133,10 +133,13 @@ class CliTests:
             class Workspace:
                 root = Path(directory, "job")
 
-            with patch("book_agent.cli.load_workspace_config", return_value=AppConfig()):
+            # The diff says which stage each change affects, by where the job's stages stand.
+            status = {"stages": [{"name": "compile", "status": "completed"}]}
+            with patch("book_agent.cli.load_workspace_config", return_value=AppConfig()),                  patch("book_agent.cli.workflow_status", return_value=status):
                 diff = build_config_diff(Workspace(), path)
             assert diff["changed"]
             assert "workflow.require_final_review" in [item["path"] for item in diff["changes"]]
+            assert diff["rerun_stage"] == "compile"
 
     def test_list_style_names_includes_every_enum_value(self) -> None:
         assert list_style_names() == [style.value for style in TranslationStyle]

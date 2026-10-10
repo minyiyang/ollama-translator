@@ -379,6 +379,8 @@ def main() -> None:
         # A book with nothing for its reviewer to decide, whose config asks for a person's approval all
         # the same. Built first, to be the oldest job: the Jobs page lists ten, newest first, and its
         # tests look for the others on it (review-approval.e2e.ts runs after them).
+        # A finished book whose config is unlocked and changed (unlock-config.e2e.ts). Older still, for the same reason.
+        build_job(base, "alice-german-reconfigure", "en>de", False)
         build_job(base, "alice-german-approval", "en>de", False, "alice-annotated.epub", final_review=True)
         for job_id, (pair, wrong_hour) in JOBS.items():
             built = build_job(base, job_id, pair, wrong_hour, *(["alice-annotated.epub"] if job_id == "alice-german-finished" else []))

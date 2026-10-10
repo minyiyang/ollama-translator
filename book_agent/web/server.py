@@ -34,12 +34,15 @@ from ..review_ui import ReviewSession
 from .rerun import parse_stage, rerun_preview
 from ..workspace import JobWorkspace, validate_job_id
 from ..state import StageStatus
+from ..config_impact import LOCKED, config_changes, config_impact
 from ..workflow import (
     ExitCode,
     clear_pause_request,
+    config_change_log,
     load_workspace_config,
     mark_running_stages,
     pause_requested,
+    replace_workspace_config,
     request_pause,
     workflow_status,
 )
@@ -49,7 +52,7 @@ from .estimate import estimate as estimate_job
 from . import setup as setup_api
 from .glossary_view import glossary_payload, write_reviewed_glossary, write_reviewed_style_sheet
 from ..book_formats import EXPORT_FORMATS, EXPORT_MEDIA_TYPES, export_book
-from ..output import output_format
+from ..output import check_output, output_format
 from ..pdf_export import pdf_output_problem
 from ..stages.compile import load_compiled_epub_path, load_output_path
 from ..subtitles import (
@@ -344,7 +347,59 @@ class UiApp:
             "name": Path(workflow_status(workspace)["configuration"]["source_path"] or "").name,
             "text": setup_api.dump_values(captured),
             "validated": True,
+            # A started job's config can be unlocked and changed while the job is not running
+            # (docs/OUTPUT_AND_CONFIG_UX.md, 4); some settings stay locked, each with its reason.
+            "unlockable": not self.job_info(job_id)["running"],
+            "locked": dict(LOCKED),
+            "changes": config_change_log(workspace),
         }
+
+    def _started_job(self, job_id: str) -> JobWorkspace:
+        """The workspace of a started job that is not running: the only kind whose config is changed here."""
+        workspace = self._workspace_or_none(job_id)
+        if workspace is None:
+            raise UserError("config_not_started" if drafts.load_draft(self.runs, job_id) else "job_unknown", job=job_id)
+        if self.job_info(job_id)["running"]:
+            raise UserError("config_while_running")
+        return workspace
+
+    def config_preview(self, job_id: str, body: dict[str, Any]) -> dict[str, Any]:
+        """What a proposed config would change in a started job: its problems
+        as the draft editor gives them, the settings changed, each with the
+        first stage it affects, and the stage the job would have to be rerun
+        from. Nothing is saved."""
+        workspace = self._started_job(job_id)
+        text = str(body.get("text", ""))
+        empty = {"changes": [], "locked": [], "rerun_stage": ""}
+        errors = setup_api.check_config(text, self.config_dir)
+        if errors:
+            return {"errors": errors, **empty}
+        proposed = setup_api.parse_config(text, self.config_dir)
+        try:
+            check_output(workspace.source_file, proposed)
+        except ValueError as error:
+            return {"errors": [{"path": "output.format", "message": str(error)}], **empty}
+        statuses = {str(stage["name"]): str(stage["status"]) for stage in workflow_status(workspace)["stages"]}
+        # Both with their paths made whole against the same folder, so that a path written
+        # another way is not taken for a change.
+        current = setup_api.resolve_config_paths(load_workspace_config(workspace), self.config_dir)
+        impact = config_impact(config_changes(current, proposed), statuses)
+        return {"errors": [], **impact, "config": proposed}
+
+    def save_job_config(self, job_id: str, body: dict[str, Any]) -> dict[str, Any]:
+        """Save a changed config as the started job's own. Refused while the
+        job runs, with problems, or with a locked setting changed. The
+        pipeline is not touched: rerunning the stage named is a separate
+        step, the one the Progress tab's Rerun takes."""
+        preview = self.config_preview(job_id, body)
+        proposed = preview.pop("config", None)
+        if preview["errors"]:
+            raise UserError("config_invalid")
+        if preview["locked"]:
+            raise UserError("config_locked", settings=", ".join(preview["locked"]))
+        if preview["changes"]:
+            replace_workspace_config(open_job(self.runs, job_id), proposed, preview["changes"])
+        return {"saved": bool(preview["changes"]), **preview}
 
     def validate_job(self, job_id: str, body: dict[str, Any]) -> dict[str, Any]:
         """Save the draft's config, then run every pre-start check against it."""
@@ -759,6 +814,10 @@ def make_handler(app: UiApp, port_ref: list[int]) -> type[BaseHTTPRequestHandler
                 open_job(app.runs, job_id), app.runs, load_workspace_config(open_job(app.runs, job_id))
             ),
             ("GET", "config"): lambda q, b: app.job_config(job_id),
+            ("POST", "config"): lambda q, b: app.save_job_config(job_id, b),
+            ("POST", "config/preview"): lambda q, b: {
+                key: value for key, value in app.config_preview(job_id, b).items() if key != "config"
+            },
             ("POST", "validate"): lambda q, b: app.validate_job(job_id, b),
             ("POST", "start"): lambda q, b: app.start_job(job_id),
             ("POST", "pause"): lambda q, b: app.pause_job(job_id),

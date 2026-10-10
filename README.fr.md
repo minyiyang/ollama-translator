@@ -304,7 +304,11 @@ traduction d'une tâche (voir
   source). Un livre se télécharge en EPUB, PDF, Word, HTML, Markdown ou
   texte ; une tâche de sous-titres en SRT, WebVTT ou ASS, et le tableau de
   bord indique ce qu'un format de sous-titres autre que celui du fichier ne
-  reprend pas. L'onglet **Configuration** de chaque tâche sert à la modifier, à la
+  reprend pas. La configuration d'une tâche démarrée est en lecture seule
+  jusqu'à ce que l'on clique sur *Déverrouiller pour modifier* (pas pendant
+  que la tâche s'exécute) ; la page indique alors ce que chaque modification
+  fait au pipeline et enregistre en relançant à partir de la première étape
+  concernée. L'onglet **Configuration** de chaque tâche sert à la modifier, à la
   valider et à la lancer ; son réglage *Langues* accepte deux codes de langue
   quelconques. **Séries** regroupe les tâches qui partagent un glossaire de
   série versionné. L'en-tête de la tâche permet de mettre en pause (après
