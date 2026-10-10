@@ -1223,6 +1223,7 @@
   "server.error.config_locked": "estos ajustes no se pueden cambiar una vez iniciado el trabajo: {settings}",
   "server.error.config_name_invalid": "el nombre de configuración debe ser un nombre de archivo .yaml/.yml simple",
   "server.error.config_not_started": "este trabajo no se ha iniciado; edita y valida su configuración en su lugar",
+  "server.error.config_preview_stale": "estos cambios no tienen el efecto que se mostró; revisa de nuevo la lista de cambios",
   "server.error.config_while_running": "el trabajo se está ejecutando; páusalo o deténlo antes de cambiar su configuración",
   "server.error.discard_started_job": "solo se puede descartar un trabajo que no ha comenzado",
   "server.error.glossary_empty": "el glosario revisado está vacío; conserva al menos una entrada",

@@ -44,6 +44,7 @@ from ..workflow import (
     pause_requested,
     replace_workspace_config,
     request_pause,
+    retry_from_stage,
     workflow_status,
 )
 from . import drafts
@@ -370,7 +371,7 @@ class UiApp:
         from. Nothing is saved."""
         workspace = self._started_job(job_id)
         text = str(body.get("text", ""))
-        empty = {"changes": [], "locked": [], "rerun_stage": ""}
+        empty = {"changes": [], "locked": [], "rerun_stages": [], "rerun_stage": ""}
         errors = setup_api.check_config(text, self.config_dir)
         if errors:
             return {"errors": errors, **empty}
@@ -388,18 +389,30 @@ class UiApp:
 
     def save_job_config(self, job_id: str, body: dict[str, Any]) -> dict[str, Any]:
         """Save a changed config as the started job's own. Refused while the
-        job runs, with problems, or with a locked setting changed. The
-        pipeline is not touched: rerunning the stage named is a separate
-        step, the one the Progress tab's Rerun takes."""
+        job runs, with problems, or with a locked setting changed.
+
+        The effect is worked out here, from the text saved, and not taken
+        from the page: `rerun_stages`, when the page sends them, are the
+        stages it showed the person, and a save whose effect is another is
+        refused, so that nobody saves one thing having agreed to another.
+        With `rerun`, the stages the change reaches are then reset and the
+        job resumed, as the Progress tab's Rerun does it; without, the
+        pipeline is not touched."""
         preview = self.config_preview(job_id, body)
         proposed = preview.pop("config", None)
         if preview["errors"]:
             raise UserError("config_invalid")
         if preview["locked"]:
             raise UserError("config_locked", settings=", ".join(preview["locked"]))
+        stages = list(preview["rerun_stages"])
+        if "rerun_stages" in body and [str(item) for item in body["rerun_stages"] or []] != stages:
+            raise UserError("config_preview_stale")
         if preview["changes"]:
             replace_workspace_config(open_job(self.runs, job_id), proposed, preview["changes"])
-        return {"saved": bool(preview["changes"]), **preview}
+        result = {"saved": bool(preview["changes"]), **preview, "rerun": None}
+        if body.get("rerun") and preview["changes"] and stages:
+            result["rerun"] = self.rerun_job(job_id, {"stage": stages[0], "also": stages[1:]})
+        return result
 
     def validate_job(self, job_id: str, body: dict[str, Any]) -> dict[str, Any]:
         """Save the draft's config, then run every pre-start check against it."""
@@ -696,15 +709,20 @@ class UiApp:
             ),
         )
 
-    def rerun_preview(self, job_id: str, stage: str) -> dict[str, Any]:
-        return rerun_preview(open_job(self.runs, job_id), stage)
+    def rerun_preview(self, job_id: str, stage: str, also: tuple[str, ...] | list[str] = ()) -> dict[str, Any]:
+        return rerun_preview(open_job(self.runs, job_id), stage, also)
 
     def rerun_job(self, job_id: str, body: dict[str, Any]) -> dict[str, Any]:
-        """Reset a stage and everything after it, then resume."""
+        """Reset a stage and everything after it, then resume. `also` names
+        stages on another branch of the pipeline to reset with it."""
         stage = parse_stage(str(body.get("stage", "")))
+        also = [parse_stage(str(item)) for item in body.get("also") or [] if str(item) != stage.value]
         if self.job_info(job_id)["running"]:
             raise UserError("rerun_while_running")
-        self.rerun_preview(job_id, stage.value)  # refuses pending, running, and review gates
+        # Refuses pending, running, and review gates, for every stage named.
+        self.rerun_preview(job_id, stage.value, [item.value for item in also])
+        for item in also:
+            retry_from_stage(open_job(self.runs, job_id), item)
         return self.launch(
             job_id,
             ["retry", str(job_path(self.runs, job_id)), "--stage", stage.value, "--resume"],
@@ -826,7 +844,9 @@ def make_handler(app: UiApp, port_ref: list[int]) -> type[BaseHTTPRequestHandler
             ("POST", "resume"): lambda q, b: app.launch(
                 job_id, ["resume", str(job_path(app.runs, job_id))], "resume"
             ),
-            ("GET", "rerun"): lambda q, b: app.rerun_preview(job_id, q.get("stage", [""])[0]),
+            ("GET", "rerun"): lambda q, b: app.rerun_preview(
+                job_id, q.get("stage", [""])[0], [item for item in q.get("also", [""])[0].split(",") if item]
+            ),
             ("POST", "rerun"): lambda q, b: app.rerun_job(job_id, b),
             ("GET", "glossary"): lambda q, b: app.glossary_state(job_id),
             ("POST", "glossary/approve"): lambda q, b: app.approve_glossary(job_id, b),

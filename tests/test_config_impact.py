@@ -13,10 +13,12 @@ from book_agent import cli
 from book_agent.config import AppConfig
 from book_agent.config_impact import (
     LOCKED,
+    affected_stages,
     config_changes,
     config_impact,
     first_stage,
     locked_reason,
+    rerun_roots,
     setting_paths,
 )
 from book_agent.pipeline_state import WorkflowStage
@@ -113,7 +115,9 @@ class ChangeTests:
         )
         changes = {change["path"]: change for change in config_changes(before, after)}
         # A section left at its defaults is not written into a config, and is still compared.
-        assert changes["output.format"] == {"path": "output.format", "before": "source", "after": "docx", "stage": "compile", "locked": ""}
+        assert changes["output.format"] == {
+            "path": "output.format", "before": "source", "after": "docx", "stage": "compile", "stages": ["compile"], "locked": "",
+        }
         assert changes["ollama.timeout_seconds"]["stage"] == "" and changes["ollama.timeout_seconds"]["after"] == 900
         assert changes["translation.style"]["stage"] == "translate"
         assert changes["audit.model"]["stage"] == "audit_translation"
@@ -143,6 +147,55 @@ class ChangeTests:
         # A stage that failed part-way has not finished: it starts again with the new setting when the job resumes.
         failed = {**stopped, "translate": "failed"}
         assert config_impact(changes, failed)["rerun_stage"] == ""
+
+    def test_a_rerun_of_one_stage_redoes_its_dependents_and_not_the_other_branch(self):
+        # The glossary and the story summaries both start from the source and meet again at the preprocessing.
+        glossary, story = WorkflowStage.EXTRACT_GLOSSARY, WorkflowStage.BUILD_STORY_CONTEXT
+        assert rerun_roots([glossary, story]) == [glossary, story]
+        assert rerun_roots([story, glossary, WorkflowStage.TRANSLATE, WorkflowStage.COMPILE]) == [glossary, story]
+        assert rerun_roots([WorkflowStage.RESOLVE_GLOSSARY, WorkflowStage.PREPROCESS]) == [WorkflowStage.RESOLVE_GLOSSARY]
+        assert rerun_roots([WorkflowStage.COMPILE, WorkflowStage.TRANSLATE, WorkflowStage.COMPILE]) == [WorkflowStage.TRANSLATE]
+        assert rerun_roots([WorkflowStage.DECOMPILE, story]) == [WorkflowStage.DECOMPILE] and rerun_roots([]) == []
+
+    def test_changes_to_the_glossary_and_to_the_story_summaries_rerun_both(self):
+        # Reviewed on PR #11: the rerun of the glossary's extraction left the summaries as they were.
+        changes = config_changes(
+            config(),
+            config(glossary={"extraction_max_entries": 77}, consistency={"story_context": {"enabled": True}}),
+        )
+        assert {change["path"]: change["stage"] for change in changes} == {
+            "glossary.extraction_max_entries": "extract_glossary", "consistency.story_context.enabled": "build_story_context",
+        }
+        impact = config_impact(changes, {stage.value: "completed" for stage in WorkflowStage})
+        assert impact["rerun_stages"] == ["extract_glossary", "build_story_context"]
+        assert impact["rerun_stage"] == "extract_glossary"
+        # One on its own asks for itself alone; a later stage is covered by either.
+        only_story = [change for change in changes if change["path"].startswith("consistency.")]
+        assert config_impact(only_story, {stage.value: "completed" for stage in WorkflowStage})["rerun_stages"] == ["build_story_context"]
+        with_output = [*changes, *config_changes(config(), config(output={"format": "docx"}))]
+        assert config_impact(with_output, {stage.value: "completed" for stage in WorkflowStage})["rerun_stages"] == [
+            "extract_glossary", "build_story_context",
+        ]
+
+    def test_the_default_model_also_writes_the_story_summaries_that_name_no_model_of_their_own(self):
+        # Reviewed on PR #11: the summaries kept the old model's words.
+        summarised = {"consistency": {"story_context": {"enabled": True}}}
+        own_model = {"consistency": {"story_context": {"enabled": True, "model": "summaries:1b"}}}
+        other = {"ollama": {"model": "other-model:1b"}}
+        finished = {stage.value: "completed" for stage in WorkflowStage}
+
+        def stages(before: dict, after: dict) -> list[str]:
+            [change] = [item for item in config_changes(config(**before), config(**after)) if item["path"] == "ollama.model"]
+            assert config_impact([change], finished)["rerun_stages"] == change["stages"]
+            return change["stages"]
+
+        assert stages(summarised, {**summarised, **other}) == ["resolve_glossary", "build_story_context"]
+        # With a model of their own, or switched off, the summaries do not depend on the default model.
+        assert stages(own_model, {**own_model, **other}) == ["resolve_glossary"]
+        assert stages({}, other) == ["resolve_glossary"]
+        # Switched on in the same change: the summaries are written by the new default model.
+        assert stages({}, {**summarised, **other}) == ["resolve_glossary", "build_story_context"]
+        assert affected_stages("ollama.timeout_seconds", config(), config(**summarised)) == []
 
     def test_a_locked_change_is_named_and_asks_for_no_rerun(self):
         changes = config_changes(config(), config(translation={"direction": "en>de"}))
@@ -244,7 +297,9 @@ class SaveTests:
             assert load_workspace_config(workspace).output.format == "docx"
             assert metadata(workspace, "config_sha256") == record["config_sha256"] != first_hash
             assert record["previous_config_sha256"] == first_hash
-            assert record["changes"] == [{"path": "output.format", "before": "source", "after": "docx", "stage": "compile"}]
+            assert record["changes"] == [
+                {"path": "output.format", "before": "source", "after": "docx", "stage": "compile", "stages": ["compile"]}
+            ]
             replace_workspace_config(workspace, before, config_changes(after, before))
             log = config_change_log(workspace)
             assert [entry["changes"][0]["after"] for entry in log] == ["docx", "source"] and log[0]["at"]
@@ -301,6 +356,63 @@ class SaveTests:
             assert len(config_change_log(workspace)) == 1
             # The stage named can be rerun as from the Progress tab.
             assert app.rerun_preview(job, "compile")["stage"] == "compile"
+
+    def test_a_save_whose_effect_is_not_the_one_the_page_showed_is_refused(self):
+        # Reviewed on PR #11: an edit made after the preview was saved with the earlier preview's rerun.
+        with tempfile.TemporaryDirectory() as directory:
+            workspace, app = compiled_job(directory)
+            job = workspace.root.name
+            text = app.job_config(job)["text"]
+            one = text + "\noutput:\n  format: docx\n"
+            two = one.replace("style: literary", "style: concise")
+            assert two != one and app.config_preview(job, {"text": two})["rerun_stages"] == ["translate"]
+            # The page showed the first text's effect and sends the second text.
+            for shown in (["compile"], []):
+                with pytest.raises(UserError, match="do not have the effect that was shown"):
+                    app.save_job_config(job, {"text": two, "rerun_stages": shown})
+            assert load_workspace_config(workspace).output.format == "source" and config_change_log(workspace) == []
+            # What was shown is what is saved.
+            saved = app.save_job_config(job, {"text": one, "rerun_stages": ["compile"]})
+            assert saved["saved"] and saved["rerun"] is None and saved["rerun_stages"] == ["compile"]
+
+    def test_a_save_with_a_rerun_resets_every_branch_the_change_reaches_and_resumes_once(self):
+        from book_agent.state import StageStatus, set_stage_status
+
+        with tempfile.TemporaryDirectory() as directory:
+            workspace, app = compiled_job(directory)
+            job = workspace.root.name
+            # The fixture runs the stages it needs; a finished job has them all complete.
+            connection = connect_state(workspace.state_file)
+            try:
+                for stage in workflow_status(workspace)["stages"]:
+                    if stage["status"] != StageStatus.COMPLETED.value:
+                        set_stage_status(connection, stage["name"], StageStatus.COMPLETED)
+            finally:
+                connection.close()
+            text = app.job_config(job)["text"]
+            import yaml
+
+            values = yaml.safe_load(text)
+            values["glossary"]["extraction_max_entries"] = 77
+            values["consistency"]["story_context"]["enabled"] = True
+            changed = yaml.safe_dump(values, sort_keys=False, allow_unicode=True)
+            preview = app.config_preview(job, {"text": changed})
+            assert preview["rerun_stages"] == ["extract_glossary", "build_story_context"]
+
+            # The dialog lists both branches' stages, each once, in the pipeline's order.
+            listed = [stage["name"] for stage in app.rerun_preview(job, "extract_glossary", ["build_story_context"])["stages"]]
+            assert listed[:5] == ["extract_glossary", "resolve_glossary", "approve_glossary", "build_story_context", "preprocess"]
+            assert len(listed) == len(set(listed))
+            assert "build_story_context" not in [stage["name"] for stage in app.rerun_preview(job, "extract_glossary")["stages"]]
+
+            with patch.object(app, "launch", return_value={"started": True}) as launch:
+                saved = app.save_job_config(job, {"text": changed, "rerun": True, "rerun_stages": preview["rerun_stages"]})
+            assert saved["saved"] and saved["rerun"] == {"started": True}
+            # One run is started, from the glossary; the summaries' stage was reset before it.
+            assert launch.call_count == 1 and launch.call_args.args[1][-3:] == ["--stage", "extract_glossary", "--resume"]
+            statuses = {stage["name"]: stage["status"] for stage in workflow_status(workspace)["stages"]}
+            assert statuses["build_story_context"] == "pending" and statuses["decompile"] == "completed"
+            assert load_workspace_config(workspace).consistency.story_context.enabled is True
 
     def test_a_config_with_problems_or_a_locked_setting_changed_is_not_saved(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -379,6 +491,28 @@ class CommandLineTests:
             statuses = {stage["name"]: stage["status"] for stage in workflow_status(workspace)["stages"]}
             assert (statuses["compile"], statuses["validate_repaired"]) == ("pending", "completed")
 
+    def test_config_apply_names_and_resets_both_branches_of_the_pipeline(self):
+        with tempfile.TemporaryDirectory() as directory:
+            workspace, _ = compiled_job(directory)
+            captured = load_workspace_config(workspace).model_dump(mode="json")
+            path = self.proposed(
+                workspace,
+                glossary={**captured["glossary"], "extraction_max_entries": 77},
+                consistency={**captured["consistency"], "story_context": {**captured["consistency"]["story_context"], "enabled": True}},
+            )
+            statuses = {stage["name"]: stage["status"] for stage in workflow_status(workspace)["stages"]}
+            finished = {**workflow_status(workspace), "stages": [{"name": name, "status": "completed"} for name in statuses]}
+            with patch.object(cli, "workflow_status", return_value=finished):
+                code, output, _ = run(["config-diff", str(workspace.root), "--config", str(path)])
+                assert code == ExitCode.COMPLETE and "rerun from extract_glossary and build_story_context: " in output
+                # The other branch is reset first; the last command resumes.
+                assert output.index("--stage build_story_context;") < output.index("--stage extract_glossary --resume")
+                code, output, _ = run(["config-apply", str(workspace.root), "--config", str(path), "--rerun"])
+            assert code == ExitCode.COMPLETE
+            reset = output.split("Reset for the next resume: ")[1].splitlines()[0].split(", ")
+            assert reset[:4] == ["extract_glossary", "resolve_glossary", "approve_glossary", "build_story_context"]
+            assert len(reset) == len(set(reset))
+
     def test_config_apply_refuses_a_locked_setting_a_running_job_and_a_format_the_job_cannot_have(self):
         with tempfile.TemporaryDirectory() as directory:
             workspace, _ = compiled_job(directory)
@@ -412,7 +546,7 @@ class HttpTests:
                 status, body = call(f"/api/jobs/{job}/config/preview", {"text": changed}, token)
                 preview = json.loads(body)
                 # The parsed config is the server's own business: the page is sent what it shows.
-                assert status == 200 and set(preview) == {"errors", "changes", "locked", "rerun_stage"}
+                assert status == 200 and set(preview) == {"errors", "changes", "locked", "rerun_stage", "rerun_stages"}
                 assert preview["rerun_stage"] == "compile" and preview["changes"][0]["path"] == "output.format"
                 assert load_workspace_config(workspace).output.format == "source"
 

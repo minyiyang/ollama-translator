@@ -1,4 +1,4 @@
-import { useT, type MessageKey } from "../i18n";
+import { getLocale, useT, type MessageKey } from "../i18n";
 import { optionLabel, type JobKind } from "../lib/configCatalog";
 import { shortTimestamp } from "../lib/format";
 import { stageLabel } from "../lib/stages";
@@ -10,6 +10,8 @@ export type ConfigChange = {
   after: unknown;
   /** The first stage that reads the setting; "" when nothing already done depends on it. */
   stage: string;
+  /** Every stage that reads it and is no dependent of another: more than one where the pipeline branches. */
+  stages?: string[];
   /** Whether that stage has finished: its result does not have the change until it is rerun. */
   finished: boolean;
   /** Why the setting cannot be changed once a job has started; "" when it can. */
@@ -19,9 +21,17 @@ export type ConfigPreview = {
   errors: { path: string; message: string }[];
   changes: ConfigChange[];
   locked: string[];
-  /** The earliest finished stage a change affects: the job is rerun from it. "" when none is. */
-  rerun_stage: string;
+  /**
+   * The finished stages the changes reach, less those a rerun of another
+   * redoes: the job is rerun from these. One as a rule; two when the changes
+   * reach both the glossary and the story summaries. Empty when none is.
+   */
+  rerun_stages: string[];
 };
+
+/** Several stages named together: "Extract glossary and Build story context". */
+export const stageList = (stages: string[], jobType?: JobKind): string =>
+  new Intl.ListFormat(getLocale(), { type: "conjunction" }).format(stages.map((stage) => stageLabel(stage, jobType)));
 export type SavedChange = { at: string; changes: { path: string; before: unknown; after: unknown; stage?: string }[] };
 
 /** A setting's value as a person would write it in the file. */
@@ -37,9 +47,15 @@ function Effect({ change, jobType }: { change: ConfigChange; jobType?: JobKind }
   const t = useT();
   if (change.locked) return <span className="bad-mark">{lockedReason(change.locked, t)}</span>;
   if (!change.stage) return <>{t("config.effect.next")}</>;
-  const stage = stageLabel(change.stage, jobType);
+  const stages = change.stages?.length ? change.stages : [change.stage];
+  const stage = stageList(stages, jobType);
   if (!change.finished) return <>{t("config.effect.pending", { stage })}</>;
-  return <>{t("config.effect.firstStage", { stage })} {t(`config.effect.${change.stage}` as MessageKey)}</>;
+  return (
+    <>
+      {t("config.effect.firstStage", { stage })}{" "}
+      {stages.map((name) => t(`config.effect.${name}` as MessageKey)).join(" ")}
+    </>
+  );
 }
 
 /**

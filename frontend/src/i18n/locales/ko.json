@@ -1223,6 +1223,7 @@
   "server.error.config_locked": "이 설정들은 작업이 시작된 뒤에는 바꿀 수 없습니다: {settings}",
   "server.error.config_name_invalid": "config 이름은 단순한 .yaml/.yml 파일 이름이어야 합니다.",
   "server.error.config_not_started": "이 작업은 아직 시작되지 않았습니다. 대신 설정을 편집하고 검증하세요",
+  "server.error.config_preview_stale": "이 변경의 영향이 표시된 것과 다릅니다. 변경 목록을 다시 확인하세요",
   "server.error.config_while_running": "작업이 실행 중입니다. 설정을 바꾸기 전에 일시 중지하거나 중지하세요",
   "server.error.discard_started_job": "시작되지 않은 작업만 취소할 수 있습니다.",
   "server.error.glossary_empty": "검토된 용어집이 비어 있습니다. 최소 하나 이상의 항목을 유지하세요.",

@@ -21,6 +21,7 @@ MESSAGES: dict[str, str] = {
     "config_locked": "these settings cannot be changed once a job has started: {settings}",
     "config_name_invalid": "config name must be a simple .yaml/.yml file name",
     "config_not_started": "this job has not started; edit and validate its configuration instead",
+    "config_preview_stale": "these changes do not have the effect that was shown; look at the list of changes again",
     "config_while_running": "the job is running; pause or stop it before changing its configuration",
     "discard_started_job": "only a job that has not started can be discarded",
     "glossary_empty": "the reviewed glossary is empty; keep at least one entry",

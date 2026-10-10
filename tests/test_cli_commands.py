@@ -153,9 +153,9 @@ class StatusAndReportTests:
         diff = json.loads(output)
         assert {
             "path": "ollama.model", "captured": captured.ollama.model, "proposed": "other-model:1b",
-            "stage": "resolve_glossary", "finished": True, "locked": "",
+            "stage": "resolve_glossary", "stages": ["resolve_glossary"], "finished": True, "locked": "",
         } in diff["changes"]
-        assert diff["rerun_stage"] == "resolve_glossary"
+        assert diff["rerun_stage"] == "resolve_glossary" and diff["rerun_stages"] == ["resolve_glossary"]
 
 
 class ExportTests:

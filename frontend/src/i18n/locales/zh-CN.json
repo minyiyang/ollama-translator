@@ -1223,6 +1223,7 @@
   "server.error.config_locked": "任务开始后不能修改这些设置：{settings}",
   "server.error.config_name_invalid": "配置名称必须是简单的 .yaml/.yml 文件名",
   "server.error.config_not_started": "此任务尚未开始；请改为编辑并校验其配置",
+  "server.error.config_preview_stale": "这些修改的影响与此前显示的不同；请重新查看修改列表",
   "server.error.config_while_running": "任务正在运行；请先暂停或停止，再修改其配置",
   "server.error.discard_started_job": "只有未启动的任务才能被放弃",
   "server.error.glossary_empty": "已复核的术语表为空；请至少保留一个条目",

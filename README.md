@@ -1159,8 +1159,10 @@ A started job's configuration can be changed, while the job is not running.
 change (`reports/config-changes.jsonl`: when, and each setting's old and new
 value). A stage that has finished keeps what it made, so a change to a setting
 it read is in the job's result only once that stage is rerun: the command
-names the stage, and `--rerun` resets it and the stages after it for the next
-`resume`. The translation direction and the paths cannot be changed once a job
+names the stage, and `--rerun` resets it and the stages that depend on it for
+the next `resume`. A change that reaches both the glossary and the story
+summaries names two stages, since neither depends on the other, and resets
+both. The translation direction and the paths cannot be changed once a job
 has started.
 
 ```powershell

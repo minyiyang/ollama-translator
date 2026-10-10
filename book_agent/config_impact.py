@@ -18,7 +18,7 @@ from typing import Any
 from pydantic import BaseModel
 
 from .config import AppConfig
-from .pipeline_state import WorkflowStage
+from .pipeline_state import WorkflowStage, downstream_stages
 
 S = WorkflowStage
 
@@ -90,6 +90,18 @@ _FIRST_STAGE: dict[str, WorkflowStage | None] = {
     "paths.": None,
 }
 
+# A setting read by a second stage that is no dependent of its first: the
+# pipeline has two branches between the source and the preprocessing, the
+# glossary's and the story summaries', and a rerun of one does not redo the
+# other. Each entry says when the second stage reads the setting.
+_ALSO: dict[str, tuple[WorkflowStage, Any]] = {
+    # The story summaries are written by the default model when they name none of their own.
+    "ollama.model": (
+        S.BUILD_STORY_CONTEXT,
+        lambda config: config.consistency.story_context.enabled and not config.consistency.story_context.model,
+    ),
+}
+
 _ORDER = {stage: index for index, stage in enumerate(WorkflowStage)}
 
 
@@ -117,6 +129,29 @@ def first_stage(path: str) -> WorkflowStage | None:
     return _FIRST_STAGE[key]
 
 
+def affected_stages(path: str, before: AppConfig, after: AppConfig) -> list[WorkflowStage]:
+    """Every stage that must run again for a change of this setting between
+    two configs, in pipeline order: its first stage, and any stage on another
+    branch of the pipeline that reads it too. The dependents of these are not
+    listed: a rerun of a stage redoes them."""
+    first = first_stage(path)
+    stages = [first] if first else []
+    if path in _ALSO:
+        other, applies = _ALSO[path]
+        if other not in stages and (applies(before) or applies(after)):
+            stages.append(other)
+    return sorted(stages, key=_ORDER.__getitem__)
+
+
+def rerun_roots(stages: list[WorkflowStage]) -> list[WorkflowStage]:
+    """The fewest stages to rerun so that every one of `stages` is redone: those
+    that are no dependent of another. Rerunning a stage redoes its dependents
+    only, so two stages on different branches are both named."""
+    wanted = sorted(set(stages), key=_ORDER.__getitem__)
+    covered = {dependent for stage in wanted for dependent in downstream_stages(stage)}
+    return [stage for stage in wanted if stage not in covered]
+
+
 def setting_paths(model: type[BaseModel] = AppConfig, prefix: str = "") -> list[str]:
     """Every setting of the config, as its dotted path."""
     paths: list[str] = []
@@ -138,7 +173,8 @@ def _value(data: Any, path: str) -> Any:
 def config_changes(before: AppConfig, after: AppConfig) -> list[dict[str, Any]]:
     """The settings that differ between two configs, in the config's own
     order, each with its two values, the first stage it affects ("" for
-    none), and why it is locked ("" when it is not)."""
+    none), every stage it affects that is no dependent of another
+    (`stages`), and why it is locked ("" when it is not)."""
     # Every section is written out: a section left at its defaults is still compared.
     old = {name: getattr(before, name).model_dump(mode="json") for name in AppConfig.model_fields}
     new = {name: getattr(after, name).model_dump(mode="json") for name in AppConfig.model_fields}
@@ -147,9 +183,16 @@ def config_changes(before: AppConfig, after: AppConfig) -> list[dict[str, Any]]:
         was, now = _value(old, path), _value(new, path)
         if was == now:
             continue
-        stage = first_stage(path)
+        stages = affected_stages(path, before, after)
         changes.append(
-            {"path": path, "before": was, "after": now, "stage": stage.value if stage else "", "locked": locked_reason(path)}
+            {
+                "path": path,
+                "before": was,
+                "after": now,
+                "stage": stages[0].value if stages else "",
+                "stages": [stage.value for stage in stages],
+                "locked": locked_reason(path),
+            }
         )
     return changes
 
@@ -158,17 +201,31 @@ def config_impact(changes: list[dict[str, Any]], statuses: dict[str, str]) -> di
     """What a set of changes does to a job whose stages stand at `statuses`
     (stage name to status).
 
-    `rerun_stage` is the earliest stage that has finished and read a changed
-    setting: the job must be rerun from it for the change to be in its
-    result. It is "" when no finished stage is affected, and the change then
-    simply applies to what runs next. Each change says whether its own stage
-    has finished (`applied`: the change is not in what that stage made)."""
-    finished = {name for name, status in statuses.items() if status == "completed"}
-    described = [{**change, "finished": bool(change["stage"]) and change["stage"] in finished} for change in changes]
-    affected = [S(change["stage"]) for change in described if change["finished"] and not change["locked"]]
-    rerun = min(affected, key=_ORDER.__getitem__).value if affected else ""
+    `rerun_stages` are the stages the job must be rerun from for every
+    change to be in its result: each finished stage that read a changed
+    setting, less those a rerun of another already redoes. It is one stage
+    as a rule, and two when the changes reach both the glossary's branch of
+    the pipeline and the story summaries'. It is empty when no finished
+    stage is affected, and the changes then simply apply to what runs next.
+    `rerun_stage` is the first of them ("" for none). Each change says
+    whether a stage that read it has finished (`finished`: the change is not
+    in what that stage made)."""
+    done = {name for name, status in statuses.items() if status == "completed"}
+    described = [
+        {**change, "finished": any(stage in done for stage in change.get("stages", [change["stage"]]))}
+        for change in changes
+    ]
+    affected = [
+        S(stage)
+        for change in described
+        if not change["locked"]
+        for stage in change.get("stages", [change["stage"]])
+        if stage in done
+    ]
+    roots = [stage.value for stage in rerun_roots(affected)]
     return {
         "changes": described,
         "locked": [change["path"] for change in described if change["locked"]],
-        "rerun_stage": rerun,
+        "rerun_stages": roots,
+        "rerun_stage": roots[0] if roots else "",
     }

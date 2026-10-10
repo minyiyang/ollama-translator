@@ -3,6 +3,7 @@ import { roughDuration } from "../lib/format";
 import { rerunWarning } from "../lib/serverText";
 import { stageLabel } from "../lib/stages";
 import { jobApi } from "../api";
+import { stageList } from "./ConfigChanges";
 import { useDialog } from "./Dialog";
 import { useJob } from "./JobContext";
 import { useToast } from "./Toast";
@@ -19,18 +20,20 @@ type RerunPreview = {
  * Ask before a stage is rerun: the dialog lists what is redone and what is
  * lost with it. Resolves true when the rerun is confirmed; a stage the server
  * refuses to rerun is said in a toast and resolves false. The Progress tab's
- * Rerun and the Config tab's "Save and rerun" both ask through this.
+ * Rerun and the Config tab's "Save and rerun" both ask through this. `also`
+ * names stages on another branch of the pipeline that are reset with it.
  */
-export function useRerunDialog(): (stage: string) => Promise<boolean> {
+export function useRerunDialog(): (stage: string, also?: string[]) => Promise<boolean> {
   const t = useT();
   const { jobId, info } = useJob();
   const ask = useDialog();
   const toast = useToast();
   const type = info?.job_type;
-  return async (stage: string) => {
+  return async (stage: string, also: string[] = []) => {
     let preview: RerunPreview;
     try {
-      preview = await jobApi<RerunPreview>(jobId, `rerun?stage=${encodeURIComponent(stage)}`);
+      const others = also.length ? `&also=${encodeURIComponent(also.join(","))}` : "";
+      preview = await jobApi<RerunPreview>(jobId, `rerun?stage=${encodeURIComponent(stage)}${others}`);
     } catch (e) {
       toast("bad", (e as Error).message, 0);
       return false;
@@ -39,7 +42,7 @@ export function useRerunDialog(): (stage: string) => Promise<boolean> {
     const ran = preview.stages.filter((s) => s.status !== "pending");
     const later = preview.stages.length - ran.length;
     const choice = await ask(
-      t("progress.rerun.title", { stage: stageLabel(stage, type) }),
+      t("progress.rerun.title", { stage: stageList([stage, ...also], type) }),
       <>
         {stopped && <p>{t("progress.rerun.resumeKeeps")}</p>}
         <p>{t("progress.rerun.resets", { count: ran.length })}</p>

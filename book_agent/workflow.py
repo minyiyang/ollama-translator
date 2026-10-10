@@ -137,7 +137,8 @@ def replace_workspace_config(
         "at": (now or datetime.now().astimezone()).isoformat(timespec="seconds"),
         "config_sha256": sha256_text(text),
         "changes": [
-            {key: change[key] for key in ("path", "before", "after", "stage") if key in change} for change in changes
+            {key: change[key] for key in ("path", "before", "after", "stage", "stages") if key in change}
+            for change in changes
         ],
     }
     connection = connect_state(workspace.state_file)

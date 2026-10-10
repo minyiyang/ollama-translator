@@ -420,9 +420,22 @@ hashed inputs when the PR is built, not from memory.
   marked complete without looking at its inputs again. So a changed setting
   reaches a finished stage's result only when that stage is rerun; a stage
   that has not finished (pending, paused, failed part-way) starts with the
-  new config the next time it runs. `rerun_stage` is therefore the earliest
-  **finished** stage that read a changed setting, and is empty when there is
-  none.
+  new config the next time it runs. `rerun_stages` are therefore the
+  **finished** stages that read a changed setting, less those a rerun of
+  another already redoes, and are empty when there is none.
+- **The pipeline branches, so there can be two.** A rerun resets a stage and
+  its dependents, not every later stage. Between the source and the
+  preprocessing there are two branches: the glossary's three stages, and
+  `build_story_context`, which depends only on the source. A change that
+  reaches both (a glossary setting together with a story-context one) needs
+  both reset: `rerun_roots` names them, the dashboard's dialog lists the
+  union of what they redo, and one run is started after the second branch is
+  reset. Everywhere else the pipeline is a line and there is one stage.
+- **A setting read on both branches.** `ollama.model` first affects
+  `resolve_glossary`, and also writes the story summaries when story context
+  is on and names no model of its own (`_ALSO`). Such a change lists both
+  stages. The story stage reads the context sizes too, but they do not change
+  what it writes and are not in its hash, so they are not listed for it.
 - **The map** is `book_agent/config_impact.py` (not under `web/`: the command
   line uses it too). Each of the 151 settings resolves to a stage, to "none"
   (16 settings: how Ollama is reached and retried, progress reporting, and
@@ -442,17 +455,25 @@ hashed inputs when the PR is built, not from memory.
   (three settings, and four that must leave it alone) and the translate stage
   (two that make it stale, three that do not). The other stages' entries are
   from reading what each stage reads and hashes, and are not each proven by a
-  test.
+  test. The two branches have tests of their own: the roots of a set of
+  stages, and a save with a rerun that resets both.
 - **Saving** is `replace_workspace_config` in `book_agent/workflow.py`: the
   snapshot and its recorded hash together, and a line in
   `reports/config-changes.jsonl`. It resets nothing. The dashboard then
   calls the same rerun the Progress tab does; `config-apply --rerun` resets
   the stage and leaves the resume to the user.
 - **The order of a save with a rerun** in the dashboard: the rerun dialog is
-  shown and confirmed first, then the config is saved, then the rerun starts.
-  Declining the dialog saves nothing. If the rerun is refused after the save,
-  the config is saved and the stage is still to be rerun from the Progress
-  tab; the error says so.
+  shown and confirmed first; then one request saves the config, resets the
+  stages, and starts the run. Declining the dialog saves nothing.
+- **The server's effect is the one that counts.** The page sends the stages
+  it showed (`rerun_stages`) with the text. The server works the effect out
+  again from that text, and refuses the save when it is another
+  (`config_preview_stale`): nobody saves one thing having agreed to another.
+  The page also drops a preview the moment the text changes, so there is no
+  Save button by an earlier text's preview.
+- **Unlocking goes by the job as it stands**: the button is disabled while
+  the job's status says running, and enabled again when a later poll says it
+  has stopped. The server refuses in any case.
 - **One save button at a time**, as decided: "Save and rerun from *stage*"
   when a finished stage is affected, "Save" when none is. There is no way to
   save a change to a finished stage's setting without the rerun, so a job is

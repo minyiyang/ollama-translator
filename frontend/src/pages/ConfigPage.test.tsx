@@ -268,8 +268,8 @@ describe("Config tab", () => {
             editable: false, name: "demo.yaml", text: YAML, validated: true, unlockable: true,
             locked: { "translation.direction": "direction", "paths.": "paths" }, changes: [],
           },
-          "POST /api/jobs/demo/config/preview": { errors: [], changes: [change()], locked: [], rerun_stage: "compile" },
-          "POST /api/jobs/demo/config": { saved: true },
+          "POST /api/jobs/demo/config/preview": { errors: [], changes: [change()], locked: [], rerun_stages: ["compile"] },
+          "POST /api/jobs/demo/config": { saved: true, rerun: { started: true } },
           "GET /api/jobs/demo/rerun": {
             stage: "compile", status: "completed", previous_seconds: 4, warnings: [{ code: "compiled_epub", message: "replaced" }],
             stages: [{ name: "compile", status: "completed", seconds: 3 }, { name: "validate_epub", status: "completed", seconds: 1 }],
@@ -330,8 +330,9 @@ describe("Config tab", () => {
         expect(api.posted("/api/jobs/demo/config")).toEqual([]); // nothing saved before the rerun is confirmed
         await user.click(within(dialog).getByRole("button", { name: /Rerun/ }));
 
-        await waitFor(() => expect(api.posted("/api/jobs/demo/rerun")).toEqual([{ stage: "compile" }]));
-        expect(api.posted("/api/jobs/demo/config")).toEqual([{ text: NEXT }]);
+        // One request saves and reruns: the server does both, by the effect it works out itself.
+        await waitFor(() => expect(api.posted("/api/jobs/demo/config")).toEqual([{ text: NEXT, rerun: true, rerun_stages: ["compile"] }]));
+        expect(api.posted("/api/jobs/demo/rerun")).toEqual([]);
         expect(await screen.findByText("Configuration saved. Rerunning from Build the book.")).toBeInTheDocument();
         await waitFor(() => expect(window.location.pathname).toBe("/jobs/demo/progress"));
       });
@@ -350,7 +351,7 @@ describe("Config tab", () => {
       it("saves a change that no finished stage read without a rerun", async () => {
         const api = pausedApi({
           "POST /api/jobs/demo/config/preview": {
-            errors: [], locked: [], rerun_stage: "",
+            errors: [], locked: [], rerun_stages: [],
             changes: [change({ finished: false }), change({ path: "ollama.timeout_seconds", before: 1800, after: 900, stage: "", finished: false })],
           },
         });
@@ -362,7 +363,7 @@ describe("Config tab", () => {
         expect(within(card).getByText("No finished stage read these settings, so nothing has to be rerun.")).toBeInTheDocument();
         expect(within(card).queryByRole("button", { name: /Save and rerun/ })).not.toBeInTheDocument();
         await user.click(within(card).getByRole("button", { name: "Save" }));
-        await waitFor(() => expect(api.posted("/api/jobs/demo/config")).toEqual([{ text: NEXT }]));
+        await waitFor(() => expect(api.posted("/api/jobs/demo/config")).toEqual([{ text: NEXT, rerun: false, rerun_stages: [] }]));
         expect(api.posted("/api/jobs/demo/rerun")).toEqual([]);
         expect(await screen.findByText("Configuration saved. It applies to what runs next.")).toBeInTheDocument();
         // Saved: the page is the job's config again, locked.
@@ -373,7 +374,7 @@ describe("Config tab", () => {
       it("lists a config's problems and offers no save until they are fixed", async () => {
         pausedApi({
           "POST /api/jobs/demo/config/preview": {
-            errors: [{ path: "ollama.temperature", message: "Input should be a valid number" }], changes: [], locked: [], rerun_stage: "",
+            errors: [{ path: "ollama.temperature", message: "Input should be a valid number" }], changes: [], locked: [], rerun_stages: [],
           },
         });
         const user = renderConfigTab();
@@ -390,7 +391,7 @@ describe("Config tab", () => {
       it("will not save a locked setting that was changed in the YAML, and says why it is locked", async () => {
         pausedApi({
           "POST /api/jobs/demo/config/preview": {
-            errors: [], locked: ["translation.direction"], rerun_stage: "",
+            errors: [], locked: ["translation.direction"], rerun_stages: [],
             changes: [change({ path: "translation.direction", before: "en-zh", after: "en>de", stage: "translate", locked: "direction" })],
           },
         });
@@ -416,7 +417,7 @@ describe("Config tab", () => {
 
       it("says the save failed and keeps the edit when the server refuses it", async () => {
         const api = pausedApi({
-          "POST /api/jobs/demo/config/preview": { errors: [], changes: [change({ finished: false })], locked: [], rerun_stage: "" },
+          "POST /api/jobs/demo/config/preview": { errors: [], changes: [change({ finished: false })], locked: [], rerun_stages: [] },
           "POST /api/jobs/demo/config": apiError("the job is running; pause or stop it before changing its configuration"),
         });
         const user = renderConfigTab();
@@ -425,6 +426,76 @@ describe("Config tab", () => {
         expect(await screen.findByText("the job is running; pause or stop it before changing its configuration")).toBeInTheDocument();
         expect(screen.getByRole("textbox")).toHaveValue(NEXT);
         expect(api.posted("/api/jobs/demo/rerun")).toEqual([]);
+      });
+
+      it("offers no save by a preview of an earlier text: an edit made since has to be previewed first", async () => {
+        // Reviewed on PR #11: the Save of the first preview was still there, and saved the later text with the first rerun.
+        const LATER = NEXT + "translation:\n  style: concise\n";
+        const second = deferred<unknown>();
+        const api = pausedApi({
+          "POST /api/jobs/demo/config/preview": (body: { text: string }) =>
+            body.text === NEXT
+              ? { errors: [], changes: [change()], locked: [], rerun_stages: ["compile"] }
+              : second.promise,
+        });
+        const user = renderConfigTab();
+        await unlockAndWrite(user, NEXT);
+        const card = changes();
+        expect(await within(card).findByRole("button", { name: "Save and rerun from Build the book" })).toBeInTheDocument();
+
+        const editor = screen.getByRole("textbox");
+        await user.clear(editor);
+        await user.click(editor);
+        await user.paste(LATER);
+        // At once, before the new preview is even asked for: nothing to save by.
+        expect(within(card).queryByRole("button", { name: /Save/ })).not.toBeInTheDocument();
+        expect(within(card).getByText("Checking what this changes…")).toBeInTheDocument();
+        expect(within(card).queryByText("Output format")).not.toBeInTheDocument();
+
+        second.resolve({
+          errors: [], locked: [], rerun_stages: ["translate"],
+          changes: [change(), change({ path: "translation.style", before: "literary", after: "concise", stage: "translate" })],
+        });
+        const save = await within(card).findByRole("button", { name: "Save and rerun from Translate" });
+        expect(within(card).getByText("First read by Translate, which has finished. The whole text is translated again.")).toBeInTheDocument();
+        expect(api.posted("/api/jobs/demo/config")).toEqual([]);
+        expect(save).toBeEnabled();
+      });
+
+      it("reruns from both branches of the pipeline when the changes reach both, and says so", async () => {
+        const api = pausedApi({
+          "POST /api/jobs/demo/config/preview": {
+            errors: [], locked: [], rerun_stages: ["extract_glossary", "build_story_context"],
+            changes: [
+              change({ path: "glossary.extraction_max_entries", before: 100, after: 77, stage: "extract_glossary", stages: ["extract_glossary"] }),
+              change({ path: "ollama.model", before: "qwen3:14b", after: "other:1b", stage: "resolve_glossary", stages: ["resolve_glossary", "build_story_context"] }),
+            ],
+          },
+        });
+        const user = renderConfigTab();
+        await unlockAndWrite(user, NEXT);
+        const card = changes();
+        // A setting two branches read names both, with what each costs.
+        expect(await within(card).findByText(/^First read by Resolve glossary and Build story context, which has finished\. The glossary is resolved again.* The story summaries are written again/)).toBeInTheDocument();
+        await user.click(within(card).getByRole("button", { name: "Save and rerun from Extract glossary and Build story context" }));
+        const dialog = await screen.findByRole("alertdialog");
+        expect(within(dialog).getByRole("heading", { name: "Rerun from Extract glossary and Build story context?" })).toBeInTheDocument();
+        expect(api.requested("/api/jobs/demo/rerun?stage=extract_glossary&also=build_story_context")).toBe(true);
+        await user.click(within(dialog).getByRole("button", { name: /Rerun/ }));
+        await waitFor(() => expect(api.posted("/api/jobs/demo/config")).toEqual([
+          { text: NEXT, rerun: true, rerun_stages: ["extract_glossary", "build_story_context"] },
+        ]));
+      });
+
+      it("says so and keeps the edit when the server finds another effect than the one shown", async () => {
+        pausedApi({ "POST /api/jobs/demo/config": apiError("these changes do not have the effect that was shown; look at the list of changes again") });
+        const user = renderConfigTab();
+        await unlockAndWrite(user, NEXT);
+        await user.click(await within(changes()).findByRole("button", { name: "Save and rerun from Build the book" }));
+        await user.click(within(await screen.findByRole("alertdialog")).getByRole("button", { name: /Rerun/ }));
+        expect(await screen.findByText(/do not have the effect that was shown/)).toBeInTheDocument();
+        expect(screen.getByRole("textbox")).toHaveValue(NEXT);
+        expect(window.location.pathname).toBe("/jobs/demo/config");
       });
 
       it("lists the changes saved to this job's config before", async () => {
@@ -443,6 +514,25 @@ describe("Config tab", () => {
         expect(within(card).getByText("output.format")).toBeInTheDocument();
         expect(within(card).getByText("ollama.timeout_seconds")).toBeInTheDocument();
       });
+    });
+
+    it("can be unlocked once the job it was opened on has stopped running", async () => {
+      // Reviewed on PR #11: the page kept what it was told when it opened, and the button stayed disabled.
+      let running = true;
+      configApi({
+        "GET /api/jobs/demo/info": () => jobInfo({ overall: running ? "running" : "paused", running, can_stop: running, source_path: SOURCE }),
+        "GET /api/jobs/demo/config": { editable: false, name: "demo.yaml", text: YAML, validated: true, unlockable: false, locked: {}, changes: [] },
+        "POST /api/jobs/demo/pause": () => { running = false; return { requested: true }; },
+      });
+      const user = renderConfigTab();
+      const unlock = await screen.findByRole("button", { name: "Unlock to edit" });
+      expect(unlock).toBeDisabled();
+      expect(screen.getByText("The job is running. Pause or stop it to change its configuration.")).toBeInTheDocument();
+      // Pausing from the header reloads the job; the page goes by the job as it now stands.
+      await user.click(screen.getByRole("button", { name: "❚❚ Pause" }));
+      await waitFor(() => expect(screen.getByRole("button", { name: "Unlock to edit" })).toBeEnabled());
+      await user.click(screen.getByRole("button", { name: "Unlock to edit" }));
+      expect(screen.getByRole("heading", { name: "Configuration of this job, unlocked" })).toBeInTheDocument();
     });
 
     it("does not show a failed-start banner for a job whose later command failed", async () => {

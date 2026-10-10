@@ -1223,6 +1223,7 @@
   "server.error.config_locked": "ces réglages ne peuvent pas être modifiés une fois la tâche démarrée : {settings}",
   "server.error.config_name_invalid": "le nom de la configuration doit être un simple nom de fichier .yaml/.yml",
   "server.error.config_not_started": "cette tâche n’a pas démarré ; modifiez et validez plutôt sa configuration",
+  "server.error.config_preview_stale": "ces modifications n’ont pas l’effet qui était affiché ; consultez à nouveau la liste des modifications",
   "server.error.config_while_running": "la tâche est en cours d’exécution ; mettez-la en pause ou arrêtez-la avant de modifier sa configuration",
   "server.error.discard_started_job": "seule une tâche qui n'a pas démarré peut être abandonnée",
   "server.error.glossary_empty": "le glossaire révisé est vide ; conservez au moins une entrée",

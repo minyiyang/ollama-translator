@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { api, jobApi } from "../api";
 import { BookCard, type BookInfo } from "../components/BookCard";
 import { CheckResult, type Check } from "../components/CheckResult";
-import { ConfigChangeList, ConfigHistory, type ConfigPreview, type SavedChange } from "../components/ConfigChanges";
+import { ConfigChangeList, ConfigHistory, stageList, type ConfigPreview, type SavedChange } from "../components/ConfigChanges";
 import { ConfigEditor } from "../components/ConfigEditor";
 import { useJob } from "../components/JobContext";
 import { useRerunDialog } from "../components/RerunDialog";
@@ -11,15 +11,12 @@ import { Shell } from "../components/Shell";
 import { useToast } from "../components/Toast";
 import { Card } from "../components/ui";
 import { rich, useT } from "../i18n";
-import { stageLabel } from "../lib/stages";
 
 type JobConfig = {
   editable: boolean;
   name: string;
   text: string;
   validated: boolean;
-  /** A started job: whether its config can be unlocked now (not while it runs). */
-  unlockable?: boolean;
   /** A started job: the settings that stay locked, each with its reason. */
   locked?: Record<string, string>;
   /** A started job: the changes saved to its config before. */
@@ -47,7 +44,8 @@ export function ConfigPage() {
   const [book, setBook] = useState<BookInfo | null>(null);
   // A started job's config, unlocked for editing, and what the edited text would change.
   const [unlocked, setUnlocked] = useState(false);
-  const [preview, setPreview] = useState<ConfigPreview | null>(null);
+  // The preview, with the text it is of: an edit made since leaves it behind, and nothing is saved by it.
+  const [previewed, setPreviewed] = useState<{ text: string; preview: ConfigPreview } | null>(null);
   const previewSeq = useRef(0);
   const kind = info?.kind;
   const sourcePath = info?.source_path;
@@ -72,22 +70,25 @@ export function ConfigPage() {
   const dirty = text !== saved;
   const editable = !!config?.editable;
   const started = !!config && !editable;
+  // Only a preview of the text as it stands now is shown or saved by.
+  const preview = previewed && previewed.text === text ? previewed.preview : null;
 
   // A job that starts running while its config is unlocked is locked again: nothing is saved under a run.
   useEffect(() => {
-    if (running && unlocked) { setUnlocked(false); setText(saved); setPreview(null); }
+    if (running && unlocked) { setUnlocked(false); setText(saved); setPreviewed(null); }
   }, [running, unlocked, saved]);
 
   // What the edited text would change, asked of the server a moment after the last keystroke.
   useEffect(() => {
     if (!unlocked) return;
-    if (!dirty) { setPreview(null); return; }
+    if (!dirty) { setPreviewed(null); return; }
     const seq = ++previewSeq.current;
     const handle = window.setTimeout(() => {
       jobApi<ConfigPreview>(jobId, "config/preview", { text })
-        .then((next) => { if (seq === previewSeq.current) setPreview(next); })
+        .then((next) => { if (seq === previewSeq.current) setPreviewed({ text, preview: next }); })
         .catch((e: Error) => {
-          if (seq === previewSeq.current) setPreview({ errors: [{ path: "", message: e.message }], changes: [], locked: [], rerun_stage: "" });
+          if (seq !== previewSeq.current) return;
+          setPreviewed({ text, preview: { errors: [{ path: "", message: e.message }], changes: [], locked: [], rerun_stages: [] } });
         });
     }, 400);
     return () => window.clearTimeout(handle);
@@ -109,26 +110,30 @@ export function ConfigPage() {
     }
   };
 
-  const lock = () => { setUnlocked(false); setText(saved); setPreview(null); };
+  const lock = () => { setUnlocked(false); setText(saved); setPreviewed(null); };
 
-  /** Save a started job's changed config; with `rerun`, then rerun the job from the stage the change first affects. */
-  const save = async (rerun: string) => {
+  /**
+   * Save a started job's changed config, and rerun the job from the stages
+   * the preview named, if any. The server works the effect out again from
+   * the text it is sent: it saves, and reruns, only if that is the effect
+   * shown here, so what was agreed to is what is done.
+   */
+  const save = async (shown: { text: string; preview: ConfigPreview }) => {
+    const stages = shown.preview.rerun_stages;
     // Asked first: declining the rerun saves nothing.
-    if (rerun && !(await confirmRerun(rerun))) return;
+    if (stages.length && !(await confirmRerun(stages[0], stages.slice(1)))) return;
     setBusy(true);
     try {
-      await jobApi(jobId, "config", { text });
+      await jobApi(jobId, "config", { text: shown.text, rerun: stages.length > 0, rerun_stages: stages });
       setUnlocked(false);
-      setPreview(null);
+      setPreviewed(null);
       await load();
-      if (rerun) {
-        await jobApi(jobId, "rerun", { stage: rerun });
-        toast("ok", t("config.page.savedAndRerun", { stage: stageLabel(rerun, info?.job_type) }));
-        await refresh();
+      await refresh();
+      if (stages.length) {
+        toast("ok", t("config.page.savedAndRerun", { stage: stageList(stages, info?.job_type) }));
         navigate(`/jobs/${encodeURIComponent(jobId)}/progress`);
       } else {
         toast("ok", t("config.page.saved"));
-        await refresh();
       }
     } catch (e) {
       toast("bad", <>{t("config.page.notSaved")}<pre>{(e as Error).message}</pre></>, 0);
@@ -171,7 +176,8 @@ export function ConfigPage() {
                     {t(running ? "config.page.lockedRunning" : "config.page.locked")}
                   </p>
                   <span title={running ? t("config.page.lockedRunning") : t("config.page.unlockHint")}>
-                    <button onClick={() => setUnlocked(true)} disabled={running || config.unlockable === false}>{t("config.page.unlock")}</button>
+                    {/* By the job as it stands now, not as it stood when this page was opened. */}
+                    <button onClick={() => setUnlocked(true)} disabled={running}>{t("config.page.unlock")}</button>
                   </span>
                 </div>
               )}
@@ -212,19 +218,19 @@ export function ConfigPage() {
                       )}
                       {savable && (
                         <p className="meta">
-                          {preview!.rerun_stage
-                            ? t("config.changes.needsRerun", { stage: stageLabel(preview!.rerun_stage, info.job_type) })
+                          {preview!.rerun_stages.length
+                            ? t("config.changes.needsRerun", { stage: stageList(preview!.rerun_stages, info.job_type) })
                             : t("config.changes.noRerun")}
                         </p>
                       )}
                       <div className="row">
-                        {savable && preview!.rerun_stage && (
-                          <button className="primary" disabled={busy} onClick={() => save(preview!.rerun_stage)}>
-                            {t("config.changes.saveAndRerun", { stage: stageLabel(preview!.rerun_stage, info.job_type) })}
+                        {savable && preview!.rerun_stages.length > 0 && (
+                          <button className="primary" disabled={busy} onClick={() => save(previewed!)}>
+                            {t("config.changes.saveAndRerun", { stage: stageList(preview!.rerun_stages, info.job_type) })}
                           </button>
                         )}
-                        {savable && !preview!.rerun_stage && (
-                          <button className="primary" disabled={busy} onClick={() => save("")}>{t("config.changes.save")}</button>
+                        {savable && !preview!.rerun_stages.length && (
+                          <button className="primary" disabled={busy} onClick={() => save(previewed!)}>{t("config.changes.save")}</button>
                         )}
                         <button disabled={busy} onClick={lock}>{t(dirty ? "config.changes.discard" : "config.changes.lock")}</button>
                       </div>

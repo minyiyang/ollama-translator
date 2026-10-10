@@ -1223,6 +1223,7 @@
   "server.error.config_locked": "これらの設定はジョブの開始後は変更できません: {settings}",
   "server.error.config_name_invalid": "設定名はシンプルな .yaml/.yml ファイル名である必要があります",
   "server.error.config_not_started": "このジョブはまだ開始されていません。代わりに設定を編集して検証してください",
+  "server.error.config_preview_stale": "これらの変更の影響は、表示されていたものと異なります。変更の一覧をもう一度確認してください",
   "server.error.config_while_running": "ジョブは実行中です。設定を変更する前に一時停止または停止してください",
   "server.error.discard_started_job": "開始されていないジョブのみを破棄できます",
   "server.error.glossary_empty": "レビュー済みの用語集が空です；少なくとも1つのエントリを保持してください",

@@ -589,6 +589,7 @@ def build_config_diff(
             "captured": change["before"],
             "proposed": change["after"],
             "stage": change["stage"],
+            "stages": change["stages"],
             "finished": change["finished"],
             "locked": change["locked"],
         }
@@ -601,6 +602,7 @@ def build_config_diff(
         "change_count": len(changes),
         "changes": changes,
         "locked": impact["locked"],
+        "rerun_stages": impact["rerun_stages"],
         "rerun_stage": impact["rerun_stage"],
         "note": "Read-only diff; `config-apply` saves it, and a finished stage that read a changed setting is rerun explicitly.",
     }
@@ -612,7 +614,8 @@ def _change_effect(change: dict[str, object]) -> str:
         return "locked once a job has started"
     if not change["stage"]:
         return "applies to what runs next"
-    return f"first affects {change['stage']}" + (", which has finished" if change["finished"] else "")
+    stages = " and ".join(change.get("stages") or [change["stage"]])
+    return f"first affects {stages}" + (", which has finished" if change["finished"] else "")
 
 
 def apply_config_change(workspace, proposed_config_path: str | Path, *, rerun: bool = False) -> dict[str, object]:
@@ -633,12 +636,17 @@ def apply_config_change(workspace, proposed_config_path: str | Path, *, rerun: b
             workspace,
             proposed,
             [
-                {"path": item["path"], "before": item["captured"], "after": item["proposed"], "stage": item["stage"]}
+                {
+                    "path": item["path"], "before": item["captured"], "after": item["proposed"],
+                    "stage": item["stage"], "stages": item["stages"],
+                }
                 for item in diff["changes"]
             ],
         )
-        if rerun and diff["rerun_stage"]:
-            reset = [stage.value for stage in retry_from_stage(workspace, WorkflowStage(str(diff["rerun_stage"])))]
+        if rerun:
+            # Every stage the change reaches, and its dependents: one of them alone leaves the other branch as it was.
+            done = {stage for root in diff["rerun_stages"] for stage in retry_from_stage(workspace, WorkflowStage(str(root)))}
+            reset = [stage.value for stage in WorkflowStage if stage in done]
     return {**diff, "saved": bool(diff["changes"]), "reset_stages": reset, "note": ""}
 
 
@@ -657,10 +665,15 @@ def format_config_diff_plain(diff: dict[str, object]) -> str:
         lines.append("Saved as the job's configuration.")
     if diff.get("reset_stages"):
         lines.append("Reset for the next resume: " + ", ".join(diff["reset_stages"]))
-    elif diff["rerun_stage"]:
+    elif diff["rerun_stages"]:
+        stages = list(diff["rerun_stages"])
+        # The last command resumes; the ones before it only reset their stage, which is on another branch of the pipeline.
+        commands = [
+            f"book-agent retry \"{diff['workspace']}\" --stage {stage}" + (" --resume" if stage == stages[0] else "")
+            for stage in [*stages[1:], stages[0]]
+        ]
         lines.append(
-            f"For the change to be in the job's result, rerun from {diff['rerun_stage']}: "
-            f"book-agent retry \"{diff['workspace']}\" --stage {diff['rerun_stage']} --resume"
+            f"For the change to be in the job's result, rerun from {' and '.join(stages)}: " + "; then ".join(commands)
         )
     if diff["note"]:
         lines.append(str(diff["note"]))
