@@ -1,6 +1,6 @@
 # Output formats and config changes in the dashboard
 
-Status: **PR 1 (book output, PDF included) and PR 2 (subtitle output) implemented; PR 3 planned.**
+Status: **all three implemented**: PR 1 (book output, PDF included), PR 2 (subtitle output), PR 3 (config changes).
 Last updated: 2026-10-09.
 
 Three gaps found while testing the dashboard, each planned as its own pull
@@ -10,7 +10,7 @@ request:
 |---|---|---|
 | 1 | A book job's output is the format the user wants, PDF included; the EPUB stops being presented as the result. **Implemented** | 2 |
 | 2 | A subtitle job's output is a subtitle file in the format the user wants; nothing about it says EPUB. **Implemented** | 3 |
-| 3 | A started job's config can be unlocked and changed in the dashboard, with the effect on the pipeline shown and a rerun offered | 4 |
+| 3 | A started job's config can be unlocked and changed in the dashboard, with the effect on the pipeline shown and a rerun offered. **Implemented** | 4 |
 
 Related documents: docs/FORMAT_SUPPORT.md (sources and exports as built),
 docs/STAGE_CONTROL.md (resume and rerun), docs/LOCALIZATION.md (every new
@@ -395,7 +395,7 @@ hashed inputs when the PR is built, not from memory.
 
 | Where | Change |
 |---|---|
-| `web/config_impact.py` (new) | The map, and `impact(old, new)`: the changed settings, each with its stage, and the earliest stage overall |
+| `config_impact.py` (new) | The map, `config_changes(old, new)`: the changed settings, each with its stage; and `config_impact(changes, statuses)`: the earliest finished stage affected |
 | `web/server.py` | `POST /api/jobs/<id>/config/preview` (the impact of a proposed text) and `POST /api/jobs/<id>/config` (validate, save the snapshot, log the change); both refused while the job runs |
 | `workflow.py` | A function that replaces the snapshot and its recorded hash together |
 | `cli.py` | `config-diff` prints the affected stage for each change; `config-apply <workspace> --config <file>` does from the terminal what the dashboard does |
@@ -413,6 +413,87 @@ hashed inputs when the PR is built, not from memory.
 - Component: unlock, edit, see the change list, both save paths.
 - Browser: change the unresolved-segment limit on a paused job, save and
   rerun from compile, and the job finishes.
+
+### 4.5 As built
+
+- **Why a rerun is needed at all.** A job that resumes skips every stage
+  marked complete without looking at its inputs again. So a changed setting
+  reaches a finished stage's result only when that stage is rerun; a stage
+  that has not finished (pending, paused, failed part-way) starts with the
+  new config the next time it runs. `rerun_stages` are therefore the
+  **finished** stages that read a changed setting, less those a rerun of
+  another already redoes, and are empty when there is none.
+- **The pipeline branches, so there can be two.** A rerun resets a stage and
+  its dependents, not every later stage. Between the source and the
+  preprocessing there are two branches: the glossary's three stages, and
+  `build_story_context`, which depends only on the source. A change that
+  reaches both (a glossary setting together with a story-context one) needs
+  both reset: `rerun_roots` names them, the dashboard's dialog lists the
+  union of what they redo, and one run is started after the second branch is
+  reset. Everywhere else the pipeline is a line and there is one stage.
+- **A setting read on both branches.** `ollama.model` first affects
+  `resolve_glossary`, and also writes the story summaries when story context
+  is on and names no model of its own (`_ALSO`). Such a change lists both
+  stages. The story stage reads the context sizes too, but they do not change
+  what it writes and are not in its hash, so they are not listed for it.
+- **The map** is `book_agent/config_impact.py` (not under `web/`: the command
+  line uses it too). Each of the 151 settings resolves to a stage, to "none"
+  (16 settings: how Ollama is reached and retried, progress reporting, and
+  settings nothing reads), or to locked (the direction and its two languages,
+  and `paths.*`). Entries are by exact path or by section; the longest match
+  wins.
+- **What "first stage" means here.** The first stage that has to run again
+  for the change to be in the result. This is sometimes later than the first
+  stage whose input hash changes: the translate stage hashes the whole
+  `translation` section, but a change to `translation.fallback_models` only
+  needs the rescue stage, and one to `translation.translated_title` only the
+  title stage.
+- **The drift tests** (`tests/test_config_impact.py`): every setting of
+  `AppConfig` must resolve, so a new setting cannot be added without a line;
+  and for a sample, a changed value makes the mapped stage's recorded input
+  hash stale and no earlier stage's. The sample covers the compile stage
+  (three settings, and four that must leave it alone) and the translate stage
+  (two that make it stale, three that do not). The other stages' entries are
+  from reading what each stage reads and hashes, and are not each proven by a
+  test. The two branches have tests of their own: the roots of a set of
+  stages, and a save with a rerun that resets both.
+- **Saving** is `replace_workspace_config` in `book_agent/workflow.py`: the
+  snapshot and its recorded hash together, and a line in
+  `reports/config-changes.jsonl`. It resets nothing. The dashboard then
+  calls the same rerun the Progress tab does; `config-apply --rerun` resets
+  the stage and leaves the resume to the user.
+- **The order of a save with a rerun** in the dashboard: the rerun dialog is
+  shown and confirmed first; then one request saves the config, resets the
+  stages, and starts the run. Declining the dialog saves nothing.
+- **The server's effect is the one that counts.** The page sends the stages
+  it showed (`rerun_stages`) with the text. The server works the effect out
+  again from that text, and refuses the save when it is another
+  (`config_preview_stale`): nobody saves one thing having agreed to another.
+  The page also drops a preview the moment the text changes, so there is no
+  Save button by an earlier text's preview.
+- **Unlocking goes by the job as it stands**: the button is disabled while
+  the job's status says running, and enabled again when a later poll says it
+  has stopped. The server refuses in any case.
+- **One save button at a time**, as decided: "Save and rerun from *stage*"
+  when a finished stage is affected, "Save" when none is. There is no way to
+  save a change to a finished stage's setting without the rerun, so a job is
+  not left with a result that does not match its config.
+- **The Progress tab banner of the plan is not built.** It was for a save
+  without a rerun that left finished stages out of date, which the point
+  above rules out.
+- **Checks on save**: the config's schema, as the draft editor checks it; the
+  output format against the kind of job; and no locked setting changed. The
+  models are not looked up in Ollama: the run does that when it starts.
+- **Paths.** The proposed text and the job's snapshot are both resolved
+  against the config folder before they are compared, so a path written
+  another way is not taken for a change.
+- **Locked settings in the form** are disabled with their reason, and the
+  server refuses them if they are changed in the YAML.
+- **Wording.** One sentence per stage says what a change costs
+  (`config.effect.<stage>`), worded for a book and a subtitle job alike.
+- **Not done:** undoing a saved change in one step (the history is shown;
+  the old value is typed back in), and a history entry for the rerun that
+  followed a save.
 
 ## 5. Order and size
 

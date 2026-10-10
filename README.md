@@ -742,7 +742,10 @@ a job's translation direction
   by default the format the source came in). A book can be had as EPUB, PDF,
   Word, HTML, Markdown, or text; a subtitle job as SRT, WebVTT, or ASS, and
   the dashboard says what a subtitle format other than the file's own does
-  not carry over. Each job's **Config** tab edits,
+  not carry over. A started job's **Config** tab is read-only until
+  *Unlock to edit* is pressed (not while the job runs); it then shows what
+  each change does to the pipeline and saves with a rerun of the stage the
+  change first affects. Each job's **Config** tab edits,
   validates, and starts it; its *Languages* setting takes any two language
   codes, lists the tuned ones first, and for a generic pair shows the tiers,
   a model-quality notice, and the checks that will be skipped (options those
@@ -1144,11 +1147,34 @@ as context only. See [Book-level consistency](docs/BOOK_CONSISTENCY.md).
 
 Named production configurations are captured with a profile version and source
 file hash. `status` reports source-config drift, and the effective field-level
-change can be inspected before retrying any stage:
+change can be inspected before retrying any stage. Each change is listed with
+the first stage it affects, and the stage the job would have to be rerun from:
 
 ```powershell
 book-agent config-diff "D:\runs\my-job" --config configs\my-production.yaml
 ```
+
+A started job's configuration can be changed, while the job is not running.
+`config-apply` saves the proposed file as the job's own and records the
+change (`reports/config-changes.jsonl`: when, and each setting's old and new
+value). A stage that has finished keeps what it made, so a change to a setting
+it read is in the job's result only once that stage is rerun: the command
+names the stage, and `--rerun` resets it and the stages that depend on it for
+the next `resume`. A change that reaches both the glossary and the story
+summaries names two stages, since neither depends on the other, and resets
+both. The translation direction and the paths cannot be changed once a job
+has started.
+
+```powershell
+book-agent config-apply "D:\runs\my-job" --config configs\my-production.yaml          # save; says what to rerun
+book-agent config-apply "D:\runs\my-job" --config configs\my-production.yaml --rerun  # save and reset from that stage
+book-agent resume "D:\runs\my-job"
+```
+
+In the dashboard this is **Unlock to edit** on a started job's Config tab: the
+page lists each change with what it does to the pipeline, and saves with a
+rerun from the earliest finished stage affected, or without one when no
+finished stage read the changed settings.
 
 Reset one stage and all of its downstream dependents, then optionally resume:
 

@@ -145,10 +145,17 @@ class StatusAndReportTests:
         proposed.write_text(f"ollama:\n  model: other-model:1b\n", encoding="utf-8")
         code, output, _ = run(["config-diff", str(job.root), "--config", str(proposed)])
         assert code == ExitCode.COMPLETE and "Changed: yes" in output
-        assert f"- ollama.model: {captured.ollama.model!r} -> 'other-model:1b'" in output
-        assert output.rstrip().endswith("retry affected stages explicitly before resuming.")
+        # Each change with the first stage it affects; the glossary's resolution has finished in this job.
+        assert f"- ollama.model: {captured.ollama.model!r} -> 'other-model:1b' (first affects resolve_glossary, which has finished)" in output
+        assert "rerun from resolve_glossary: book-agent retry" in output
+        assert output.rstrip().endswith("a finished stage that read a changed setting is rerun explicitly.")
         code, output, _ = run(["config-diff", str(job.root), "--config", str(proposed), "--json"])
-        assert {"path": "ollama.model", "captured": captured.ollama.model, "proposed": "other-model:1b"} in json.loads(output)["changes"]
+        diff = json.loads(output)
+        assert {
+            "path": "ollama.model", "captured": captured.ollama.model, "proposed": "other-model:1b",
+            "stage": "resolve_glossary", "stages": ["resolve_glossary"], "finished": True, "locked": "",
+        } in diff["changes"]
+        assert diff["rerun_stage"] == "resolve_glossary" and diff["rerun_stages"] == ["resolve_glossary"]
 
 
 class ExportTests:

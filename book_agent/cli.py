@@ -41,6 +41,7 @@ from .subtitles import (
 )
 from .languages import LanguagePair, language_support
 from .stages.compile import load_compiled_epub_path
+from .config_impact import config_changes, config_impact
 from .output import check_output, output_format
 from .schemas import DEFAULT_GLOSSARY_PAIR
 from .series import (
@@ -73,6 +74,7 @@ from .workflow import (
     format_json,
     format_status_plain,
     load_workspace_config,
+    replace_workspace_config,
     request_pause,
     retry_failed_from_stage,
     retry_from_stage,
@@ -202,6 +204,19 @@ def build_parser() -> argparse.ArgumentParser:
     config_diff_parser.add_argument("workspace", help="job workspace path")
     config_diff_parser.add_argument("--config", required=True, help="proposed YAML configuration")
     config_diff_parser.add_argument("--json", action="store_true", help="emit machine-readable JSON")
+
+    config_apply_parser = subparsers.add_parser(
+        "config-apply",
+        help="save a changed configuration as a started job's own; says which stage must be rerun",
+    )
+    config_apply_parser.add_argument("workspace", help="job workspace path")
+    config_apply_parser.add_argument("--config", required=True, help="the changed YAML configuration")
+    config_apply_parser.add_argument(
+        "--rerun",
+        action="store_true",
+        help="also reset the earliest finished stage the change affects, and those after it, for the next resume",
+    )
+    config_apply_parser.add_argument("--json", action="store_true", help="emit machine-readable JSON")
 
     subparsers.add_parser("styles", help="list available prose-style names")
 
@@ -562,28 +577,77 @@ def build_config_diff(
 ) -> dict[str, object]:
     """Return leaf-level effective configuration changes without mutating a job."""
     path = Path(proposed_config_path).resolve()
-    proposed = resolve_config_paths(load_config(path), path.parent).model_dump(mode="json")
-    captured = load_workspace_config(workspace).model_dump(mode="json")
-    changes: list[dict[str, object]] = []
-
-    def walk(prefix: str, before, after) -> None:
-        if isinstance(before, dict) and isinstance(after, dict):
-            for key in sorted(set(before) | set(after)):
-                child = f"{prefix}.{key}" if prefix else key
-                walk(child, before.get(key), after.get(key))
-            return
-        if before != after:
-            changes.append({"path": prefix, "captured": before, "proposed": after})
-
-    walk("", captured, proposed)
+    proposed = resolve_config_paths(load_config(path), path.parent)
+    statuses = {str(stage["name"]): str(stage["status"]) for stage in workflow_status(workspace)["stages"]}
+    # Each change with the first stage it affects, as the dashboard shows it (book_agent/config_impact.py).
+    # The job's own config with its paths made whole against the same folder: a path written another way is no change.
+    captured = resolve_config_paths(load_workspace_config(workspace), path.parent)
+    impact = config_impact(config_changes(captured, proposed), statuses)
+    changes = [
+        {
+            "path": change["path"],
+            "captured": change["before"],
+            "proposed": change["after"],
+            "stage": change["stage"],
+            "stages": change["stages"],
+            "finished": change["finished"],
+            "locked": change["locked"],
+        }
+        for change in sorted(impact["changes"], key=lambda change: change["path"])
+    ]
     return {
         "workspace": str(workspace.root),
         "proposed_config": str(path),
         "changed": bool(changes),
         "change_count": len(changes),
         "changes": changes,
-        "note": "Read-only diff; retry affected stages explicitly before resuming.",
+        "locked": impact["locked"],
+        "rerun_stages": impact["rerun_stages"],
+        "rerun_stage": impact["rerun_stage"],
+        "note": "Read-only diff; `config-apply` saves it, and a finished stage that read a changed setting is rerun explicitly.",
     }
+
+
+def _change_effect(change: dict[str, object]) -> str:
+    """What one changed setting does to the job, in a few words."""
+    if change["locked"]:
+        return "locked once a job has started"
+    if not change["stage"]:
+        return "applies to what runs next"
+    stages = " and ".join(change.get("stages") or [change["stage"]])
+    return f"first affects {stages}" + (", which has finished" if change["finished"] else "")
+
+
+def apply_config_change(workspace, proposed_config_path: str | Path, *, rerun: bool = False) -> dict[str, object]:
+    """Save a proposed config as a started job's own, as the dashboard's
+    Config tab does; with `rerun`, also reset the earliest finished stage that
+    read a changed setting, and every stage after it, for the next resume."""
+    diff = build_config_diff(workspace, proposed_config_path)
+    if any(stage["status"] == "running" for stage in workflow_status(workspace)["stages"]):
+        raise ValueError("the job is running; pause or stop it before changing its configuration")
+    if diff["locked"]:
+        raise ValueError("these settings cannot be changed once a job has started: " + ", ".join(diff["locked"]))
+    path = Path(proposed_config_path).resolve()
+    proposed = resolve_config_paths(load_config(path), path.parent)
+    check_output(workspace.source_file, proposed)
+    reset: list[str] = []
+    if diff["changes"]:
+        replace_workspace_config(
+            workspace,
+            proposed,
+            [
+                {
+                    "path": item["path"], "before": item["captured"], "after": item["proposed"],
+                    "stage": item["stage"], "stages": item["stages"],
+                }
+                for item in diff["changes"]
+            ],
+        )
+        if rerun:
+            # Every stage the change reaches, and its dependents: one of them alone leaves the other branch as it was.
+            done = {stage for root in diff["rerun_stages"] for stage in retry_from_stage(workspace, WorkflowStage(str(root)))}
+            reset = [stage.value for stage in WorkflowStage if stage in done]
+    return {**diff, "saved": bool(diff["changes"]), "reset_stages": reset, "note": ""}
 
 
 def format_config_diff_plain(diff: dict[str, object]) -> str:
@@ -595,9 +659,24 @@ def format_config_diff_plain(diff: dict[str, object]) -> str:
     ]
     for item in diff["changes"]:
         lines.append(
-            f"- {item['path']}: {item['captured']!r} -> {item['proposed']!r}"
+            f"- {item['path']}: {item['captured']!r} -> {item['proposed']!r} ({_change_effect(item)})"
         )
-    lines.append(str(diff["note"]))
+    if diff.get("saved"):
+        lines.append("Saved as the job's configuration.")
+    if diff.get("reset_stages"):
+        lines.append("Reset for the next resume: " + ", ".join(diff["reset_stages"]))
+    elif diff["rerun_stages"]:
+        stages = list(diff["rerun_stages"])
+        # The last command resumes; the ones before it only reset their stage, which is on another branch of the pipeline.
+        commands = [
+            f"book-agent retry \"{diff['workspace']}\" --stage {stage}" + (" --resume" if stage == stages[0] else "")
+            for stage in [*stages[1:], stages[0]]
+        ]
+        lines.append(
+            f"For the change to be in the job's result, rerun from {' and '.join(stages)}: " + "; then ".join(commands)
+        )
+    if diff["note"]:
+        lines.append(str(diff["note"]))
     return "\n".join(lines)
 
 
@@ -1374,6 +1453,10 @@ def main(argv: Sequence[str] | None = None) -> int:
             workspace = open_job_workspace(args.workspace)
             diff = build_config_diff(workspace, args.config)
             print(format_json(diff) if args.json else format_config_diff_plain(diff))
+            return ExitCode.COMPLETE
+        if args.command == "config-apply":
+            applied = apply_config_change(open_job_workspace(args.workspace), args.config, rerun=args.rerun)
+            print(format_json(applied) if args.json else format_config_diff_plain(applied))
             return ExitCode.COMPLETE
         if args.command == "styles":
             print("\n".join(list_style_names()))

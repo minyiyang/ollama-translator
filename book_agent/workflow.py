@@ -116,6 +116,53 @@ def load_workspace_config(workspace: JobWorkspace) -> AppConfig:
     return AppConfig.model_validate_json(workspace.config_file.read_text(encoding="utf-8"))
 
 
+CONFIG_CHANGES_FILE = "reports/config-changes.jsonl"
+
+
+def replace_workspace_config(
+    workspace: JobWorkspace, config: AppConfig, changes: list[dict[str, Any]], *, now: datetime | None = None
+) -> dict[str, Any]:
+    """Make `config` the job's config: the snapshot and its recorded hash are
+    replaced together, and the change is written to the job's record of them
+    (reports/config-changes.jsonl: when, and each setting's old and new
+    value), so that a result can be traced to the config that made it.
+
+    Nothing of the pipeline is reset here: a stage that has finished keeps
+    what it made until it is rerun (book_agent/config_impact.py says which)."""
+    from .atomic_io import atomic_write_text
+    from .hashing import sha256_text
+
+    text = config.model_dump_json(indent=2)
+    record = {
+        "at": (now or datetime.now().astimezone()).isoformat(timespec="seconds"),
+        "config_sha256": sha256_text(text),
+        "changes": [
+            {key: change[key] for key in ("path", "before", "after", "stage", "stages") if key in change}
+            for change in changes
+        ],
+    }
+    connection = connect_state(workspace.state_file)
+    try:
+        record["previous_config_sha256"] = get_job_metadata(connection, "config_sha256") or ""
+        atomic_write_text(workspace.config_file, text)
+        set_job_metadata(connection, "config_sha256", record["config_sha256"])
+    finally:
+        connection.close()
+    log = workspace.directory(CONFIG_CHANGES_FILE)
+    log.parent.mkdir(parents=True, exist_ok=True)
+    with log.open("a", encoding="utf-8", newline="\n") as stream:
+        stream.write(json.dumps(record, ensure_ascii=False) + "\n")
+    return record
+
+
+def config_change_log(workspace: JobWorkspace) -> list[dict[str, Any]]:
+    """The changes made to a started job's config, oldest first."""
+    log = workspace.directory(CONFIG_CHANGES_FILE)
+    if not log.is_file():
+        return []
+    return [json.loads(line) for line in log.read_text(encoding="utf-8").splitlines() if line.strip()]
+
+
 def default_stage_runners() -> dict[WorkflowStage, StageRunner]:
     """Return adapters from workflow stages to their existing typed stage APIs."""
     return {

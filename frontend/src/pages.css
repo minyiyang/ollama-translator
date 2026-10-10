@@ -386,3 +386,17 @@ textarea, input[type=text] { unicode-bidi: plaintext; }
 /* A finished job in the Jobs list: its format menu beside its Download link. */
 .row-download { display: flex; gap: 6px; align-items: center; }
 .row-download select { width: auto; max-width: 8.5em; }
+
+/* A started job's config, unlocked: what the edited text would change (Config tab). */
+.config-changes { list-style: none; margin: 0 0 10px; padding: 0; }
+.config-changes li { padding: 8px 0; border-bottom: 1px solid var(--line); }
+.config-changes li:last-child { border-bottom: 0; }
+.config-changes .name { font-weight: 600; }
+.config-changes .path { font-family: var(--mono); font-size: 12px; color: var(--muted); overflow-wrap: anywhere; }
+.config-changes .values { margin: 3px 0; overflow-wrap: anywhere; }
+.config-changes .help { color: var(--muted); font-size: 13px; }
+.config-changes li.locked .values { text-decoration: line-through; }
+.config-history { margin-top: 10px; font-size: 13px; }
+.config-history ul { margin: 6px 0 0; padding-inline-start: 18px; }
+.config-history li { margin-bottom: 6px; overflow-wrap: anywhere; }
+.opt .locked-note { color: var(--warn); }

@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { api } from "../api";
 import { jobKey, useT, type MessageKey } from "../i18n";
+import { lockedReason } from "./ConfigChanges";
 import {
   COMMON_GROUPS,
   GLOSSARY_REVIEW_FLAGS,
@@ -54,6 +55,7 @@ export function ConfigEditor({
   hasComments,
   readOnly = false,
   jobType,
+  locked,
 }: {
   text: string;
   onTextChange: (text: string) => void;
@@ -61,6 +63,8 @@ export function ConfigEditor({
   readOnly?: boolean;
   /** The kind of job the config is for: settings the other kind alone reads are left out of the form. */
   jobType?: JobKind;
+  /** A started job's settings that cannot be changed, each with its reason: a path, or a section ("paths."). */
+  locked?: Record<string, string>;
 }) {
   const t = useT();
   const [sections, setSections] = useState<SchemaSection[]>([]);
@@ -165,6 +169,12 @@ export function ConfigEditor({
   const knownPaths = new Set(fields.keys());
   const generalErrors = errors.filter((e) => !knownPaths.has(e.path));
 
+  /** Why a setting is locked for this job, or "" when it can be changed. */
+  const lockOf = (path: string): string => {
+    const key = Object.keys(locked ?? {}).find((entry) => (entry.endsWith(".") ? path.startsWith(entry) : path === entry));
+    return key ? lockedReason(locked![key], t) : "";
+  };
+
   // Plain render functions (not nested components) so inputs keep focus across renders.
   const renderRow = (field: SchemaField) => {
     const value = effective(field.path);
@@ -175,16 +185,20 @@ export function ConfigEditor({
     }
     const modified = hasPath(values, field.path) && !sameValue(getPath(values, field.path), field.default);
     const error = errorFor(field.path);
+    const lock = readOnly ? "" : lockOf(field.path);
     return (
       <div key={field.path} className={`opt ${modified ? "modified" : ""} ${error ? "invalid" : ""}`} id={`opt-${field.path}`}>
         <div>
           <div className="name">{optionLabel(field.path, jobType) ?? humanize(field.key)}</div>
           <div className="path">{field.path}</div>
           {optionHelp(field.path, jobType) && <div className="help">{optionHelp(field.path, jobType)}</div>}
+          {lock && <div className="help locked-note">{lock}</div>}
         </div>
         <div className="control">
-          <FieldControl field={field} value={value} onChange={(v) => change(field.path, v)} installed={installed} isModel={MODEL_PATHS.has(field.path)} />
-          {modified && (
+          <fieldset disabled={!!lock} className="plain-fieldset">
+            <FieldControl field={field} value={value} onChange={(v) => change(field.path, v)} installed={installed} isModel={MODEL_PATHS.has(field.path)} />
+          </fieldset>
+          {modified && !lock && (
             <button type="button" className="small" title={t("config.editor.default", { value: String(JSON.stringify(field.default)) })} onClick={() => reset(field.path)}>
               {t("config.editor.reset")}
             </button>
@@ -221,11 +235,12 @@ export function ConfigEditor({
         <div className="name">{t("config.languages.title")}</div>
         <div className="path">translation.direction</div>
         <div className="help">{t("config.languages.help")}</div>
+        {!readOnly && lockOf("translation.direction") && <div className="help locked-note">{lockOf("translation.direction")}</div>}
       </div>
       <div className="control">
         <LanguagePairPicker
           value={pair}
-          disabled={readOnly || reading}
+          disabled={readOnly || reading || !!lockOf("translation.direction")}
           onChange={(next) =>
             commit(unsetPath(unsetPath(setPath(values, "translation.direction", next), "translation.source_language"), "translation.target_language"))
           }
